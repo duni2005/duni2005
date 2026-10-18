@@ -87,13 +87,13 @@ func _build_ui() -> void:
 	ArenaUI.danger(retreat_button)
 	retreat_button.disabled = true
 	battle_toolbar=HBoxContainer.new();battle_toolbar.custom_minimum_size.y=44;actions_home.add_child(battle_toolbar)
-	pause_button=Button.new();pause_button.text="Ⅱ 일시정지";pause_button.add_theme_font_size_override("font_size",11);pause_button.custom_minimum_size.x=78;ArenaUI.bind(pause_button,_toggle_watch_pause);battle_toolbar.add_child(pause_button)
+	pause_button=Button.new();pause_button.text="Ⅱ 일시정지";pause_button.add_theme_font_size_override("font_size",11);pause_button.custom_minimum_size.x=104;ArenaUI.bind(pause_button,_toggle_watch_pause);ArenaUI.quiet(pause_button);battle_toolbar.add_child(pause_button)
 	var leading_space:=Control.new();leading_space.size_flags_horizontal=Control.SIZE_EXPAND_FILL;battle_toolbar.add_child(leading_space)
-	speed_row=HBoxContainer.new();speed_row.add_theme_constant_override("separation",0);battle_toolbar.add_child(speed_row)
+	speed_row=HBoxContainer.new();speed_row.add_theme_constant_override("separation",4);battle_toolbar.add_child(speed_row)
 	for speed in [1,2,4]:
-		var choice:=Button.new();choice.text="%d×"%speed;choice.toggle_mode=true;choice.custom_minimum_size=Vector2(34,44);ArenaUI.bind(choice,func():if is_instance_valid(battle):battle.clock.set_speed(float(speed)));speed_row.add_child(choice);speed_buttons[speed]=choice
-		for state in ["normal","hover","pressed","hover_pressed"]:choice.add_theme_stylebox_override(state,ArenaUI.box(Color("3a4a72") if state in ["pressed","hover_pressed"] else Color("1a2238"),Color("2e3b5c")))
-	var space:=Control.new();space.size_flags_horizontal=Control.SIZE_EXPAND_FILL;battle_toolbar.add_child(space);retreat_button.reparent(battle_toolbar)
+		var choice:=Button.new();choice.text="%d×"%speed;choice.toggle_mode=true;choice.custom_minimum_size=Vector2(30,44);choice.add_theme_font_size_override("font_size",12);ArenaUI.bind(choice,func():if is_instance_valid(battle):battle.clock.set_speed(float(speed)));speed_row.add_child(choice);speed_buttons[speed]=choice
+		ArenaUI.quiet(choice)
+	var space:=Control.new();space.size_flags_horizontal=Control.SIZE_EXPAND_FILL;battle_toolbar.add_child(space);retreat_button.reparent(battle_toolbar);retreat_button.custom_minimum_size.x=104
 	next_button.text = "같은 방 재도전"
 	deployment_legend = column.get_child(board.get_index()+1)
 	var aim_overlay:=TranscendenceOverlay.new();aim_overlay.screen=self;add_child(aim_overlay)

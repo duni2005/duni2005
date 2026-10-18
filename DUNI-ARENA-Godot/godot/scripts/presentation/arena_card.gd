@@ -45,8 +45,24 @@ func draw_equipment(y: float,slot_size: float=15) -> void:
 		draw_style_box(ArenaUI.box(Color("121a2c"),Color("3a4a72")),Rect2(at,Vector2.ONE*slot_size))
 		if i<equipment_kinds.size():ArenaIcon.draw(self,at+Vector2.ONE*slot_size*.5,equipment_kinds[i],slot_size-2,Color.WHITE)
 		else:draw_line(at+Vector2(5,slot_size*.5),at+Vector2(slot_size-5,slot_size*.5),Color("6d7aa0"),1)
+func draw_price_chip(rect: Rect2,sold_label: String) -> void:
+	# Gold prices sit on a dark-gold chip, token prices on a dark-blue one: currency icon + amount.
+	var m: RegExMatch=RegEx.create_from_string("(\\d+)\\s*G$").search(price)
+	var currency: String="gold" if m!=null else ""
+	if m==null:
+		m=RegEx.create_from_string("토큰\\s*(\\d+)").search(price);currency="gem" if m!=null else ""
+	if sold or currency.is_empty():
+		draw_style_box(ArenaUI.box(Color("201f1d"),Color("3a3733")),rect)
+		write(Vector2(rect.position.x,rect.get_center().y+5),sold_label if sold else price,12,Color("8d8a85"),rect.size.x,true);return
+	var gold_chip: bool=currency=="gold";var dim: float=.55 if disabled else 1.0
+	var chip: StyleBoxFlat=ArenaUI.box(Color("3a2f18") if gold_chip else Color("1a2a45"),Color(Color("c9a24a") if gold_chip else Color("5f9bd8"),dim));chip.set_corner_radius_all(7)
+	draw_style_box(chip,rect)
+	var font: Font=ArenaUI.numbers_font();var amount: String=m.get_string(1);var fs: int=17
+	var width: float=18+5+font.get_string_size(amount,HORIZONTAL_ALIGNMENT_LEFT,-1,fs).x;var x: float=rect.get_center().x-width*.5
+	ArenaIcon.draw(self,Vector2(x+9,rect.get_center().y),currency,17,Color(1,1,1,dim))
+	draw_string(font,Vector2(x+23,rect.get_center().y+6),amount,HORIZONTAL_ALIGNMENT_LEFT,-1,fs,Color(ArenaUI.GOLD if gold_chip else Color("bfe0ff"),dim))
 func draw_badge(at: Vector2,radius: float,ring: Color) -> void:
-	draw_circle(at,radius,Color("151225"));draw_arc(at,radius,0,TAU,40,Color(ring,.55),1.5,true)
+	draw_circle(at,radius,Color("1d1a17"));draw_arc(at,radius,0,TAU,40,Color(ring,.45),1.5,true)
 func draw_energy(y: float,width: float,height: float=4) -> void:
 	# Five-segment energy meter, the same pips the unit strip uses, centred on the card.
 	var gap: float=2;var cell: float=(width-gap*4)/5;var x: float=(size.x-width)*.5
@@ -121,8 +137,8 @@ func _draw() -> void:
 		if plain:cached_style.bg_color=Color("26314f") if hovered else Color("1e2846");cached_style.border_color=Color("4a5b90")
 	elif card_type in ACTION_TYPES:
 		cached_style.set_corner_radius_all(12)
-		if plain:cached_style.bg_color=Color("352c45") if hovered else Color("2a2338");cached_style.border_color=Color("a07c44") if hovered else Color("8c6d3c")
-		elif disabled and not active:cached_style.bg_color=Color("16141f");cached_style.border_color=Color("3a3348")
+		if plain:cached_style.bg_color=Color("34302b") if hovered else Color("2a2724");cached_style.border_color=Color("7a6a58") if hovered else Color("5b5045")
+		elif disabled and not active:cached_style.bg_color=Color("1a1917");cached_style.border_color=Color("34302c")
 	elif card_type=="slot":
 		cached_style.set_corner_radius_all(9)
 		if plain:cached_style.bg_color=Color("1b2440");cached_style.border_color=Color("5a6aa0")
@@ -177,9 +193,7 @@ func _draw() -> void:
 		ArenaIcon.draw(self,Vector2(size.x*.5,29),kind,28,Color.WHITE if not disabled else Color(1,1,1,.4))
 		draw_string(ArenaUI.heading_font(),Vector2(5,62),ArenaUI.plain(title),HORIZONTAL_ALIGNMENT_CENTER,size.x-10,15,muted if disabled else Color("fff3dc"))
 		draw_multiline_string(get_theme_default_font(),Vector2(8,84),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-16,12,3,muted)
-		if not price.is_empty():
-			draw_style_box(ArenaUI.box(Color("4a3c24"),Color("b9955a")),Rect2(size.x*.5-42,size.y-34,84,26))
-			write(Vector2(4,size.y-15),price,13,gold,size.x-8,true)
+		if not price.is_empty():draw_price_chip(Rect2(size.x*.5-46,size.y-36,92,28),"완료")
 		return
 	if card_type=="revival_member":
 		UnitIcon.draw(self,Rect2(size.x*.5-20,12,40,40),type_id,1)
@@ -223,8 +237,7 @@ func _draw() -> void:
 		ArenaIcon.draw(self,Vector2(size.x*.5,28),kind,27,gold)
 		draw_multiline_string(get_theme_default_font(),Vector2(4,59),title,HORIZONTAL_ALIGNMENT_CENTER,size.x-8,12,2,Color("eef1fa"))
 		draw_multiline_string(get_theme_default_font(),Vector2(6,91),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-12,11,3,muted)
-		draw_style_box(ArenaUI.box(Color("4a432c"),Color("b9a166")),Rect2(5,size.y-36,size.x-10,28))
-		write(Vector2(0,size.y-17),price,12,gold,size.x,true)
+		draw_price_chip(Rect2(6,size.y-37,size.x-12,30),"구매 완료")
 		return
 	if card_type=="slot":
 		ArenaIcon.draw(self,Vector2(size.x*.5,21),kind,23,gold)
@@ -243,9 +256,7 @@ func _draw() -> void:
 		UnitIcon.draw(self,Rect2(size.x*.5-29,33,58,58),type_id,.4 if sold else 1)
 		write(Vector2(0,114),stats_summary,10,muted,size.x,true)
 		draw_multiline_string(get_theme_default_font(),Vector2(7,138),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-14,10,2,muted)
-		draw_style_box(ArenaUI.box(Color("1f2a44"),Color("4b5a86")),Rect2(7,size.y-43,size.x-14,34))
-		if not sold:ArenaIcon.draw(self,Vector2(19,size.y-26),"gem",13,Color.WHITE)
-		write(Vector2(28,size.y-21),"영입 완료" if sold else price.replace("토큰 ","").replace(" · 영입"," 토큰 · 영입"),10,gold if not sold else muted,size.x-34,true)
+		draw_price_chip(Rect2(7,size.y-42,size.x-14,32),"영입 완료")
 		return
 	if card_type=="strategy" and size.y<=64:
 		ArenaIcon.draw(self,Vector2(17,size.y*.5),kind,22,gold)

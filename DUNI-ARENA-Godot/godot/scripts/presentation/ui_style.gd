@@ -48,6 +48,30 @@ static func fit_window(window: Window) -> Vector2i:
 		window.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_IGNORE
 	if window.content_scale_size!=logical:window.content_scale_size=logical
 	return logical
+static func price_button(button: Button,label: String,currency: String,amount: int) -> void:
+	# "label (icon) amount" on the currency's chip colours: gold = dark gold, gem = dark blue.
+	button.text="";button.icon=null;button.custom_minimum_size.x=maxf(button.custom_minimum_size.x,124)
+	var gold: bool=currency=="gold"
+	for state in ["normal","hover","pressed","disabled","focus"]:
+		var style: StyleBoxFlat=box(Color("3a2f18") if gold else Color("1a2a45"),Color("c9a24a") if gold else Color("5f9bd8"))
+		if state in ["hover","pressed"]:style.bg_color=style.bg_color.lightened(.1)
+		if state=="disabled":style.border_color.a=.45;style.bg_color=style.bg_color.darkened(.3)
+		if state=="focus":style.draw_center=false;style.border_color=Color.TRANSPARENT
+		style.set_corner_radius_all(8);button.add_theme_stylebox_override(state,style)
+	var row:=HBoxContainer.new();row.name="PriceRow";row.alignment=BoxContainer.ALIGNMENT_CENTER;row.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_theme_constant_override("separation",6);row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);button.add_child(row)
+	var text:=Label.new();text.text=label;text.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(text)
+	var icon:=TextureRect.new();icon.texture=ArenaIcon.texture(currency);icon.custom_minimum_size=Vector2(16,16);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;icon.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(icon)
+	var value:=Label.new();value.text=str(amount);value.add_theme_font_override("font",numbers_font());value.add_theme_font_size_override("font_size",17);value.add_theme_color_override("font_color",GOLD if gold else Color("bfe0ff"));value.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(value)
+	row.modulate.a=.5 if button.disabled else 1.0
+static func quiet(button: Button,selected: bool=false) -> void:
+	# Low-priority battle controls: sky-blue outline on a near-background fill; selection brightens the fill.
+	for state in ["normal","hover","pressed","hover_pressed","disabled","focus"]:
+		var on: bool=selected or state in ["pressed","hover_pressed"]
+		var style: StyleBoxFlat=box(Color("2a4466") if on else Color("101829"),Color("7fb4e0",.85 if on else .5))
+		style.set_corner_radius_all(8);style.expand_margin_top=-5;style.expand_margin_bottom=-5
+		if state=="focus":style.draw_center=false;style.border_color=Color.TRANSPARENT
+		button.add_theme_stylebox_override(state,style)
+	for name in ["font_color","font_hover_color","font_pressed_color","font_focus_color","font_hover_pressed_color"]:button.add_theme_color_override(name,Color("eef1fa") if selected else Color("aac4de"))
 static func page_rect(node: Node) -> Rect2i:
 	# Full-page dialogs open at their final rect, so they never jump after the first frames.
 	var root: Window=node.get_tree().root

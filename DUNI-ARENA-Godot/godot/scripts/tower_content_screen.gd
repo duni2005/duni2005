@@ -15,6 +15,8 @@ var column: VBoxContainer
 var scroll: ScrollContainer
 var content_box: VBoxContainer
 var map_button: Button
+var footer_gap: Control
+const FOOTER_LIFT: float=49
 var abandon_button: Button
 var guild_dialog: AcceptDialog
 var guild_panel: GuildManagementPanel
@@ -61,6 +63,8 @@ func _ready() -> void:
 	room_title=Label.new();room_title.text=RoomType.LABELS[controller.current_room().room_type];room_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;room_title.add_theme_font_override("font",ArenaUI.heading_font());room_title.add_theme_font_size_override("font_size",20);room_title.add_theme_color_override("font_color",ArenaUI.GOLD);actions.add_child(room_title)
 	map_footer=CenterContainer.new();column.add_child(map_footer)
 	map_button=button(map_footer,"지도로",_return_map);map_button.custom_minimum_size.y=48;ArenaUI.primary(map_button);ArenaUI.with_icon(map_button,"play",12,true)
+	# Lift the footer to the deploy screen's "전투 시작" height.
+	footer_gap=Control.new();footer_gap.custom_minimum_size.y=FOOTER_LIFT;footer_gap.mouse_filter=Control.MOUSE_FILTER_IGNORE;column.add_child(footer_gap)
 	status=Label.new();status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;status.add_theme_font_size_override("font_size",12);room_column.add_child(status)
 	content_menu=AcceptDialog.new();content_menu.title="메뉴";content_menu.get_ok_button().text="닫기";add_child(content_menu);ArenaModalBackdrop.new().connect_window(content_menu,self)
 	var menu_actions:=VBoxContainer.new();content_menu.add_child(menu_actions);ArenaUI.dialog_header(content_menu,menu_actions,"메뉴")
@@ -142,7 +146,7 @@ func render() -> void:
 	map_button.visible=node.room_type!=RoomType.EVENT or node.event_type==&"promotion" or node.cleared
 	if node.event_type==&"promotion":map_button.text="완료 · 지도로";map_button.disabled=false
 	else:map_button.text="지도로"
-	map_footer.visible=map_button.visible
+	map_footer.visible=map_button.visible;footer_gap.visible=map_footer.visible
 	abandon_button.disabled=controller.guild.state.game_over or is_instance_valid(battle) and not battle.finished
 	if phase==&"cleared":
 		var text:=Label.new();text.text="이미 완료한 방입니다.";content_box.add_child(text);return
@@ -160,7 +164,7 @@ func render_recruit(node: RoomState) -> void:
 		var data: UnitData=controller.guild.definition(offer.unit_type_id)
 		var b:=ArenaCard.new();b.text=data.display_name+" · 영입";b.card_type="recruit";b.type_id=offer.unit_type_id;b.title=data.display_name;b.description=" / ".join(data.tags);b.stats_summary="HP %d · ATK %s"%[int(data.max_hp),ArenaUI.number(data.attack)];b.price="토큰 %d · 영입"%offer.token_price;b.sold=offer.purchased;b.name=offer.offer_id
 		ArenaUI.bind(b,_action.bind(&"recruit",{"offer_id":offer.offer_id}));row.add_child(b);b.custom_minimum_size=Vector2(maxf(100,(minf(760,get_viewport_rect().size.x)-32)/3-4),210);b.disabled=offer.purchased or controller.guild.state.tokens<offer.token_price
-	var reroll: Button=button(reroll_row,"리롤 · %d G"%TowerContentService.REROLL_COST,_action.bind(&"reroll"),"Reroll");reroll.disabled=controller.guild.state.gold<TowerContentService.REROLL_COST;ArenaUI.with_icon(reroll,"reengrave",14)
+	var reroll: Button=button(reroll_row,"리롤 · %d G"%TowerContentService.REROLL_COST,_action.bind(&"reroll"),"Reroll");reroll.disabled=controller.guild.state.gold<TowerContentService.REROLL_COST;ArenaUI.price_button(reroll,"리롤","gold",TowerContentService.REROLL_COST)
 func render_shop(node: RoomState) -> void:
 	if content_tab=="inventory":
 		var panel:=GuildManagementPanel.new();panel.controller=controller;panel.custom_minimum_size.y=420;content_box.add_child(panel);panel.show_tab("inventory");panel.modified.connect(refresh_wallet);return
@@ -284,7 +288,7 @@ func _process(_delta: float) -> void:
 	if width!=footer_width:footer_width=width;map_button.custom_minimum_size.x=maxf(0,minf(520,width-32))
 	var watching: bool=_watch_running()
 	guild_button.disabled=watching;menu_button.disabled=watching
-	map_footer.visible=map_button.visible and not watching
+	map_footer.visible=map_button.visible and not watching;footer_gap.visible=map_footer.visible
 	if battle_cue!=null:battle_cue.observe(battle,_delta)
 	if is_instance_valid(battle) and battle.finished and not rendered_prediction_finished:
 		if prediction_end==null:

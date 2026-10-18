@@ -167,9 +167,12 @@ func advance(delta: float) -> void:
 	if is_instance_valid(battle) and battle.finished:
 		if not cinematic.started:_prepare_ending(battle.result.end_reason)
 		_advance_ending(maxf(0,delta));return
+	# Kill notices are UI and keep real time; combat effects follow the chosen battle speed (1×/2×/4×).
+	var ui_delta: float=delta
+	if is_instance_valid(battle) and not battle.finished:delta*=battle.clock.speed
 	real_age+=maxf(0,delta);last_dt=delta
 	for i in range(kill_notices.size()-1,-1,-1):
-		kill_notices[i].age+=maxf(0,delta)
+		kill_notices[i].age+=maxf(0,ui_delta)
 		if kill_notices[i].age>3.2:kill_notices.remove_at(i)
 	impact_cooldown=maxf(0,impact_cooldown-delta);impact_remaining=maxf(0,impact_remaining-delta)
 	if impact_remaining<=0:particles.advance(delta)
@@ -255,8 +258,8 @@ func advance(delta: float) -> void:
 		if unit.alive:rows.append({"position":unit.position,"velocity":unit.velocity,"scale":unit.combat_scale()})
 	camera.set_framing(rows)
 	var ending: bool=battle.finished and end_age<1.55 and camera.finale_remaining>0
-	if battle.clock.state==BattleClock.State.TURNING_SLOWDOWN and not battle.finished:camera.advance_overview(delta)
-	else:camera.advance(delta,(battle.clock.state!=BattleClock.State.NORMAL or battle.finished) and not ending)
+	if battle.clock.state==BattleClock.State.TURNING_SLOWDOWN and not battle.finished:camera.advance_overview(ui_delta)
+	else:camera.advance(ui_delta,(battle.clock.state!=BattleClock.State.NORMAL or battle.finished) and not ending)
 	queue_redraw()
 	if is_instance_valid(glow_layer):glow_layer.queue_redraw()
 	if is_instance_valid(field_layer) and board!=null:
