@@ -404,6 +404,7 @@ func simulate_common(delta: float) -> void:
 		if full_characters_enabled and unit.data.type_id==5:unit.ability.tick(unit,delta)
 		if unit.combat.can_start(unit,unit.target): unit.combat.start(unit,unit.target,rng)
 		unit.queue_redraw()
+	if full_characters_enabled:BindingController.advance(self,delta)
 	PhysicalAttackSystem.advance(self,delta)
 	for wave in combat_waves: wave.advance(self,delta)
 	for i in range(combat_waves.size()-1,-1,-1):

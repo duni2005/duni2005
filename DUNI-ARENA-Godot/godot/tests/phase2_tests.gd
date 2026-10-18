@@ -68,7 +68,7 @@ func test_registry() -> void:
 	first.character_specific_state["test_counter"] = 3
 	verify(other.current_hp == 150 and other.ultimate_gauge == 0 and other.transcendence_gauge == 0 and other.character_specific_state.is_empty(), "same type has independent HP/gauges/dictionaries")
 	verify(not guild.register_member(first), "duplicate registration rejected")
-	verify(guild.create_member(26) == null, "unported type is not silently guessed")
+	verify(guild.create_member(CharacterCatalog.NAMES.size()) == null, "unported type is not silently guessed")
 	var restarted_manager := GuildManager.new(guild.state)
 	var next: GuildMemberState = restarted_manager.create_member(0)
 	verify(next.member_id == "member_000051" and next.member_id != first.member_id, "ID counter belongs to run, not manager/Node lifetime")

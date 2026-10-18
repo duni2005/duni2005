@@ -446,6 +446,57 @@ func _ability_state(u: BattleUnit) -> void:
 		for i in range(3):draw_line(p+Vector2((i-1)*12,-30)*s,p+Vector2((i-1)*23,-77)*s,Color("dca2e1"),1.5)
 	
 	if not u.hero_rescue.is_empty():VisualShapes.barrier(self,p,43*s,Color("ffd284"),real_age)
+	_new_character_state(u,p,s)
+
+func _new_character_state(u: BattleUnit,p: Vector2,s: float) -> void:
+	# 말뚝 tether: rope to the stake and the allowed circle.
+	if u.state_value("tetherTime")>0:
+		var stake: Vector2=CharacterPersistence.vector(u.character_specific_state.get("tetherPoint",CharacterPersistence.point(p)))
+		draw_arc(stake,u.state_value("tetherRadius",BindingController.TETHER_RADIUS),0,TAU,40,Color("c9a06b",.35),2,true)
+		draw_line(stake,p,Color("d8b98a",.8),2,true)
+		draw_rect(Rect2(stake-Vector2(4,14),Vector2(8,18)),Color("8a6440"));draw_rect(Rect2(stake-Vector2(6,16),Vector2(12,4)),Color("e8c48f"))
+	# 자석 link: current between the pair, N/S marks over each head.
+	if u.state_value("magnetTime")>0:
+		var pole: String=str(u.character_specific_state.get("magnetPole",""))
+		var tint:=Color("ff6f7a") if pole=="N" else Color("7fb6ff")
+		var partner=battle.find_actor(str(u.character_specific_state.get("magnetPartner","")))
+		if pole=="N" and partner!=null:VisualShapes.bolt(self,p,partner.position,Color("ffd0d6"),real_age*20,2)
+		draw_circle(p+Vector2(0,-50)*s,9,Color(tint,.9));draw_string(ThemeDB.fallback_font,p+Vector2(-5,-45)*s,pole,HORIZONTAL_ALIGNMENT_LEFT,-1,13,Color.WHITE)
+	if u.state_value("magnetShockFx")>0:
+		for i in range(3):VisualShapes.bolt(self,p+Vector2.from_angle(i*TAU/3+real_age*9)*30*s,p,Color("ffb3bb"),real_age*30+i,2)
+	# 굴절 swap: light beam between the old and new spot.
+	if u.state_value("refractFx")>0:
+		var from: Vector2=CharacterPersistence.vector(u.character_specific_state.get("refractFrom",CharacterPersistence.point(p)))
+		var a: float=u.state_value("refractFx")/.8
+		draw_line(from,p,Color("bdf0ff",.7*a),6*a+1,true);draw_circle(from,22*a,Color("9fe3ff",.35*a));draw_circle(p,26*a,Color("e6fbff",.4*a))
+	# 배달부 parcel: on the ground, or carried overhead.
+	if u.data.type_id==29 and u.alive:
+		var parcel: Dictionary=u.character_specific_state.get("parcel",{})
+		if not parcel.is_empty():
+			var at: Vector2=p+Vector2(0,-46)*s if parcel.get("held",false) else Vector2(float(parcel.x),float(parcel.y))
+			if not parcel.get("held",false):draw_circle(at,18+sin(real_age*5)*3,Color("ffe08a",.18))
+			draw_rect(Rect2(at-Vector2(10,8),Vector2(20,16)),Color("c08a4a"));draw_rect(Rect2(at-Vector2(2,8),Vector2(4,16)),Color("ffe08a"))
+			draw_rect(Rect2(at-Vector2(10,8),Vector2(20,16)),Color("5a3a1e"),false,1.5)
+	# Delivered buff: the gift icon rising over the recipient.
+	if u.state_value("deliveryFx")>0:
+		var kind: String=str(u.character_specific_state.get("deliveryKind","heal"))
+		var t: float=1-u.state_value("deliveryFx")/1.2
+		var icon: String={"heal":"heal","power":"fang","charge":"charge","shield":"shield"}.get(kind,"heal")
+		ArenaIcon.draw(self,p+Vector2(0,-58-t*22)*s,icon,18,Color({"heal":"8ff0a4","power":"ff9a7a","charge":"9fd8ff","shield":"7ddfff"}.get(kind,"ffffff"),1-t))
+	# 기관사 locomotive crossing the map on its track.
+	if u.data.type_id==27 and u.state_value("trainFx")>0 and u.ultimate.cast.has("track"):
+		var track: Dictionary=u.ultimate.cast.track;var dir: Vector2=Vector2.from_angle(float(track.angle))
+		var center: Vector2=Vector2(float(track.x),float(track.y));var head: Vector2=center+dir*float(u.ultimate.cast.s)
+		var side: Vector2=dir.orthogonal()
+		var arena:=Rect2(0,0,800,800)
+		for k in [-1,1]:
+			var rail: Array=[];for i in range(-40,41):if arena.has_point(center+dir*i*30+side*k*14):rail.append(center+dir*i*30+side*k*14)
+			if rail.size()>1:draw_line(rail[0],rail[-1],Color("8c7a6a",.55),2)
+		for i in range(-40,41):if arena.has_point(center+dir*i*30):draw_line(center+dir*i*30-side*18,center+dir*i*30+side*18,Color("6a5646",.35),3)
+		var body: PackedVector2Array=PackedVector2Array([head+side*26,head+dir*16,head-side*26,head-dir*170-side*26,head-dir*170+side*26])
+		draw_colored_polygon(body,Color("e07a5f"));draw_polyline(body+PackedVector2Array([body[0]]),Color("3a1f18"),2)
+		draw_circle(head-dir*40,12,Color("ffd27a"));draw_circle(head-dir*120,10,Color("2b2b33"))
+		for i in range(4):draw_circle(head-dir*(60+i*22)+side*sin(real_age*20+i)*6,10+i*3,Color(.85,.85,.85,.35-i*.07))
 
 func _draw_ending() -> void:
 	var time: float=BattleCinematicState.motion_seconds(cinematic.age)

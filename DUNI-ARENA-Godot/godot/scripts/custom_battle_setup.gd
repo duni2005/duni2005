@@ -17,7 +17,7 @@ const TEAM_NAMES: Dictionary = {-1: "개인", 0: "블루", 1: "레드", 2: "그�
 const TEAM_COLORS: Array[Color] = [Color("88b7ff"), Color("ff947d"), Color("a4db89"), Color("c8a1ff")]
 const SOLO_COLOR: Color = Color("c0cbc5")
 ## Web TYPES[i].color, used for free-for-all units.
-const TYPE_COLORS: Array[Color] = [Color("ef9279"), Color("a0c87e"), Color("b79ce4"), Color("74cbc5"), Color("e7bd6a"), Color("8dbce8"), Color("dba373"), Color("e4bc73"), Color("dfa2cf"), Color("f08b69"), Color("bdab8c"), Color("7fcbe2"), Color("a1bd72"), Color("e9a05f"), Color("b5dbea"), Color("99d9cc"), Color("e8d99b"), Color("ed8f91"), Color("a6b48b"), Color("c7a4de"), Color("93c8f0"), Color("b4e5e8"), Color("b69cff"), Color("dcc389"), Color("a0d67b"), Color("d891b4")]
+const TYPE_COLORS: Array[Color] = [Color("ef9279"), Color("a0c87e"), Color("b79ce4"), Color("74cbc5"), Color("e7bd6a"), Color("8dbce8"), Color("dba373"), Color("e4bc73"), Color("dfa2cf"), Color("f08b69"), Color("bdab8c"), Color("7fcbe2"), Color("a1bd72"), Color("e9a05f"), Color("b5dbea"), Color("99d9cc"), Color("e8d99b"), Color("ed8f91"), Color("a6b48b"), Color("c7a4de"), Color("93c8f0"), Color("b4e5e8"), Color("b69cff"), Color("dcc389"), Color("a0d67b"), Color("d891b4"),Color("c9a06b"), Color("e07a5f"), Color("9fe3ff"), Color("f2c45a"), Color("ff6f7a")]
 
 var entries: Array[Dictionary] = []
 var next_id: int = 1

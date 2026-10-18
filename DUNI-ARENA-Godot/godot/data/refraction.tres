@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/unit_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/attack_data.gd" id="2"]
+
+[sub_resource type="Resource" id="Attack"]
+script = ExtResource("2")
+kind = 1
+windup = 0.75
+active = 0.12
+recovery = 0.5
+reach = 420
+cone = 0.2
+impulse = 300
+projectile_speed = 900
+projectile_lifetime = 2.4
+projectile_radius = 22
+projectile_clash_radius = 10
+projectile_offset = 32
+projectile_spread = 0.025
+aim_lead = 0.45
+
+[resource]
+script = ExtResource("1")
+type_id = 28
+display_name = "굴절"
+base_gold_cost = 210
+max_hp = 70
+attack = 72
+defense_power = 14
+move_speed = 96
+attack_range = 380
+attack_interval = 2.6
+critical_chance = 0.15
+tags = PackedStringArray("일반", "대치형")
+emoji = "💎"
+ultimate_windup = -1.0
+attack_profile = SubResource("Attack")
+recruit_tokens = 3

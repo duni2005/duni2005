@@ -17,7 +17,7 @@ func capture(name: String) -> void:
 func run() -> void:
 	root.size=Vector2i(1000,1100)
 	screen=load("res://scenes/room_battle.tscn").instantiate();root.add_child(screen);screen.toggle_debug();await frames()
-	verify(screen.full_character_debug and screen.character_select.item_count==26,"26 real type options")
+	verify(screen.full_character_debug and screen.character_select.item_count==CharacterCatalog.NAMES.size(),"every real type is an option")
 	screen.character_select.select(23)
 	await click(screen.character_debug_row.get_child(1))
 	verify(screen.guild.all_members().size()==7 and screen.guild.all_members().back().unit_type_id==23,"UI creates individual machine gun")

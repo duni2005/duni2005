@@ -264,7 +264,7 @@ func movement(u,enemy,dt: float) -> void:
 	if move_stance(u,enemy,dt):return
 	if u.data.type_id==16 and u.ability.modify_movement(u,enemy,dt):ability_override="paladin_rally";return
 	if u.data.type_id==14 and u.combat_state!=CombatController.State.IDLE:heading=Vector2.ZERO;u.velocity=Vector2.ZERO;ability_override="slash_combo";return
-	if u.data.type_id in [19,18,15,23] and u.ability.modify_movement(u,enemy,dt):ability_override=u.data.display_name;return
+	if u.data.type_id in [19,18,15,23,29] and u.ability.modify_movement(u,enemy,dt):ability_override=u.data.display_name;return
 	if move_rear(u,enemy,dt) or move_precommit(u,enemy,dt) or move_defensive(u,enemy,dt):return
 	if u.data.type_id in [6,7,8,11] or u.data.type_id==10 and not u.lost_sword.is_empty():
 		if u.ability.modify_movement(u,enemy,dt):ability_override=u.data.display_name;return

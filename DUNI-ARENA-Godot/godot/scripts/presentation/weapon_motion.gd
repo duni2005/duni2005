@@ -46,7 +46,29 @@ static func pose(u: BattleUnit) -> Dictionary:
 static func draw(canvas: CanvasItem,pose_data: Dictionary,alpha: float=1) -> void:
 	if sheets.is_empty():
 		for i in range(DATA.sheets):sheets.append(load("res://assets/motion/weapons_%d.png"%i))
+	if not DATA.banks.has(pose_data.key):
+		# Characters added after the web capture have no baked pose sheet; draw a simple prop.
+		_draw_prop(canvas,int(String(pose_data.key).get_slice(":",0)),float(pose_data.get("index",0)),alpha);return
 	var bank: Array=DATA.banks[pose_data.key]
 	var frame: Dictionary=DATA.frames[int(bank[clampi(int(pose_data.index),0,bank.size()-1)])]
 	var r: Array=frame.rect;var offset: Array=frame.offset
 	canvas.draw_texture_rect_region(sheets[int(frame.sheet)],Rect2(offset[0],offset[1],r[2],r[3]),Rect2(r[0],r[1],r[2],r[3]),Color(1,1,1,alpha))
+static func _draw_prop(canvas: CanvasItem,type: int,index: float,alpha: float) -> void:
+	# Local space: +x is the facing / aim direction, origin at the unit centre.
+	var swing: float=sin(clampf(index/maxf(1,DATA.samples*3),0,1)*PI)*.9
+	match type:
+		26:
+			# Points are rotated by hand: draw_set_transform would replace the caller's unit transform.
+			var turn:=Transform2D(-.9+swing*1.8,Vector2.ZERO)
+			canvas.draw_line(turn*Vector2(12,6),turn*Vector2(44,6),Color(Color("8a5a3b"),alpha),4)
+			canvas.draw_colored_polygon(PackedVector2Array([turn*Vector2(38,-6),turn*Vector2(52,-6),turn*Vector2(52,16),turn*Vector2(38,16)]),Color(Color("172326"),alpha))
+			canvas.draw_colored_polygon(PackedVector2Array([turn*Vector2(39,-5),turn*Vector2(51,-5),turn*Vector2(51,15),turn*Vector2(39,15)]),Color(Color("c9a06b"),alpha))
+		27:
+			canvas.draw_rect(Rect2(18,6,9,11),Color(Color("172326"),alpha));canvas.draw_rect(Rect2(19,7,7,9),Color(Color("ffd166"),alpha*.9))
+		28:
+			canvas.draw_colored_polygon(PackedVector2Array([Vector2(26,-9),Vector2(36,8),Vector2(16,8)]),Color(Color("bdf0ff"),alpha*.9))
+			canvas.draw_polyline(PackedVector2Array([Vector2(26,-9),Vector2(36,8),Vector2(16,8),Vector2(26,-9)]),Color(Color("ffffff"),alpha),1.5)
+		30:
+			canvas.draw_arc(Vector2(28,0),8,PI*.5,PI*1.5,12,Color(Color("e8434f"),alpha),5)
+			canvas.draw_line(Vector2(28,-8),Vector2(36,-8),Color(Color("e8434f"),alpha),5);canvas.draw_line(Vector2(28,8),Vector2(36,8),Color(Color("e8434f"),alpha),5)
+			canvas.draw_line(Vector2(34,-8),Vector2(37,-8),Color(Color("d9dde2"),alpha),5);canvas.draw_line(Vector2(34,8),Vector2(37,8),Color(Color("d9dde2"),alpha),5)

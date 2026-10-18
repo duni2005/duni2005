@@ -50,4 +50,78 @@ func run(tree: SceneTree) -> void:
 		if u.alive:alive[u.original_team]=true
 	verify(alive.size()<=1,"at most one faction survives")
 	b.queue_free()
+	await new_characters(tree)
 	print("CUSTOM BATTLE RESULT: ",checks," checks; ",failures," failures")
+func duel(tree: SceneTree,rows: Array,seed: int=5) -> BattleManager:
+	var setup:=CustomBattleSetup.new()
+	for row in rows:setup.add(row[0],row[1],row[2])
+	var b:=BattleManager.new();b.auto_start=false;b.custom_mode=true;tree.root.add_child(b)
+	b.start_battle(setup.placements(),seed);b.set_physics_process(false)
+	return b
+func step(b: BattleManager,seconds: float) -> void:
+	for i in range(roundi(seconds*60)):
+		if b.finished:return
+		b.simulate(1.0/60)
+func new_characters(tree: SceneTree) -> void:
+	verify(CharacterCatalog.all().size()==31,"31 characters in the catalog")
+	# 말뚝: opening stake tethers the nearest enemy to a small circle.
+	var b:=duel(tree,[[26,0,Vector2(150,400)],[1,1,Vector2(450,400)],[1,1,Vector2(700,700)]])
+	step(b,.2)
+	var near: BattleUnit=b.units[1]
+	verify(near.state_value("tetherTime")>0 and near.current_hp<near.max_hp,"stake opens with damage and a tether on the nearest enemy")
+	verify(b.units[2].state_value("tetherTime")<=0,"only the nearest enemy is staked")
+	var stake: Vector2=CharacterPersistence.vector(near.character_specific_state.tetherPoint)
+	step(b,3)
+	verify(near.position.distance_to(stake)<=BindingController.TETHER_RADIUS+1,"tethered unit stays near the stake")
+	b.queue_free()
+	# 굴절: swaps with the farthest enemy at the start.
+	b=duel(tree,[[28,0,Vector2(100,100)],[0,1,Vector2(300,100)],[0,1,Vector2(700,700)]])
+	step(b,.05)
+	verify(b.units[0].position.distance_to(Vector2(700,700))<20 and b.units[2].position.distance_to(Vector2(100,100))<20,"refraction swaps with the farthest enemy")
+	verify(b.units[0].data.ultimate_windup<0 and b.units[0].ultimate.gain(b.units[0],50)==0,"refraction has no ultimate")
+	b.queue_free()
+	# 배달부: a parcel arrives, is carried to a fighter, and buffs it.
+	b=duel(tree,[[29,0,Vector2(400,700)],[4,0,Vector2(400,760)],[4,1,Vector2(400,80)]])
+	var courier: BattleUnit=b.units[0]
+	courier.set_state("parcelRespawn",0)
+	step(b,.1)
+	verify(not courier.character_specific_state.get("parcel",{}).is_empty(),"a parcel lands on the map")
+	var delivered: bool=false
+	for i in range(60*20):
+		step(b,1.0/60)
+		if b.units[1].state_value("deliveryFx")>0:delivered=true;break
+	verify(delivered,"courier picks up the parcel and delivers a buff to its fighter")
+	verify(courier.character_specific_state.get("parcel",{}).is_empty() and courier.state_value("parcelRespawn")>5,"next parcel arrives a few seconds later")
+	b.units[1].receive_damage(9999,b.units[2]);step(b,.1)
+	verify(not courier.alive,"courier dies when no fighting ally remains")
+	b.queue_free()
+	# 자석: ultimate links two enemies, pulls them together and holds them.
+	b=duel(tree,[[30,0,Vector2(100,400)],[4,1,Vector2(500,150)],[4,1,Vector2(500,650)]])
+	var magnet: BattleUnit=b.units[0];magnet.ultimate_gauge=100
+	for i in range(60*4):
+		step(b,1.0/60)
+		if b.units[1].state_value("magnetTime")>0:break
+	verify(b.units[1].state_value("magnetTime")>0 and b.units[2].state_value("magnetTime")>0,"magnet links two enemies")
+	step(b,1)
+	verify(b.units[1].position.distance_to(b.units[2].position)<BindingController.MAGNET_GAP+12,"linked enemies are pulled together")
+	b.queue_free()
+	# 기관사: the train hits enemies on the line hard and shoves allies lightly.
+	b=duel(tree,[[27,0,Vector2(100,700)],[4,0,Vector2(250,400)],[1,1,Vector2(500,400)],[1,1,Vector2(650,400)]])
+	var conductor: BattleUnit=b.units[0];conductor.ultimate_gauge=100
+	verify(not conductor.ability.can_attack(conductor,b.units[2]),"conductor has no basic attack")
+	var enemy_hp: float=b.units[2].current_hp+b.units[3].current_hp;var ally_hp: float=b.units[1].current_hp
+	var ran: bool=false
+	for i in range(60*5):
+		step(b,1.0/60)
+		if conductor.state_value("trainFx")>0:ran=true
+		if ran and conductor.state_value("trainFx")<=0:break
+	verify(ran,"conductor runs the train")
+	verify(enemy_hp-b.units[2].current_hp-b.units[3].current_hp>=60,"train deals heavy damage to enemies on the track")
+	verify(ally_hp-b.units[1].current_hp<20,"allies take only a little train damage")
+	b.queue_free()
+	# Each new character survives a full battle without errors.
+	for type in range(26,31):
+		b=duel(tree,[[type,0,Vector2(200,400)],[4,0,Vector2(200,500)],[0,1,Vector2(600,400)],[1,1,Vector2(600,500)]],type)
+		step(b,60)
+		verify(b.units.size()==4,"type %d battle runs" % type)
+		b.queue_free()

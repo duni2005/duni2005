@@ -1,7 +1,7 @@
 class_name AttackVisuals
 extends RefCounted
 ## Source-grounded geometry. All inputs are observed; never writes to combat objects.
-const INKS=["ffd39c","e2f5ad","bca9ee","a9eee5","f3dd9e","c5f4e5","ffe6ba","f0ca83","efb1de","efa794","e5d3ae","c2faff","d3e7b5","ffbc75","dceff5","d0fff0","fff0bc","ffc1a0","ebe5ba","e9d7ff","8bdbff","b4e5e8","d5c2ff","eed18f","ffc4c3","f4c0dc"]
+const INKS=["ffd39c","e2f5ad","bca9ee","a9eee5","f3dd9e","c5f4e5","ffe6ba","f0ca83","efb1de","efa794","e5d3ae","c2faff","d3e7b5","ffbc75","dceff5","d0fff0","fff0bc","ffc1a0","ebe5ba","e9d7ff","8bdbff","b4e5e8","d5c2ff","eed18f","ffc4c3","f4c0dc","e8c48f","ffb08c","bdf0ff","ffe08a","ff9aa4"]
 static func ink(type: int) -> Color:return Color(INKS[type])
 static func body_visible(u: BattleUnit) -> bool:
 	if not u.alive or u.frog_flight!=0:return false

@@ -61,7 +61,7 @@ func invalid_saves() -> void:
 	var bad: Dictionary=original.duplicate(true);bad.schema_version=99
 	verify(SaveValidator.validate(bad).code==SaveLoadResult.Code.UNSUPPORTED_VERSION,"unsupported schema")
 	bad=original.duplicate(true);bad.run.guild_members.append(bad.run.guild_members[0].duplicate(true));verify(not SaveValidator.validate(bad).ok(),"duplicate member")
-	for edit in [["unit_type_id",26],["energy",6],["ultimate_gauge",101],["level",11],["stars",3],["current_hp",-1]]:
+	for edit in [["unit_type_id",CharacterCatalog.NAMES.size()],["energy",6],["ultimate_gauge",101],["level",11],["stars",3],["current_hp",-1]]:
 		bad=original.duplicate(true);bad.run.guild_members[0][edit[0]]=edit[1];verify(not SaveValidator.validate(bad).ok(),"invalid member "+edit[0])
 	for edit in [["gold",-1],["player_hp",-1],["next_item_number",1]]:
 		bad=original.duplicate(true);bad.run[edit[0]]=edit[1];verify(not SaveValidator.validate(bad).ok(),"invalid run "+edit[0])

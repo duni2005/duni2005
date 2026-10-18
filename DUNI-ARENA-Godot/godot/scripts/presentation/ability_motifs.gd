@@ -1,7 +1,7 @@
 class_name AbilityMotifs
 extends RefCounted
 ## One motif per real ability identity. Exact gameplay telegraphs are rendered separately.
-const MOTIFS=["blade","arrow","vortex","veil","aegis","lotus","reticle","pellets","duel","fists","greatsword","ripples","jaws","fuse","issen","orbit","cross","comet","tracks","halo","storm","shards","spiral","tracers","tongue","threads"]
+const MOTIFS=["blade","arrow","vortex","veil","aegis","lotus","reticle","pellets","duel","fists","greatsword","ripples","jaws","fuse","issen","orbit","cross","comet","tracks","halo","storm","shards","spiral","tracers","tongue","threads","stake","rails","prism","parcel","magnet"]
 static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: float=0) -> void:
 	var c: Color=CharacterVisuals.PROJECTILE_COLORS.get("star",Color("e8c78e"))
 	c=Color(AttackVisuals.ink(u.data.type_id),1-fade)
