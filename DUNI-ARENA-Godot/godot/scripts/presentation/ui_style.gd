@@ -85,8 +85,8 @@ static func get_theme() -> Theme:
 	shared_theme.set_stylebox("panel","PanelContainer",box(PANEL))
 	shared_theme.set_stylebox("panel","AcceptDialog",box(PANEL,BORDER))
 	for state in ["normal","hover","pressed","hover_pressed","disabled","focus"]:
-		var color: Color=Color("1c253c") if state=="normal" else Color("26314e") if state=="hover" else Color("51432d") if state in ["pressed","hover_pressed"] else Color("191c28")
-		shared_theme.set_stylebox(state,"Button",button_box(color,Color("ebc27a") if state in ["pressed","hover_pressed","focus"] else Color("4a3f58") if state=="disabled" else Color("3a4870")))
+		var color: Color=Color("232d4a") if state=="normal" else Color("2c385c") if state=="hover" else Color("51432d") if state in ["pressed","hover_pressed"] else Color("191c28")
+		shared_theme.set_stylebox(state,"Button",button_box(color,Color("ebc27a") if state in ["pressed","hover_pressed","focus"] else Color("4a3f58") if state=="disabled" else Color("56669c")))
 	var focus:=box(Color.TRANSPARENT,ACCENT);focus.draw_center=false;shared_theme.set_stylebox("focus","Button",focus)
 	if touch_ui():
 		# No hover on touch: a tapped button must not stay highlighted, nor keep a focus ring.

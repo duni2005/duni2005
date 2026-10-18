@@ -26,6 +26,9 @@ var equipment_kinds: Array[String]=[]
 var equipment_slots: int=2
 var strip_style: bool=false
 var cached_style: StyleBoxFlat
+# Visual tiers: units read as information, choices as warm actions, inventory as slots.
+const UNIT_TYPES: Array=["member","deploy_member","mini_member","party","revival_member","promotion_member","ally"]
+const ACTION_TYPES: Array=["event_option","product","choice","recruit","stake","prediction_team","item"]
 func show_member(guild: GuildManager,member: GuildMemberState) -> void:
 	# Copy presentation values. Inventory ownership remains run data.
 	source_id=member.member_id;type_id=member.unit_type_id;title=guild.definition(type_id).display_name
@@ -42,6 +45,12 @@ func draw_equipment(y: float,slot_size: float=15) -> void:
 		draw_style_box(ArenaUI.box(Color("121a2c"),Color("3a4a72")),Rect2(at,Vector2.ONE*slot_size))
 		if i<equipment_kinds.size():ArenaIcon.draw(self,at+Vector2.ONE*slot_size*.5,equipment_kinds[i],slot_size-2,Color.WHITE)
 		else:draw_line(at+Vector2(5,slot_size*.5),at+Vector2(slot_size-5,slot_size*.5),Color("6d7aa0"),1)
+func draw_badge(at: Vector2,radius: float,ring: Color) -> void:
+	draw_circle(at,radius,Color("151225"));draw_arc(at,radius,0,TAU,40,Color(ring,.55),1.5,true)
+func draw_energy(y: float,width: float,height: float=4) -> void:
+	# Five-segment energy meter, the same pips the unit strip uses, centred on the card.
+	var gap: float=2;var cell: float=(width-gap*4)/5;var x: float=(size.x-width)*.5
+	for i in range(5):draw_style_box(ArenaUI.pip_style(i<energy),Rect2(x+i*(cell+gap),y,cell,height))
 func draw_member_summary(compact: bool=false) -> void:
 	var tint: Color=ArenaUI.DANGER if dead else ArenaUI.HP
 	if compact and strip_style:
@@ -61,7 +70,7 @@ func draw_member_summary(compact: bool=false) -> void:
 		var hp_y: float=37 if tiny else 54
 		write(Vector2(0,hp_y),"사망" if dead else "HP %d/%d"%[ceili(hp),ceili(hp_max)],9,tint,size.x,true)
 		draw_rect(Rect2(6,hp_y+3,size.x-12,2),Color("0e1424"));draw_rect(Rect2(6,hp_y+3,(size.x-12)*clampf(hp/maxf(1,hp_max),0,1),2),tint)
-		write(Vector2(0,hp_y+15),"기력 %d/5"%energy,9,ArenaUI.GOLD,size.x,true)
+		draw_energy(hp_y+9,size.x-12)
 		draw_equipment(hp_y+20,12)
 		return
 	var small: bool=card_type=="deploy_member"
@@ -72,7 +81,7 @@ func draw_member_summary(compact: bool=false) -> void:
 	var hp_y: float=80 if small else 91
 	write(Vector2(0,hp_y),"사망" if dead else "HP "+ArenaUI.hp(hp,hp_max),10,tint,size.x,true)
 	draw_rect(Rect2(10,hp_y+4,size.x-20,3),Color("0e1424"));draw_rect(Rect2(10,hp_y+4,(size.x-20)*clampf(hp/maxf(1,hp_max),0,1),3),tint)
-	write(Vector2(0,hp_y+18),"기력 %d / 5"%energy,10,ArenaUI.GOLD,size.x,true)
+	draw_energy(hp_y+12,size.x-20,5)
 	draw_equipment(hp_y+24,13 if small else 15)
 	if not small:write(Vector2(0,size.y-7),"사망 · 배치 불가" if dead else status_text,10,ArenaUI.DANGER if dead else ArenaUI.MUTED,size.x,true)
 	for i in range(stars):ArenaIcon.draw(self,Vector2(size.x-11-i*12,33),"star",11,ArenaUI.GOLD)
@@ -105,8 +114,24 @@ func _draw() -> void:
 		if kind in ["boss","miniboss"]:cached_style.bg_color=Color("453a2b");cached_style.border_color=Color("e0b36b")
 		if sold:cached_style.bg_color=Color("1d3a3a");cached_style.border_color=Color("5fb592")
 		if spent:cached_style.bg_color=Color("111726");cached_style.border_color=Color("283250")
+	var plain: bool=not active and not dead and not disabled
+	cached_style.set_corner_radius_all(22 if card_type=="nav" else 7)
+	if card_type in UNIT_TYPES:
+		cached_style.set_corner_radius_all(10)
+		if plain:cached_style.bg_color=Color("26314f") if hovered else Color("1e2846");cached_style.border_color=Color("4a5b90")
+	elif card_type in ACTION_TYPES:
+		cached_style.set_corner_radius_all(12)
+		if plain:cached_style.bg_color=Color("352c45") if hovered else Color("2a2338");cached_style.border_color=Color("a07c44") if hovered else Color("8c6d3c")
+		elif disabled and not active:cached_style.bg_color=Color("16141f");cached_style.border_color=Color("3a3348")
+	elif card_type=="slot":
+		cached_style.set_corner_radius_all(9)
+		if plain:cached_style.bg_color=Color("1b2440");cached_style.border_color=Color("5a6aa0")
 	if held:cached_style.bg_color=cached_style.bg_color.lightened(.12);cached_style.border_color=ArenaUI.ACCENT
 	draw_style_box(cached_style,Rect2(Vector2.ONE,size-Vector2.ONE*2))
+	if card_type in UNIT_TYPES or card_type in ACTION_TYPES:
+		# Thin top sheen lifts the card off the panel.
+		var r: float=cached_style.corner_radius_top_left
+		draw_line(Vector2(r,2.5),Vector2(size.x-r,2.5),Color(1,1,1,.08),1)
 	var muted: Color=Color("9aa5c2");var gold: Color=ArenaUI.GOLD
 	if dead or (disabled and card_type not in ["room","nav","promotion_slot"]):muted=ArenaUI.DANGER;gold=ArenaUI.DANGER
 	if card_type=="party":
@@ -148,17 +173,20 @@ func _draw() -> void:
 		if active:draw_line(Vector2(10,size.y-5),Vector2(size.x-10,size.y-5),gold,2)
 		return
 	if card_type=="event_option":
-		ArenaIcon.draw(self,Vector2(size.x*.5,29),kind,30,Color.WHITE)
-		write(Vector2(5,62),title,14,muted if disabled else Color("eef1fa"),size.x-10,true)
+		draw_badge(Vector2(size.x*.5,29),23,gold)
+		ArenaIcon.draw(self,Vector2(size.x*.5,29),kind,28,Color.WHITE if not disabled else Color(1,1,1,.4))
+		draw_string(ArenaUI.heading_font(),Vector2(5,62),ArenaUI.plain(title),HORIZONTAL_ALIGNMENT_CENTER,size.x-10,15,muted if disabled else Color("fff3dc"))
 		draw_multiline_string(get_theme_default_font(),Vector2(8,84),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-16,12,3,muted)
-		if not price.is_empty():write(Vector2(4,size.y-12),price,14,gold,size.x-8,true)
+		if not price.is_empty():
+			draw_style_box(ArenaUI.box(Color("4a3c24"),Color("b9955a")),Rect2(size.x*.5-42,size.y-34,84,26))
+			write(Vector2(4,size.y-15),price,13,gold,size.x-8,true)
 		return
 	if card_type=="revival_member":
 		UnitIcon.draw(self,Rect2(size.x*.5-20,12,40,40),type_id,1)
 		write(Vector2(0,67),title,12,Color("eef1fa"),size.x,true)
 		write(Vector2(0,82),stats_summary+" · 사망",10,ArenaUI.DANGER,size.x,true)
 		write(Vector2(0,97),"HP 0 / %d"%ceili(hp_max),10,ArenaUI.DANGER,size.x,true)
-		write(Vector2(0,111),"기력 %d / 5"%energy,10,ArenaUI.GOLD,size.x,true)
+		draw_energy(105,size.x-20)
 		draw_equipment(116,12)
 		write(Vector2(0,145),"부활 "+description,9,ArenaUI.HP,size.x,true)
 		return
@@ -166,11 +194,9 @@ func _draw() -> void:
 		UnitIcon.draw(self,Rect2(size.x*.5-18,9,36,36),type_id,.4 if dead else 1)
 		write(Vector2(0,64),title,12,Color("eef1fa"),size.x,true)
 		write(Vector2(0,81),subtitle,10,muted,size.x,true)
-		for row in range(2):
-			var ratio: float=clampf(hp/maxf(1,hp_max),0,1) if row==0 else energy/5.0
-			draw_rect(Rect2(10,88+row*6,size.x-20,3),Color("0e1424"));draw_rect(Rect2(10,88+row*6,(size.x-20)*ratio,3),Color("86e3a4") if row==0 else gold)
+		draw_rect(Rect2(10,88,size.x-20,3),Color("0e1424"));draw_rect(Rect2(10,88,(size.x-20)*clampf(hp/maxf(1,hp_max),0,1),3),ArenaUI.HP)
 		write(Vector2(0,107),"HP %d/%d"%[ceili(hp),ceili(hp_max)],9,ArenaUI.DANGER if dead else ArenaUI.HP,size.x,true)
-		write(Vector2(0,120),"기력 %d/5"%energy,9,gold,size.x,true)
+		draw_energy(113,size.x-20)
 		draw_equipment(125,12)
 		write(Vector2(0,153),status_text,9,gold if active else muted,size.x,true)
 		return
@@ -193,7 +219,8 @@ func _draw() -> void:
 		write(Vector2(0,89 if compact_room else 114),status_text,10 if compact_room else 11,muted,size.x,true)
 		return
 	if card_type=="product":
-		ArenaIcon.draw(self,Vector2(size.x*.5,28),kind,29,gold)
+		draw_badge(Vector2(size.x*.5,28),22,gold)
+		ArenaIcon.draw(self,Vector2(size.x*.5,28),kind,27,gold)
 		draw_multiline_string(get_theme_default_font(),Vector2(4,59),title,HORIZONTAL_ALIGNMENT_CENTER,size.x-8,12,2,Color("eef1fa"))
 		draw_multiline_string(get_theme_default_font(),Vector2(6,91),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-12,11,3,muted)
 		draw_style_box(ArenaUI.box(Color("4a432c"),Color("b9a166")),Rect2(5,size.y-36,size.x-10,28))

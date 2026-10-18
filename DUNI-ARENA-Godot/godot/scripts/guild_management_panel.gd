@@ -150,7 +150,7 @@ func render() -> void:
   var button:=ArenaCard.new();var data: StrategyCardData=StrategyCardCatalog.get_card(card.kind);button.card_type="strategy";button.kind=String(card.kind);button.title=data.display_name;button.description=data.description;button.text="🃏 %s · 전략카드"%data.display_name;button.status_text="전략";button.price="일회성" if data.usage_rule==StrategyCardData.Usage.ONCE else "층당 1회" if data.usage_rule==StrategyCardData.Usage.FLOOR else "두 층 쿨타임";button.card_type="slot";button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description
   ArenaUI.bind(button,_inspect_card.bind(data));inventory_grid.add_child(button)
  while inventory_grid.get_child_count()<24:
-  var empty:=PanelContainer.new();empty.custom_minimum_size=Vector2(60,64);empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.mouse_filter=Control.MOUSE_FILTER_IGNORE;empty.add_theme_stylebox_override("panel",ArenaUI.box(Color("111726"),Color("26304a")));inventory_grid.add_child(empty)
+  var empty:=PanelContainer.new();empty.custom_minimum_size=Vector2(60,64);empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.mouse_filter=Control.MOUSE_FILTER_IGNORE;empty.add_theme_stylebox_override("panel",ArenaUI.box(Color("0b0f1a"),Color("1b2236")));inventory_grid.add_child(empty)
 func _select(id: String) -> void:selected_member_id=id;call_deferred("render")
 func _upgrade() -> void:
  get_tree().root.set_meta("action_point",ArenaUI.control_center(upgrade_button))
