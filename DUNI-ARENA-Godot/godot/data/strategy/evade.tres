@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="StrategyCardData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/strategy_card_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"evade"
+display_name = "전투회피"
+usage_rule = 1
+description = "재개 시 대시 · 6초 도주"
+amount = 0
+duration = 6
+
+gold_price = 140

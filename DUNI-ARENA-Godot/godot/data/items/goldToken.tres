@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"goldToken"
+display_name = "황금 토큰"
+description = "참전 후 생존하여 승리하면 🪙 +40G"
+emoji = "🟡"
+gold_price = 120
+victory_gold = 40

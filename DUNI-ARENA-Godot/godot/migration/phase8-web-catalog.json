@@ -1,0 +1,948 @@
+[
+  {
+    "name": "전사",
+    "tags": [
+      "일반",
+      "돌격형"
+    ],
+    "passive": "패링 반격",
+    "passiveHelp": "패링 후 공격자에게 대시해 검으로 반격.",
+    "attackHelp": "검으로 전방의 적을 벱니다.",
+    "defense": "패링",
+    "defenseHelp": "피해 50% 감소, 20% 확률로 완전 방어. 반격·넉백·기절. 쿨타임 12초.",
+    "color": "#ef9279",
+    "critChance": 0.22,
+    "hp": 150,
+    "dmg": 16,
+    "speed": 96,
+    "range": 62,
+    "cd": 1,
+    "cost": 100,
+    "defensePower": 26,
+    "type_id": 0,
+    "profile": {
+      "windup": 0.38,
+      "active": 0.17,
+      "recovery": 0.25,
+      "reach": 108,
+      "cone": 1.45,
+      "impulse": 245,
+      "label": "검을 뒤로 당김"
+    },
+    "ultimate": {
+      "name": "천공참",
+      "help": "전방을 크게 베고 관통 검기를 발사합니다.",
+      "windup": 0.65
+    }
+  },
+  {
+    "name": "궁수",
+    "tags": [
+      "일반",
+      "후열",
+      "대치형",
+      "회피형"
+    ],
+    "passive": "도탄 부채 사격",
+    "passiveHelp": "3번째 사격은 화살 3발. 각 화살은 벽에 2번 튕깁니다.",
+    "attackHelp": "적에게 화살을 발사합니다.",
+    "defense": "구르기",
+    "defenseHelp": "25% 확률로 측면 회피. 쿨타임 4초.",
+    "color": "#a0c87e",
+    "critChance": 0.2,
+    "hp": 105,
+    "dmg": 15,
+    "speed": 92,
+    "range": 380,
+    "cd": 0.75,
+    "cost": 120,
+    "defensePower": 18,
+    "type_id": 1,
+    "profile": {
+      "windup": 0.43,
+      "active": 0.14,
+      "recovery": 0.22,
+      "reach": 410,
+      "cone": 0.35,
+      "impulse": 135,
+      "label": "활시위 당기기"
+    },
+    "ultimate": {
+      "name": "일점 관통",
+      "help": "3초 차징 후 거대한 관통 화살 발사. 기본 피해 105.",
+      "windup": 3
+    }
+  },
+  {
+    "name": "마법사",
+    "tags": [
+      "일반",
+      "후열",
+      "대치형",
+      "신중형"
+    ],
+    "passive": "신중",
+    "passiveHelp": "HP 50% 이하에서 공격속도 +30%, 이동속도 +35%.",
+    "attackHelp": "적에게 마법탄을 발사합니다.",
+    "defense": "전이",
+    "defenseHelp": "치명적 피해를 막고 주변 적 1.2초 기절 후 순간이동. 전투당 1회.",
+    "color": "#b79ce4",
+    "critChance": 0.18,
+    "hp": 110,
+    "dmg": 25,
+    "speed": 77,
+    "range": 360,
+    "cd": 1.65,
+    "cost": 150,
+    "defensePower": 20,
+    "type_id": 2,
+    "profile": {
+      "windup": 0.68,
+      "active": 0.2,
+      "recovery": 0.32,
+      "reach": 390,
+      "cone": 0.4,
+      "impulse": 260,
+      "label": "폭발 마법 차징"
+    },
+    "ultimate": {
+      "name": "사건의 지평선",
+      "help": "6초간 적을 끌어당기며 피해를 주는 블랙홀 생성.",
+      "windup": 1.1
+    }
+  },
+  {
+    "name": "암살자",
+    "tags": [
+      "일반",
+      "약자멸시",
+      "기습형"
+    ],
+    "passive": "기습 은신 · 완전한 먹잇감",
+    "passiveHelp": "접근 전 은신. 공격·피격 시 3초간 노출. HP가 가득 찬 적에게 치명타 확률 +10%p.",
+    "attackHelp": "단검으로 가까운 적을 벱니다.",
+    "defense": "연막",
+    "defenseHelp": "25% 확률로 연막 회피. 쿨타임 6초.",
+    "color": "#74cbc5",
+    "critChance": 0.24,
+    "hp": 145,
+    "dmg": 25,
+    "speed": 132,
+    "range": 59,
+    "cd": 0.65,
+    "cost": 140,
+    "defensePower": 20,
+    "type_id": 3,
+    "profile": {
+      "windup": 0.27,
+      "active": 0.18,
+      "recovery": 0.22,
+      "reach": 112,
+      "cone": 1.2,
+      "impulse": 185,
+      "label": "단검 준비"
+    },
+    "ultimate": {
+      "name": "그림자 지배",
+      "help": "10초간 완전 은신, 치명타 확률 +15%p. 공격속도 -25%, 공격 피해 -20%.",
+      "windup": 0.65
+    }
+  },
+  {
+    "name": "수호자",
+    "tags": [
+      "일반",
+      "호위형"
+    ],
+    "passive": "수호 오라",
+    "passiveHelp": "주변 아군 방어력 +22. 중첩 불가.",
+    "attackHelp": "방패로 전방의 적을 타격합니다.",
+    "defense": "방벽",
+    "defenseHelp": "피해 55% 감소, 넉백 감소. 쿨타임 5초.",
+    "color": "#e7bd6a",
+    "critChance": 0.16,
+    "hp": 190,
+    "dmg": 16,
+    "speed": 86,
+    "range": 70,
+    "cd": 1.1,
+    "cost": 130,
+    "defensePower": 40,
+    "type_id": 4,
+    "profile": {
+      "windup": 0.48,
+      "active": 0.2,
+      "recovery": 0.32,
+      "reach": 116,
+      "cone": 1.65,
+      "impulse": 340,
+      "label": "방패 뒤로 당김"
+    },
+    "ultimate": {
+      "name": "절대 수호",
+      "help": "HP가 가장 낮은 아군에게 10초 무적. 아군이 없으면 자신에게 사용.",
+      "windup": 0.75
+    }
+  },
+  {
+    "name": "힐러",
+    "tags": [
+      "일반",
+      "후열",
+      "대치형",
+      "의존형"
+    ],
+    "passive": "지원 치유",
+    "passiveHelp": "다친 아군을 치유하고, 혼자 남으면 자신을 회복합니다.",
+    "attackHelp": "빛탄으로 적을 공격합니다.",
+    "defense": "회피",
+    "defenseHelp": "20% 확률로 상하좌우 회피.",
+    "color": "#8dbce8",
+    "critChance": 0.2,
+    "hp": 105,
+    "dmg": 10,
+    "speed": 84,
+    "range": 360,
+    "cd": 1.1,
+    "cost": 110,
+    "defensePower": 18,
+    "type_id": 5,
+    "profile": {
+      "windup": 0.48,
+      "active": 0.16,
+      "recovery": 0.25,
+      "reach": 390,
+      "cone": 0.4,
+      "impulse": 120,
+      "label": "빛의 구체 차징"
+    },
+    "ultimate": {
+      "name": "생명의 성역",
+      "help": "10초간 자신과 아군을 회복시키는 치유 장판 생성.",
+      "windup": 0.9
+    }
+  },
+  {
+    "name": "대구경 저격수",
+    "tags": [
+      "일반",
+      "은둔형"
+    ],
+    "passive": "대구경 관통탄",
+    "passiveHelp": "빠른 총알로 적을 관통합니다. 일반탄은 좁게 무작위로 퍼집니다.",
+    "attackHelp": "스나이퍼 · 5초간 장전·조준해 강력한 관통탄 발사.",
+    "defense": "밀쳐내기",
+    "defenseHelp": "30% 확률로 근접 공격을 막고 공격자를 멀리 밀칩니다.",
+    "color": "#dba373",
+    "critChance": 0.2,
+    "hp": 125,
+    "dmg": 95,
+    "speed": 102,
+    "range": 1100,
+    "cd": 1.2,
+    "cost": 200,
+    "defensePower": 22,
+    "type_id": 6,
+    "profile": {
+      "windup": 5,
+      "active": 0.12,
+      "recovery": 0.45,
+      "reach": 1150,
+      "cone": 0.04,
+      "impulse": 350,
+      "label": "장전 후 저격 조준"
+    },
+    "ultimate": {
+      "name": "삼연발",
+      "help": "다음 사격에 관통탄 3발 연속 발사.",
+      "windup": 0.6
+    }
+  },
+  {
+    "name": "샷건",
+    "tags": [
+      "일반",
+      "돌격형"
+    ],
+    "passive": "2발 탄창",
+    "passiveHelp": "2발 사격 후 4초간 재장전. 장전 중에는 후퇴합니다.",
+    "attackHelp": "더블배럴 · 산탄 7발 발사. 근거리 고화력, 강한 넉백과 반동.",
+    "defense": "회피",
+    "defenseHelp": "20% 확률로 측면 회피. 쿨타임 4초.",
+    "color": "#e4bc73",
+    "critChance": 0.2,
+    "hp": 170,
+    "dmg": 9,
+    "damageLabel": "산탄 9 × 7",
+    "speed": 112,
+    "range": 190,
+    "cd": 0.55,
+    "cost": 160,
+    "defensePower": 24,
+    "type_id": 7,
+    "profile": {
+      "windup": 0.36,
+      "active": 0.12,
+      "recovery": 0.18,
+      "reach": 190,
+      "cone": 0.38,
+      "impulse": 115,
+      "label": "더블배럴 준비"
+    },
+    "ultimate": null
+  },
+  {
+    "name": "가위바위보 마스터",
+    "tags": [
+      "일반",
+      "대치형"
+    ],
+    "passive": "숙련자",
+    "passiveHelp": "매 3번째 판은 반드시 승리.",
+    "attackHelp": "적을 붙잡고 가위바위보. 승자 HP 5% 회복, 패자 HP 35% 감소.",
+    "defense": "승부 집중",
+    "defenseHelp": "승부 중 외부 피해 감소: 자신 80%, 상대 65%.",
+    "color": "#dfa2cf",
+    "critChance": 0.2,
+    "hp": 150,
+    "dmg": 30,
+    "damageLabel": "패배 시 최대 HP 35%",
+    "speed": 104,
+    "range": 220,
+    "cd": 2.2,
+    "cost": 180,
+    "defensePower": 24,
+    "type_id": 8,
+    "profile": {
+      "windup": 0.4,
+      "active": 1.2,
+      "recovery": 0.5,
+      "reach": 230,
+      "cone": 1,
+      "impulse": 0,
+      "label": "붙잡기 준비"
+    },
+    "ultimate": {
+      "name": "최후의 승부",
+      "help": "가위바위보 진행. 패자 HP 50% 감소, 승자 HP 5% 회복.",
+      "windup": 0.65
+    }
+  },
+  {
+    "name": "UFC 선수",
+    "tags": [
+      "일반",
+      "돌격형"
+    ],
+    "passive": "연속 압박",
+    "passiveHelp": "마지막 펀치는 더 큰 피해와 강한 넉백.",
+    "attackHelp": "연속펀치 · 빠르게 3번 펀치합니다.",
+    "defense": "기본",
+    "defenseHelp": "패링과 이동으로 방어합니다.",
+    "color": "#f08b69",
+    "critChance": 0.2,
+    "hp": 185,
+    "dmg": 11,
+    "damageLabel": "펀치 11 × 3",
+    "speed": 118,
+    "range": 66,
+    "cd": 0.75,
+    "cost": 170,
+    "defensePower": 28,
+    "type_id": 9,
+    "profile": {
+      "windup": 0.22,
+      "active": 0.11,
+      "recovery": 0.09,
+      "reach": 103,
+      "cone": 0.22,
+      "impulse": 95,
+      "label": "연속펀치 준비"
+    },
+    "ultimate": {
+      "name": "링",
+      "help": "적 무리로 돌진해 끌어당긴 뒤 10초간 링 생성. 로프에 닿은 적은 피해와 중앙 넉백.",
+      "windup": 0.65
+    }
+  },
+  {
+    "name": "두비두밤",
+    "tags": [
+      "일반",
+      "돌격형"
+    ],
+    "passive": "너무 무거운 검",
+    "passiveHelp": "일반 공격 시 15% 확률로 검을 놓칩니다. 회수 전까지 공격 불가.",
+    "attackHelp": "특대검 · 거대한 검을 크게 휘두릅니다.",
+    "defense": "방어태세",
+    "defenseHelp": "피격 시 4초간 정지. 추가 피격마다 다음 공격 피해·크기 +6%, 공격 전 이동속도 +15%.",
+    "color": "#bdab8c",
+    "critChance": 0.2,
+    "hp": 240,
+    "dmg": 40,
+    "speed": 78,
+    "range": 80,
+    "cd": 1.65,
+    "cost": 190,
+    "defensePower": 38,
+    "type_id": 10,
+    "profile": {
+      "windup": 2,
+      "active": 0.12,
+      "recovery": 0.8,
+      "reach": 180,
+      "cone": 1.7,
+      "impulse": 420,
+      "label": "특대검 들어 올리기"
+    },
+    "ultimate": {
+      "name": "특대검!",
+      "help": "특대검으로 강력한 일직선 관통 충격을 발사합니다.",
+      "windup": 1.5
+    }
+  },
+  {
+    "name": "챌런",
+    "tags": [
+      "일반",
+      "방황"
+    ],
+    "passive": "잡을수없음",
+    "passiveHelp": "누적 HP 10% 손실마다 크기 -6%, 이동속도 +4%. 최소 크기 40%, 최대 속도 2배.",
+    "attackHelp": "축소저주 · 박치기로 넉백. 6초간 크기·공격 범위 -35%, 받는 피해 +15%.",
+    "defense": "기본",
+    "defenseHelp": "작은 몸체와 빠른 이동으로 피합니다.",
+    "color": "#7fcbe2",
+    "critChance": 0.2,
+    "hp": 155,
+    "dmg": 22,
+    "speed": 128,
+    "range": 75,
+    "cd": 1.6,
+    "cost": 210,
+    "defensePower": 20,
+    "type_id": 11,
+    "profile": {
+      "windup": 0.34,
+      "active": 0.32,
+      "recovery": 0.32,
+      "reach": 190,
+      "cone": 0.2,
+      "impulse": 350,
+      "label": "박치기 준비"
+    },
+    "ultimate": {
+      "name": "멀티 축소저주",
+      "help": "주변 적을 차례로 박치기해 축소 저주를 부여합니다.",
+      "windup": 0.85
+    }
+  },
+  {
+    "name": "포식자",
+    "tags": [
+      "일반",
+      "돌격형"
+    ],
+    "passive": "강화 비늘",
+    "passiveHelp": "처치마다 크기 +4%, HP 10% 회복. 최대 크기 240%.",
+    "attackHelp": "씹어먹기 · 짧게 전진하며 전방 최대 3명 공격. 타격 후 HP 13% 이하인 적 처형.",
+    "defense": "기본",
+    "defenseHelp": "패링으로 방어합니다.",
+    "color": "#a1bd72",
+    "critChance": 0.2,
+    "hp": 315,
+    "dmg": 48,
+    "speed": 70,
+    "range": 95,
+    "cd": 3.3,
+    "cost": 250,
+    "defensePower": 44,
+    "type_id": 12,
+    "profile": {
+      "windup": 1.65,
+      "active": 0.12,
+      "recovery": 1.18,
+      "reach": 160,
+      "cone": 1.05,
+      "impulse": 270,
+      "label": "씹어먹기 · 턱 벌리기"
+    },
+    "ultimate": {
+      "name": "부셔먹기",
+      "help": "전방 최대 3명에게 강한 피해. 타격 후 HP 20% 이하인 적 처형.",
+      "windup": 1.4
+    }
+  },
+  {
+    "name": "폭탄",
+    "tags": [
+      "일반",
+      "후열",
+      "대치형"
+    ],
+    "passive": "최후의 자폭",
+    "passiveHelp": "HP 20% 이하에서 적에게 돌진해 자폭. 공격력 250%의 광역 피해.",
+    "attackHelp": "폭탄투척 · 폭탄을 던져 2초 뒤 광역 폭발.",
+    "defense": "기본",
+    "defenseHelp": "거리를 벌리고 패링으로 방어합니다.",
+    "color": "#e9a05f",
+    "critChance": 0.2,
+    "hp": 145,
+    "dmg": 36,
+    "speed": 96,
+    "range": 400,
+    "cd": 1.8,
+    "cost": 180,
+    "defensePower": 22,
+    "type_id": 13,
+    "profile": {
+      "windup": 0.6,
+      "active": 0.16,
+      "recovery": 0.3,
+      "reach": 430,
+      "cone": 0.4,
+      "impulse": 290,
+      "label": "도화선 점화 · 투척 준비"
+    },
+    "ultimate": {
+      "name": "왕폭탄",
+      "help": "거대 폭탄 투척. 2.5초 뒤 피해 260%의 광역 폭발과 강한 넉백.",
+      "windup": 0.9
+    }
+  },
+  {
+    "name": "검객",
+    "tags": [
+      "일반",
+      "돌격형"
+    ],
+    "passive": "외길",
+    "passiveHelp": "주변에 아군이 없으면 공격 피해 +30%.",
+    "attackHelp": "연속 베기 · 전진하며 3연격. 피해 100%·110%·300%, 마지막은 넓은 회전 베기. 피격 시 중단.",
+    "defense": "기본",
+    "defenseHelp": "패링과 이동으로 방어합니다.",
+    "color": "#b5dbea",
+    "critChance": 0.22,
+    "hp": 175,
+    "dmg": 16,
+    "speed": 115,
+    "range": 78,
+    "cd": 1.2,
+    "cost": 200,
+    "defensePower": 26,
+    "type_id": 14,
+    "profile": {
+      "windup": 0.32,
+      "active": 0.22,
+      "recovery": 0.1,
+      "reach": 122,
+      "cone": 1.4,
+      "impulse": 110,
+      "label": "연속 베기 준비"
+    },
+    "ultimate": {
+      "name": "일섬",
+      "help": "적을 관통해 대시한 뒤 지나간 경로 전체를 벱니다. 피해 360%, 강한 넉백.",
+      "windup": 0.65
+    }
+  },
+  {
+    "name": "소형 위성",
+    "tags": [
+      "일반",
+      "방황"
+    ],
+    "passive": "충격감지",
+    "passiveHelp": "피격 시 주변 적에게 미사일 4발. 각 피해는 공격력의 20%.",
+    "attackHelp": "전류감지 · 군중제어 상태의 적에게 미사일 발사. 남은 효과 1초당 피해 +40%, 최대 +120%.",
+    "defense": "기본",
+    "defenseHelp": "패링과 방황 이동으로 방어합니다.",
+    "color": "#99d9cc",
+    "critChance": 0.2,
+    "hp": 95,
+    "dmg": 14,
+    "speed": 91,
+    "range": 480,
+    "cd": 0.9,
+    "cost": 220,
+    "defensePower": 20,
+    "type_id": 15,
+    "profile": {
+      "windup": 0.14,
+      "active": 0.1,
+      "recovery": 0.12,
+      "reach": 480,
+      "cone": 0.5,
+      "impulse": 150,
+      "label": "전류 감지 · 발사구 점화"
+    },
+    "ultimate": {
+      "name": "지원포격",
+      "help": "(3 + 생존 아군 수)발의 강화 미사일 발사. 각 피해 180%.",
+      "windup": 0.8
+    }
+  },
+  {
+    "name": "성기사",
+    "tags": [
+      "일반",
+      "호위형"
+    ],
+    "passive": "기운",
+    "passiveHelp": "주변 아군 1명당 방어력·공격 피해 +5%.",
+    "attackHelp": "강타·참격 교대. 강타는 강한 넉백과 충돌 시 1초 기절. 참격은 피해 125%.",
+    "defense": "기본",
+    "defenseHelp": "아군을 호위하며 패링으로 방어합니다.",
+    "color": "#e8d99b",
+    "critChance": 0.2,
+    "hp": 205,
+    "dmg": 18,
+    "speed": 90,
+    "range": 78,
+    "cd": 1.15,
+    "cost": 210,
+    "defensePower": 34,
+    "type_id": 16,
+    "profile": {
+      "windup": 0.48,
+      "active": 0.23,
+      "recovery": 0.3,
+      "reach": 138,
+      "cone": 1.1,
+      "impulse": 620,
+      "label": "강타 · 방패 당기기"
+    },
+    "ultimate": {
+      "name": "수호신",
+      "help": "주변 아군 HP 20% 회복, 10초간 공격 피해 +30%.",
+      "windup": 0.9
+    }
+  },
+  {
+    "name": "히어로",
+    "tags": [
+      "일반",
+      "대치형"
+    ],
+    "passive": "영웅등장",
+    "passiveHelp": "전투당 1회, 아군의 치명적 피해 무효화 후 즉시 돌진. 구출 중 아군 보호. 도착 시 주변 적 피해·넉백·2초 기절, 아군 보호막 60·10초.",
+    "attackHelp": "펀치 · 가까운 적에게 주먹을 휘두릅니다.",
+    "defense": "기본",
+    "defenseHelp": "패링과 이동으로 방어합니다.",
+    "color": "#ed8f91",
+    "critChance": 0.2,
+    "hp": 210,
+    "dmg": 23,
+    "speed": 112,
+    "range": 72,
+    "cd": 1.05,
+    "cost": 230,
+    "defensePower": 30,
+    "type_id": 17,
+    "profile": {
+      "windup": 0.38,
+      "active": 0.18,
+      "recovery": 0.28,
+      "reach": 120,
+      "cone": 0.45,
+      "impulse": 310,
+      "label": "펀치 · 주먹 당기기"
+    },
+    "ultimate": {
+      "name": "악당처단",
+      "help": "가장 많은 피해를 준 적에게 돌진해 강한 펀치. 피해 420%, 강한 넉백.",
+      "windup": 0.65
+    }
+  },
+  {
+    "name": "탱크",
+    "tags": [
+      "일반",
+      "대치형"
+    ],
+    "passive": "취약점",
+    "passiveHelp": "후방에서 받는 피해 +75%. 이동과 방향 전환이 느립니다.",
+    "attackHelp": "포탄 · 강력한 포탄으로 적중 지점에 광역 폭발.",
+    "defense": "기본",
+    "defenseHelp": "패링으로 방어합니다.",
+    "color": "#a6b48b",
+    "critChance": 0.2,
+    "hp": 300,
+    "dmg": 52,
+    "speed": 48,
+    "range": 430,
+    "cd": 2.2,
+    "cost": 270,
+    "defensePower": 46,
+    "type_id": 18,
+    "profile": {
+      "windup": 1.8,
+      "active": 0.15,
+      "recovery": 0.55,
+      "reach": 470,
+      "cone": 0.16,
+      "impulse": 440,
+      "label": "포탄 · 장전과 조준"
+    },
+    "ultimate": {
+      "name": "화염포",
+      "help": "다음 포탄 피해 170%, 폭발 범위 증가. 적중 지점에 5초 화염 장판.",
+      "windup": 0.8
+    }
+  },
+  {
+    "name": "광신도",
+    "tags": [
+      "일반",
+      "의존형"
+    ],
+    "passive": "성자",
+    "passiveHelp": "가까운 아군을 성자로 지정: 공격 피해 +10%. 성자 사망 시 공격·공속 +30%, 받는 피해 +20%.",
+    "attackHelp": "단검 · 가까운 적을 빠르게 벱니다.",
+    "defense": "기본",
+    "defenseHelp": "패링과 이동으로 방어합니다.",
+    "color": "#c7a4de",
+    "critChance": 0.2,
+    "hp": 155,
+    "dmg": 17,
+    "speed": 108,
+    "range": 64,
+    "cd": 0.85,
+    "cost": 150,
+    "defensePower": 22,
+    "type_id": 19,
+    "profile": {
+      "windup": 0.3,
+      "active": 0.17,
+      "recovery": 0.22,
+      "reach": 112,
+      "cone": 1.15,
+      "impulse": 185,
+      "label": "단검 · 뒤로 당기기"
+    },
+    "ultimate": {
+      "name": "신앙심",
+      "help": "성자의 궁극기 게이지 +20%p.",
+      "windup": 0.7
+    }
+  },
+  {
+    "name": "번개 마법사",
+    "tags": [
+      "일반",
+      "후열",
+      "대치형"
+    ],
+    "passive": "감전",
+    "passiveHelp": "타격 시 감전 1중첩. 4중첩마다 2.5초 기절.",
+    "attackHelp": "연쇄 충격 · 번개가 최대 5회 전이. 전이마다 피해 -10%, 다른 적 2명을 거치면 재타격 가능.",
+    "defense": "기본",
+    "defenseHelp": "거리를 유지하며 패링으로 방어합니다.",
+    "color": "#93c8f0",
+    "critChance": 0.2,
+    "hp": 120,
+    "dmg": 18,
+    "speed": 86,
+    "range": 400,
+    "cd": 1.6,
+    "cost": 240,
+    "defensePower": 21,
+    "type_id": 20,
+    "profile": {
+      "windup": 0.56,
+      "active": 0.13,
+      "recovery": 0.3,
+      "reach": 430,
+      "cone": 0.32,
+      "impulse": 140,
+      "label": "연쇄 충격 · 전기 모으기"
+    },
+    "ultimate": {
+      "name": "방출",
+      "help": "주변 적에게 피해 260%, 넉백, 감전 2중첩.",
+      "windup": 0.9
+    }
+  },
+  {
+    "name": "금간 거울",
+    "tags": [
+      "일반",
+      "대치형"
+    ],
+    "passive": "날카로운 파편",
+    "passiveHelp": "받은 피해의 10%를 공격자에게 돌려줍니다.",
+    "attackHelp": "광원 · 벽에 4번 튕기는 빛탄. 도탄마다 피해 +20%.",
+    "defense": "기본",
+    "defenseHelp": "거리를 벌리고 패링으로 방어합니다.",
+    "color": "#b4e5e8",
+    "critChance": 0.2,
+    "hp": 145,
+    "dmg": 18,
+    "speed": 88,
+    "range": 300,
+    "cd": 1.3,
+    "cost": 220,
+    "defensePower": 24,
+    "type_id": 21,
+    "profile": {
+      "windup": 0.5,
+      "active": 0.14,
+      "recovery": 0.3,
+      "reach": 330,
+      "cone": 0.35,
+      "impulse": 145,
+      "label": "광원 · 거울에 빛 모으기"
+    },
+    "ultimate": {
+      "name": "반사",
+      "help": "3초간 모든 공격을 무효화하고 같은 위력의 빛탄으로 반사합니다.",
+      "windup": 0.45
+    }
+  },
+  {
+    "name": "은하",
+    "tags": [
+      "일반",
+      "대치형"
+    ],
+    "passive": "코스믹",
+    "passiveHelp": "전투 시작 시 가장 먼 적의 피해량 -30%.",
+    "attackHelp": "별 · 넓은 부채꼴로 느린 별 투사체 5개 발사.",
+    "defense": "기본",
+    "defenseHelp": "거리를 벌리고 패링으로 방어합니다.",
+    "color": "#b69cff",
+    "critChance": 0.2,
+    "hp": 125,
+    "dmg": 12,
+    "speed": 82,
+    "range": 350,
+    "cd": 1.7,
+    "cost": 240,
+    "defensePower": 21,
+    "type_id": 22,
+    "profile": {
+      "windup": 0.65,
+      "active": 0.15,
+      "recovery": 0.35,
+      "reach": 385,
+      "cone": 0.7,
+      "impulse": 155,
+      "label": "별빛 모으기"
+    },
+    "ultimate": {
+      "name": "지평선",
+      "help": "가까운 적에게 7초간 추적 블랙홀 부여. 블랙홀 주변 아군 투사체를 시계방향으로 강하게 끌어당깁니다.",
+      "windup": 0.9
+    }
+  },
+  {
+    "name": "기관총",
+    "tags": [
+      "일반",
+      "대치형"
+    ],
+    "passive": "재장전",
+    "passiveHelp": "20발마다 4초간 재장전. 재장전 중 이동속도 -60%.",
+    "attackHelp": "기관총 · 중앙에 모이는 고속 총알을 연속 발사. 발사마다 뒤로 살짝 밀립니다.",
+    "defense": "기본",
+    "defenseHelp": "거리를 벌리고 패링으로 방어합니다.",
+    "color": "#dcc389",
+    "critChance": 0.2,
+    "hp": 145,
+    "dmg": 9,
+    "speed": 88,
+    "range": 430,
+    "cd": 0.8,
+    "cost": 200,
+    "defensePower": 22,
+    "type_id": 23,
+    "profile": {
+      "windup": 0.22,
+      "active": 2.2,
+      "recovery": 0.15,
+      "reach": 460,
+      "cone": 0.72,
+      "impulse": 115,
+      "label": "기관총 · 조준과 볼트 당기기"
+    },
+    "ultimate": {
+      "name": "빠른 장전",
+      "help": "탄창이 비면 안전한 방향으로 대시하며 즉시 20발 재장전.",
+      "windup": 0.25
+    }
+  },
+  {
+    "name": "개구리",
+    "tags": [
+      "일반",
+      "방황",
+      "폴짝"
+    ],
+    "passive": "폴짝",
+    "passiveHelp": "잠시 멈췄다가 폴짝 뛰어 이동합니다.",
+    "attackHelp": "꿀꺽 퉤 · HP가 가장 많은 적을 삼켜 다른 적에게 뱉습니다. 삼킨 적 최대 HP 60마다 피해 +10%.",
+    "defense": "기본",
+    "defenseHelp": "패링과 이동으로 방어합니다.",
+    "color": "#a0d67b",
+    "critChance": 0.2,
+    "hp": 190,
+    "dmg": 30,
+    "speed": 105,
+    "range": 340,
+    "cd": 3.8,
+    "cost": 220,
+    "defensePower": 25,
+    "type_id": 24,
+    "profile": {
+      "windup": 0.8,
+      "active": 0.15,
+      "recovery": 0.4,
+      "reach": 370,
+      "cone": 0.25,
+      "impulse": 290,
+      "label": "꿀꺽 퉤 · 혀 당기기"
+    },
+    "ultimate": {
+      "name": "낼름 퉤",
+      "help": "죽기 직전 아군을 무적으로 삼킨 뒤 안전한 곳으로 뱉습니다. HP 10% 회복.",
+      "windup": 0.2
+    }
+  },
+  {
+    "name": "인형술사",
+    "tags": [
+      "일반",
+      "대치형"
+    ],
+    "passive": "붉은 실",
+    "passiveHelp": "가까운 아군 2명과 연결. 받은 피해의 30%를 연결된 생존 아군이 나누어 대신 받습니다.",
+    "attackHelp": "날카로운 실 · 실 투사체 3발을 발사합니다.",
+    "defense": "기본",
+    "defenseHelp": "거리를 벌리고 패링으로 방어합니다.",
+    "color": "#d891b4",
+    "critChance": 0.2,
+    "hp": 150,
+    "dmg": 12,
+    "damageLabel": "실 12 × 3",
+    "speed": 92,
+    "range": 350,
+    "cd": 1.5,
+    "cost": 230,
+    "defensePower": 22,
+    "type_id": 25,
+    "profile": {
+      "windup": 0.55,
+      "active": 0.15,
+      "recovery": 0.3,
+      "reach": 385,
+      "cone": 0.2,
+      "impulse": 145,
+      "label": "날카로운 실 · 실 당기기"
+    },
+    "ultimate": {
+      "name": "조종",
+      "help": "조종의 실에 적중한 적 1명을 7초간 아군으로 만듭니다.",
+      "windup": 0.85
+    }
+  }
+]

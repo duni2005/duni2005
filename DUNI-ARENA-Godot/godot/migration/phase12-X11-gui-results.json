@@ -1,0 +1,82 @@
+{
+  "deployment": {
+    "log": "godot/migration/phase12-X11-deployment-gui.log",
+    "exit": 0,
+    "result": [
+      "UI SMOKE RESULT: 18 checks; 0 failures; display=X11"
+    ],
+    "errors": []
+  },
+  "room": {
+    "log": "godot/migration/phase12-X11-room-gui.log",
+    "exit": 0,
+    "result": [
+      "ROOM UI RESULT: 17 checks; 0 failures; display=X11"
+    ],
+    "errors": []
+  },
+  "turning": {
+    "log": "godot/migration/phase12-X11-turning-gui.log",
+    "exit": 0,
+    "result": [
+      "TURNING UI RESULT: 18 checks; 0 failures; display=X11"
+    ],
+    "errors": []
+  },
+  "strategy": {
+    "log": "godot/migration/phase12-X11-strategy-gui.log",
+    "exit": 0,
+    "result": [
+      "STRATEGY UI RESULT: 23 checks; 0 failures; display=X11"
+    ],
+    "errors": []
+  },
+  "combat": {
+    "log": "godot/migration/phase12-X11-combat-gui.log",
+    "exit": 0,
+    "result": [
+      "COMMON COMBAT UI RESULT: 25 checks; 0 failures; display=X11"
+    ],
+    "errors": []
+  },
+  "character": {
+    "log": "godot/migration/phase12-X11-character-gui.log",
+    "exit": 0,
+    "result": [
+      "CHARACTER UI RESULT: 19 checks; 0 failures; display=X11"
+    ],
+    "errors": []
+  },
+  "tower": {
+    "log": "godot/migration/phase12-X11-tower-gui.log",
+    "exit": 0,
+    "result": [
+      "TOWER UI RESULT: 30 checks; 0 failures"
+    ],
+    "errors": []
+  },
+  "tower_content": {
+    "log": "godot/migration/phase12-X11-content-verified.log",
+    "exit": 0,
+    "result": [
+      "CONTENT UI RESULT: 46 checks; 0 failures"
+    ],
+    "errors": []
+  },
+  "ai": {
+    "log": "godot/migration/phase12-X11-ai-gui.log",
+    "exit": 0,
+    "result": [
+      "AI UI RESULT: 22 checks; 0 failures; display=X11"
+    ],
+    "errors": []
+  },
+  "save": {
+    "log": "godot/migration/phase12-X11-save-gui.log",
+    "exit": 0,
+    "result": [
+      "SAVE UI RESULT: 31 checks; 0 failures; display=X11"
+    ],
+    "errors": []
+  }
+}

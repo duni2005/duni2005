@@ -1,0 +1,31 @@
+class_name UpgradeSummary
+extends Control
+## Read-only view of the existing linear upgrade preview; never applies growth.
+var member_name: String=""
+var level: int=0
+var hp: float=0
+var max_hp: float=1
+var energy: int=0
+var maxed: bool=false
+func _ready() -> void:
+	custom_minimum_size.y=150;mouse_filter=Control.MOUSE_FILTER_IGNORE
+func _draw() -> void:
+	var font: Font=get_theme_default_font();var bold: Font=ArenaUI.heading_font()
+	draw_string(bold,Vector2(0,23),member_name,HORIZONTAL_ALIGNMENT_LEFT,-1,18,Color("edf1ef"))
+	var name_width: float=bold.get_string_size(member_name,HORIZONTAL_ALIGNMENT_LEFT,-1,18).x
+	draw_string(font,Vector2(name_width+10,23),"Lv.%d"%level,HORIZONTAL_ALIGNMENT_LEFT,-1,12,ArenaUI.MUTED)
+	ArenaIcon.draw(self,Vector2(10,47),"heart",17,Color.WHITE)
+	var bar_width: float=minf(180,size.x*.44);var at:=Vector2(30,44)
+	draw_style_box(ArenaUI.box(Color("14201a"),Color.TRANSPARENT),Rect2(at,Vector2(bar_width,5)))
+	draw_style_box(ArenaUI.box(ArenaUI.HP,Color.TRANSPARENT),Rect2(at,Vector2(bar_width*clampf(hp/maxf(1,max_hp),0,1),5)))
+	draw_string(font,Vector2(bar_width+45,51),ArenaUI.hp(hp,max_hp),HORIZONTAL_ALIGNMENT_LEFT,-1,12,ArenaUI.MUTED)
+	ArenaIcon.draw(self,Vector2(10,69),"charge",17,Color.WHITE)
+	for i in range(5):draw_style_box(ArenaUI.pip_style(i<energy),Rect2(30+i*(bar_width/5),65,bar_width/5-3,5))
+	draw_string(font,Vector2(bar_width+45,73),"%d / 5"%energy,HORIZONTAL_ALIGNMENT_LEFT,-1,12,ArenaUI.MUTED)
+	var labels: Array=["최대 HP","공격력","방어력","이동속도"];var values: Array=["+12%","+8%","+8%","+2%"]
+	var cell: float=(size.x-15)/4
+	for i in range(4):
+		var rect:=Rect2(i*(cell+5),84,cell,58)
+		draw_style_box(ArenaUI.box(Color("15251b"),Color.TRANSPARENT),rect)
+		draw_string(font,rect.position+Vector2(5,20),labels[i],HORIZONTAL_ALIGNMENT_LEFT,cell-10,10,ArenaUI.MUTED)
+		draw_string(bold,rect.position+Vector2(5,45),values[i],HORIZONTAL_ALIGNMENT_LEFT,cell-10,19,Color("9fdaa2"))

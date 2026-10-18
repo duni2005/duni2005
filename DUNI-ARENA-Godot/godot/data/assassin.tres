@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/unit_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/attack_data.gd" id="2"]
+
+[sub_resource type="Resource" id="Attack"]
+script = ExtResource("2")
+kind = 0
+windup = 0.27
+active = 0.18
+recovery = 0.22
+reach = 112
+cone = 1.2
+impulse = 185
+projectile_speed = 340
+projectile_lifetime = 2.4
+projectile_radius = 26
+projectile_offset = 32
+projectile_spread = 0.025
+aim_lead = 0.45
+
+[resource]
+script = ExtResource("1")
+type_id = 3
+display_name = "암살자"
+base_gold_cost = 140
+max_hp = 145
+attack = 25
+defense_power = 20
+move_speed = 132
+attack_range = 59
+attack_interval = 0.65
+critical_chance = 0.24
+tags = PackedStringArray("일반", "약자멸시", "기습형")
+emoji = "🥷"
+ultimate_windup = 0.65
+attack_profile = SubResource("Attack")
+recruit_tokens = 3

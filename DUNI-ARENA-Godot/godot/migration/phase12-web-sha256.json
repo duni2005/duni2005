@@ -1,0 +1,97 @@
+{
+  "dist/frog.js": {
+    "before": "da604aa76c79ee0b4ad1bbc52fc729a29cb9bbc595685177b7ec141a5f8407f4",
+    "after": "da604aa76c79ee0b4ad1bbc52fc729a29cb9bbc595685177b7ec141a5f8407f4",
+    "unchanged": true
+  },
+  "dist/hero-tank.js": {
+    "before": "5e4697f2700e127ac270d3a26ba7139d90bc180a0110e76645ebceeb5c91af78",
+    "after": "5e4697f2700e127ac270d3a26ba7139d90bc180a0110e76645ebceeb5c91af78",
+    "unchanged": true
+  },
+  "dist/pixels.js": {
+    "before": "626a40fdfd732f69e0fa66c792acaf6cfd2f1be2d9f12a392c136316bded6f4c",
+    "after": "626a40fdfd732f69e0fa66c792acaf6cfd2f1be2d9f12a392c136316bded6f4c",
+    "unchanged": true
+  },
+  "dist/spectator.js": {
+    "before": "efadba5bea7018f711827e3c4a42be0297fdaa026a79999f613c15681d8fc199",
+    "after": "efadba5bea7018f711827e3c4a42be0297fdaa026a79999f613c15681d8fc199",
+    "unchanged": true
+  },
+  "dist/puppet.js": {
+    "before": "a255edca3610d704c58957a035f382af34f17702aee4cbddc7fcb9707feb230a",
+    "after": "a255edca3610d704c58957a035f382af34f17702aee4cbddc7fcb9707feb230a",
+    "unchanged": true
+  },
+  "dist/ultimate.js": {
+    "before": "617b426fae98b3b93e35cdab10747c5e79572fd51ee911a43ba31f5558b19b13",
+    "after": "617b426fae98b3b93e35cdab10747c5e79572fd51ee911a43ba31f5558b19b13",
+    "unchanged": true
+  },
+  "dist/novel.js": {
+    "before": "ee404cab9ef2f883a8b098b9c4ead0f33c242a1ef239b743d1e37933e23db04a",
+    "after": "ee404cab9ef2f883a8b098b9c4ead0f33c242a1ef239b743d1e37933e23db04a",
+    "unchanged": true
+  },
+  "dist/transcendence.js": {
+    "before": "d8c5070685b02f74397dba4a1404a6a047dd37c0820e53dc28ef75497aa266f5",
+    "after": "d8c5070685b02f74397dba4a1404a6a047dd37c0820e53dc28ef75497aa266f5",
+    "unchanged": true
+  },
+  "dist/archetypes.js": {
+    "before": "8b1e8aae38e45172c9818a6bb002644f5dadc355387fd407fcc617b82a52aae7",
+    "after": "8b1e8aae38e45172c9818a6bb002644f5dadc355387fd407fcc617b82a52aae7",
+    "unchanged": true
+  },
+  "dist/ai.js": {
+    "before": "7dda3a31c38fd97149dc31edc70802e7daec03a5aa02443368baa0fc5a76e650",
+    "after": "7dda3a31c38fd97149dc31edc70802e7daec03a5aa02443368baa0fc5a76e650",
+    "unchanged": true
+  },
+  "dist/app.js": {
+    "before": "bc5ae16d3f78a5f4cd783508dd2271d0e3478eeabfbb0922b3d0dfe577d6d7fb",
+    "after": "bc5ae16d3f78a5f4cd783508dd2271d0e3478eeabfbb0922b3d0dfe577d6d7fb",
+    "unchanged": true
+  },
+  "dist/strategy.js": {
+    "before": "32298e87af96ecc718002a3e1362b0377714141c437eab9ef45d88d0e1ddf08d",
+    "after": "32298e87af96ecc718002a3e1362b0377714141c437eab9ef45d88d0e1ddf08d",
+    "unchanged": true
+  },
+  "dist/style.css": {
+    "before": "c1aff15fbedb3672388f2825460b1307765b379ff3bb102d98d0041640779d15",
+    "after": "c1aff15fbedb3672388f2825460b1307765b379ff3bb102d98d0041640779d15",
+    "unchanged": true
+  },
+  "dist/faith-lightning.js": {
+    "before": "407ae915b2790ea792583c53e0d1e59ee7587e83d0832fb90b967539205d1328",
+    "after": "407ae915b2790ea792583c53e0d1e59ee7587e83d0832fb90b967539205d1328",
+    "unchanged": true
+  },
+  "dist/index.html": {
+    "before": "3332a7f922f36d45e49619a0377b11ae686ffd168d65e721d4e8b7823e7d333e",
+    "after": "3332a7f922f36d45e49619a0377b11ae686ffd168d65e721d4e8b7823e7d333e",
+    "unchanged": true
+  },
+  "dist/rear-galaxy.js": {
+    "before": "b4cd8e29769544d0906458d41ad28fea55789e379f53c73c9a4cb3432690bf0c",
+    "after": "b4cd8e29769544d0906458d41ad28fea55789e379f53c73c9a4cb3432690bf0c",
+    "unchanged": true
+  },
+  "dist/tower.js": {
+    "before": "13240c2c38e4e7985ad76c76c948323b1c069e1cd971f925da2070f46e6fd410",
+    "after": "13240c2c38e4e7985ad76c76c948323b1c069e1cd971f925da2070f46e6fd410",
+    "unchanged": true
+  },
+  "dist/combat.js": {
+    "before": "39e61fc01d486cc5f5113910a7cf5df4b0d208ad4ce26475beb22f2bbb00cf69",
+    "after": "39e61fc01d486cc5f5113910a7cf5df4b0d208ad4ce26475beb22f2bbb00cf69",
+    "unchanged": true
+  },
+  "dist/physical.js": {
+    "before": "369ac5a14b4b3cb199a9585ef7f6a2d98a6e7977fb57f367380841ab3fa7a7fb",
+    "after": "369ac5a14b4b3cb199a9585ef7f6a2d98a6e7977fb57f367380841ab3fa7a7fb",
+    "unchanged": true
+  }
+}

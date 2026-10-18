@@ -1,0 +1,74 @@
+class_name WalletBar
+extends Label
+## Persistent wallet presentation. The Label text remains a semantic/accessibility summary.
+var battle: BattleManager
+var guild: GuildManager
+var caption: String="DUNI TOWER"
+var previous_gold: int=-1
+var gold_pulse: float=0
+var gold_delta: int=0
+func _ready() -> void:
+	custom_minimum_size.y=70;clip_text=true;autowrap_mode=TextServer.AUTOWRAP_OFF;add_theme_font_size_override("font_size",1);add_theme_color_override("font_color",Color.TRANSPARENT)
+var updates_suspended: bool=false
+var shown_gold: float=-1
+var shown_tokens: float=-1
+var tracks: Dictionary={}
+var pulses: Dictionary={}
+var _paint_state: Array=[]
+var _panel_style: StyleBoxFlat
+func anchor(kind: String) -> Vector2:
+	var offset: Vector2=Vector2(18,16) if kind=="gold" else Vector2(size.x*.30+16,16)
+	return ArenaUI.control_center(self)-size*.5+offset
+func animate_resource(kind: String,from_value: int,to_value: int,delay: float) -> void:
+	if kind=="gold":shown_gold=from_value;previous_gold=to_value
+	else:shown_tokens=from_value
+	tracks[kind]={"from":float(from_value),"to":float(to_value),"age":-delay,"duration":.32}
+	if to_value<from_value:pulses[kind]=.32
+func animate_exchange(kind: String,from_value: int,spent: int,to_value: int) -> void:
+	animate_resource(kind,from_value,from_value-spent,0)
+	tracks[kind]["next"]={"from":float(from_value-spent),"to":float(to_value),"age":-.4,"duration":.32}
+func _process(dt: float) -> void:
+	if is_visible_in_tree() and not updates_suspended:advance_view(dt)
+func advance_view(dt: float) -> void:
+	if guild==null:return
+	if shown_gold<0:shown_gold=guild.state.gold
+	if shown_tokens<0:shown_tokens=guild.state.tokens
+	for kind in ["gold","gem"]:
+		var actual: int=guild.state.gold if kind=="gold" else guild.state.tokens
+		var shown: float=shown_gold if kind=="gold" else shown_tokens
+		if not tracks.has(kind) and int(round(shown))!=actual:animate_resource(kind,int(round(shown)),actual,.72 if actual>shown else 0)
+	for kind in tracks.keys():
+		var track: Dictionary=tracks[kind];var old: float=track.age;track.age+=dt
+		if track.age>=track.duration and track.has("next"):
+			var leftover: float=track.age-track.duration;track=track.next;old=track.age;track.age+=leftover;tracks[kind]=track
+		if old<0 and track.age>=0:pulses[kind]=.32
+		var t: float=clampf(track.age/track.duration,0,1);var value: float=lerpf(track.from,track.to,1-pow(1-t,3))
+		if kind=="gold":shown_gold=value
+		else:shown_tokens=value
+		if t>=1:tracks.erase(kind)
+	for kind in pulses.keys():
+		pulses[kind]=maxf(0,pulses[kind]-dt)
+		if pulses[kind]<=0:pulses.erase(kind)
+	var state: Array=[shown_gold,shown_tokens,guild.state.player_hp,guild.state.player_max_hp,size,pulses.duplicate()]
+	if state!=_paint_state:_paint_state=state;queue_redraw()
+func _draw() -> void:
+	if guild==null:return
+	if _panel_style==null:_panel_style=ArenaUI.box(Color("222b24"),Color("5a6550"));_panel_style.set_corner_radius_all(9)
+	draw_style_box(_panel_style,Rect2(0,0,size.x,68))
+	var font: Font=get_theme_default_font();var numbers: Font=ArenaUI.numbers_font();var w: float=size.x*.30
+	for kind in pulses:
+		var c: Color=Color("ffdb75") if kind=="gold" else Color("92e6ff")
+		draw_style_box(ArenaUI.box(Color(c,float(pulses[kind])*.22),Color(c,float(pulses[kind])*1.4)),Rect2(2 if kind=="gold" else w,2,w-3,64))
+	ArenaIcon.draw(self,Vector2(18,16),"gold",16,Color.WHITE);ArenaIcon.draw(self,Vector2(w+16,16),"gem",16,Color.WHITE);ArenaIcon.draw(self,Vector2(w*2+14,16),"heart",16,Color.WHITE)
+	draw_string(font,Vector2(30,20),"골드",HORIZONTAL_ALIGNMENT_LEFT,-1,10,ArenaUI.MUTED)
+	var amount: String=ArenaUI.grouped(int(round(shown_gold if shown_gold>=0 else guild.state.gold)))
+	draw_string(numbers,Vector2(12,48),amount,HORIZONTAL_ALIGNMENT_LEFT,w-16,30,ArenaUI.GOLD)
+	var gold_width: float=numbers.get_string_size(amount,HORIZONTAL_ALIGNMENT_LEFT,-1,30).x
+	draw_string(numbers,Vector2(14+gold_width,48),"G",HORIZONTAL_ALIGNMENT_LEFT,-1,12,ArenaUI.MUTED)
+	draw_string(font,Vector2(w+28,20),"토큰",HORIZONTAL_ALIGNMENT_LEFT,-1,10,ArenaUI.MUTED)
+	draw_string(numbers,Vector2(w+10,48),str(int(round(shown_tokens if shown_tokens>=0 else guild.state.tokens))),HORIZONTAL_ALIGNMENT_LEFT,-1,30,ArenaUI.GOLD)
+	draw_string(font,Vector2(w*2+26,20),"플레이어 HP",HORIZONTAL_ALIGNMENT_LEFT,-1,10,ArenaUI.MUTED)
+	var health: String=str(ceili(guild.state.player_hp));var health_width: float=numbers.get_string_size(health,HORIZONTAL_ALIGNMENT_LEFT,-1,30).x
+	draw_string(numbers,Vector2(w*2+8,48),health,HORIZONTAL_ALIGNMENT_LEFT,-1,30,ArenaUI.HP)
+	draw_string(numbers,Vector2(w*2+13+health_width,48),"/ %d"%ceili(guild.state.player_max_hp),HORIZONTAL_ALIGNMENT_LEFT,-1,14,ArenaUI.MUTED)
+	draw_rect(Rect2(w*2+8,61,size.x-w*2-20,3),Color("35452e"));draw_rect(Rect2(w*2+8,61,(size.x-w*2-20)*clampf(guild.state.player_hp/maxf(1,guild.state.player_max_hp),0,1),3),ArenaUI.HP)

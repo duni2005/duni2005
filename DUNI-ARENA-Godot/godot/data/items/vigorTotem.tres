@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"vigorTotem"
+display_name = "원기 토템"
+description = "5초마다 주변 아군 HP 6 회복 · 자신은 3.6 회복"
+emoji = "🌿"
+gold_price = 160
+vigor_totem = true

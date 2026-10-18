@@ -1,0 +1,70 @@
+{
+  "deployment": {
+    "exit": 0,
+    "result": [
+      "UI SMOKE RESULT: 18 checks; 0 failures; display=headless"
+    ],
+    "errors": []
+  },
+  "room": {
+    "exit": 0,
+    "result": [
+      "ROOM UI RESULT: 17 checks; 0 failures; display=headless"
+    ],
+    "errors": []
+  },
+  "turning": {
+    "exit": 0,
+    "result": [
+      "TURNING UI RESULT: 18 checks; 0 failures; display=headless"
+    ],
+    "errors": []
+  },
+  "strategy": {
+    "exit": 0,
+    "result": [
+      "STRATEGY UI RESULT: 23 checks; 0 failures; display=headless"
+    ],
+    "errors": []
+  },
+  "combat": {
+    "exit": 0,
+    "result": [
+      "COMMON COMBAT UI RESULT: 25 checks; 0 failures; display=headless"
+    ],
+    "errors": []
+  },
+  "character": {
+    "timeout": true
+  },
+  "tower": {
+    "timeout": true
+  },
+  "tower_content": {
+    "timeout": true
+  },
+  "ai": {
+    "exit": 0,
+    "result": [
+      "AI UI RESULT: 22 checks; 0 failures; display=headless"
+    ],
+    "errors": [
+      "ERROR: Attempt to disconnect a nonexistent connection from '@Button@563:<Button#153998068758>'. Signal: 'pressed', callable: 'Control(TowerBattleScreen)::begin_deployment'.",
+      "ERROR: Attempt to disconnect a nonexistent connection from '@Button@1244:<Button#243789727658>'. Signal: 'pressed', callable: 'Control(TowerBattleScreen)::begin_deployment'."
+    ]
+  },
+  "save": {
+    "exit": 1,
+    "result": [
+      "SAVE UI RESULT: 31 checks; 2 failures; display=headless"
+    ],
+    "errors": [
+      "ERROR: SAVE UI FAIL manual save feedback",
+      "ERROR: Attempt to disconnect a nonexistent connection from '@Button@1490:<Button#1237638449279>'. Signal: 'pressed', callable: 'Control(TowerBattleScreen)::begin_deployment'.",
+      "ERROR: Attempt to disconnect a nonexistent connection from '@Button@1681:<Button#1456866333699>'. Signal: 'pressed', callable: 'Control(TowerBattleScreen)::begin_deployment'.",
+      "ERROR: SAVE UI FAIL manual save feedback",
+      "ERROR: Attempt to disconnect a nonexistent connection from '@Button@3268:<Button#2621087684415>'. Signal: 'pressed', callable: 'Control(TowerBattleScreen)::begin_deployment'.",
+      "ERROR: Attempt to disconnect a nonexistent connection from '@Button@3459:<Button#2837429886063>'. Signal: 'pressed', callable: 'Control(TowerBattleScreen)::begin_deployment'."
+    ]
+  }
+}

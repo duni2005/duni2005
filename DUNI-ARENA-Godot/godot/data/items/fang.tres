@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"fang"
+display_name = "날카로운 송곳니"
+description = "공격력 +15%"
+emoji = "🦷"
+gold_price = 100
+max_hp_multiplier = 1
+attack_multiplier = 1.15
+speed_multiplier = 1

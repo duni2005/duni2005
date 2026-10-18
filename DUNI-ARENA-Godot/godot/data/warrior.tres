@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/unit_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/attack_data.gd" id="2"]
+
+[sub_resource type="Resource" id="Attack"]
+script = ExtResource("2")
+kind = 0
+windup = 0.38
+active = 0.17
+recovery = 0.25
+reach = 108
+cone = 1.45
+impulse = 245
+projectile_speed = 340
+projectile_lifetime = 2.4
+projectile_radius = 26
+projectile_offset = 32
+projectile_spread = 0.025
+aim_lead = 0.45
+
+[resource]
+script = ExtResource("1")
+type_id = 0
+display_name = "전사"
+base_gold_cost = 100
+max_hp = 150
+attack = 16
+defense_power = 26
+move_speed = 96
+attack_range = 62
+attack_interval = 1
+critical_chance = 0.22
+tags = PackedStringArray("일반", "돌격형")
+emoji = "⚔️"
+ultimate_windup = 0.65
+attack_profile = SubResource("Attack")
+recruit_tokens = 2

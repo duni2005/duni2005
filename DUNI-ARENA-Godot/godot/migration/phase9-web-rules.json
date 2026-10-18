@@ -1,0 +1,2980 @@
+{
+  "source": "dist/tower.js executable functions evaluated in Node VM, not documentation",
+  "floors": [
+    {
+      "depth": 0,
+      "count": 6,
+      "level": 0,
+      "quotas": {
+        "battle": 2,
+        "rest": 1,
+        "services": 2,
+        "event": 1
+      }
+    },
+    {
+      "depth": 1,
+      "count": 6,
+      "level": 2,
+      "quotas": {
+        "battle": 2,
+        "rest": 1,
+        "services": 2,
+        "event": 1
+      }
+    },
+    {
+      "depth": 2,
+      "count": 6,
+      "level": 3,
+      "quotas": {
+        "battle": 2,
+        "rest": 1,
+        "services": 2,
+        "event": 1
+      }
+    },
+    {
+      "depth": 3,
+      "count": 7,
+      "level": 5,
+      "quotas": {
+        "battle": 3,
+        "rest": 1,
+        "services": 2,
+        "event": 1
+      }
+    },
+    {
+      "depth": 4,
+      "count": 7,
+      "level": 6,
+      "quotas": {
+        "battle": 3,
+        "rest": 1,
+        "services": 2,
+        "event": 1
+      }
+    },
+    {
+      "depth": 5,
+      "count": 7,
+      "level": 8,
+      "quotas": {
+        "battle": 3,
+        "rest": 1,
+        "services": 2,
+        "event": 1
+      }
+    },
+    {
+      "depth": 6,
+      "count": 8,
+      "level": 10,
+      "quotas": {
+        "battle": 3,
+        "rest": 1,
+        "services": 2,
+        "event": 2
+      }
+    },
+    {
+      "depth": 7,
+      "count": 8,
+      "level": 11,
+      "quotas": {
+        "battle": 3,
+        "rest": 1,
+        "services": 2,
+        "event": 2
+      }
+    },
+    {
+      "depth": 8,
+      "count": 8,
+      "level": 13,
+      "quotas": {
+        "battle": 3,
+        "rest": 1,
+        "services": 2,
+        "event": 2
+      }
+    },
+    {
+      "depth": 9,
+      "count": 9,
+      "level": 14,
+      "quotas": {
+        "battle": 4,
+        "rest": 1,
+        "services": 2,
+        "event": 2
+      }
+    },
+    {
+      "depth": 10,
+      "count": 9,
+      "level": 16,
+      "quotas": {
+        "battle": 4,
+        "rest": 1,
+        "services": 2,
+        "event": 2
+      }
+    },
+    {
+      "depth": 11,
+      "count": 9,
+      "level": 18,
+      "quotas": {
+        "battle": 4,
+        "rest": 1,
+        "services": 2,
+        "event": 2
+      }
+    },
+    {
+      "depth": 12,
+      "count": 10,
+      "level": 19,
+      "quotas": {
+        "battle": 4,
+        "rest": 2,
+        "services": 3,
+        "event": 1
+      }
+    },
+    {
+      "depth": 13,
+      "count": 10,
+      "level": 21,
+      "quotas": {
+        "battle": 4,
+        "rest": 2,
+        "services": 3,
+        "event": 1
+      }
+    },
+    {
+      "depth": 14,
+      "count": 10,
+      "level": 22,
+      "quotas": {
+        "battle": 4,
+        "rest": 2,
+        "services": 3,
+        "event": 1
+      }
+    }
+  ],
+  "samples": [
+    {
+      "type": 0,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 120,
+        "dmg": 12.8,
+        "speed": 76.80000000000001,
+        "defensePower": 20.8,
+        "scale": 1
+      }
+    },
+    {
+      "type": 0,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 300,
+        "dmg": 21.12,
+        "speed": 82.94400000000002,
+        "defensePower": 31.200000000000003,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 0,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 432,
+        "dmg": 27.52,
+        "speed": 86.01600000000002,
+        "defensePower": 41.6,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 0,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 163,
+        "dmg": 15.872,
+        "speed": 81.40800000000002,
+        "defensePower": 25.792,
+        "scale": 1
+      }
+    },
+    {
+      "type": 0,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 408,
+        "dmg": 26.188799999999997,
+        "speed": 87.92064000000002,
+        "defensePower": 38.688,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 0,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 588,
+        "dmg": 34.1248,
+        "speed": 91.17696000000002,
+        "defensePower": 51.584,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 0,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 437,
+        "dmg": 35.327999999999996,
+        "speed": 110.59200000000001,
+        "defensePower": 57.407999999999994,
+        "scale": 1
+      }
+    },
+    {
+      "type": 0,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1092,
+        "dmg": 58.29119999999999,
+        "speed": 119.43936000000002,
+        "defensePower": 86.112,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 0,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1572,
+        "dmg": 75.95519999999999,
+        "speed": 123.86304000000003,
+        "defensePower": 114.81599999999999,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 1,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 84,
+        "dmg": 12,
+        "speed": 73.60000000000001,
+        "defensePower": 14.4,
+        "scale": 1
+      }
+    },
+    {
+      "type": 1,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 210,
+        "dmg": 19.799999999999997,
+        "speed": 79.48800000000001,
+        "defensePower": 21.6,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 1,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 302,
+        "dmg": 25.799999999999997,
+        "speed": 82.43200000000002,
+        "defensePower": 28.8,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 1,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 114,
+        "dmg": 14.879999999999999,
+        "speed": 78.01600000000002,
+        "defensePower": 17.856,
+        "scale": 1
+      }
+    },
+    {
+      "type": 1,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 286,
+        "dmg": 24.551999999999996,
+        "speed": 84.25728000000002,
+        "defensePower": 26.784000000000002,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 1,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 411,
+        "dmg": 31.991999999999997,
+        "speed": 87.37792000000003,
+        "defensePower": 35.712,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 1,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 306,
+        "dmg": 33.12,
+        "speed": 105.98400000000001,
+        "defensePower": 39.744,
+        "scale": 1
+      }
+    },
+    {
+      "type": 1,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 764,
+        "dmg": 54.647999999999996,
+        "speed": 114.46272000000002,
+        "defensePower": 59.616,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 1,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1101,
+        "dmg": 71.208,
+        "speed": 118.70208000000002,
+        "defensePower": 79.488,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 2,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 88,
+        "dmg": 20,
+        "speed": 61.6,
+        "defensePower": 16,
+        "scale": 1
+      }
+    },
+    {
+      "type": 2,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 220,
+        "dmg": 33,
+        "speed": 66.528,
+        "defensePower": 24,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 2,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 317,
+        "dmg": 43,
+        "speed": 68.992,
+        "defensePower": 32,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 2,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 120,
+        "dmg": 24.8,
+        "speed": 65.296,
+        "defensePower": 19.84,
+        "scale": 1
+      }
+    },
+    {
+      "type": 2,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 299,
+        "dmg": 40.92,
+        "speed": 70.51968000000001,
+        "defensePower": 29.759999999999998,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 2,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 431,
+        "dmg": 53.32,
+        "speed": 73.13152000000001,
+        "defensePower": 39.68,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 2,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 320,
+        "dmg": 55.199999999999996,
+        "speed": 88.704,
+        "defensePower": 44.16,
+        "scale": 1
+      }
+    },
+    {
+      "type": 2,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 801,
+        "dmg": 91.07999999999998,
+        "speed": 95.80032,
+        "defensePower": 66.24,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 2,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1153,
+        "dmg": 118.67999999999999,
+        "speed": 99.34848000000001,
+        "defensePower": 88.32,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 3,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 116,
+        "dmg": 20,
+        "speed": 105.60000000000001,
+        "defensePower": 16,
+        "scale": 1
+      }
+    },
+    {
+      "type": 3,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 290,
+        "dmg": 33,
+        "speed": 114.04800000000002,
+        "defensePower": 24,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 3,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 418,
+        "dmg": 43,
+        "speed": 118.27200000000002,
+        "defensePower": 32,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 3,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 158,
+        "dmg": 24.8,
+        "speed": 111.93600000000002,
+        "defensePower": 19.84,
+        "scale": 1
+      }
+    },
+    {
+      "type": 3,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 394,
+        "dmg": 40.92,
+        "speed": 120.89088000000002,
+        "defensePower": 29.759999999999998,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 3,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 568,
+        "dmg": 53.32,
+        "speed": 125.36832000000004,
+        "defensePower": 39.68,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 3,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 422,
+        "dmg": 55.199999999999996,
+        "speed": 152.064,
+        "defensePower": 44.16,
+        "scale": 1
+      }
+    },
+    {
+      "type": 3,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1056,
+        "dmg": 91.07999999999998,
+        "speed": 164.22912,
+        "defensePower": 66.24,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 3,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1520,
+        "dmg": 118.67999999999999,
+        "speed": 170.31168,
+        "defensePower": 88.32,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 4,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 152,
+        "dmg": 12.8,
+        "speed": 68.8,
+        "defensePower": 32,
+        "scale": 1
+      }
+    },
+    {
+      "type": 4,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 380,
+        "dmg": 21.12,
+        "speed": 74.304,
+        "defensePower": 48,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 4,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 547,
+        "dmg": 27.52,
+        "speed": 77.056,
+        "defensePower": 64,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 4,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 207,
+        "dmg": 15.872,
+        "speed": 72.928,
+        "defensePower": 39.68,
+        "scale": 1
+      }
+    },
+    {
+      "type": 4,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 517,
+        "dmg": 26.188799999999997,
+        "speed": 78.76224,
+        "defensePower": 59.519999999999996,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 4,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 744,
+        "dmg": 34.1248,
+        "speed": 81.67936,
+        "defensePower": 79.36,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 4,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 553,
+        "dmg": 35.327999999999996,
+        "speed": 99.07199999999999,
+        "defensePower": 88.32,
+        "scale": 1
+      }
+    },
+    {
+      "type": 4,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1383,
+        "dmg": 58.29119999999999,
+        "speed": 106.99776,
+        "defensePower": 132.48,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 4,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1992,
+        "dmg": 75.95519999999999,
+        "speed": 110.96064,
+        "defensePower": 176.64,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 5,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 84,
+        "dmg": 8,
+        "speed": 67.2,
+        "defensePower": 14.4,
+        "scale": 1
+      }
+    },
+    {
+      "type": 5,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 210,
+        "dmg": 13.2,
+        "speed": 72.57600000000001,
+        "defensePower": 21.6,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 5,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 302,
+        "dmg": 17.2,
+        "speed": 75.26400000000001,
+        "defensePower": 28.8,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 5,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 114,
+        "dmg": 9.92,
+        "speed": 71.23200000000001,
+        "defensePower": 17.856,
+        "scale": 1
+      }
+    },
+    {
+      "type": 5,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 286,
+        "dmg": 16.368,
+        "speed": 76.93056000000001,
+        "defensePower": 26.784000000000002,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 5,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 411,
+        "dmg": 21.328,
+        "speed": 79.77984000000002,
+        "defensePower": 35.712,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 5,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 306,
+        "dmg": 22.08,
+        "speed": 96.768,
+        "defensePower": 39.744,
+        "scale": 1
+      }
+    },
+    {
+      "type": 5,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 764,
+        "dmg": 36.431999999999995,
+        "speed": 104.50944000000001,
+        "defensePower": 59.616,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 5,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1101,
+        "dmg": 47.471999999999994,
+        "speed": 108.38016000000002,
+        "defensePower": 79.488,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 6,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 100,
+        "dmg": 76,
+        "speed": 81.60000000000001,
+        "defensePower": 17.6,
+        "scale": 1
+      }
+    },
+    {
+      "type": 6,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 250,
+        "dmg": 125.39999999999999,
+        "speed": 88.12800000000001,
+        "defensePower": 26.400000000000002,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 6,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 360,
+        "dmg": 163.4,
+        "speed": 91.39200000000002,
+        "defensePower": 35.2,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 6,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 136,
+        "dmg": 94.24,
+        "speed": 86.49600000000001,
+        "defensePower": 21.824,
+        "scale": 1
+      }
+    },
+    {
+      "type": 6,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 340,
+        "dmg": 155.49599999999998,
+        "speed": 93.41568000000002,
+        "defensePower": 32.736000000000004,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 6,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 490,
+        "dmg": 202.61599999999999,
+        "speed": 96.87552000000002,
+        "defensePower": 43.648,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 6,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 364,
+        "dmg": 209.76,
+        "speed": 117.504,
+        "defensePower": 48.576,
+        "scale": 1
+      }
+    },
+    {
+      "type": 6,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 910,
+        "dmg": 346.104,
+        "speed": 126.90432000000001,
+        "defensePower": 72.864,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 6,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1310,
+        "dmg": 450.984,
+        "speed": 131.60448000000002,
+        "defensePower": 97.152,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 7,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 136,
+        "dmg": 7.2,
+        "speed": 89.60000000000001,
+        "defensePower": 19.200000000000003,
+        "scale": 1
+      }
+    },
+    {
+      "type": 7,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 340,
+        "dmg": 11.879999999999999,
+        "speed": 96.76800000000001,
+        "defensePower": 28.800000000000004,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 7,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 490,
+        "dmg": 15.48,
+        "speed": 100.35200000000002,
+        "defensePower": 38.400000000000006,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 7,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 185,
+        "dmg": 8.928,
+        "speed": 94.97600000000001,
+        "defensePower": 23.808000000000003,
+        "scale": 1
+      }
+    },
+    {
+      "type": 7,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 462,
+        "dmg": 14.731200000000001,
+        "speed": 102.57408000000002,
+        "defensePower": 35.712,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 7,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 666,
+        "dmg": 19.1952,
+        "speed": 106.37312000000003,
+        "defensePower": 47.61600000000001,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 7,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 495,
+        "dmg": 19.872,
+        "speed": 129.024,
+        "defensePower": 52.992000000000004,
+        "scale": 1
+      }
+    },
+    {
+      "type": 7,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1238,
+        "dmg": 32.788799999999995,
+        "speed": 139.34592,
+        "defensePower": 79.488,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 7,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1782,
+        "dmg": 42.724799999999995,
+        "speed": 144.50688000000002,
+        "defensePower": 105.98400000000001,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 8,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 120,
+        "dmg": 24,
+        "speed": 83.2,
+        "defensePower": 19.200000000000003,
+        "scale": 1
+      }
+    },
+    {
+      "type": 8,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 300,
+        "dmg": 39.599999999999994,
+        "speed": 89.85600000000001,
+        "defensePower": 28.800000000000004,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 8,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 432,
+        "dmg": 51.599999999999994,
+        "speed": 93.18400000000001,
+        "defensePower": 38.400000000000006,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 8,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 163,
+        "dmg": 29.759999999999998,
+        "speed": 88.19200000000001,
+        "defensePower": 23.808000000000003,
+        "scale": 1
+      }
+    },
+    {
+      "type": 8,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 408,
+        "dmg": 49.10399999999999,
+        "speed": 95.24736000000001,
+        "defensePower": 35.712,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 8,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 588,
+        "dmg": 63.983999999999995,
+        "speed": 98.77504000000002,
+        "defensePower": 47.61600000000001,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 8,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 437,
+        "dmg": 66.24,
+        "speed": 119.80799999999999,
+        "defensePower": 52.992000000000004,
+        "scale": 1
+      }
+    },
+    {
+      "type": 8,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1092,
+        "dmg": 109.29599999999999,
+        "speed": 129.39264,
+        "defensePower": 79.488,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 8,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1572,
+        "dmg": 142.416,
+        "speed": 134.18496000000002,
+        "defensePower": 105.98400000000001,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 9,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 148,
+        "dmg": 8.8,
+        "speed": 94.4,
+        "defensePower": 22.400000000000002,
+        "scale": 1
+      }
+    },
+    {
+      "type": 9,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 370,
+        "dmg": 14.52,
+        "speed": 101.95200000000001,
+        "defensePower": 33.6,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 9,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 533,
+        "dmg": 18.92,
+        "speed": 105.72800000000002,
+        "defensePower": 44.800000000000004,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 9,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 201,
+        "dmg": 10.912,
+        "speed": 100.06400000000001,
+        "defensePower": 27.776000000000003,
+        "scale": 1
+      }
+    },
+    {
+      "type": 9,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 503,
+        "dmg": 18.0048,
+        "speed": 108.06912000000001,
+        "defensePower": 41.664,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 9,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 725,
+        "dmg": 23.460800000000003,
+        "speed": 112.07168000000001,
+        "defensePower": 55.55200000000001,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 9,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 539,
+        "dmg": 24.288,
+        "speed": 135.936,
+        "defensePower": 61.824,
+        "scale": 1
+      }
+    },
+    {
+      "type": 9,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1347,
+        "dmg": 40.075199999999995,
+        "speed": 146.81088000000003,
+        "defensePower": 92.73599999999999,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 9,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1939,
+        "dmg": 52.2192,
+        "speed": 152.24832000000004,
+        "defensePower": 123.648,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 10,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 192,
+        "dmg": 32,
+        "speed": 62.400000000000006,
+        "defensePower": 30.400000000000002,
+        "scale": 1
+      }
+    },
+    {
+      "type": 10,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 480,
+        "dmg": 52.8,
+        "speed": 67.39200000000001,
+        "defensePower": 45.6,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 10,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 691,
+        "dmg": 68.8,
+        "speed": 69.88800000000002,
+        "defensePower": 60.800000000000004,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 10,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 261,
+        "dmg": 39.68,
+        "speed": 66.144,
+        "defensePower": 37.696000000000005,
+        "scale": 1
+      }
+    },
+    {
+      "type": 10,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 653,
+        "dmg": 65.472,
+        "speed": 71.43552000000001,
+        "defensePower": 56.54400000000001,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 10,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 940,
+        "dmg": 85.312,
+        "speed": 74.08128,
+        "defensePower": 75.39200000000001,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 10,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 699,
+        "dmg": 88.32,
+        "speed": 89.85600000000001,
+        "defensePower": 83.904,
+        "scale": 1
+      }
+    },
+    {
+      "type": 10,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1747,
+        "dmg": 145.72799999999998,
+        "speed": 97.04448000000002,
+        "defensePower": 125.856,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 10,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 2516,
+        "dmg": 189.88799999999998,
+        "speed": 100.63872000000002,
+        "defensePower": 167.808,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 11,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 124,
+        "dmg": 17.6,
+        "speed": 102.4,
+        "defensePower": 16,
+        "scale": 1
+      }
+    },
+    {
+      "type": 11,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 310,
+        "dmg": 29.04,
+        "speed": 110.59200000000001,
+        "defensePower": 24,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 11,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 446,
+        "dmg": 37.84,
+        "speed": 114.68800000000002,
+        "defensePower": 32,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 11,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 169,
+        "dmg": 21.824,
+        "speed": 108.54400000000001,
+        "defensePower": 19.84,
+        "scale": 1
+      }
+    },
+    {
+      "type": 11,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 422,
+        "dmg": 36.0096,
+        "speed": 117.22752000000003,
+        "defensePower": 29.759999999999998,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 11,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 607,
+        "dmg": 46.921600000000005,
+        "speed": 121.56928000000002,
+        "defensePower": 39.68,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 11,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 451,
+        "dmg": 48.576,
+        "speed": 147.456,
+        "defensePower": 44.16,
+        "scale": 1
+      }
+    },
+    {
+      "type": 11,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1128,
+        "dmg": 80.15039999999999,
+        "speed": 159.25248,
+        "defensePower": 66.24,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 11,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1625,
+        "dmg": 104.4384,
+        "speed": 165.15072,
+        "defensePower": 88.32,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 12,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 252,
+        "dmg": 38.400000000000006,
+        "speed": 56,
+        "defensePower": 35.2,
+        "scale": 1
+      }
+    },
+    {
+      "type": 12,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 630,
+        "dmg": 63.36000000000001,
+        "speed": 60.480000000000004,
+        "defensePower": 52.800000000000004,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 12,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 907,
+        "dmg": 82.56,
+        "speed": 62.720000000000006,
+        "defensePower": 70.4,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 12,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 343,
+        "dmg": 47.61600000000001,
+        "speed": 59.36,
+        "defensePower": 43.648,
+        "scale": 1
+      }
+    },
+    {
+      "type": 12,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 857,
+        "dmg": 78.5664,
+        "speed": 64.1088,
+        "defensePower": 65.47200000000001,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 12,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 1234,
+        "dmg": 102.37440000000001,
+        "speed": 66.48320000000001,
+        "defensePower": 87.296,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 12,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 917,
+        "dmg": 105.98400000000001,
+        "speed": 80.64,
+        "defensePower": 97.152,
+        "scale": 1
+      }
+    },
+    {
+      "type": 12,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 2293,
+        "dmg": 174.8736,
+        "speed": 87.0912,
+        "defensePower": 145.728,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 12,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 3302,
+        "dmg": 227.8656,
+        "speed": 90.31680000000001,
+        "defensePower": 194.304,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 13,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 116,
+        "dmg": 28.8,
+        "speed": 76.80000000000001,
+        "defensePower": 17.6,
+        "scale": 1
+      }
+    },
+    {
+      "type": 13,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 290,
+        "dmg": 47.519999999999996,
+        "speed": 82.94400000000002,
+        "defensePower": 26.400000000000002,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 13,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 418,
+        "dmg": 61.92,
+        "speed": 86.01600000000002,
+        "defensePower": 35.2,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 13,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 158,
+        "dmg": 35.712,
+        "speed": 81.40800000000002,
+        "defensePower": 21.824,
+        "scale": 1
+      }
+    },
+    {
+      "type": 13,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 394,
+        "dmg": 58.924800000000005,
+        "speed": 87.92064000000002,
+        "defensePower": 32.736000000000004,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 13,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 568,
+        "dmg": 76.7808,
+        "speed": 91.17696000000002,
+        "defensePower": 43.648,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 13,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 422,
+        "dmg": 79.488,
+        "speed": 110.59200000000001,
+        "defensePower": 48.576,
+        "scale": 1
+      }
+    },
+    {
+      "type": 13,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1056,
+        "dmg": 131.15519999999998,
+        "speed": 119.43936000000002,
+        "defensePower": 72.864,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 13,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1520,
+        "dmg": 170.89919999999998,
+        "speed": 123.86304000000003,
+        "defensePower": 97.152,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 14,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 140,
+        "dmg": 12.8,
+        "speed": 92,
+        "defensePower": 20.8,
+        "scale": 1
+      }
+    },
+    {
+      "type": 14,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 350,
+        "dmg": 21.12,
+        "speed": 99.36000000000001,
+        "defensePower": 31.200000000000003,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 14,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 504,
+        "dmg": 27.52,
+        "speed": 103.04,
+        "defensePower": 41.6,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 14,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 190,
+        "dmg": 15.872,
+        "speed": 97.52000000000001,
+        "defensePower": 25.792,
+        "scale": 1
+      }
+    },
+    {
+      "type": 14,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 476,
+        "dmg": 26.188799999999997,
+        "speed": 105.32160000000002,
+        "defensePower": 38.688,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 14,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 685,
+        "dmg": 34.1248,
+        "speed": 109.22240000000002,
+        "defensePower": 51.584,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 14,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 510,
+        "dmg": 35.327999999999996,
+        "speed": 132.48,
+        "defensePower": 57.407999999999994,
+        "scale": 1
+      }
+    },
+    {
+      "type": 14,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1274,
+        "dmg": 58.29119999999999,
+        "speed": 143.0784,
+        "defensePower": 86.112,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 14,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1835,
+        "dmg": 75.95519999999999,
+        "speed": 148.3776,
+        "defensePower": 114.81599999999999,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 15,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 76,
+        "dmg": 11.200000000000001,
+        "speed": 72.8,
+        "defensePower": 16,
+        "scale": 1
+      }
+    },
+    {
+      "type": 15,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 190,
+        "dmg": 18.48,
+        "speed": 78.624,
+        "defensePower": 24,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 15,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 274,
+        "dmg": 24.080000000000002,
+        "speed": 81.536,
+        "defensePower": 32,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 15,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 103,
+        "dmg": 13.888000000000002,
+        "speed": 77.168,
+        "defensePower": 19.84,
+        "scale": 1
+      }
+    },
+    {
+      "type": 15,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 258,
+        "dmg": 22.915200000000002,
+        "speed": 83.34144,
+        "defensePower": 29.759999999999998,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 15,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 372,
+        "dmg": 29.8592,
+        "speed": 86.42816000000002,
+        "defensePower": 39.68,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 15,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 277,
+        "dmg": 30.912,
+        "speed": 104.832,
+        "defensePower": 44.16,
+        "scale": 1
+      }
+    },
+    {
+      "type": 15,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 692,
+        "dmg": 51.004799999999996,
+        "speed": 113.21856,
+        "defensePower": 66.24,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 15,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 996,
+        "dmg": 66.46079999999999,
+        "speed": 117.41184,
+        "defensePower": 88.32,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 16,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 164,
+        "dmg": 14.4,
+        "speed": 72,
+        "defensePower": 27.200000000000003,
+        "scale": 1
+      }
+    },
+    {
+      "type": 16,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 410,
+        "dmg": 23.759999999999998,
+        "speed": 77.76,
+        "defensePower": 40.800000000000004,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 16,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 590,
+        "dmg": 30.96,
+        "speed": 80.64000000000001,
+        "defensePower": 54.400000000000006,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 16,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 223,
+        "dmg": 17.856,
+        "speed": 76.32000000000001,
+        "defensePower": 33.728,
+        "scale": 1
+      }
+    },
+    {
+      "type": 16,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 558,
+        "dmg": 29.462400000000002,
+        "speed": 82.42560000000002,
+        "defensePower": 50.592,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 16,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 803,
+        "dmg": 38.3904,
+        "speed": 85.47840000000002,
+        "defensePower": 67.456,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 16,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 597,
+        "dmg": 39.744,
+        "speed": 103.67999999999999,
+        "defensePower": 75.072,
+        "scale": 1
+      }
+    },
+    {
+      "type": 16,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1492,
+        "dmg": 65.57759999999999,
+        "speed": 111.9744,
+        "defensePower": 112.608,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 16,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 2149,
+        "dmg": 85.44959999999999,
+        "speed": 116.1216,
+        "defensePower": 150.144,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 17,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 168,
+        "dmg": 18.400000000000002,
+        "speed": 89.60000000000001,
+        "defensePower": 24,
+        "scale": 1
+      }
+    },
+    {
+      "type": 17,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 420,
+        "dmg": 30.360000000000003,
+        "speed": 96.76800000000001,
+        "defensePower": 36,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 17,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 605,
+        "dmg": 39.56,
+        "speed": 100.35200000000002,
+        "defensePower": 48,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 17,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 228,
+        "dmg": 22.816000000000003,
+        "speed": 94.97600000000001,
+        "defensePower": 29.759999999999998,
+        "scale": 1
+      }
+    },
+    {
+      "type": 17,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 571,
+        "dmg": 37.6464,
+        "speed": 102.57408000000002,
+        "defensePower": 44.64,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 17,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 823,
+        "dmg": 49.0544,
+        "speed": 106.37312000000003,
+        "defensePower": 59.519999999999996,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 17,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 612,
+        "dmg": 50.784,
+        "speed": 129.024,
+        "defensePower": 66.24,
+        "scale": 1
+      }
+    },
+    {
+      "type": 17,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1529,
+        "dmg": 83.7936,
+        "speed": 139.34592,
+        "defensePower": 99.35999999999999,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 17,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 2201,
+        "dmg": 109.1856,
+        "speed": 144.50688000000002,
+        "defensePower": 132.48,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 18,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 240,
+        "dmg": 41.6,
+        "speed": 38.400000000000006,
+        "defensePower": 36.800000000000004,
+        "scale": 1
+      }
+    },
+    {
+      "type": 18,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 600,
+        "dmg": 68.64,
+        "speed": 41.47200000000001,
+        "defensePower": 55.2,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 18,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 864,
+        "dmg": 89.44,
+        "speed": 43.00800000000001,
+        "defensePower": 73.60000000000001,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 18,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 326,
+        "dmg": 51.584,
+        "speed": 40.70400000000001,
+        "defensePower": 45.632000000000005,
+        "scale": 1
+      }
+    },
+    {
+      "type": 18,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 816,
+        "dmg": 85.1136,
+        "speed": 43.96032000000001,
+        "defensePower": 68.44800000000001,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 18,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 1175,
+        "dmg": 110.9056,
+        "speed": 45.58848000000001,
+        "defensePower": 91.26400000000001,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 18,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 874,
+        "dmg": 114.81599999999999,
+        "speed": 55.29600000000001,
+        "defensePower": 101.568,
+        "scale": 1
+      }
+    },
+    {
+      "type": 18,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 2184,
+        "dmg": 189.44639999999998,
+        "speed": 59.71968000000001,
+        "defensePower": 152.352,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 18,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 3145,
+        "dmg": 246.85439999999997,
+        "speed": 61.93152000000001,
+        "defensePower": 203.136,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 19,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 124,
+        "dmg": 13.600000000000001,
+        "speed": 86.4,
+        "defensePower": 17.6,
+        "scale": 1
+      }
+    },
+    {
+      "type": 19,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 310,
+        "dmg": 22.44,
+        "speed": 93.31200000000001,
+        "defensePower": 26.400000000000002,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 19,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 446,
+        "dmg": 29.240000000000002,
+        "speed": 96.76800000000001,
+        "defensePower": 35.2,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 19,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 169,
+        "dmg": 16.864,
+        "speed": 91.58400000000002,
+        "defensePower": 21.824,
+        "scale": 1
+      }
+    },
+    {
+      "type": 19,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 422,
+        "dmg": 27.8256,
+        "speed": 98.91072000000003,
+        "defensePower": 32.736000000000004,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 19,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 607,
+        "dmg": 36.257600000000004,
+        "speed": 102.57408000000002,
+        "defensePower": 43.648,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 19,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 451,
+        "dmg": 37.536,
+        "speed": 124.416,
+        "defensePower": 48.576,
+        "scale": 1
+      }
+    },
+    {
+      "type": 19,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1128,
+        "dmg": 61.9344,
+        "speed": 134.36928,
+        "defensePower": 72.864,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 19,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1625,
+        "dmg": 80.7024,
+        "speed": 139.34592,
+        "defensePower": 97.152,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 20,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 96,
+        "dmg": 14.4,
+        "speed": 68.8,
+        "defensePower": 16.8,
+        "scale": 1
+      }
+    },
+    {
+      "type": 20,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 240,
+        "dmg": 23.759999999999998,
+        "speed": 74.304,
+        "defensePower": 25.200000000000003,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 20,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 346,
+        "dmg": 30.96,
+        "speed": 77.056,
+        "defensePower": 33.6,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 20,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 131,
+        "dmg": 17.856,
+        "speed": 72.928,
+        "defensePower": 20.832,
+        "scale": 1
+      }
+    },
+    {
+      "type": 20,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 326,
+        "dmg": 29.462400000000002,
+        "speed": 78.76224,
+        "defensePower": 31.248,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 20,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 470,
+        "dmg": 38.3904,
+        "speed": 81.67936,
+        "defensePower": 41.664,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 20,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 349,
+        "dmg": 39.744,
+        "speed": 99.07199999999999,
+        "defensePower": 46.367999999999995,
+        "scale": 1
+      }
+    },
+    {
+      "type": 20,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 874,
+        "dmg": 65.57759999999999,
+        "speed": 106.99776,
+        "defensePower": 69.55199999999999,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 20,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1258,
+        "dmg": 85.44959999999999,
+        "speed": 110.96064,
+        "defensePower": 92.73599999999999,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 21,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 116,
+        "dmg": 14.4,
+        "speed": 70.4,
+        "defensePower": 19.200000000000003,
+        "scale": 1
+      }
+    },
+    {
+      "type": 21,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 290,
+        "dmg": 23.759999999999998,
+        "speed": 76.03200000000001,
+        "defensePower": 28.800000000000004,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 21,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 418,
+        "dmg": 30.96,
+        "speed": 78.84800000000001,
+        "defensePower": 38.400000000000006,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 21,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 158,
+        "dmg": 17.856,
+        "speed": 74.62400000000001,
+        "defensePower": 23.808000000000003,
+        "scale": 1
+      }
+    },
+    {
+      "type": 21,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 394,
+        "dmg": 29.462400000000002,
+        "speed": 80.59392000000001,
+        "defensePower": 35.712,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 21,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 568,
+        "dmg": 38.3904,
+        "speed": 83.57888000000001,
+        "defensePower": 47.61600000000001,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 21,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 422,
+        "dmg": 39.744,
+        "speed": 101.376,
+        "defensePower": 52.992000000000004,
+        "scale": 1
+      }
+    },
+    {
+      "type": 21,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1056,
+        "dmg": 65.57759999999999,
+        "speed": 109.48608000000002,
+        "defensePower": 79.488,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 21,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1520,
+        "dmg": 85.44959999999999,
+        "speed": 113.54112000000002,
+        "defensePower": 105.98400000000001,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 22,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 100,
+        "dmg": 9.600000000000001,
+        "speed": 65.60000000000001,
+        "defensePower": 16.8,
+        "scale": 1
+      }
+    },
+    {
+      "type": 22,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 250,
+        "dmg": 15.840000000000002,
+        "speed": 70.84800000000001,
+        "defensePower": 25.200000000000003,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 22,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 360,
+        "dmg": 20.64,
+        "speed": 73.47200000000002,
+        "defensePower": 33.6,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 22,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 136,
+        "dmg": 11.904000000000002,
+        "speed": 69.53600000000002,
+        "defensePower": 20.832,
+        "scale": 1
+      }
+    },
+    {
+      "type": 22,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 340,
+        "dmg": 19.6416,
+        "speed": 75.09888000000002,
+        "defensePower": 31.248,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 22,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 490,
+        "dmg": 25.593600000000002,
+        "speed": 77.88032000000003,
+        "defensePower": 41.664,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 22,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 364,
+        "dmg": 26.496000000000002,
+        "speed": 94.46400000000001,
+        "defensePower": 46.367999999999995,
+        "scale": 1
+      }
+    },
+    {
+      "type": 22,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 910,
+        "dmg": 43.7184,
+        "speed": 102.02112000000002,
+        "defensePower": 69.55199999999999,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 22,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1310,
+        "dmg": 56.9664,
+        "speed": 105.79968000000002,
+        "defensePower": 92.73599999999999,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 23,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 116,
+        "dmg": 7.2,
+        "speed": 70.4,
+        "defensePower": 17.6,
+        "scale": 1
+      }
+    },
+    {
+      "type": 23,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 290,
+        "dmg": 11.879999999999999,
+        "speed": 76.03200000000001,
+        "defensePower": 26.400000000000002,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 23,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 418,
+        "dmg": 15.48,
+        "speed": 78.84800000000001,
+        "defensePower": 35.2,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 23,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 158,
+        "dmg": 8.928,
+        "speed": 74.62400000000001,
+        "defensePower": 21.824,
+        "scale": 1
+      }
+    },
+    {
+      "type": 23,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 394,
+        "dmg": 14.731200000000001,
+        "speed": 80.59392000000001,
+        "defensePower": 32.736000000000004,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 23,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 568,
+        "dmg": 19.1952,
+        "speed": 83.57888000000001,
+        "defensePower": 43.648,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 23,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 422,
+        "dmg": 19.872,
+        "speed": 101.376,
+        "defensePower": 48.576,
+        "scale": 1
+      }
+    },
+    {
+      "type": 23,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1056,
+        "dmg": 32.788799999999995,
+        "speed": 109.48608000000002,
+        "defensePower": 72.864,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 23,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1520,
+        "dmg": 42.724799999999995,
+        "speed": 113.54112000000002,
+        "defensePower": 97.152,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 24,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 152,
+        "dmg": 24,
+        "speed": 84,
+        "defensePower": 20,
+        "scale": 1
+      }
+    },
+    {
+      "type": 24,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 380,
+        "dmg": 39.599999999999994,
+        "speed": 90.72,
+        "defensePower": 30,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 24,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 547,
+        "dmg": 51.599999999999994,
+        "speed": 94.08000000000001,
+        "defensePower": 40,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 24,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 207,
+        "dmg": 29.759999999999998,
+        "speed": 89.04,
+        "defensePower": 24.8,
+        "scale": 1
+      }
+    },
+    {
+      "type": 24,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 517,
+        "dmg": 49.10399999999999,
+        "speed": 96.16320000000002,
+        "defensePower": 37.2,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 24,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 744,
+        "dmg": 63.983999999999995,
+        "speed": 99.72480000000002,
+        "defensePower": 49.6,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 24,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 553,
+        "dmg": 66.24,
+        "speed": 120.96,
+        "defensePower": 55.199999999999996,
+        "scale": 1
+      }
+    },
+    {
+      "type": 24,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1383,
+        "dmg": 109.29599999999999,
+        "speed": 130.6368,
+        "defensePower": 82.8,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 24,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1992,
+        "dmg": 142.416,
+        "speed": 135.4752,
+        "defensePower": 110.39999999999999,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 25,
+      "level": 0,
+      "rank": "normal",
+      "stats": {
+        "hp": 120,
+        "dmg": 9.600000000000001,
+        "speed": 73.60000000000001,
+        "defensePower": 17.6,
+        "scale": 1
+      }
+    },
+    {
+      "type": 25,
+      "level": 0,
+      "rank": "elite",
+      "stats": {
+        "hp": 300,
+        "dmg": 15.840000000000002,
+        "speed": 79.48800000000001,
+        "defensePower": 26.400000000000002,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 25,
+      "level": 0,
+      "rank": "boss",
+      "stats": {
+        "hp": 432,
+        "dmg": 20.64,
+        "speed": 82.43200000000002,
+        "defensePower": 35.2,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 25,
+      "level": 3,
+      "rank": "normal",
+      "stats": {
+        "hp": 163,
+        "dmg": 11.904000000000002,
+        "speed": 78.01600000000002,
+        "defensePower": 21.824,
+        "scale": 1
+      }
+    },
+    {
+      "type": 25,
+      "level": 3,
+      "rank": "elite",
+      "stats": {
+        "hp": 408,
+        "dmg": 19.6416,
+        "speed": 84.25728000000002,
+        "defensePower": 32.736000000000004,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 25,
+      "level": 3,
+      "rank": "boss",
+      "stats": {
+        "hp": 588,
+        "dmg": 25.593600000000002,
+        "speed": 87.37792000000003,
+        "defensePower": 43.648,
+        "scale": 1.85
+      }
+    },
+    {
+      "type": 25,
+      "level": 22,
+      "rank": "normal",
+      "stats": {
+        "hp": 437,
+        "dmg": 26.496000000000002,
+        "speed": 105.98400000000001,
+        "defensePower": 48.576,
+        "scale": 1
+      }
+    },
+    {
+      "type": 25,
+      "level": 22,
+      "rank": "elite",
+      "stats": {
+        "hp": 1092,
+        "dmg": 43.7184,
+        "speed": 114.46272000000002,
+        "defensePower": 72.864,
+        "scale": 1.5
+      }
+    },
+    {
+      "type": 25,
+      "level": 22,
+      "rank": "boss",
+      "stats": {
+        "hp": 1572,
+        "dmg": 56.9664,
+        "speed": 118.70208000000002,
+        "defensePower": 97.152,
+        "scale": 1.85
+      }
+    }
+  ]
+}

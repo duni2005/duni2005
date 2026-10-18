@@ -1,0 +1,1551 @@
+{
+  "source": "Direct execution of protected dist functions; no gameplay stubs",
+  "rows": [
+    {
+      "name": "observe_idle",
+      "kind": "general",
+      "type": 0,
+      "mode": "observe",
+      "state": "idle",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 401.7180936319543,
+        "y": 401.202665542368,
+        "vx": 17.180936319542752,
+        "vy": 12.026655423679813,
+        "hx": 0.2753355179413892,
+        "hy": 0.19273486255897243,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "observe_windup",
+      "kind": "general",
+      "type": 0,
+      "mode": "observe",
+      "state": "windup",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 400.5154280895863,
+        "y": 400.3607996627104,
+        "vx": 5.154280895862939,
+        "vy": 3.6079966271040576,
+        "hx": 0.2753355179413892,
+        "hy": 0.19273486255897243,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "observe_recovery",
+      "kind": "general",
+      "type": 0,
+      "mode": "observe",
+      "state": "recovery",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 400.94495149757483,
+        "y": 400.6614660483024,
+        "vx": 9.449514975748343,
+        "vy": 6.614660483023727,
+        "hx": 0.2753355179413892,
+        "hy": 0.19273486255897243,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "circle_idle",
+      "kind": "general",
+      "type": 0,
+      "mode": "circle",
+      "state": "idle",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 402.300493860001,
+        "y": 404.7596424689675,
+        "vx": 23.004938600009837,
+        "vy": 47.59642468967513,
+        "hx": 0.23963477708343323,
+        "hy": 0.49579609051744805,
+        "mode": "circle"
+      }
+    },
+    {
+      "name": "circle_windup",
+      "kind": "general",
+      "type": 0,
+      "mode": "circle",
+      "state": "windup",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 400.6901481580003,
+        "y": 401.42789274069025,
+        "vx": 6.901481580002837,
+        "vy": 14.27892740690254,
+        "hx": 0.23963477708343323,
+        "hy": 0.49579609051744805,
+        "mode": "circle"
+      }
+    },
+    {
+      "name": "circle_recovery",
+      "kind": "general",
+      "type": 0,
+      "mode": "circle",
+      "state": "recovery",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 401.2652716230005,
+        "y": 402.61780335793213,
+        "vx": 12.652716230005012,
+        "vy": 26.178033579321323,
+        "hx": 0.23963477708343323,
+        "hy": 0.49579609051744805,
+        "mode": "circle"
+      }
+    },
+    {
+      "name": "feint_idle",
+      "kind": "general",
+      "type": 0,
+      "mode": "feint",
+      "state": "idle",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 403.7005093611323,
+        "y": 402.9075430694611,
+        "vx": 37.00509361132276,
+        "vy": 29.075430694610986,
+        "hx": 0.38546972511794486,
+        "hy": 0.3028690697355282,
+        "mode": "feint"
+      }
+    },
+    {
+      "name": "feint_windup",
+      "kind": "general",
+      "type": 0,
+      "mode": "feint",
+      "state": "windup",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 401.1101528083397,
+        "y": 400.8722629208383,
+        "vx": 11.101528083397056,
+        "vy": 8.722629208382955,
+        "hx": 0.38546972511794486,
+        "hy": 0.3028690697355282,
+        "mode": "feint"
+      }
+    },
+    {
+      "name": "feint_recovery",
+      "kind": "general",
+      "type": 0,
+      "mode": "feint",
+      "state": "recovery",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 402.03528014862275,
+        "y": 401.59914868820357,
+        "vx": 20.352801486227463,
+        "vy": 15.991486882035701,
+        "hx": 0.38546972511794486,
+        "hy": 0.3028690697355282,
+        "mode": "feint"
+      }
+    },
+    {
+      "name": "flank_idle",
+      "kind": "general",
+      "type": 0,
+      "mode": "flank",
+      "state": "idle",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 402.4877373856351,
+        "y": 404.6645075980659,
+        "vx": 24.87737385635114,
+        "vy": 46.64507598065882,
+        "hx": 0.25913931100366044,
+        "hy": 0.48588620813186334,
+        "mode": "flank"
+      }
+    },
+    {
+      "name": "flank_windup",
+      "kind": "general",
+      "type": 0,
+      "mode": "flank",
+      "state": "windup",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 400.74632121569056,
+        "y": 401.39935227941976,
+        "vx": 7.46321215690557,
+        "vy": 13.993522794197588,
+        "hx": 0.25913931100366044,
+        "hy": 0.48588620813186334,
+        "mode": "flank"
+      }
+    },
+    {
+      "name": "flank_recovery",
+      "kind": "general",
+      "type": 0,
+      "mode": "flank",
+      "state": "recovery",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 401.3682555620993,
+        "y": 402.56547917893624,
+        "vx": 13.682555620993071,
+        "vy": 25.654791789362434,
+        "hx": 0.25913931100366044,
+        "hy": 0.48588620813186334,
+        "mode": "flank"
+      }
+    },
+    {
+      "name": "approach_idle",
+      "kind": "general",
+      "type": 0,
+      "mode": "approach",
+      "state": "idle",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 403.06613632779533,
+        "y": 402.6432209722373,
+        "vx": 30.661363277953342,
+        "vy": 26.43220972237316,
+        "hx": 0.3193892008120115,
+        "hy": 0.2753355179413892,
+        "mode": "approach"
+      }
+    },
+    {
+      "name": "approach_windup",
+      "kind": "general",
+      "type": 0,
+      "mode": "approach",
+      "state": "windup",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 400.9198408983386,
+        "y": 400.7929662916712,
+        "vx": 9.198408983385775,
+        "vy": 7.929662916711777,
+        "hx": 0.3193892008120115,
+        "hy": 0.2753355179413892,
+        "mode": "approach"
+      }
+    },
+    {
+      "name": "approach_recovery",
+      "kind": "general",
+      "type": 0,
+      "mode": "approach",
+      "state": "recovery",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 401.68637498028744,
+        "y": 401.45377153473055,
+        "vx": 16.863749802874395,
+        "vy": 14.537715347305493,
+        "hx": 0.3193892008120115,
+        "hy": 0.2753355179413892,
+        "mode": "approach"
+      }
+    },
+    {
+      "name": "retreat_idle",
+      "kind": "general",
+      "type": 0,
+      "mode": "retreat",
+      "state": "idle",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 400,
+        "y": 403.1718651666848,
+        "vx": 0,
+        "vy": 31.718651666848245,
+        "hx": 0,
+        "hy": 0.33040262152966704,
+        "mode": "retreat"
+      }
+    },
+    {
+      "name": "retreat_windup",
+      "kind": "general",
+      "type": 0,
+      "mode": "retreat",
+      "state": "windup",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 400,
+        "y": 400.9515595500054,
+        "vx": 0,
+        "vy": 9.515595500054133,
+        "hx": 0,
+        "hy": 0.33040262152966704,
+        "mode": "retreat"
+      }
+    },
+    {
+      "name": "retreat_recovery",
+      "kind": "general",
+      "type": 0,
+      "mode": "retreat",
+      "state": "recovery",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 400,
+        "y": 401.74452584167665,
+        "vx": 0,
+        "vy": 17.445258416766478,
+        "hx": 0,
+        "hy": 0.33040262152966704,
+        "mode": "retreat"
+      }
+    },
+    {
+      "name": "entry_observe",
+      "kind": "precommit",
+      "type": 0,
+      "mode": "observe",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 400,
+        "y": 400.3964831458356,
+        "vx": 0,
+        "vy": 3.9648314583558886,
+        "hx": 0,
+        "hy": 0.08260065538241676,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "entry_circle",
+      "kind": "precommit",
+      "type": 0,
+      "mode": "circle",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 400,
+        "y": 402.11457677778986,
+        "vx": 0,
+        "vy": 21.14576777789864,
+        "hx": 0,
+        "hy": 0.2753355179413892,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "entry_feint",
+      "kind": "precommit",
+      "type": 0,
+      "mode": "feint",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 399.6862938241123,
+        "y": 402.11457677778986,
+        "vx": -3.1370617588771665,
+        "vy": 21.14576777789864,
+        "hx": -0.04084715831870994,
+        "hy": 0.2753355179413892,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "entry_flank",
+      "kind": "precommit",
+      "type": 0,
+      "mode": "flank",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 400,
+        "y": 403.3833228444638,
+        "vx": 0,
+        "vy": 33.83322844463805,
+        "hx": 0,
+        "hy": 0.4405368287062228,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "rear_1",
+      "kind": "rear",
+      "type": 1,
+      "mode": "observe",
+      "pos": [
+        180,
+        400
+      ],
+      "expected": {
+        "x": 184.11686183820245,
+        "y": 397.047448079634,
+        "vx": 41.16861838202453,
+        "vy": -29.52551920365977,
+        "hx": 0.44748498241330936,
+        "hy": -0.32092955656151784,
+        "mode": "observe",
+        "goal": [
+          305.92708276004004,
+          309.68697404924757
+        ],
+        "friend": null
+      }
+    },
+    {
+      "name": "rear_2",
+      "kind": "rear",
+      "type": 2,
+      "mode": "observe",
+      "pos": [
+        180,
+        400
+      ],
+      "expected": {
+        "x": 183.63495184828855,
+        "y": 397.8168506584508,
+        "vx": 36.349518482885514,
+        "vy": -21.831493415492105,
+        "hx": 0.47207166860890126,
+        "hy": -0.28352588851288335,
+        "mode": "observe",
+        "goal": [
+          322.4572362989853,
+          314.44029120455036
+        ],
+        "friend": null
+      }
+    },
+    {
+      "name": "rear_5",
+      "kind": "rear",
+      "type": 5,
+      "mode": "observe",
+      "pos": [
+        180,
+        400
+      ],
+      "expected": {
+        "x": 183.27081907887617,
+        "y": 396.7291809211238,
+        "vx": 32.708190788761726,
+        "vy": -32.708190788761726,
+        "hx": 0.38938322367573325,
+        "hy": -0.38938322367573325,
+        "mode": "observe",
+        "goal": [
+          250.71067811865476,
+          329.28932188134524
+        ],
+        "friend": 3
+      }
+    },
+    {
+      "name": "rear_13",
+      "kind": "rear",
+      "type": 13,
+      "mode": "observe",
+      "pos": [
+        180,
+        400
+      ],
+      "expected": {
+        "x": 183.99028741082418,
+        "y": 396.5324252262829,
+        "vx": 39.902874108241804,
+        "vy": -34.67574773717104,
+        "hx": 0.4156549386275187,
+        "hy": -0.3612057055955317,
+        "mode": "observe",
+        "goal": [
+          289.3969292210948,
+          304.93365689394483
+        ],
+        "friend": null
+      }
+    },
+    {
+      "name": "rear_20",
+      "kind": "rear",
+      "type": 20,
+      "mode": "observe",
+      "pos": [
+        180,
+        400
+      ],
+      "expected": {
+        "x": 183.57463247219667,
+        "y": 396.8936309318784,
+        "vx": 35.74632472196669,
+        "vy": -31.063690681215803,
+        "hx": 0.4156549386275187,
+        "hy": -0.3612057055955317,
+        "mode": "observe",
+        "goal": [
+          289.3969292210948,
+          304.93365689394483
+        ],
+        "friend": null
+      }
+    },
+    {
+      "name": "wall_40",
+      "kind": "general",
+      "type": 0,
+      "mode": "observe",
+      "state": "idle",
+      "pos": [
+        40,
+        400
+      ],
+      "expected": {
+        "x": 43.3527161653111,
+        "y": 400.7527796673057,
+        "vx": 33.52716165311101,
+        "vy": 7.527796673056741,
+        "hx": 0.537294257261394,
+        "hy": 0.12063776719642619,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "wall_755",
+      "kind": "general",
+      "type": 0,
+      "mode": "observe",
+      "state": "idle",
+      "pos": [
+        755,
+        745
+      ],
+      "expected": {
+        "x": 753.2023256928793,
+        "y": 742.0715618500359,
+        "vx": -17.97674307120701,
+        "vy": -29.284381499641086,
+        "hx": -0.28808883126933527,
+        "hy": -0.46930098557117983,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "stance_rush",
+      "kind": "stance",
+      "type": 0,
+      "stance": "rush",
+      "mode": "observe",
+      "pos": [
+        180,
+        400
+      ],
+      "expected": {
+        "x": 186.0865003459343,
+        "y": 399.6649289023774,
+        "vx": 60.86500345934297,
+        "vy": -3.3507109762257414,
+        "hx": 0.5925331333658772,
+        "hy": -0.03261984984643353,
+        "mode": "approach"
+      }
+    },
+    {
+      "name": "stance_cover",
+      "kind": "stance",
+      "type": 0,
+      "stance": "cover",
+      "mode": "observe",
+      "pos": [
+        180,
+        400
+      ],
+      "expected": {
+        "x": 185.09549023000648,
+        "y": 402.54774511500324,
+        "vx": 50.95490230006476,
+        "vy": 25.47745115003238,
+        "hx": 0.5307802322923402,
+        "hy": 0.2653901161461701,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "stance_cautious",
+      "kind": "stance",
+      "type": 0,
+      "stance": "cautious",
+      "mode": "observe",
+      "pos": [
+        180,
+        400
+      ],
+      "expected": {
+        "x": 180,
+        "y": 400.3964831458356,
+        "vx": 0,
+        "vy": 3.9648314583558886,
+        "hx": 0,
+        "hy": 0.08260065538241676,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "projectile_steering",
+      "kind": "projectile",
+      "type": 0,
+      "mode": "observe",
+      "state": "idle",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 400.82468494333807,
+        "y": 395.904064781421,
+        "vx": 8.246849433380703,
+        "vy": -40.959352185789726,
+        "hx": 0.08260065538241676,
+        "hy": -0.41024992173266994,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "bomb_escape",
+      "kind": "bomb",
+      "type": 0,
+      "mode": "observe",
+      "state": "idle",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 394.7135580555253,
+        "y": 400,
+        "vx": -52.864419444746886,
+        "vy": 0,
+        "hx": -0.5506710358827784,
+        "hy": 6.74377521477002e-17,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "separation_overlap",
+      "kind": "separation",
+      "type": 0,
+      "mode": "observe",
+      "state": "idle",
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "x": 403.4149891716052,
+        "y": 400.38109299451247,
+        "vx": 34.14989171605214,
+        "vy": 3.8109299451247125,
+        "hx": 0.5472739057059613,
+        "hy": 0.06107259527443336,
+        "mode": "observe"
+      }
+    },
+    {
+      "name": "safe_healing",
+      "kind": "safe",
+      "safeKind": "healing",
+      "type": 0,
+      "pos": [
+        400,
+        400
+      ],
+      "expected": 1.8
+    },
+    {
+      "name": "safe_healer",
+      "kind": "safe",
+      "safeKind": "healer",
+      "type": 0,
+      "pos": [
+        400,
+        400
+      ],
+      "expected": 0.9199999999999999
+    },
+    {
+      "name": "safe_totem",
+      "kind": "safe",
+      "safeKind": "totem",
+      "type": 0,
+      "pos": [
+        400,
+        400
+      ],
+      "expected": 0.6400000000000001
+    },
+    {
+      "name": "safe_blessingReady",
+      "kind": "safe",
+      "safeKind": "blessingReady",
+      "type": 0,
+      "pos": [
+        400,
+        400
+      ],
+      "expected": 2.2
+    },
+    {
+      "name": "safe_armor",
+      "kind": "safe",
+      "safeKind": "armor",
+      "type": 0,
+      "pos": [
+        400,
+        400
+      ],
+      "expected": 0.6100000000000001
+    },
+    {
+      "name": "safe_pressure",
+      "kind": "safe",
+      "safeKind": "pressure",
+      "type": 0,
+      "pos": [
+        400,
+        400
+      ],
+      "expected": 0.59
+    },
+    {
+      "name": "safe_holy",
+      "kind": "safe",
+      "safeKind": "holy",
+      "type": 0,
+      "pos": [
+        400,
+        400
+      ],
+      "expected": 0.29
+    },
+    {
+      "name": "risk_0",
+      "kind": "risk",
+      "type": 0,
+      "shield": 0,
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "hazard": 2.5,
+        "crowd": 0,
+        "total": 2.5
+      }
+    },
+    {
+      "name": "risk_100",
+      "kind": "risk",
+      "type": 0,
+      "shield": 100,
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "hazard": 1.75,
+        "crowd": 0,
+        "total": 1.75
+      }
+    },
+    {
+      "name": "area_goal_hazard",
+      "kind": "area_goal",
+      "scenario": "hazard",
+      "type": 0,
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "escape": [
+          503.27196002585197,
+          665.6311395006595
+        ],
+        "refuge": null,
+        "benefit": 0,
+        "improvement": 2.5
+      }
+    },
+    {
+      "name": "area_goal_safe",
+      "kind": "area_goal",
+      "scenario": "safe",
+      "type": 0,
+      "pos": [
+        400,
+        400
+      ],
+      "expected": {
+        "escape": [
+          311.4562868331135,
+          434.42398667528397
+        ],
+        "refuge": [
+          274.25,
+          400
+        ],
+        "benefit": 1.5485,
+        "improvement": 0
+      }
+    }
+  ],
+  "policies": [
+    {
+      "type": 3,
+      "target": 1,
+      "entries": [
+        {
+          "type": 3,
+          "team": 0,
+          "x": 200,
+          "y": 400,
+          "hp": 145,
+          "stun": 0
+        },
+        {
+          "type": 1,
+          "team": 1,
+          "x": 500,
+          "y": 400,
+          "hp": 60,
+          "stun": 0.6
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 340,
+          "y": 400,
+          "hp": 80,
+          "stun": 0
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 360,
+          "y": 430,
+          "hp": 80,
+          "stun": 2
+        },
+        {
+          "type": 5,
+          "team": 0,
+          "x": 510,
+          "y": 550,
+          "hp": 105,
+          "stun": 0
+        }
+      ]
+    },
+    {
+      "type": 14,
+      "target": 1,
+      "entries": [
+        {
+          "type": 14,
+          "team": 0,
+          "x": 200,
+          "y": 400,
+          "hp": 175,
+          "stun": 0
+        },
+        {
+          "type": 1,
+          "team": 1,
+          "x": 610,
+          "y": 400,
+          "hp": 60,
+          "stun": 0.6
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 340,
+          "y": 400,
+          "hp": 80,
+          "stun": 0
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 360,
+          "y": 430,
+          "hp": 80,
+          "stun": 2
+        },
+        {
+          "type": 5,
+          "team": 0,
+          "x": 510,
+          "y": 550,
+          "hp": 105,
+          "stun": 0
+        }
+      ]
+    },
+    {
+      "type": 9,
+      "target": 2,
+      "entries": [
+        {
+          "type": 9,
+          "team": 0,
+          "x": 200,
+          "y": 400,
+          "hp": 185,
+          "stun": 0
+        },
+        {
+          "type": 1,
+          "team": 1,
+          "x": 500,
+          "y": 400,
+          "hp": 60,
+          "stun": 0.6
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 340,
+          "y": 400,
+          "hp": 80,
+          "stun": 0
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 360,
+          "y": 430,
+          "hp": 80,
+          "stun": 2
+        },
+        {
+          "type": 5,
+          "team": 0,
+          "x": 510,
+          "y": 550,
+          "hp": 105,
+          "stun": 0
+        }
+      ]
+    },
+    {
+      "type": 17,
+      "target": 1,
+      "entries": [
+        {
+          "type": 17,
+          "team": 0,
+          "x": 200,
+          "y": 400,
+          "hp": 210,
+          "stun": 0
+        },
+        {
+          "type": 1,
+          "team": 1,
+          "x": 500,
+          "y": 400,
+          "hp": 60,
+          "stun": 0.6
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 340,
+          "y": 400,
+          "hp": 80,
+          "stun": 0
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 520,
+          "y": 430,
+          "hp": 80,
+          "stun": 2
+        },
+        {
+          "type": 5,
+          "team": 0,
+          "x": 510,
+          "y": 550,
+          "hp": 105,
+          "stun": 0
+        }
+      ]
+    },
+    {
+      "type": 4,
+      "target": 1,
+      "entries": [
+        {
+          "type": 4,
+          "team": 0,
+          "x": 200,
+          "y": 400,
+          "hp": 190,
+          "stun": 0
+        },
+        {
+          "type": 1,
+          "team": 1,
+          "x": 500,
+          "y": 400,
+          "hp": 60,
+          "stun": 0.6
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 340,
+          "y": 400,
+          "hp": 80,
+          "stun": 0
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 360,
+          "y": 430,
+          "hp": 80,
+          "stun": 2
+        },
+        {
+          "type": 5,
+          "team": 0,
+          "x": 510,
+          "y": 550,
+          "hp": 105,
+          "stun": 0
+        }
+      ]
+    },
+    {
+      "type": 16,
+      "target": 1,
+      "entries": [
+        {
+          "type": 16,
+          "team": 0,
+          "x": 200,
+          "y": 400,
+          "hp": 205,
+          "stun": 0
+        },
+        {
+          "type": 1,
+          "team": 1,
+          "x": 500,
+          "y": 400,
+          "hp": 60,
+          "stun": 0.6
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 340,
+          "y": 400,
+          "hp": 80,
+          "stun": 0
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 360,
+          "y": 430,
+          "hp": 80,
+          "stun": 2
+        },
+        {
+          "type": 5,
+          "team": 0,
+          "x": 510,
+          "y": 550,
+          "hp": 105,
+          "stun": 0
+        }
+      ]
+    },
+    {
+      "type": 19,
+      "target": 1,
+      "entries": [
+        {
+          "type": 19,
+          "team": 0,
+          "x": 200,
+          "y": 400,
+          "hp": 155,
+          "stun": 0
+        },
+        {
+          "type": 1,
+          "team": 1,
+          "x": 500,
+          "y": 400,
+          "hp": 60,
+          "stun": 0.6
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 340,
+          "y": 400,
+          "hp": 80,
+          "stun": 0
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 360,
+          "y": 430,
+          "hp": 80,
+          "stun": 2
+        },
+        {
+          "type": 5,
+          "team": 0,
+          "x": 510,
+          "y": 550,
+          "hp": 105,
+          "stun": 0
+        }
+      ]
+    },
+    {
+      "type": 15,
+      "target": 3,
+      "entries": [
+        {
+          "type": 15,
+          "team": 0,
+          "x": 200,
+          "y": 400,
+          "hp": 95,
+          "stun": 0
+        },
+        {
+          "type": 1,
+          "team": 1,
+          "x": 500,
+          "y": 400,
+          "hp": 60,
+          "stun": 0.6
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 340,
+          "y": 400,
+          "hp": 80,
+          "stun": 0
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 360,
+          "y": 430,
+          "hp": 80,
+          "stun": 2
+        },
+        {
+          "type": 5,
+          "team": 0,
+          "x": 510,
+          "y": 550,
+          "hp": 105,
+          "stun": 0
+        }
+      ]
+    },
+    {
+      "type": 24,
+      "target": 2,
+      "entries": [
+        {
+          "type": 24,
+          "team": 0,
+          "x": 200,
+          "y": 400,
+          "hp": 190,
+          "stun": 0
+        },
+        {
+          "type": 1,
+          "team": 1,
+          "x": 500,
+          "y": 400,
+          "hp": 60,
+          "stun": 0.6
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 340,
+          "y": 400,
+          "hp": 80,
+          "stun": 0
+        },
+        {
+          "type": 0,
+          "team": 1,
+          "x": 360,
+          "y": 430,
+          "hp": 80,
+          "stun": 2
+        },
+        {
+          "type": 5,
+          "team": 0,
+          "x": 510,
+          "y": 550,
+          "hp": 105,
+          "stun": 0
+        }
+      ]
+    }
+  ],
+  "chances": [
+    {
+      "stance": "normal",
+      "health": 1,
+      "ready": true,
+      "expected": {
+        "parry": 0.36,
+        "dodge": 0.12,
+        "counter": 0.42,
+        "hold": 0.10000000000000003
+      }
+    },
+    {
+      "stance": "normal",
+      "health": 1,
+      "ready": false,
+      "expected": {
+        "parry": 0,
+        "dodge": 0.18,
+        "counter": 0.68,
+        "hold": 0.14
+      }
+    },
+    {
+      "stance": "normal",
+      "health": 0.5,
+      "ready": true,
+      "expected": {
+        "parry": 0.52,
+        "dodge": 0.18,
+        "counter": 0.27999999999999997,
+        "hold": 0.020000000000000018
+      }
+    },
+    {
+      "stance": "normal",
+      "health": 0.5,
+      "ready": false,
+      "expected": {
+        "parry": 0,
+        "dodge": 0.28,
+        "counter": 0.54,
+        "hold": 0.17999999999999994
+      }
+    },
+    {
+      "stance": "normal",
+      "health": 0.1,
+      "ready": true,
+      "expected": {
+        "parry": 0.648,
+        "dodge": 0.22799999999999998,
+        "counter": 0.124,
+        "hold": 0
+      }
+    },
+    {
+      "stance": "normal",
+      "health": 0.1,
+      "ready": false,
+      "expected": {
+        "parry": 0,
+        "dodge": 0.36,
+        "counter": 0.428,
+        "hold": 0.21200000000000002
+      }
+    },
+    {
+      "stance": "cautious",
+      "health": 1,
+      "ready": true,
+      "expected": {
+        "parry": 0.44999999999999996,
+        "dodge": 0.16999999999999998,
+        "counter": 0.3,
+        "hold": 0.08000000000000007
+      }
+    },
+    {
+      "stance": "cautious",
+      "health": 1,
+      "ready": false,
+      "expected": {
+        "parry": 0,
+        "dodge": 0.22999999999999998,
+        "counter": 0.56,
+        "hold": 0.20999999999999996
+      }
+    },
+    {
+      "stance": "cautious",
+      "health": 0.5,
+      "ready": true,
+      "expected": {
+        "parry": 0.61,
+        "dodge": 0.22999999999999998,
+        "counter": 0.15999999999999998,
+        "hold": 5.551115123125783e-17
+      }
+    },
+    {
+      "stance": "cautious",
+      "health": 0.5,
+      "ready": false,
+      "expected": {
+        "parry": 0,
+        "dodge": 0.33,
+        "counter": 0.42000000000000004,
+        "hold": 0.2499999999999999
+      }
+    },
+    {
+      "stance": "cautious",
+      "health": 0.1,
+      "ready": true,
+      "expected": {
+        "parry": 0.66,
+        "dodge": 0.26,
+        "counter": 0.05,
+        "hold": 0.029999999999999957
+      }
+    },
+    {
+      "stance": "cautious",
+      "health": 0.1,
+      "ready": false,
+      "expected": {
+        "parry": 0,
+        "dodge": 0.41,
+        "counter": 0.308,
+        "hold": 0.2820000000000001
+      }
+    },
+    {
+      "stance": "rush",
+      "health": 1,
+      "ready": true,
+      "expected": {
+        "parry": 0.24,
+        "dodge": 0.04999999999999999,
+        "counter": 0.54,
+        "hold": 0.16999999999999993
+      }
+    },
+    {
+      "stance": "rush",
+      "health": 1,
+      "ready": false,
+      "expected": {
+        "parry": 0,
+        "dodge": 0.10999999999999999,
+        "counter": 0.8,
+        "hold": 0.08999999999999997
+      }
+    },
+    {
+      "stance": "rush",
+      "health": 0.5,
+      "ready": true,
+      "expected": {
+        "parry": 0.4,
+        "dodge": 0.10999999999999999,
+        "counter": 0.39999999999999997,
+        "hold": 0.09000000000000002
+      }
+    },
+    {
+      "stance": "rush",
+      "health": 0.5,
+      "ready": false,
+      "expected": {
+        "parry": 0,
+        "dodge": 0.21000000000000002,
+        "counter": 0.66,
+        "hold": 0.13
+      }
+    },
+    {
+      "stance": "rush",
+      "health": 0.1,
+      "ready": true,
+      "expected": {
+        "parry": 0.528,
+        "dodge": 0.15799999999999997,
+        "counter": 0.2879999999999999,
+        "hold": 0.02600000000000008
+      }
+    },
+    {
+      "stance": "rush",
+      "health": 0.1,
+      "ready": false,
+      "expected": {
+        "parry": 0,
+        "dodge": 0.29,
+        "counter": 0.548,
+        "hold": 0.16199999999999992
+      }
+    },
+    {
+      "stance": "cover",
+      "health": 1,
+      "ready": true,
+      "expected": {
+        "parry": 0.41,
+        "dodge": 0.12,
+        "counter": 0.42,
+        "hold": 0.0500000000000001
+      }
+    },
+    {
+      "stance": "cover",
+      "health": 1,
+      "ready": false,
+      "expected": {
+        "parry": 0,
+        "dodge": 0.18,
+        "counter": 0.68,
+        "hold": 0.14
+      }
+    },
+    {
+      "stance": "cover",
+      "health": 0.5,
+      "ready": true,
+      "expected": {
+        "parry": 0.5700000000000001,
+        "dodge": 0.18,
+        "counter": 0.24999999999999994,
+        "hold": 0
+      }
+    },
+    {
+      "stance": "cover",
+      "health": 0.5,
+      "ready": false,
+      "expected": {
+        "parry": 0,
+        "dodge": 0.28,
+        "counter": 0.54,
+        "hold": 0.17999999999999994
+      }
+    },
+    {
+      "stance": "cover",
+      "health": 0.1,
+      "ready": true,
+      "expected": {
+        "parry": 0.66,
+        "dodge": 0.22799999999999998,
+        "counter": 0.11199999999999999,
+        "hold": 0
+      }
+    },
+    {
+      "stance": "cover",
+      "health": 0.1,
+      "ready": false,
+      "expected": {
+        "parry": 0,
+        "dodge": 0.36,
+        "counter": 0.428,
+        "hold": 0.21200000000000002
+      }
+    }
+  ]
+}

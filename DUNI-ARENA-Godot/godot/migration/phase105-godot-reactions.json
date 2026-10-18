@@ -1,0 +1,42 @@
+[
+  {
+    "counts": {
+      "counter": 1648,
+      "dodge": 477,
+      "hold": 417,
+      "parry": 1458
+    },
+    "stance": "normal",
+    "trials": 4000.0
+  },
+  {
+    "counts": {
+      "counter": 1143,
+      "dodge": 710,
+      "hold": 348,
+      "parry": 1799
+    },
+    "stance": "cautious",
+    "trials": 4000.0
+  },
+  {
+    "counts": {
+      "counter": 2131,
+      "dodge": 199,
+      "hold": 685,
+      "parry": 985
+    },
+    "stance": "rush",
+    "trials": 4000.0
+  },
+  {
+    "counts": {
+      "counter": 1639,
+      "dodge": 477,
+      "hold": 204,
+      "parry": 1680
+    },
+    "stance": "cover",
+    "trials": 4000.0
+  }
+]

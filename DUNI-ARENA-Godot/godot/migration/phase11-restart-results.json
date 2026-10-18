@@ -1,0 +1,22 @@
+[
+  {
+    "mode": "write_complex",
+    "exit_code": 0,
+    "no_errors": true
+  },
+  {
+    "mode": "read_complex",
+    "exit_code": 0,
+    "no_errors": true
+  },
+  {
+    "mode": "write_checkpoint",
+    "exit_code": 0,
+    "no_errors": true
+  },
+  {
+    "mode": "read_checkpoint",
+    "exit_code": 0,
+    "no_errors": true
+  }
+]

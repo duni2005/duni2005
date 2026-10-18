@@ -1,0 +1,1210 @@
+[
+  {
+    "name": "warrior_duel",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 400,
+        "stance": "normal"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 400,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "warrior_archer",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 400,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 400,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "archer_duel",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 400,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 400,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "assassin_healer",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 3,
+        "team": 0,
+        "x": 180,
+        "y": 400,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 400,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "guardian_assassin",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 4,
+        "team": 0,
+        "x": 180,
+        "y": 400,
+        "stance": "normal"
+      },
+      {
+        "type": 3,
+        "team": 1,
+        "x": 620,
+        "y": 400,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "sniper_warrior",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 6,
+        "team": 0,
+        "x": 180,
+        "y": 400,
+        "stance": "normal"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 400,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "same_trio",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "normal"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "front_rear",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 4,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "normal"
+      },
+      {
+        "type": 2,
+        "team": 0,
+        "x": 180,
+        "y": 452,
+        "stance": "normal"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 4,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "normal"
+      },
+      {
+        "type": 2,
+        "team": 1,
+        "x": 620,
+        "y": 452,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "guardian_healer",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 4,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "normal"
+      },
+      {
+        "type": 4,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "mixed6",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 3,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 4,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 452,
+        "stance": "normal"
+      },
+      {
+        "type": 2,
+        "team": 0,
+        "x": 180,
+        "y": 556,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 660,
+        "stance": "normal"
+      },
+      {
+        "type": 14,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 9,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 16,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "normal"
+      },
+      {
+        "type": 20,
+        "team": 1,
+        "x": 620,
+        "y": 452,
+        "stance": "normal"
+      },
+      {
+        "type": 13,
+        "team": 1,
+        "x": 620,
+        "y": 556,
+        "stance": "normal"
+      },
+      {
+        "type": 23,
+        "team": 1,
+        "x": 620,
+        "y": 660,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "mixed12",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 3,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 4,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 452,
+        "stance": "normal"
+      },
+      {
+        "type": 2,
+        "team": 0,
+        "x": 180,
+        "y": 556,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 660,
+        "stance": "normal"
+      },
+      {
+        "type": 6,
+        "team": 0,
+        "x": 265,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 23,
+        "team": 0,
+        "x": 265,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 18,
+        "team": 0,
+        "x": 265,
+        "y": 348,
+        "stance": "normal"
+      },
+      {
+        "type": 20,
+        "team": 0,
+        "x": 265,
+        "y": 452,
+        "stance": "normal"
+      },
+      {
+        "type": 24,
+        "team": 0,
+        "x": 265,
+        "y": 556,
+        "stance": "normal"
+      },
+      {
+        "type": 25,
+        "team": 0,
+        "x": 265,
+        "y": 660,
+        "stance": "normal"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 3,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 4,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 452,
+        "stance": "normal"
+      },
+      {
+        "type": 2,
+        "team": 1,
+        "x": 620,
+        "y": 556,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 660,
+        "stance": "normal"
+      },
+      {
+        "type": 6,
+        "team": 1,
+        "x": 535,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 23,
+        "team": 1,
+        "x": 535,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 18,
+        "team": 1,
+        "x": 535,
+        "y": 348,
+        "stance": "normal"
+      },
+      {
+        "type": 20,
+        "team": 1,
+        "x": 535,
+        "y": 452,
+        "stance": "normal"
+      },
+      {
+        "type": 24,
+        "team": 1,
+        "x": 535,
+        "y": 556,
+        "stance": "normal"
+      },
+      {
+        "type": 25,
+        "team": 1,
+        "x": 535,
+        "y": 660,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "machinegun_warrior",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 23,
+        "team": 0,
+        "x": 180,
+        "y": 400,
+        "stance": "normal"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 400,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "tank_warrior",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 18,
+        "team": 0,
+        "x": 180,
+        "y": 400,
+        "stance": "normal"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 400,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "stance_normal",
+    "seed": 11,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "normal"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "stance_normal",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "normal"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "stance_normal",
+    "seed": 101,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "normal"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "normal"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "normal"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "normal"
+      }
+    ]
+  },
+  {
+    "name": "stance_cautious",
+    "seed": 11,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "cautious"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "cautious"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "cautious"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "cautious"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "cautious"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "cautious"
+      }
+    ]
+  },
+  {
+    "name": "stance_cautious",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "cautious"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "cautious"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "cautious"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "cautious"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "cautious"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "cautious"
+      }
+    ]
+  },
+  {
+    "name": "stance_cautious",
+    "seed": 101,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "cautious"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "cautious"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "cautious"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "cautious"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "cautious"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "cautious"
+      }
+    ]
+  },
+  {
+    "name": "stance_rush",
+    "seed": 11,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "rush"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "rush"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "rush"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "rush"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "rush"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "rush"
+      }
+    ]
+  },
+  {
+    "name": "stance_rush",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "rush"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "rush"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "rush"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "rush"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "rush"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "rush"
+      }
+    ]
+  },
+  {
+    "name": "stance_rush",
+    "seed": 101,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "rush"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "rush"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "rush"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "rush"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "rush"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "rush"
+      }
+    ]
+  },
+  {
+    "name": "stance_cover",
+    "seed": 11,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "cover"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "cover"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "cover"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "cover"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "cover"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "cover"
+      }
+    ]
+  },
+  {
+    "name": "stance_cover",
+    "seed": 29,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "cover"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "cover"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "cover"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "cover"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "cover"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "cover"
+      }
+    ]
+  },
+  {
+    "name": "stance_cover",
+    "seed": 101,
+    "seconds": 20,
+    "fps": 60,
+    "entries": [
+      {
+        "type": 0,
+        "team": 0,
+        "x": 180,
+        "y": 140,
+        "stance": "cover"
+      },
+      {
+        "type": 1,
+        "team": 0,
+        "x": 180,
+        "y": 244,
+        "stance": "cover"
+      },
+      {
+        "type": 5,
+        "team": 0,
+        "x": 180,
+        "y": 348,
+        "stance": "cover"
+      },
+      {
+        "type": 0,
+        "team": 1,
+        "x": 620,
+        "y": 140,
+        "stance": "cover"
+      },
+      {
+        "type": 1,
+        "team": 1,
+        "x": 620,
+        "y": 244,
+        "stance": "cover"
+      },
+      {
+        "type": 5,
+        "team": 1,
+        "x": 620,
+        "y": 348,
+        "stance": "cover"
+      }
+    ]
+  }
+]

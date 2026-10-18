@@ -1,0 +1,82 @@
+{
+  "deployment": {
+    "log": "godot/migration/phase12-headless-deployment-gui.log",
+    "exit": 0,
+    "result": [
+      "UI SMOKE RESULT: 18 checks; 0 failures; display=headless"
+    ],
+    "errors": []
+  },
+  "room": {
+    "log": "godot/migration/phase12-headless-room-gui.log",
+    "exit": 0,
+    "result": [
+      "ROOM UI RESULT: 17 checks; 0 failures; display=headless"
+    ],
+    "errors": []
+  },
+  "turning": {
+    "log": "godot/migration/phase12-headless-turning-gui.log",
+    "exit": 0,
+    "result": [
+      "TURNING UI RESULT: 18 checks; 0 failures; display=headless"
+    ],
+    "errors": []
+  },
+  "strategy": {
+    "log": "godot/migration/phase12-headless-strategy-gui.log",
+    "exit": 0,
+    "result": [
+      "STRATEGY UI RESULT: 23 checks; 0 failures; display=headless"
+    ],
+    "errors": []
+  },
+  "combat": {
+    "log": "godot/migration/phase12-headless-combat-gui.log",
+    "exit": 0,
+    "result": [
+      "COMMON COMBAT UI RESULT: 25 checks; 0 failures; display=headless"
+    ],
+    "errors": []
+  },
+  "character": {
+    "log": "godot/migration/phase12-headless-character-gui.log",
+    "exit": 0,
+    "result": [
+      "CHARACTER UI RESULT: 19 checks; 0 failures; display=headless"
+    ],
+    "errors": []
+  },
+  "tower": {
+    "log": "godot/migration/phase12-headless-tower-verified.log",
+    "exit": 0,
+    "result": [
+      "TOWER UI RESULT: 30 checks; 0 failures"
+    ],
+    "errors": []
+  },
+  "tower_content": {
+    "log": "godot/migration/phase12-headless-tower_content-gui.log",
+    "exit": 0,
+    "result": [
+      "CONTENT UI RESULT: 46 checks; 0 failures"
+    ],
+    "errors": []
+  },
+  "ai": {
+    "log": "godot/migration/phase12-headless-ai-gui.log",
+    "exit": 0,
+    "result": [
+      "AI UI RESULT: 22 checks; 0 failures; display=headless"
+    ],
+    "errors": []
+  },
+  "save": {
+    "log": "godot/migration/phase12-headless-save-gui.log",
+    "exit": 0,
+    "result": [
+      "SAVE UI RESULT: 31 checks; 0 failures; display=headless"
+    ],
+    "errors": []
+  }
+}

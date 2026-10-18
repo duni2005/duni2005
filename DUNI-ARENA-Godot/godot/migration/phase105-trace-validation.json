@@ -1,0 +1,5 @@
+{
+  "checks": 280384,
+  "failures": [],
+  "scope": "recorded coordinates/HP finite and arena/nonnegative bounds"
+}

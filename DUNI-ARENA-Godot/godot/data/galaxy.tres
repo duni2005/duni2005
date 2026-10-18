@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/unit_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/attack_data.gd" id="2"]
+
+[sub_resource type="Resource" id="Attack"]
+script = ExtResource("2")
+kind = 1
+windup = 0.65
+active = 0.15
+recovery = 0.35
+reach = 385
+cone = 0.7
+impulse = 155
+projectile_speed = 240
+projectile_lifetime = 2.4
+projectile_radius = 26
+projectile_offset = 32
+projectile_spread = 0.025
+aim_lead = 0.45
+
+[resource]
+script = ExtResource("1")
+type_id = 22
+display_name = "은하"
+base_gold_cost = 240
+max_hp = 125
+attack = 12
+defense_power = 21
+move_speed = 82
+attack_range = 350
+attack_interval = 1.7
+critical_chance = 0.2
+tags = PackedStringArray("일반", "대치형")
+emoji = "🌌"
+ultimate_windup = 0.9
+attack_profile = SubResource("Attack")
+recruit_tokens = 3

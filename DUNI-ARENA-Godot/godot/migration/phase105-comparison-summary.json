@@ -1,0 +1,1350 @@
+{
+  "scenarios": 25,
+  "horizon_seconds": 20,
+  "aggregate_mae": {
+    "first_attack": {
+      "before": 1.2686666666666726,
+      "after": 1.357333333333339
+    },
+    "first_hit": {
+      "before": 1.267361111111113,
+      "after": 1.1208333333333351
+    },
+    "gap": {
+      "before": 39.72839014036088,
+      "after": 31.632391075586614
+    },
+    "travel": {
+      "before": 800.5457744887112,
+      "after": 903.4659250258039
+    },
+    "target_changes": {
+      "before": 12.48,
+      "after": 12.44
+    },
+    "attacks": {
+      "before": 4.08,
+      "after": 3.68
+    },
+    "hits": {
+      "before": 8.44,
+      "after": 5.88
+    },
+    "parry": {
+      "before": 1.04,
+      "after": 1
+    },
+    "dodge": {
+      "before": 2.8,
+      "after": 2.28
+    },
+    "clash": {
+      "before": 1.44,
+      "after": 1.4
+    },
+    "idle": {
+      "before": 7.988000000000109,
+      "after": 6.475333333333054
+    },
+    "danger_time": {
+      "before": 4.0353333333333,
+      "after": 1.9373333333333302
+    },
+    "escape": {
+      "before": 0.72,
+      "after": 0.44
+    }
+  },
+  "divergences": [
+    {
+      "name": "warrior_duel",
+      "seed": 29,
+      "first_80px": {
+        "time": 3.2499999999999933,
+        "distance": 85.54631187289216,
+        "web": {
+          "x": 181.88682049936924,
+          "y": 283.93955995692176,
+          "hp": 150,
+          "alive": true,
+          "target": 1,
+          "plan": "observe",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            -0.05053479011638318,
+            -0.49991756416407745
+          ],
+          "movement": "\uc720\uc778 \u00b7 \uc9c4\uc785 \ud310\ub2e8",
+          "initiative": 5.319575151579562
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            1.28300535678864,
+            0.263623356819153
+          ],
+          "heading": [
+            0.977209031581879,
+            0.197582378983498
+          ],
+          "hp": 150.0,
+          "initiative": 8.4016848826847,
+          "intent": 2.93904701698662,
+          "movement": "general_approach",
+          "plan": "approach",
+          "state": "idle",
+          "target": 1,
+          "x": 261.443359375,
+          "y": 252.492324829102
+        }
+      }
+    },
+    {
+      "name": "warrior_archer",
+      "seed": 29,
+      "first_80px": {
+        "time": 4.7499999999999885,
+        "distance": 83.16040489046155,
+        "web": {
+          "x": 214.9810635315761,
+          "y": 235.7705384213568,
+          "hp": 150,
+          "alive": true,
+          "target": 1,
+          "plan": "retreat",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            0.06864654074811384,
+            -0.21925110734363648
+          ],
+          "movement": "\ud0c0\uaca9 \uc2dc\uc810 \ud655\uc778 \u00b7 \ud328\ub9c1 \uc900\ube44",
+          "initiative": 5.319575151579562
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.505412101745605,
+            -0.620127856731415
+          ],
+          "heading": [
+            0.490311026573181,
+            -0.631354808807373
+          ],
+          "hp": 144.0,
+          "initiative": 7.26763119692632,
+          "intent": null,
+          "movement": "precommit_flank",
+          "plan": "retreat",
+          "state": "idle",
+          "target": 1,
+          "x": 294.5009765625,
+          "y": 211.434631347656
+        }
+      }
+    },
+    {
+      "name": "archer_duel",
+      "seed": 29,
+      "first_80px": {
+        "time": 8.500000000000002,
+        "distance": 112.5697440828997,
+        "web": {
+          "x": 316.81194142431906,
+          "y": 399.8744959097476,
+          "hp": 102,
+          "alive": true,
+          "target": 1,
+          "plan": "retreat",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            0.9999598971761449,
+            0.0008602347009407575
+          ],
+          "movement": "\ud6c4\uc5f4 \u00b7 \uc548\uc804\ud55c \uc0ac\uaca9 \uc704\uce58 \ud655\ubcf4",
+          "initiative": 9.994771773859261
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.381073862314224,
+            0.00379028334282339
+          ],
+          "heading": [
+            0.0,
+            0.0
+          ],
+          "hp": 91.0,
+          "initiative": 10.6504542152837,
+          "intent": null,
+          "movement": "rear_station",
+          "plan": "retreat",
+          "state": "idle",
+          "target": 1,
+          "x": 204.293640136719,
+          "y": 396.4716796875
+        }
+      }
+    },
+    {
+      "name": "assassin_healer",
+      "seed": 29,
+      "first_80px": {
+        "time": 2.499999999999996,
+        "distance": 85.614416584674,
+        "web": {
+          "x": 193.14488291361383,
+          "y": 280.1281242582738,
+          "hp": 145,
+          "alive": true,
+          "target": 1,
+          "plan": "observe",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            0.2565486539049083,
+            -0.4491714082995158
+          ],
+          "movement": "\uc720\uc778 \u00b7 \uc9c4\uc785 \ud310\ub2e8",
+          "initiative": 5.319575151579562
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.357753604650497,
+            -0.715550363063812
+          ],
+          "heading": [
+            0.341266751289368,
+            -0.723296225070953
+          ],
+          "hp": 145.0,
+          "initiative": 2.54127722004864,
+          "intent": null,
+          "movement": "precommit_flank",
+          "plan": "observe",
+          "state": "idle",
+          "target": 1,
+          "x": 222.921401977539,
+          "y": 199.858657836914
+        }
+      }
+    },
+    {
+      "name": "guardian_assassin",
+      "seed": 29,
+      "first_80px": {
+        "time": 1.4999999999999996,
+        "distance": 96.02992188425408,
+        "web": {
+          "x": 243.20211960375246,
+          "y": 345.50453277013315,
+          "hp": 190,
+          "alive": true,
+          "target": -1,
+          "plan": "observe",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            0.28342503218076753,
+            -0.7471227312977219
+          ],
+          "movement": "\uc8fc\ubcc0 \ud0d0\uc0c9",
+          "initiative": 5.319575151579562
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.783222198486328,
+            -0.162981569766998
+          ],
+          "heading": [
+            0.767818510532379,
+            -0.0285085029900074
+          ],
+          "hp": 190.0,
+          "initiative": 2.54127722004864,
+          "intent": null,
+          "movement": "general_observe",
+          "plan": "observe",
+          "state": "idle",
+          "target": -1,
+          "x": 268.727783203125,
+          "y": 438.079833984375
+        }
+      }
+    },
+    {
+      "name": "sniper_warrior",
+      "seed": 29,
+      "first_80px": {
+        "time": 1.9999999999999978,
+        "distance": 116.52549542084597,
+        "web": {
+          "x": 128.84804954225157,
+          "y": 329.44092622404276,
+          "hp": 125,
+          "alive": true,
+          "target": 1,
+          "plan": "observe",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            -0.15662926031504099,
+            0.9784507876652555
+          ],
+          "movement": "\uc740\ub454 \uc704\uce58 \ud655\ubcf4",
+          "initiative": 5.319575151579562
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            -0.324684947729111,
+            -0.945822238922119
+          ],
+          "heading": [
+            -0.3246850669384,
+            -0.94582200050354
+          ],
+          "hp": 125.0,
+          "initiative": 2.54127722004864,
+          "intent": null,
+          "movement": "",
+          "plan": "observe",
+          "state": "idle",
+          "target": 1,
+          "x": 116.02001953125,
+          "y": 213.623687744141
+        }
+      }
+    },
+    {
+      "name": "same_trio",
+      "seed": 29,
+      "first_80px": {
+        "time": 1.0000000000000013,
+        "distance": 110.79658842160576,
+        "web": {
+          "x": 172.24697235260282,
+          "y": 195.33937312555483,
+          "hp": 150,
+          "alive": true,
+          "target": 4,
+          "plan": "observe",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            -0.11705394649993471,
+            0.7909962000231563
+          ],
+          "movement": "\uc606 \uc774\ub3d9 \u00b7 \uc9c4\uc785 \ud310\ub2e8",
+          "initiative": 3.7095329078761226
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.326821744441986,
+            -0.730196952819824
+          ],
+          "heading": [
+            0.305259197950363,
+            -0.738663852214813
+          ],
+          "hp": 150.0,
+          "initiative": 2.54127722004864,
+          "intent": null,
+          "movement": "precommit_flank",
+          "plan": "observe",
+          "state": "idle",
+          "target": 4,
+          "x": 192.380676269531,
+          "y": 86.3874664306641
+        }
+      }
+    },
+    {
+      "name": "front_rear",
+      "seed": 29,
+      "first_80px": {
+        "time": 1.0000000000000013,
+        "distance": 111.40912539819121,
+        "web": {
+          "x": 174.88541599280364,
+          "y": 195.6324687813231,
+          "hp": 150,
+          "alive": true,
+          "target": 5,
+          "plan": "observe",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            -0.1075805578344225,
+            0.7922413518363253
+          ],
+          "movement": "\uc606 \uc774\ub3d9 \u00b7 \uc9c4\uc785 \ud310\ub2e8",
+          "initiative": 3.7095329078761226
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.18437086045742,
+            -0.778464734554291
+          ],
+          "heading": [
+            0.161420047283173,
+            -0.782865285873413
+          ],
+          "hp": 150.0,
+          "initiative": 2.54127722004864,
+          "intent": null,
+          "movement": "precommit_flank",
+          "plan": "observe",
+          "state": "idle",
+          "target": 4,
+          "x": 185.261138916016,
+          "y": 84.7075500488281
+        }
+      }
+    },
+    {
+      "name": "guardian_healer",
+      "seed": 29,
+      "first_80px": {
+        "time": 2.249999999999997,
+        "distance": 82.8610324862966,
+        "web": {
+          "x": 271.99173963106705,
+          "y": 100.14000536826812,
+          "hp": 190,
+          "alive": true,
+          "target": 3,
+          "plan": "approach",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            0.399014421767132,
+            -0.0764421675323474
+          ],
+          "movement": "\ub300\uce58 \u00b7 \uc9c4\uc785 \uc2dc\uc810 \ud310\ub2e8",
+          "initiative": 3.7095329078761226
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.317534744739532,
+            0.700426876544952
+          ],
+          "heading": [
+            0.417355626821518,
+            0.726997375488281
+          ],
+          "hp": 190.0,
+          "initiative": 2.54127722004864,
+          "intent": null,
+          "movement": "general_approach",
+          "plan": "approach",
+          "state": "idle",
+          "target": 3,
+          "x": 328.504028320312,
+          "y": 160.739608764648
+        }
+      }
+    },
+    {
+      "name": "mixed6",
+      "seed": 29,
+      "first_80px": {
+        "time": 1.0000000000000013,
+        "distance": 90.52193182854987,
+        "web": {
+          "x": 178.34888155881197,
+          "y": 174.8305661955949,
+          "hp": 150,
+          "alive": true,
+          "target": 8,
+          "plan": "observe",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            -0.14334482123023212,
+            0.4734410705588932
+          ],
+          "movement": "\uc606 \uc774\ub3d9 \u00b7 \uc9c4\uc785 \ud310\ub2e8",
+          "initiative": 3.6576556033078425
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.0258926004171371,
+            -0.799580872058868
+          ],
+          "heading": [
+            0.0224134065210819,
+            -0.799409151077271
+          ],
+          "hp": 150.0,
+          "initiative": 2.54127722004864,
+          "intent": null,
+          "movement": "precommit_flank",
+          "plan": "observe",
+          "state": "idle",
+          "target": 6,
+          "x": 180.712890625,
+          "y": 84.3395080566406
+        }
+      }
+    },
+    {
+      "name": "mixed12",
+      "seed": 29,
+      "first_80px": {
+        "time": 1.9999999999999978,
+        "distance": 81.35711413945246,
+        "web": {
+          "x": 148.8405416424272,
+          "y": 97.64466326542492,
+          "hp": 150,
+          "alive": true,
+          "target": 12,
+          "plan": "approach",
+          "intent": 1.7378758745292195,
+          "state": "idle",
+          "heading": [
+            -0.03619748382194563,
+            0.11616164523182619
+          ],
+          "movement": "\uc9c0\uadf8\uc7ac\uadf8 \uc811\uadfc",
+          "initiative": 6.45992760544331
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.544232726097107,
+            -0.586353838443756
+          ],
+          "heading": [
+            0.537316918373108,
+            -0.234040930867195
+          ],
+          "hp": 150.0,
+          "initiative": 2.54127722004864,
+          "intent": null,
+          "movement": "precommit_flank",
+          "plan": "observe",
+          "state": "idle",
+          "target": 20,
+          "x": 197.016998291016,
+          "y": 32.0854606628418
+        }
+      }
+    },
+    {
+      "name": "machinegun_warrior",
+      "seed": 29,
+      "first_80px": {
+        "time": 3.4999999999999925,
+        "distance": 120.61579082739259,
+        "web": {
+          "x": 246.12065386078592,
+          "y": 312.76327777045503,
+          "hp": 145,
+          "alive": true,
+          "target": 1,
+          "plan": "observe",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            -0.1536490675004217,
+            -0.2869845713038912
+          ],
+          "movement": "\ub300\uce58 \u00b7 \uc0ac\uaca9 \uac70\ub9ac \uc720\uc9c0",
+          "initiative": 5.319575151579562
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            -0.774842202663422,
+            -0.144805327057838
+          ],
+          "heading": [
+            0.0,
+            0.0
+          ],
+          "hp": 134.0,
+          "initiative": 5.16436911516996,
+          "intent": null,
+          "movement": "",
+          "plan": "retreat",
+          "state": "idle",
+          "target": 1,
+          "x": 125.642486572266,
+          "y": 307.003051757812
+        }
+      }
+    },
+    {
+      "name": "tank_warrior",
+      "seed": 29,
+      "first_80px": {
+        "time": 5.249999999999987,
+        "distance": 114.5347339392117,
+        "web": {
+          "x": 242.35006700381322,
+          "y": 410.1428454362643,
+          "hp": 300,
+          "alive": true,
+          "target": 1,
+          "plan": "observe",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            0,
+            0
+          ],
+          "movement": "\uac70\ub9ac \ud655\ubcf4 \u00b7 \ub290\ub9b0 \ud6c4\uc9c4",
+          "initiative": 5.319575151579562
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.0,
+            0.0
+          ],
+          "heading": [
+            0.0,
+            0.0
+          ],
+          "hp": 287.0,
+          "initiative": 6.6632486626758,
+          "intent": null,
+          "movement": "",
+          "plan": "retreat",
+          "state": "idle",
+          "target": 1,
+          "x": 129.340133666992,
+          "y": 428.769714355469
+        }
+      }
+    },
+    {
+      "name": "stance_normal",
+      "seed": 11,
+      "first_80px": {
+        "time": 2.749999999999995,
+        "distance": 81.49160883495144,
+        "web": {
+          "x": 222.32373034875005,
+          "y": 252.5259257678083,
+          "hp": 150,
+          "alive": true,
+          "target": 4,
+          "plan": "approach",
+          "intent": 2.071952205830849,
+          "state": "idle",
+          "heading": [
+            0.33321702354284544,
+            -0.4157531718993506
+          ],
+          "movement": "\uc9c0\uadf8\uc7ac\uadf8 \uc811\uadfc",
+          "initiative": 8.483728896094751
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            -0.148741543292999,
+            -0.0193895194679499
+          ],
+          "heading": [
+            -0.172904446721077,
+            0.0830248445272446
+          ],
+          "hp": 150.0,
+          "initiative": 2.92165383328978,
+          "intent": null,
+          "movement": "reaction_parry",
+          "plan": "retreat",
+          "state": "idle",
+          "target": 3,
+          "x": 160.536895751953,
+          "y": 199.391479492188
+        }
+      }
+    },
+    {
+      "name": "stance_normal",
+      "seed": 29,
+      "first_80px": {
+        "time": 1.0000000000000013,
+        "distance": 110.79658842160576,
+        "web": {
+          "x": 172.24697235260282,
+          "y": 195.33937312555483,
+          "hp": 150,
+          "alive": true,
+          "target": 4,
+          "plan": "observe",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            -0.11705394649993471,
+            0.7909962000231563
+          ],
+          "movement": "\uc606 \uc774\ub3d9 \u00b7 \uc9c4\uc785 \ud310\ub2e8",
+          "initiative": 3.7095329078761226
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.326821744441986,
+            -0.730196952819824
+          ],
+          "heading": [
+            0.305259197950363,
+            -0.738663852214813
+          ],
+          "hp": 150.0,
+          "initiative": 2.54127722004864,
+          "intent": null,
+          "movement": "precommit_flank",
+          "plan": "observe",
+          "state": "idle",
+          "target": 4,
+          "x": 192.380676269531,
+          "y": 86.3874664306641
+        }
+      }
+    },
+    {
+      "name": "stance_normal",
+      "seed": 101,
+      "first_80px": {
+        "time": 1.7499999999999987,
+        "distance": 80.6274374910516,
+        "web": {
+          "x": 175.97470838413236,
+          "y": 163.5307294176398,
+          "hp": 150,
+          "alive": true,
+          "target": 4,
+          "plan": "observe",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            -0.05146937908019851,
+            0.4875216157178566
+          ],
+          "movement": "\uc606 \uc774\ub3d9 \u00b7 \uc9c4\uc785 \ud310\ub2e8",
+          "initiative": 1.9170042937891125
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.189312219619751,
+            -0.464064866304398
+          ],
+          "heading": [
+            0.226945981383324,
+            -0.450214415788651
+          ],
+          "hp": 150.0,
+          "initiative": 3.11741750083149,
+          "intent": null,
+          "movement": "precommit_feint",
+          "plan": "observe",
+          "state": "idle",
+          "target": 4,
+          "x": 199.1611328125,
+          "y": 86.3091430664062
+        }
+      }
+    },
+    {
+      "name": "stance_cautious",
+      "seed": 11,
+      "first_80px": {
+        "time": 2.499999999999996,
+        "distance": 90.9821752778728,
+        "web": {
+          "x": 170.03115531116825,
+          "y": 288.95864522177635,
+          "hp": 150,
+          "alive": true,
+          "target": 5,
+          "plan": "circle",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            0.03353945241026097,
+            0.7991707252365443
+          ],
+          "movement": "\uc606 \uc774\ub3d9 \u00b7 \uc9c4\uc785 \ud310\ub2e8",
+          "initiative": 4.05267752595864
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            -0.148250997066498,
+            -0.0228395387530327
+          ],
+          "heading": [
+            -0.14836086332798,
+            -0.0219288785010576
+          ],
+          "hp": 150.0,
+          "initiative": 2.92165383328978,
+          "intent": null,
+          "movement": "reaction_parry",
+          "plan": "retreat",
+          "state": "idle",
+          "target": 4,
+          "x": 162.997009277344,
+          "y": 198.248794555664
+        }
+      }
+    },
+    {
+      "name": "stance_cautious",
+      "seed": 29,
+      "first_80px": {
+        "time": 1.0000000000000013,
+        "distance": 110.79659246317154,
+        "web": {
+          "x": 172.29339683315052,
+          "y": 195.34655087505232,
+          "hp": 150,
+          "alive": true,
+          "target": 4,
+          "plan": "observe",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            -0.11369824023674609,
+            0.7914647977187248
+          ],
+          "movement": "\uc606 \uc774\ub3d9 \u00b7 \uc9c4\uc785 \ud310\ub2e8",
+          "initiative": 3.7095329078761226
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.324373185634613,
+            -0.731287956237793
+          ],
+          "heading": [
+            0.304206728935242,
+            -0.739122688770294
+          ],
+          "hp": 150.0,
+          "initiative": 2.54127722004864,
+          "intent": null,
+          "movement": "precommit_flank",
+          "plan": "observe",
+          "state": "idle",
+          "target": 4,
+          "x": 192.375,
+          "y": 86.3850250244141
+        }
+      }
+    },
+    {
+      "name": "stance_cautious",
+      "seed": 101,
+      "first_80px": {
+        "time": 1.7499999999999987,
+        "distance": 91.64006225652274,
+        "web": {
+          "x": 215.80336611546596,
+          "y": 175.99313103897566,
+          "hp": 150,
+          "alive": true,
+          "target": 4,
+          "plan": "approach",
+          "intent": 1.7406980204419404,
+          "state": "idle",
+          "heading": [
+            0.7437931731530042,
+            0.51089316842982
+          ],
+          "movement": "\ube48\ud2c8 \ud3ec\ucc29 \u00b7 \uc9e7\uc740 \ubc18\uaca9",
+          "initiative": 6.536655179134586
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.177669838070869,
+            -0.468645632266998
+          ],
+          "heading": [
+            0.215345412492752,
+            -0.455885738134384
+          ],
+          "hp": 150.0,
+          "initiative": 3.11741750083149,
+          "intent": null,
+          "movement": "precommit_feint",
+          "plan": "observe",
+          "state": "idle",
+          "target": 4,
+          "x": 198.632217407227,
+          "y": 85.9761734008789
+        }
+      }
+    },
+    {
+      "name": "stance_rush",
+      "seed": 11,
+      "first_80px": {
+        "time": 1.9999999999999978,
+        "distance": 81.57861277361158,
+        "web": {
+          "x": 318.9104545112897,
+          "y": 177.78675402432228,
+          "hp": 150,
+          "alive": true,
+          "target": 3,
+          "plan": "approach",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            0.9486442898707439,
+            0.20873878776946286
+          ],
+          "movement": "\uc804\ub7b5 \u00b7 \uc800\ub3cc\uc801 \uc9c4\uc785",
+          "initiative": 4.05267752595864
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.977481961250305,
+            -0.410269945859909
+          ],
+          "heading": [
+            0.862220048904419,
+            0.158520862460136
+          ],
+          "hp": 138.0,
+          "initiative": 4.49310679171909,
+          "intent": 2.16535184100577,
+          "movement": "rush",
+          "plan": "approach",
+          "state": "windup",
+          "target": 3,
+          "x": 393.799407958984,
+          "y": 210.139724731445
+        }
+      }
+    },
+    {
+      "name": "stance_rush",
+      "seed": 29,
+      "first_80px": {
+        "time": 3.2499999999999933,
+        "distance": 156.4785345373608,
+        "web": {
+          "x": 235.16511286442284,
+          "y": 166.67890155868508,
+          "hp": 100,
+          "alive": true,
+          "target": 3,
+          "plan": "approach",
+          "intent": null,
+          "state": "windup",
+          "heading": [
+            0.864903279281657,
+            -0.41382346097033756
+          ],
+          "movement": "\uc804\ub7b5 \u00b7 \uc800\ub3cc\uc801 \uc9c4\uc785",
+          "initiative": 5.096412572233468
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.980958998203278,
+            -0.217573940753937
+          ],
+          "heading": [
+            0.979901671409607,
+            -0.19594432413578
+          ],
+          "hp": 150.0,
+          "initiative": 5.30573782496624,
+          "intent": null,
+          "movement": "rush",
+          "plan": "approach",
+          "state": "windup",
+          "target": 3,
+          "x": 387.894714355469,
+          "y": 132.631866455078
+        }
+      }
+    },
+    {
+      "name": "stance_rush",
+      "seed": 101,
+      "first_80px": {
+        "time": 1.4999999999999996,
+        "distance": 83.7204801270203,
+        "web": {
+          "x": 323.43620346072976,
+          "y": 160.2390027525208,
+          "hp": 150,
+          "alive": true,
+          "target": 4,
+          "plan": "approach",
+          "intent": 1.395102328702841,
+          "state": "idle",
+          "heading": [
+            0.8913380921789258,
+            0.42130290310686747
+          ],
+          "movement": "\uc804\ub7b5 \u00b7 \uc800\ub3cc\uc801 \uc9c4\uc785",
+          "initiative": 4.655162985231408
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            -0.13089781999588,
+            -0.0732513889670372
+          ],
+          "heading": [
+            -0.115739695727825,
+            -0.0722565948963165
+          ],
+          "hp": 150.0,
+          "initiative": 3.11741750083149,
+          "intent": null,
+          "movement": "reaction_parry",
+          "plan": "retreat",
+          "state": "idle",
+          "target": 3,
+          "x": 258.458343505859,
+          "y": 107.446990966797
+        }
+      }
+    },
+    {
+      "name": "stance_cover",
+      "seed": 11,
+      "first_80px": {
+        "time": 5.499999999999986,
+        "distance": 90.53905101778633,
+        "web": {
+          "x": 134.02637088558552,
+          "y": 114.83910920319977,
+          "hp": 150,
+          "alive": true,
+          "target": 3,
+          "plan": "approach",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            -0.9288766662841126,
+            0.30115549061745517
+          ],
+          "movement": "\uc804\ub7b5 \u00b7 \uc544\uad70 \ub530\ub77c\ubd99\uae30",
+          "initiative": 5.534903936803429
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.113600187003613,
+            0.0386651828885078
+          ],
+          "heading": [
+            0.526023745536804,
+            -0.231098964810371
+          ],
+          "hp": 150.0,
+          "initiative": 5.53927022556413,
+          "intent": null,
+          "movement": "cover_intercept",
+          "plan": "approach",
+          "state": "idle",
+          "target": 3,
+          "x": 217.190612792969,
+          "y": 150.630569458008
+        }
+      }
+    },
+    {
+      "name": "stance_cover",
+      "seed": 29,
+      "first_80px": {
+        "time": 8.750000000000014,
+        "distance": 88.93557647282263,
+        "web": {
+          "x": 438.1034501442645,
+          "y": 129.73968836616845,
+          "hp": 117,
+          "alive": true,
+          "target": 3,
+          "plan": "retreat",
+          "intent": null,
+          "state": "idle",
+          "heading": [
+            0.7909880097322316,
+            -0.5433029763113769
+          ],
+          "movement": "\uc804\ub7b5 \u00b7 \uc801\uacfc \uc544\uad70 \uc0ac\uc774 \uc5c4\ud638",
+          "initiative": 10.611823306999414
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            -0.149719744920731,
+            0.00916496757417917
+          ],
+          "heading": [
+            0.0,
+            0.0
+          ],
+          "hp": 128.0,
+          "initiative": 9.17213364165892,
+          "intent": null,
+          "movement": "reaction_parry",
+          "plan": "retreat",
+          "state": "idle",
+          "target": 5,
+          "x": 365.96484375,
+          "y": 181.754669189453
+        }
+      }
+    },
+    {
+      "name": "stance_cover",
+      "seed": 101,
+      "first_80px": {
+        "time": 2.249999999999997,
+        "distance": 80.0704175617774,
+        "web": {
+          "x": 257.868521125294,
+          "y": 170.58062279958713,
+          "hp": 150,
+          "alive": true,
+          "target": 3,
+          "plan": "approach",
+          "intent": 1.5529413542451338,
+          "state": "idle",
+          "heading": [
+            0.6018762105719506,
+            -0.4019623390054975
+          ],
+          "movement": "\uc804\ub7b5 \u00b7 \uc801\uacfc \uc544\uad70 \uc0ac\uc774 \uc5c4\ud638",
+          "initiative": 6.806988765155056
+        },
+        "godot": {
+          "alive": true,
+          "desired": [
+            0.0,
+            1.0
+          ],
+          "heading": [
+            0.0,
+            -0.347341269254684
+          ],
+          "hp": 150.0,
+          "initiative": 3.11741750083149,
+          "intent": null,
+          "movement": "cover_intercept",
+          "plan": "observe",
+          "state": "idle",
+          "target": 4,
+          "x": 180.0,
+          "y": 151.932159423828
+        }
+      }
+    }
+  ],
+  "stance_means": {
+    "normal": {
+      "web": {
+        "first_attack": 1.7611111111111097,
+        "first_hit": 2.8444444444444392,
+        "gap": 279.25896863409656,
+        "travel": 7482.41596024663,
+        "target_changes": 54,
+        "attacks": 26,
+        "hits": 25.333333333333332,
+        "parry": 5,
+        "dodge": 4.333333333333333,
+        "clash": 2.3333333333333335,
+        "idle": 93.83333333332929,
+        "danger_time": 0.11666666666666665,
+        "escape": 0
+      },
+      "before": {
+        "first_attack": 3.0111111111111066,
+        "first_hit": 3.93888888888888,
+        "gap": 296.433307505067,
+        "travel": 7132.132624676487,
+        "target_changes": 43.666666666666664,
+        "attacks": 23.666666666666668,
+        "hits": 37.666666666666664,
+        "parry": 3.3333333333333335,
+        "dodge": 7.666666666666667,
+        "clash": 3,
+        "idle": 82.3666666666633,
+        "danger_time": 1.9777777777777772,
+        "escape": 0
+      },
+      "after": {
+        "first_attack": 2.2277777777777765,
+        "first_hit": 3.30555555555555,
+        "gap": 278.0150392165983,
+        "travel": 6811.291736236783,
+        "target_changes": 52,
+        "attacks": 22,
+        "hits": 21.333333333333332,
+        "parry": 5,
+        "dodge": 2.3333333333333335,
+        "clash": 2.3333333333333335,
+        "idle": 96.70555555555133,
+        "danger_time": 0.861111111111111,
+        "escape": 0
+      }
+    },
+    "cautious": {
+      "web": {
+        "first_attack": 1.71111111111111,
+        "first_hit": 2.7666666666666617,
+        "gap": 295.9167488025959,
+        "travel": 8094.609616969509,
+        "target_changes": 61,
+        "attacks": 25,
+        "hits": 25.666666666666668,
+        "parry": 7,
+        "dodge": 6.333333333333333,
+        "clash": 4.333333333333333,
+        "idle": 95.93888888888473,
+        "danger_time": 0,
+        "escape": 0
+      },
+      "before": {
+        "first_attack": 3.111111111111103,
+        "first_hit": 4.155555555555547,
+        "gap": 265.631814437111,
+        "travel": 7718.65018512946,
+        "target_changes": 56.333333333333336,
+        "attacks": 25.333333333333332,
+        "hits": 26,
+        "parry": 5.666666666666667,
+        "dodge": 6,
+        "clash": 2.6666666666666665,
+        "idle": 94.66666666666259,
+        "danger_time": 0.20555555555555566,
+        "escape": 0.3333333333333333
+      },
+      "after": {
+        "first_attack": 2.42222222222222,
+        "first_hit": 3.67777777777777,
+        "gap": 290.83697226627066,
+        "travel": 7520.868476517327,
+        "target_changes": 52.666666666666664,
+        "attacks": 22.333333333333332,
+        "hits": 28.333333333333332,
+        "parry": 5.333333333333333,
+        "dodge": 8.666666666666666,
+        "clash": 2.3333333333333335,
+        "idle": 93.6722222222182,
+        "danger_time": 0.7833333333333333,
+        "escape": 0
+      }
+    },
+    "rush": {
+      "web": {
+        "first_attack": 0.7166666666666672,
+        "first_hit": 1.6833333333333322,
+        "gap": 227.06613382651764,
+        "travel": 5870.880660955951,
+        "target_changes": 53,
+        "attacks": 31,
+        "hits": 33,
+        "parry": 3.6666666666666665,
+        "dodge": 3.3333333333333335,
+        "clash": 4,
+        "idle": 46.36666666666532,
+        "danger_time": 1.0277777777777775,
+        "escape": 0.6666666666666666
+      },
+      "before": {
+        "first_attack": 0.7500000000000007,
+        "first_hit": 1.6888888888888867,
+        "gap": 258.0022336807557,
+        "travel": 6211.509958363757,
+        "target_changes": 54.333333333333336,
+        "attacks": 30.333333333333332,
+        "hits": 35.666666666666664,
+        "parry": 3.3333333333333335,
+        "dodge": 5.333333333333333,
+        "clash": 5.333333333333333,
+        "idle": 49.605555555554034,
+        "danger_time": 1.1111111111111114,
+        "escape": 0
+      },
+      "after": {
+        "first_attack": 0.666666666666667,
+        "first_hit": 1.6,
+        "gap": 214.402433482742,
+        "travel": 5533.25642558599,
+        "target_changes": 40.333333333333336,
+        "attacks": 31.666666666666668,
+        "hits": 32.333333333333336,
+        "parry": 3.6666666666666665,
+        "dodge": 3.6666666666666665,
+        "clash": 2.6666666666666665,
+        "idle": 49.42777777777623,
+        "danger_time": 1.51111111111111,
+        "escape": 0
+      }
+    },
+    "cover": {
+      "web": {
+        "first_attack": 3.588888888888881,
+        "first_hit": 4.338888888888879,
+        "gap": 249.60510856764736,
+        "travel": 6523.358285668219,
+        "target_changes": 38.666666666666664,
+        "attacks": 18.666666666666668,
+        "hits": 34,
+        "parry": 5,
+        "dodge": 4.666666666666667,
+        "clash": 1.6666666666666667,
+        "idle": 82.57222222221881,
+        "danger_time": 0.5333333333333338,
+        "escape": 0.3333333333333333
+      },
+      "before": {
+        "first_attack": 2.8833333333333266,
+        "first_hit": 3.3499999999999934,
+        "gap": 150.16484660177335,
+        "travel": 8786.497230679724,
+        "target_changes": 73.33333333333333,
+        "attacks": 25,
+        "hits": 47,
+        "parry": 5.333333333333333,
+        "dodge": 8,
+        "clash": 1,
+        "idle": 79.5333333333301,
+        "danger_time": 14.68333333333334,
+        "escape": 1.6666666666666667
+      },
+      "after": {
+        "first_attack": 3.30555555555555,
+        "first_hit": 4.19999999999999,
+        "gap": 252.51090252884933,
+        "travel": 5618.353355083404,
+        "target_changes": 36.333333333333336,
+        "attacks": 17.666666666666668,
+        "hits": 33,
+        "parry": 6,
+        "dodge": 4.666666666666667,
+        "clash": 0.6666666666666666,
+        "idle": 81.38888888888557,
+        "danger_time": 1.5722222222222175,
+        "escape": 0
+      }
+    }
+  }
+}

@@ -1,0 +1,16 @@
+DUNI ARENA · 편집용 Godot 프로젝트 · preview.6
+
+1. ZIP 파일을 전부 압축 해제합니다.
+2. Godot 4.6.3 stable을 실행합니다.
+3. 가져오기(Import)에서 godot/project.godot를 선택합니다.
+4. 최초 리소스 가져오기가 끝나면 F5로 실행합니다.
+
+Phase 1~12.5 전체 구현과 최신 패링·피격·사망·참격·전사 궁극기 개선이 포함돼 있습니다.
+게임 실행에는 dist/가 필요하지 않습니다. dist/는 변경하지 않은 HTML 비교 원본입니다.
+개발 테스트: godot --headless --path godot --script res://tests/test_runner.gd
+테스트용 user data 디렉터리를 별도로 지정해 개인 저장 파일과 구분하세요.
+
+엔진 설치 파일, Android SDK, 개인 저장 데이터, APK 서명 키는 포함하지 않습니다.
+Android 재빌드·기존 APK 업데이트 배포에는 별도 SDK·내보내기 템플릿·원래 서명 키가 필요합니다.
+전체 개발 기록/대용량 영상 대신 테스트 입력 fixture와 보고서를 포함했습니다.
+SOURCE_MANIFEST.json에서 포함 파일의 SHA-256을 확인할 수 있습니다.

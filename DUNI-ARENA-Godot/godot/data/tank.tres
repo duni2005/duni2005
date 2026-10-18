@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/unit_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/attack_data.gd" id="2"]
+
+[sub_resource type="Resource" id="Attack"]
+script = ExtResource("2")
+kind = 1
+windup = 1.8
+active = 0.15
+recovery = 0.55
+reach = 470
+cone = 0.16
+impulse = 440
+projectile_speed = 620
+projectile_lifetime = 2.4
+projectile_radius = 26
+projectile_offset = 32
+projectile_spread = 0.025
+aim_lead = 0.45
+
+[resource]
+script = ExtResource("1")
+type_id = 18
+display_name = "탱크"
+base_gold_cost = 270
+max_hp = 300
+attack = 52
+defense_power = 46
+move_speed = 48
+attack_range = 430
+attack_interval = 2.2
+critical_chance = 0.2
+tags = PackedStringArray("일반", "대치형")
+emoji = "🚜"
+ultimate_windup = 0.8
+attack_profile = SubResource("Attack")
+recruit_tokens = 4

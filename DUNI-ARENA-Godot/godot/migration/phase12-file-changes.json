@@ -1,0 +1,162 @@
+{
+  "modified": {
+    "godot/README.md": {
+      "before": "7c614bc1281c97ef9a6d9c5062fd9459996c8beb0379ea50b8679e57f25979af",
+      "after": "c78765114be99ade7efb18012b4c8cd3e767397adccc1a9030114591895fc18c"
+    },
+    "godot/project.godot": {
+      "before": "3a5ad8c469dc28e02e4e75ca8a0594c4caaf30a7f922915762e8576e78c81401",
+      "after": "5b14d25eb4f0caf22fcc2b194defdc9ca32f3fc05f1330c21577465da96af761"
+    },
+    "godot/scripts/main_menu_screen.gd": {
+      "before": "87f483dcc7d84e70d69d7ab4e92d34f01273a67d1fce6731dbfe1e1f704ebb97",
+      "after": "41a8f4b79204a0ddc9e5c14a8f2c464f9749d4f92fe452aece04f1e50c40be8d"
+    },
+    "godot/scripts/tower_content_screen.gd": {
+      "before": "701942b27b1485d0f5ad4f4ce83098c4678ccd45d435fff0402399d53d91e2c9",
+      "after": "03e181397e85db0edbc93c9870ba11dd3a5b078ce4c16d21ada358734a450509"
+    },
+    "godot/scripts/tower_screen.gd": {
+      "before": "7c60330104e6b6717b4b5ed39f5decf94af729da6f2c03597603efdc87fc1239",
+      "after": "02e1024a4bbcc79828d0f9910c1b404cb607f844c88c1ff4fc2640588ebb288c"
+    },
+    "godot/scripts/deployment_board.gd": {
+      "before": "161c2726f7c24ffd5c889aab4a8d249e0bf4dfaa2e4db477e599115f67d9693f",
+      "after": "b6b59300811915f51d137f3143ca0863d6111ea26a1b7882c51486acac24c067"
+    },
+    "godot/scripts/tower_battle_screen.gd": {
+      "before": "f52227cab704dac82a20194a0b1a850733bd8e644099d25af2b9033d84442ae6",
+      "after": "d606b3f4c44839f04ca235513ae7e7f782ee8f010694590b55a809e786bd3871"
+    },
+    "godot/scripts/turning_point_panel.gd": {
+      "before": "54343b0f7197d07094c89561a030c0be58b85ee26af4f770bbfcd4d365807d74",
+      "after": "2fde474eff9278dce372f947126cd10a751c417eda155bd9559ac521e6684222"
+    },
+    "godot/scripts/deployment_screen.gd": {
+      "before": "191d24662a2fd7e7dac92e281e266218be8f248ece4935593853685ab46e3df7",
+      "after": "66da1aa1810554bf44ede4089b400f60cfb8ecea0f3ffd72e36e09be5dff5dc2"
+    },
+    "godot/scripts/guild_management_panel.gd": {
+      "before": "19eaac706b22537c2673874a669880c7dde00fdea0d54bd762fca0c712cfdb61",
+      "after": "92d7e855c353fd437371ec99650f0eceb1ddc94e2f08e6409578c2d053bfddab"
+    },
+    "godot/scripts/room_battle_screen.gd": {
+      "before": "cf343acea1fd009fd8ec19dfb6d87ce77dc928a8365d1a4142d4375f981e85ed",
+      "after": "6d7f708617f849047554ca0593dd93a8e52114ebaa0e2f35ea18f1812461626d"
+    },
+    "godot/tests/character_ui_smoke.gd": {
+      "before": "af9801f610de8b6ac7a54957b08f8cc109ee46b592227b5f6e4cb6ee58d2945c",
+      "after": "cd63910fe40064b0e064d1cd67324fec6135c4b65e6a2809d25b9171be8686d2"
+    },
+    "godot/tests/ai_ui_smoke.gd": {
+      "before": "4833b3e9b7ae28f69d28b3d088247c6566dc86e07a7d70319b74fb4beaeda597",
+      "after": "d68d19e0468d59b08447647572fa6fb88a4d829fa49430fdbd8134ad9519139d"
+    },
+    "godot/tests/save_ui_smoke.gd": {
+      "before": "6efd273003e96f531ab81563f132b1edbf4ad3b11232fb533df67ac1a00c051b",
+      "after": "9c8664dfddabf7746f658b4014bb175d3cf6c6c4a17940973986172e633fad4f"
+    },
+    "godot/tests/test_runner.gd": {
+      "before": "f274e9f416174c73339fee85393c5a8e0568d178e875f4230b136ab1653f7520",
+      "after": "7d75b0ea7462c5f2301b0d2d406f463115e6a6f83e7ed4320525e07ca19ada0e"
+    }
+  },
+  "added": {
+    "godot/PHASE12_UI_AUDIT.md": "d2b4bf1ed160a190973d2f408c756a3e0d94bae606c475935a3de804efef7756",
+    "godot/PHASE12_REPORT.md": "2790966b457ecaa769ab0b9eceeabd70ba44b5c3f35879e792915bcf06e36aa1",
+    "godot/migration/phase12-protected-sha256.json": "6cdbfe1ebfe0c7331b3123e7e1f2d60138f73e408be9a87f2673e526d8ce618b",
+    "godot/migration/phase12-X11-content-verified.log": "2356aef41d09a6943cb2a39f871b5ecba3b5fc144c830d3c690400e3e516a4e0",
+    "godot/migration/phase12-X11-save-gui.log": "be7d66117e6d9990ee230145e1d1dbfbaa5548ea5acd8171307c0c8ead2c3690",
+    "godot/migration/phase12-x11-tests.log": "5af2a3e6e261c44e88221c990304afaab091cf03b13a6e567812a30c93c3fd78",
+    "godot/migration/phase12-web-sha256.json": "f5b459f78f2a20842a02d53321ceb7b6a9ef2abb46b782d69f8b249ec6a74ec7",
+    "godot/migration/phase12-combat-gui.log": "ecb504056680c2e5bb9a1f0fb307bcb011962114902d6fe31a9d23172a4bd35c",
+    "godot/migration/phase12-regression.log": "68152417c50bb45d35ffa8d1d40d9f16683cdfcea80e95ab62e4e57d37cd29c7",
+    "godot/migration/phase12-desktop-battle.png": "241d8ae9f2967fcd38a10e16c103d5f2d2c9615d23dde59ba334c5d956c82f92",
+    "godot/migration/phase12-headless-character-gui.log": "e76909682a6bba5bda4b2dd1fc1e24b2b230ba76d8a8cbce3087e69d11e29201",
+    "godot/migration/phase12-deployment-gui.log": "0e9be5453dbc3d1d66ad19288e9c91b0aa428bdea9144268e9ccc2b0d33d2105",
+    "godot/migration/phase12-mobile-event.png": "f080f9b5b1c8c602a48684d49218ba7191d70117c4e41de682603b095ffd74fb",
+    "godot/migration/phase12-X11-character-gui.log": "f869a8a923268ceb522196b0a6c6c3f41c4b10b2535b18218e950145a3c404df",
+    "godot/migration/phase12-mobile-guild.png": "6dff68da0f28310b40b8b56de6f0d88bccaa5e1c73cc2ce1f4afe77533d340f8",
+    "godot/migration/phase12-headless-save-gui.log": "a547592fd4825495425e357ec501e9fd531aec093e79115ef0670edf0db619c4",
+    "godot/migration/phase12-room-initial.log": "b4dc3933aed16d3b721724d6662dd25c3c15c07e2197ede999ecb2658c0f2907",
+    "godot/migration/phase12-web-before.json": "c1dfe2cbc56ded5880a02fd67ac35a06c4cc467564ad8979a5ca03f63d2be03e",
+    "godot/migration/phase12-character-gui.log": "92801319ba977fbe86f3fc4f18dc3fb7b7f08d2eb84753981caf5170c78fccfb",
+    "godot/migration/phase12-mobile-deployment.png": "bba6b9a8b13d40e48a9e332a7e7e2aaab937ad431f1cf878b591657887a4b14c",
+    "godot/migration/phase12-desktop-map.png": "dfa25f6c8f2ad0c71f123f636826fe0961219634352c52326d066b4774734af1",
+    "godot/migration/phase12-gui-initial.json": "49df61034bcab92071ddc81cf27a386d94077427f289eed31c0cfd5c078158dd",
+    "godot/migration/phase12-desktop-deployment.png": "b374b7545400fcca41b41f8e5a006fc2192fe93f2d09c037c5e92793fe1526df",
+    "godot/migration/phase12-turning-gui.log": "1c3372b9bce28a79d73c447e948d0d1ce1619f2030ddbd02c069aae62cc5676f",
+    "godot/migration/phase12-headless-tower-verified.log": "8e4a723fa6679111dc73ccd48d27c6c73889a2606e42ec0139d9e5ce8e244714",
+    "godot/migration/phase12-mobile-battle.png": "9abf5b80cf677ac44ccd0a61e4dd15c8345f42a2643263d4cbe97491566cfc00",
+    "godot/migration/phase12-headless-ai-gui.log": "3f6a8f67a740c655117082533fc7fa23c66908a5aecf360f60492bdf1220e5fe",
+    "godot/migration/phase12-desktop-tp.png": "d4ce9bb1ab74808953e741d991e5ab783430fbdc02f1a7d8d03e9f49108a719f",
+    "godot/migration/phase12-ai-gui.log": "ff2a30ff1852df722e7d17d0c0797016e827e580778a0710cc676228371bacad",
+    "godot/migration/phase12-restart-write_checkpoint.log": "1ce327c9a95029590891d3287af96fcb87fcffb84850d3f0298694053910fbbd",
+    "godot/migration/phase11-before-phase12.tar.gz": "1b109225f089fc734f0bd97300ab19aceaca63289e8bcf737abd35f4ea7d7d7b",
+    "godot/migration/phase12-X11-strategy-gui.log": "12953978afda8434d1b87a51c38bb1b5fb1a42463660887f51a5d92d7cd32bfc",
+    "godot/migration/phase12-headless-strategy-gui.log": "19f02ef07adf7abad156beb93a2a6f6cdca244b072a2672dba754f00124bf977",
+    "godot/migration/phase12-mobile-shop.png": "dd06f36211c44da38e46f25bf47bebb0e2aa052b886b9aea20769e315b367070",
+    "godot/migration/phase12-regression-final.log": "3c234556ccbe74d9672ca167097f01fe1aaf5eabc878b4b97f26cd3ee3fbfa42",
+    "godot/migration/phase12-import.log": "50fbc3efe6cf7fdbee5f59f755a30044d71795b694bc512457fe577bd0540f19",
+    "godot/migration/phase12-headless-tower-gui.log": "99fa4c14e664e6eb7b538f54339a97001daf454f477e9cfaaf21fbb593540cc5",
+    "godot/migration/phase12-headless-combat-gui.log": "ecb504056680c2e5bb9a1f0fb307bcb011962114902d6fe31a9d23172a4bd35c",
+    "godot/migration/rollback_phase12.py": "53b18cd02b57783b3b3f628be83bf724a0ccdf8f695812369fcca80a76856add",
+    "godot/migration/phase12-headless-deployment-gui.log": "0e9be5453dbc3d1d66ad19288e9c91b0aa428bdea9144268e9ccc2b0d33d2105",
+    "godot/migration/phase12-X11-tower-gui.log": "6c47f5be15a5703daca84980cd3cd48b9acba39ca7da500de7bb0f4df4108d1f",
+    "godot/migration/phase12-mobile-menu.png": "38135adb93b1789626d9bb865fce4e5ae2ae5b2beec3eed6c9fc53397e7fc9c9",
+    "godot/migration/phase12-desktop-menu.png": "d52766b96df882ff78cf0c585287f3abe8f542370191a692a0df04c7526492e9",
+    "godot/migration/phase12-restart-results.json": "8c4c5ca36c6655f874a6b77edd6e3f3f75255dd264cbaa0772a5a611b209fe6e",
+    "godot/migration/phase12-X11-combat-gui.log": "88a5888deb3c287700af9d2e33b9dd9da8d9ab5077759ed942d435b4d5bf3312",
+    "godot/migration/phase12-mobile-tp.png": "7ba4c6e7059936c30dab3ae8b5fab2f39a5fe6bf0f0416067db7ba21bc5cc231",
+    "godot/migration/phase12-mobile-result.png": "e9207774dcf7e6ff14d277af3016161c3f1500c4295be5f501eb389aa9b27216",
+    "godot/migration/phase12-tower_content-gui.log": "fa29b758eaa2b076a76709a420e26fa9bc9cbf3f6c524ef5d9ee2813365cc86b",
+    "godot/migration/phase12-mobile-recruit.png": "0ceb66884d867c809e2765b0f4300f9ce9167a7bb0f491948e4cda442de9f13b",
+    "godot/migration/phase12-tower-gui.log": "6d0b9b4cea3b62bb2e04ad7e2bb670839b3325bda9bb89ec1cf9c81d0753c960",
+    "godot/migration/phase12-restart-write_complex.log": "a3ee539118706f05880b78a69ecb489c0ce0c460bacfabc612cdcd828dbbfc33",
+    "godot/migration/phase12-desktop-result.png": "f938b669e12408c2b24dbab0146c4db7c1be17e8a256df10d35ae77ac4ec19ad",
+    "godot/migration/phase12-X11-turning-gui.log": "4771d1671f0f9c6163e7823b39cec94d3f1e4bb5825a2c9b25ae519eb25d00ec",
+    "godot/migration/phase12-validation.txt": "d6c7278b184208dacbf8c19412736ae45bb37bad0cb6150033d470faf958ef1c",
+    "godot/migration/phase12-save-gui.log": "b992726135848ec6e37d3b4047c56c284a78f406106c7731049713a1739f3cc4",
+    "godot/migration/phase12-headless-tower_content-gui.log": "6e1df9da2c2fe9f71160b6ec80a52cdbee4d433ebb137e0bee59d32220c1d81d",
+    "godot/migration/phase12-import-final.log": "2aa86d01a265cb2bedbc31de7d8ccf9579957d2dbd3fabffab85d95ab4c4b4eb",
+    "godot/migration/phase12-X11-deployment-gui.log": "2d38499a8299700d9bf82af93d85a78a15fa0b1d44e24bf97357550e6ae62db1",
+    "godot/migration/phase12-room-gui.log": "8f3da380f36c63ebe1f0234b32a6ddad29b2266d2db520617e465c46f1c0be9c",
+    "godot/migration/phase12-x11-verified.log": "991bcbd775850e6138378dec70d5d56910e18cb40434ba21fe340ad54e8d24a6",
+    "godot/migration/phase12-x11-final.log": "8f37da3ebb4d3cdedf3ec4ee63dc71cfc39bc7143eeb5a690de7d9dbd75274dd",
+    "godot/migration/phase12-X11-ai-gui.log": "55e35607f000e1aff30694bac150002979bfbdf19b90684a7e05537b26ce1022",
+    "godot/migration/phase12-X11-room-gui.log": "75beda803bd606b14fc333844589712af973ec5c26a11f8f7c613e64f43d74da",
+    "godot/migration/phase12-headless-turning-gui.log": "1c3372b9bce28a79d73c447e948d0d1ce1619f2030ddbd02c069aae62cc5676f",
+    "godot/migration/phase12-before-hashes.json": "d0e76bb616579f9ce8b6218ceba5d2c1431494bf9c70804a0424272c59940e80",
+    "godot/migration/phase12-tests.log": "8b831bbe40034de9bd4ddd4a7a64c04bf626ab444dd0191061b1e484e158988d",
+    "godot/migration/phase12-import-verified.log": "50994a53b2abe4813267d413c7f92483049a4315fbbf71af0500502bd51678a5",
+    "godot/migration/phase12-mobile-transcendence.png": "ef52196a29744f794dbee3406b8a5591f16aa988dce87550b66f80c7a31a23e5",
+    "godot/migration/phase12-headless-gui-results.json": "588cffeee64b943e969876051518aae19cd21f1db0ca70e6019d0407ca0ddeae",
+    "godot/migration/phase12-X11-gui-results.json": "38092b66cc582209730f2769d87dabbf69871d2e8be51d752eebb281793c1c2a",
+    "godot/migration/phase12-X11-tower_content-gui.log": "2cedad72f98cdae758de6b4b43dc6149e17f4ff3aff2919196ae8d382663b083",
+    "godot/migration/phase12-mobile-map.png": "3e3ae7c5edfb5c13223835a6ccfd6ccddc8403b4f92368cc00f6eaace4d2f43a",
+    "godot/migration/phase12-desktop-transcendence.png": "27a1950274538b995bd20d3bc3f4c828e0f7a7ceefc1b8f30d8a218bb788ce13",
+    "godot/migration/phase12-restart-read_checkpoint.log": "b092f8394dd9254a138c2dcfc7dd9b614a531565e70c6294d317e23eb3f6c701",
+    "godot/migration/phase12-headless-room-gui.log": "8f3da380f36c63ebe1f0234b32a6ddad29b2266d2db520617e465c46f1c0be9c",
+    "godot/migration/phase12-restart-read_complex.log": "06b5732128f0c1509925b45e5fa9f397c99806a887fefabe7ad19d000be26143",
+    "godot/migration/phase12-strategy-gui.log": "19f02ef07adf7abad156beb93a2a6f6cdca244b072a2672dba754f00124bf977",
+    "godot/tests/phase12_ui_smoke.gd.uid": "11e630dacad6d3855deeded4f737140e0a6c97974ff46e4ee072e913cf6c876c",
+    "godot/tests/phase12_runner.gd": "067e087b74232d0d47f8b659e74f2d8e8b8752240831d200a7d38b15d309130b",
+    "godot/tests/phase12_runner.gd.uid": "afa607541feb0861ad6981a24d31c75ca21eb2b861ced21f5f1fcbf9dee18520",
+    "godot/tests/phase12_tests.gd.uid": "1912f8baa2082e84fd542671e77e8fda3525505aa88f1d977c8cba5c19d530fb",
+    "godot/tests/phase12_ui_smoke.gd": "1097586fc021eca206625b8b4bc530b62af347848c36e82d3ef42337986ed102",
+    "godot/tests/phase12_tests.gd": "952e4b8c72c2d0b3aef1db56af1a404126e09ab75794a17d40a24bdbade21db5",
+    "godot/scripts/presentation/ui_style.gd": "54c89e3cfe621507f89194a5f563f75b29d8eba9347c452458c1510d47b99689",
+    "godot/scripts/presentation/character_visuals.gd.uid": "0d3bdf701539eda17e9bc7855f9d2c0b243d47f119dfb10bc457f08ef6488033",
+    "godot/scripts/presentation/transcendence_overlay.gd": "38f104ab012579771c70dedc10ed39a596b4ba29ee19a2392422f50bff087ec4",
+    "godot/scripts/presentation/combat_presentation.gd.uid": "c098935b44e34e1d46829d0926fda894e96446b42d7991f012b132ed63d3acb9",
+    "godot/scripts/presentation/camera_controller.gd": "108504bd8aeb0b4f7ae45e69e99480b786931a6b6ad01c83abada3d80a56de98",
+    "godot/scripts/presentation/ui_style.gd.uid": "8a1cb3bf72460bd9767e107185b9460355e5e6b88324eb11d604f8b8148ecbdc",
+    "godot/scripts/presentation/transcendence_overlay.gd.uid": "8461b8320ed3d92c8bc59cd603a1786005d9bb3ffd65038325cdd023e1d4e908",
+    "godot/scripts/presentation/save_menu_preview.gd": "f6d975bb210c5da8e0d8e6a548b774517c2d697f4f111a8654e031736a6d8444",
+    "godot/scripts/presentation/camera_controller.gd.uid": "bef0a394e8662005d2b31de140bbf9bbd4ebf2ef5b2869092fabeb467e393f54",
+    "godot/scripts/presentation/save_menu_preview.gd.uid": "302f72381a9addd92e99f347842dfcc6627539780f32dcd68d512ef4088ac039",
+    "godot/scripts/presentation/combat_presentation.gd": "5616154653be070d91052d08e91143621f3320a25cb2fab1fcdbce36e1f126a5",
+    "godot/scripts/presentation/character_visuals.gd": "ece9000387d11fadf504d7b05c243e9804d3ee1ccf0a12427da07bf86264c5c8"
+  },
+  "deleted": []
+}

@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"boots"
+display_name = "바람 장화"
+description = "이동속도 +10%"
+emoji = "👟"
+gold_price = 80
+max_hp_multiplier = 1
+attack_multiplier = 1
+speed_multiplier = 1.1

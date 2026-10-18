@@ -1,0 +1,34 @@
+[
+  {
+    "mode": "write_complex",
+    "exit": 0,
+    "results": [
+      "RESTART write_complex RESULT: 2 checks; 0 failures"
+    ],
+    "errors": []
+  },
+  {
+    "mode": "read_complex",
+    "exit": 0,
+    "results": [
+      "RESTART read_complex RESULT: 3 checks; 0 failures"
+    ],
+    "errors": []
+  },
+  {
+    "mode": "write_checkpoint",
+    "exit": 0,
+    "results": [
+      "RESTART write_checkpoint RESULT: 3 checks; 0 failures"
+    ],
+    "errors": []
+  },
+  {
+    "mode": "read_checkpoint",
+    "exit": 0,
+    "results": [
+      "RESTART read_checkpoint RESULT: 6 checks; 0 failures"
+    ],
+    "errors": []
+  }
+]

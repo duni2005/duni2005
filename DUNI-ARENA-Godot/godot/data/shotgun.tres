@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/unit_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/attack_data.gd" id="2"]
+
+[sub_resource type="Resource" id="Attack"]
+script = ExtResource("2")
+kind = 1
+windup = 0.36
+active = 0.12
+recovery = 0.18
+reach = 190
+cone = 0.38
+impulse = 115
+projectile_speed = 720
+projectile_lifetime = 2.4
+projectile_radius = 26
+projectile_offset = 32
+projectile_spread = 0.025
+aim_lead = 0.45
+
+[resource]
+script = ExtResource("1")
+type_id = 7
+display_name = "샷건"
+base_gold_cost = 160
+max_hp = 170
+attack = 9
+defense_power = 24
+move_speed = 112
+attack_range = 190
+attack_interval = 0.55
+critical_chance = 0.2
+tags = PackedStringArray("일반", "돌격형")
+emoji = "💥"
+ultimate_windup = -1
+attack_profile = SubResource("Attack")
+recruit_tokens = 3

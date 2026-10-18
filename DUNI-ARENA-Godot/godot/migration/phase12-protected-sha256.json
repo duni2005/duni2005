@@ -1,0 +1,867 @@
+{
+  "godot/scripts/strategy_progress_context.gd": {
+    "before": "bc50297f5d65678df83213c0d14703e54976ba471c33d7b658eb388e7c19c494",
+    "after": "bc50297f5d65678df83213c0d14703e54976ba471c33d7b658eb388e7c19c494",
+    "unchanged": true
+  },
+  "godot/scripts/combat_stance.gd": {
+    "before": "2c3c32217ea0786954bdd0794c914f0ed34dff07efdcb197a255c6862cc27e55",
+    "after": "2c3c32217ea0786954bdd0794c914f0ed34dff07efdcb197a255c6862cc27e55",
+    "unchanged": true
+  },
+  "godot/scripts/guild_member_state.gd": {
+    "before": "980a351812d7f4713eabfceecb7252def7607ab5ab01dd82af6727829852d0fe",
+    "after": "980a351812d7f4713eabfceecb7252def7607ab5ab01dd82af6727829852d0fe",
+    "unchanged": true
+  },
+  "godot/scripts/unit_state_codec.gd": {
+    "before": "b35660308f2588f5c18660599966f024028b702a14c7a9ca06653706c5527c76",
+    "after": "b35660308f2588f5c18660599966f024028b702a14c7a9ca06653706c5527c76",
+    "unchanged": true
+  },
+  "godot/scripts/strategy_movement_controller.gd": {
+    "before": "b9d3b9b23d70a9952f8fca9cc9116fab3f9f2b90a69779dc25b75a3588765958",
+    "after": "b9d3b9b23d70a9952f8fca9cc9116fab3f9f2b90a69779dc25b75a3588765958",
+    "unchanged": true
+  },
+  "godot/scripts/item_instance.gd": {
+    "before": "00cc2a9246801a1e7b531104585c3737a10e060bfaf428cec819e939fc41a9e0",
+    "after": "00cc2a9246801a1e7b531104585c3737a10e060bfaf428cec819e939fc41a9e0",
+    "unchanged": true
+  },
+  "godot/scripts/parry_controller.gd": {
+    "before": "268a78eea3bac67cacc67da96bb992704146995efa488cd638a578e9db93cb20",
+    "after": "268a78eea3bac67cacc67da96bb992704146995efa488cd638a578e9db93cb20",
+    "unchanged": true
+  },
+  "godot/scripts/save_snapshot_builder.gd": {
+    "before": "58b273a9a85b483fec8ca1ee53eb14f6e883e62241afbd290db4ebacd8f5b7c8",
+    "after": "58b273a9a85b483fec8ca1ee53eb14f6e883e62241afbd290db4ebacd8f5b7c8",
+    "unchanged": true
+  },
+  "godot/scripts/combo_ability.gd": {
+    "before": "2430d146cf284995d160cb3e6e29638f4b385c90986acd7544a626183a2900b7",
+    "after": "2430d146cf284995d160cb3e6e29638f4b385c90986acd7544a626183a2900b7",
+    "unchanged": true
+  },
+  "godot/scripts/prediction_state.gd": {
+    "before": "9437842a7e4fef9ba52ece8e62df9bcd3ecc3f92bb66ea606a71156279a6f17f",
+    "after": "9437842a7e4fef9ba52ece8e62df9bcd3ecc3f92bb66ea606a71156279a6f17f",
+    "unchanged": true
+  },
+  "godot/scripts/status_controller.gd": {
+    "before": "744b4e8c03a3dbdb0960ab140fbfa895f5670d27329f5509611543c9ddf7d001",
+    "after": "744b4e8c03a3dbdb0960ab140fbfa895f5670d27329f5509611543c9ddf7d001",
+    "unchanged": true
+  },
+  "godot/scripts/character_lifecycle.gd": {
+    "before": "dc7a0aca8c949ef70f7ddcb2d6dcf450255d80d52515ebe9a94af816fadb9a77",
+    "after": "dc7a0aca8c949ef70f7ddcb2d6dcf450255d80d52515ebe9a94af816fadb9a77",
+    "unchanged": true
+  },
+  "godot/scripts/strategy_command_executor.gd": {
+    "before": "24f6daef54cd39a1cb55a5d522ee3fece71aa226735ff9ad57efdea9e276ca44",
+    "after": "24f6daef54cd39a1cb55a5d522ee3fece71aa226735ff9ad57efdea9e276ca44",
+    "unchanged": true
+  },
+  "godot/scripts/transcendence_controller.gd": {
+    "before": "7fa6079d71dbf953b86cd8e697dab1c8f1676c0f56908a55240226a083f4dda6",
+    "after": "7fa6079d71dbf953b86cd8e697dab1c8f1676c0f56908a55240226a083f4dda6",
+    "unchanged": true
+  },
+  "godot/scripts/clash_resolver.gd": {
+    "before": "df2d7ce88dcebdfc758c1c994b0668996c13426d0fd50dd27920540e2ef7b0dc",
+    "after": "df2d7ce88dcebdfc758c1c994b0668996c13426d0fd50dd27920540e2ef7b0dc",
+    "unchanged": true
+  },
+  "godot/scripts/ultimate_controller.gd": {
+    "before": "57d373970ebcc0d35a099ec364dbcbf61ac24117cfd47136790ccdf666fddf19",
+    "after": "57d373970ebcc0d35a099ec364dbcbf61ac24117cfd47136790ccdf666fddf19",
+    "unchanged": true
+  },
+  "godot/scripts/recruit_offer.gd": {
+    "before": "7c688d38332e070836cc56c4ebe3f2b5b53ebb097fcf563fd142f071b1831839",
+    "after": "7c688d38332e070836cc56c4ebe3f2b5b53ebb097fcf563fd142f071b1831839",
+    "unchanged": true
+  },
+  "godot/scripts/save_value_codec.gd": {
+    "before": "3fb8d8fd6d806a67c77fc5ccfea2b2ee67ff57d4d3109b7549bd7d5881b6bb4f",
+    "after": "3fb8d8fd6d806a67c77fc5ccfea2b2ee67ff57d4d3109b7549bd7d5881b6bb4f",
+    "unchanged": true
+  },
+  "godot/scripts/unit_data.gd": {
+    "before": "0d8801d46437b908d31355b27bf7b2d825843efe162a59acd8cc3683bb39b200",
+    "after": "0d8801d46437b908d31355b27bf7b2d825843efe162a59acd8cc3683bb39b200",
+    "unchanged": true
+  },
+  "godot/scripts/save_validator.gd": {
+    "before": "91485fccf8be229e40708e353e6e581d1eacbc09741fb80c1ef6a2295ddb777d",
+    "after": "91485fccf8be229e40708e353e6e581d1eacbc09741fb80c1ef6a2295ddb777d",
+    "unchanged": true
+  },
+  "godot/scripts/formation_position_finder.gd": {
+    "before": "fab13915a51c1d8eb714617d4f3f2d66b8928223c1882192eba430afa49b3e46",
+    "after": "fab13915a51c1d8eb714617d4f3f2d66b8928223c1882192eba430afa49b3e46",
+    "unchanged": true
+  },
+  "godot/scripts/item_data.gd": {
+    "before": "7cc69bc589e878a643f45479405a5c8043434d7b7d69119044b19ca19c545d58",
+    "after": "7cc69bc589e878a643f45479405a5c8043434d7b7d69119044b19ca19c545d58",
+    "unchanged": true
+  },
+  "godot/scripts/knockback_controller.gd": {
+    "before": "2414aa9889238773953522d7309de5cc19da514bb3255145ff8fa3583e36bf17",
+    "after": "2414aa9889238773953522d7309de5cc19da514bb3255145ff8fa3583e36bf17",
+    "unchanged": true
+  },
+  "godot/scripts/tower_run_state.gd": {
+    "before": "b741f7b582c3612ca14e498accb29fe081ba9a92da2e5f7a54667eba5755938b",
+    "after": "b741f7b582c3612ca14e498accb29fe081ba9a92da2e5f7a54667eba5755938b",
+    "unchanged": true
+  },
+  "godot/scripts/battle_zones.gd": {
+    "before": "de554729db38932432c010f4b1c638f6a247f1e1ec7aaf5a7145bca587d54898",
+    "after": "de554729db38932432c010f4b1c638f6a247f1e1ec7aaf5a7145bca587d54898",
+    "unchanged": true
+  },
+  "godot/scripts/tower_controller.gd": {
+    "before": "7d403ede7a00312ff5b495f74de24a2f77d11d599e77e9116fd4895b52c8b22f",
+    "after": "7d403ede7a00312ff5b495f74de24a2f77d11d599e77e9116fd4895b52c8b22f",
+    "unchanged": true
+  },
+  "godot/scripts/attack_instance.gd": {
+    "before": "932f46659be35edb833f1ea6cbfd76e7c1fa9aa07254809190fadb3c3bfea0a9",
+    "after": "932f46659be35edb833f1ea6cbfd76e7c1fa9aa07254809190fadb3c3bfea0a9",
+    "unchanged": true
+  },
+  "godot/scripts/inventory_service.gd": {
+    "before": "4337c145f9b0b5a4a044e906e7ed80624b66c0fb9aa41a94e4758bec4888de04",
+    "after": "4337c145f9b0b5a4a044e906e7ed80624b66c0fb9aa41a94e4758bec4888de04",
+    "unchanged": true
+  },
+  "godot/scripts/combat_perception.gd": {
+    "before": "5742f4c60cdcb6525c0b8f1adfcdce4e197edc2582a4ddd8d967cdfff14ce39e",
+    "after": "5742f4c60cdcb6525c0b8f1adfcdce4e197edc2582a4ddd8d967cdfff14ce39e",
+    "unchanged": true
+  },
+  "godot/scripts/tower_map_state.gd": {
+    "before": "1d476839c4d38bafcc9d14c08849bce3800e1fd733ecd8294ca032940878a166",
+    "after": "1d476839c4d38bafcc9d14c08849bce3800e1fd733ecd8294ca032940878a166",
+    "unchanged": true
+  },
+  "godot/scripts/combat_wave.gd": {
+    "before": "fc402460f7d0f1994d4a2796d1f3934702afd629bdac46ed32afeb5c7f2258ac",
+    "after": "fc402460f7d0f1994d4a2796d1f3934702afd629bdac46ed32afeb5c7f2258ac",
+    "unchanged": true
+  },
+  "godot/scripts/movement_controller.gd": {
+    "before": "5c721646ef3d9d60917cb0776c2b76ecdd0fccfb6e1c962343aa797305ca375a",
+    "after": "5c721646ef3d9d60917cb0776c2b76ecdd0fccfb6e1c962343aa797305ca375a",
+    "unchanged": true
+  },
+  "godot/scripts/shop_state.gd": {
+    "before": "faf13614c2a4ee2a5dfa9b1c1b034d8c00b84e7d2016c6999c2016613f6cbdbe",
+    "after": "faf13614c2a4ee2a5dfa9b1c1b034d8c00b84e7d2016c6999c2016613f6cbdbe",
+    "unchanged": true
+  },
+  "godot/scripts/area_evaluator.gd": {
+    "before": "e7159180887e933f1788d68f301f4ec9e436c15f340827ae9d21e6a9fbfb3180",
+    "after": "e7159180887e933f1788d68f301f4ec9e436c15f340827ae9d21e6a9fbfb3180",
+    "unchanged": true
+  },
+  "godot/scripts/combat_rules.gd": {
+    "before": "96ce0ed47617f1daa0e98f359abc25c655f471674f255878efa26b8e8362626b",
+    "after": "96ce0ed47617f1daa0e98f359abc25c655f471674f255878efa26b8e8362626b",
+    "unchanged": true
+  },
+  "godot/scripts/strategy_effects.gd": {
+    "before": "bfd49284d08ed366a6b4788b6303a8e48182c29cfb568ef2e5f5c7fdba9788e5",
+    "after": "bfd49284d08ed366a6b4788b6303a8e48182c29cfb568ef2e5f5c7fdba9788e5",
+    "unchanged": true
+  },
+  "godot/scripts/reward_request.gd": {
+    "before": "696db55e0f71a265b020d80f52580c380cabbd309163388d7ebddba5032d9a4e",
+    "after": "696db55e0f71a265b020d80f52580c380cabbd309163388d7ebddba5032d9a4e",
+    "unchanged": true
+  },
+  "godot/scripts/resource_transaction.gd": {
+    "before": "5fd899cdaa2c5a84c6ca02ecced50df28a44c35b4aad7aadec2b7092227d3404",
+    "after": "5fd899cdaa2c5a84c6ca02ecced50df28a44c35b4aad7aadec2b7092227d3404",
+    "unchanged": true
+  },
+  "godot/scripts/save_domain_codec.gd": {
+    "before": "820104a3c586f617d2827724b6ca20afd5399785c68a47997d3c312cfb75d45e",
+    "after": "820104a3c586f617d2827724b6ca20afd5399785c68a47997d3c312cfb75d45e",
+    "unchanged": true
+  },
+  "godot/scripts/battle_clock.gd": {
+    "before": "8424be532bda41523ef3c4565f3eb2b268d4366e904de1aee9e8d90134f27286",
+    "after": "8424be532bda41523ef3c4565f3eb2b268d4366e904de1aee9e8d90134f27286",
+    "unchanged": true
+  },
+  "godot/scripts/character_persistence.gd": {
+    "before": "fb7bd87f24648402e604845168ddba7fd705d76c282d976274d36f931e3db480",
+    "after": "fb7bd87f24648402e604845168ddba7fd705d76c282d976274d36f931e3db480",
+    "unchanged": true
+  },
+  "godot/scripts/damage_resolver.gd": {
+    "before": "b6ce2e83c8c90d34ec139713896111d9eca3a98072ca34a308d7ada5e2d47429",
+    "after": "b6ce2e83c8c90d34ec139713896111d9eca3a98072ca34a308d7ada5e2d47429",
+    "unchanged": true
+  },
+  "godot/scripts/room_type.gd": {
+    "before": "14640670c0f9f9c75f3472412defdadc0d5b3977266e7575c494b6047b4160a6",
+    "after": "14640670c0f9f9c75f3472412defdadc0d5b3977266e7575c494b6047b4160a6",
+    "unchanged": true
+  },
+  "godot/scripts/guild_manager.gd": {
+    "before": "deb990b087f97a05794259613357ca8f927f3123673fb3fd8aaa969e08bd971b",
+    "after": "deb990b087f97a05794259613357ca8f927f3123673fb3fd8aaa969e08bd971b",
+    "unchanged": true
+  },
+  "godot/scripts/enemy_room_state.gd": {
+    "before": "da51c5737668aa659833932633e70f8ffc6552ec3ebfdc1ff2aa87e9551037bf",
+    "after": "da51c5737668aa659833932633e70f8ffc6552ec3ebfdc1ff2aa87e9551037bf",
+    "unchanged": true
+  },
+  "godot/scripts/combat_controller.gd": {
+    "before": "afe7fb73ab014b9ccaf97c84aa0ce281d5a16c788000684011b8845a8c2144ef",
+    "after": "afe7fb73ab014b9ccaf97c84aa0ce281d5a16c788000684011b8845a8c2144ef",
+    "unchanged": true
+  },
+  "godot/scripts/battle_manager.gd": {
+    "before": "b5d6b9f636c58254f520f91557abd1a660028b0fe20e5b697293c7a56cc72cad",
+    "after": "b5d6b9f636c58254f520f91557abd1a660028b0fe20e5b697293c7a56cc72cad",
+    "unchanged": true
+  },
+  "godot/scripts/strategy_card_instance.gd": {
+    "before": "fb71bd5d7d161a0bfe6d78feda62fc8d108f00418d7408745a4cd47227d2a5c6",
+    "after": "fb71bd5d7d161a0bfe6d78feda62fc8d108f00418d7408745a4cd47227d2a5c6",
+    "unchanged": true
+  },
+  "godot/scripts/save_migrator.gd": {
+    "before": "88e68553eca4f850c220503435db95ba78ae570e50602a7d2e4d849d5bd11434",
+    "after": "88e68553eca4f850c220503435db95ba78ae570e50602a7d2e4d849d5bd11434",
+    "unchanged": true
+  },
+  "godot/scripts/deployment_entry.gd": {
+    "before": "2ac75ea76ffb8f609d941a7d30e6388f2ed65d7efadef4549f82ec33d66da5d1",
+    "after": "2ac75ea76ffb8f609d941a7d30e6388f2ed65d7efadef4549f82ec33d66da5d1",
+    "unchanged": true
+  },
+  "godot/scripts/battle_unit_factory.gd": {
+    "before": "3c20307e97f2a74bc492e7699d6cbedd9bb18ffb8a80627416fb77daebce2d1c",
+    "after": "3c20307e97f2a74bc492e7699d6cbedd9bb18ffb8a80627416fb77daebce2d1c",
+    "unchanged": true
+  },
+  "godot/scripts/battle_result.gd": {
+    "before": "8c41eb22048f416761770bc2114dc1af8c58709cd297430ecd1f7e3bb0f0f956",
+    "after": "8c41eb22048f416761770bc2114dc1af8c58709cd297430ecd1f7e3bb0f0f956",
+    "unchanged": true
+  },
+  "godot/scripts/floor_state.gd": {
+    "before": "dba151259d102ea11f80649665f44ea0b2d3764765da05617fa930cd91d5bd6a",
+    "after": "dba151259d102ea11f80649665f44ea0b2d3764765da05617fa930cd91d5bd6a",
+    "unchanged": true
+  },
+  "godot/scripts/tower_map_generator.gd": {
+    "before": "402eaf23050bc630ccf6392ad9caad67c69909a787b85fd44baeb680f9faf8b4",
+    "after": "402eaf23050bc630ccf6392ad9caad67c69909a787b85fd44baeb680f9faf8b4",
+    "unchanged": true
+  },
+  "godot/scripts/physical_attack_system.gd": {
+    "before": "27067856be14819674f0102edce1cfbfd2845557565ce696967baecb068f3292",
+    "after": "27067856be14819674f0102edce1cfbfd2845557565ce696967baecb068f3292",
+    "unchanged": true
+  },
+  "godot/scripts/parry_readiness.gd": {
+    "before": "b6ed398a4f1c9b1121faea75447dc64e79527005a67344c3671c7cc9a478dd15",
+    "after": "b6ed398a4f1c9b1121faea75447dc64e79527005a67344c3671c7cc9a478dd15",
+    "unchanged": true
+  },
+  "godot/scripts/threat_response_controller.gd": {
+    "before": "8e0745e43854e35db4baf1f5daf70d583e23b9af287d57234ca89140c667021f",
+    "after": "8e0745e43854e35db4baf1f5daf70d583e23b9af287d57234ca89140c667021f",
+    "unchanged": true
+  },
+  "godot/scripts/enemy_spawn_entry.gd": {
+    "before": "7bf2e42bb38754b9126a9f4083321c0c57c5ac3b8616d99f5d3ec3385e7ffa4c",
+    "after": "7bf2e42bb38754b9126a9f4083321c0c57c5ac3b8616d99f5d3ec3385e7ffa4c",
+    "unchanged": true
+  },
+  "godot/scripts/character_combat.gd": {
+    "before": "285faae013f792d84c01ac5f207e64d452cc4310591e69290bbc1c8cb3951b74",
+    "after": "285faae013f792d84c01ac5f207e64d452cc4310591e69290bbc1c8cb3951b74",
+    "unchanged": true
+  },
+  "godot/scripts/tower_content_service.gd": {
+    "before": "05436b0946ee02b5577d1ca540951ce202f4e8b5e0bf344510c639a504ab1913",
+    "after": "05436b0946ee02b5577d1ca540951ce202f4e8b5e0bf344510c639a504ab1913",
+    "unchanged": true
+  },
+  "godot/scripts/formation_state.gd": {
+    "before": "4298a5b5cfb3cc9f0b30ff8835adc47b580bb1b665ac833288f483b6ab982ff0",
+    "after": "4298a5b5cfb3cc9f0b30ff8835adc47b580bb1b665ac833288f483b6ab982ff0",
+    "unchanged": true
+  },
+  "godot/scripts/shop_offer.gd": {
+    "before": "477e03dcfd80a9840637e2efa14f0f518b72456e41bf9f95984f88bda1353a74",
+    "after": "477e03dcfd80a9840637e2efa14f0f518b72456e41bf9f95984f88bda1353a74",
+    "unchanged": true
+  },
+  "godot/scripts/strategy_card_executor.gd": {
+    "before": "0f8077e71ddd97c78fa62c09316eec042610e2ec6e50d0f4f31fae17fd33881e",
+    "after": "0f8077e71ddd97c78fa62c09316eec042610e2ec6e50d0f4f31fae17fd33881e",
+    "unchanged": true
+  },
+  "godot/scripts/guild_member_combat_stats.gd": {
+    "before": "d2104c251055db3270df9bba73a88a145fbe6c78dfb25c2e1f30136403b656fd",
+    "after": "d2104c251055db3270df9bba73a88a145fbe6c78dfb25c2e1f30136403b656fd",
+    "unchanged": true
+  },
+  "godot/scripts/enemy_turning_plan.gd": {
+    "before": "0ba552c7b31d0c1dee3988ed10e55c63b8fc5260ff9cb45f2954cc8738d1caad",
+    "after": "0ba552c7b31d0c1dee3988ed10e55c63b8fc5260ff9cb45f2954cc8738d1caad",
+    "unchanged": true
+  },
+  "godot/scripts/room_battle_session.gd": {
+    "before": "d9e99af2be3ab621f21a79c6b43260d2f46ad9610d5dec7299b7fdcbebf7856a",
+    "after": "d9e99af2be3ab621f21a79c6b43260d2f46ad9610d5dec7299b7fdcbebf7856a",
+    "unchanged": true
+  },
+  "godot/scripts/attack_data.gd": {
+    "before": "9e18d7d5aa03deedb09d242ffc6c05693f461eff6c85e02d082936d422063e65",
+    "after": "9e18d7d5aa03deedb09d242ffc6c05693f461eff6c85e02d082936d422063e65",
+    "unchanged": true
+  },
+  "godot/scripts/enemy_plan_executor.gd": {
+    "before": "4125de970ea97b1e9c473b8b8678241633f35b8249036d0c5fb3878ba0974517",
+    "after": "4125de970ea97b1e9c473b8b8678241633f35b8249036d0c5fb3878ba0974517",
+    "unchanged": true
+  },
+  "godot/scripts/unit_combat_stats.gd": {
+    "before": "4bcef1c463894dfb1547800d420e3b73223c8f7570476ac5246460353cb6b594",
+    "after": "4bcef1c463894dfb1547800d420e3b73223c8f7570476ac5246460353cb6b594",
+    "unchanged": true
+  },
+  "godot/scripts/tower_navigation_policy.gd": {
+    "before": "a614abd48206133fd1fe4e40c6abe79fe011a0f2d5b2ba1caf221f554b8d0255",
+    "after": "a614abd48206133fd1fe4e40c6abe79fe011a0f2d5b2ba1caf221f554b8d0255",
+    "unchanged": true
+  },
+  "godot/scripts/projectile.gd": {
+    "before": "aa9f51bd04f1a9fe280dd516bcd7a7660077822935d5fdb37954b0e8a56a810e",
+    "after": "aa9f51bd04f1a9fe280dd516bcd7a7660077822935d5fdb37954b0e8a56a810e",
+    "unchanged": true
+  },
+  "godot/scripts/tower_enemy_stats_assembler.gd": {
+    "before": "d184418eae321f997c18b93d2d73071efdecb8687037065ce0a39cbd7fbb78da",
+    "after": "d184418eae321f997c18b93d2d73071efdecb8687037065ce0a39cbd7fbb78da",
+    "unchanged": true
+  },
+  "godot/scripts/room_state.gd": {
+    "before": "099c7f00c4f36fc0d8c1d97e486187eadb8e8670eea8a0bea7452f808a9873df",
+    "after": "099c7f00c4f36fc0d8c1d97e486187eadb8e8670eea8a0bea7452f808a9873df",
+    "unchanged": true
+  },
+  "godot/scripts/ability_registry.gd": {
+    "before": "9527ea4363e3796d9b40e3b360bbfa9588629c0168642d4e439b47a316cff79b",
+    "after": "9527ea4363e3796d9b40e3b360bbfa9588629c0168642d4e439b47a316cff79b",
+    "unchanged": true
+  },
+  "godot/scripts/strategy_card_data.gd": {
+    "before": "5db9b5c9006154302cd2824aa7e4ef937c8fa1014012c4f4796c07e94d778716",
+    "after": "5db9b5c9006154302cd2824aa7e4ef937c8fa1014012c4f4796c07e94d778716",
+    "unchanged": true
+  },
+  "godot/scripts/projectile_rules.gd": {
+    "before": "1aa9a93110a61a01436240025c9523bdae37589f19b65cc3df6257ece91d4699",
+    "after": "1aa9a93110a61a01436240025c9523bdae37589f19b65cc3df6257ece91d4699",
+    "unchanged": true
+  },
+  "godot/scripts/save_load_result.gd": {
+    "before": "fb249fe3ec2557bdd4be594ba9048a97c018f0b5a807ae74f68a5bf6015df95c",
+    "after": "fb249fe3ec2557bdd4be594ba9048a97c018f0b5a807ae74f68a5bf6015df95c",
+    "unchanged": true
+  },
+  "godot/scripts/battle_brain.gd": {
+    "before": "d7fa495c0b6c2cd5f274b2edfdf34da618ce6f8b2f015d653edb3042f8792647",
+    "after": "d7fa495c0b6c2cd5f274b2edfdf34da618ce6f8b2f015d653edb3042f8792647",
+    "unchanged": true
+  },
+  "godot/scripts/turning_point_manager.gd": {
+    "before": "07f488ad1665d40894a34276e5a73ee51e5884fda4f5e89353c1e779e4192f37",
+    "after": "07f488ad1665d40894a34276e5a73ee51e5884fda4f5e89353c1e779e4192f37",
+    "unchanged": true
+  },
+  "godot/scripts/target_selector.gd": {
+    "before": "cf38c2742cbaa1cfe29333c2485ccb3e9495851b1edb160563a10bad92457fb6",
+    "after": "cf38c2742cbaa1cfe29333c2485ccb3e9495851b1edb160563a10bad92457fb6",
+    "unchanged": true
+  },
+  "godot/scripts/prediction_rules.gd": {
+    "before": "e6c958361c464c71eb2e98aac31fa734f547ba6cce9a59a6fb8a87e6558c8d5a",
+    "after": "e6c958361c464c71eb2e98aac31fa734f547ba6cce9a59a6fb8a87e6558c8d5a",
+    "unchanged": true
+  },
+  "godot/scripts/enemy_state_codec.gd": {
+    "before": "be10bb7ef41ddb57c772dac14f8232d47b2ec70ad6f954dbedd527016207dd65",
+    "after": "be10bb7ef41ddb57c772dac14f8232d47b2ec70ad6f954dbedd527016207dd65",
+    "unchanged": true
+  },
+  "godot/scripts/equipment_combat_effects.gd": {
+    "before": "6f90877995a677ca850f522d1f0763054b050c69517ce9e7dc37170aba19290c",
+    "after": "6f90877995a677ca850f522d1f0763054b050c69517ce9e7dc37170aba19290c",
+    "unchanged": true
+  },
+  "godot/scripts/unit.gd": {
+    "before": "49e27d0d36aa56dd65a5604abefff4baea65d0a372bd2e56ac86eb1e5342502c",
+    "after": "49e27d0d36aa56dd65a5604abefff4baea65d0a372bd2e56ac86eb1e5342502c",
+    "unchanged": true
+  },
+  "godot/scripts/battle_settlement.gd": {
+    "before": "728379775ce9aa62508172e87a791ad3ed459af0d38c607e9155d5e3a7f4374a",
+    "after": "728379775ce9aa62508172e87a791ad3ed459af0d38c607e9155d5e3a7f4374a",
+    "unchanged": true
+  },
+  "godot/scripts/event_state.gd": {
+    "before": "513af2e4f1c1138be4cf10ce4baf1fbb7e01bd266b6c6f6c46729c49b62411ce",
+    "after": "513af2e4f1c1138be4cf10ce4baf1fbb7e01bd266b6c6f6c46729c49b62411ce",
+    "unchanged": true
+  },
+  "godot/scripts/strategy_card_catalog.gd": {
+    "before": "696708b7969abedf5ed40b59de037ad755fe9316a52de3b923a0c5ae7ea24cd6",
+    "after": "696708b7969abedf5ed40b59de037ad755fe9316a52de3b923a0c5ae7ea24cd6",
+    "unchanged": true
+  },
+  "godot/scripts/turning_point_state.gd": {
+    "before": "82408d573bfa36c411f6b73523aa9634945989b7d0880d1a37e102498a22179d",
+    "after": "82408d573bfa36c411f6b73523aa9634945989b7d0880d1a37e102498a22179d",
+    "unchanged": true
+  },
+  "godot/scripts/encounter_state.gd": {
+    "before": "b363873bb2194482d1d9a2d5d46d400822d03557a6a42af871a5f4d1298556d7",
+    "after": "b363873bb2194482d1d9a2d5d46d400822d03557a6a42af871a5f4d1298556d7",
+    "unchanged": true
+  },
+  "godot/scripts/room_content_result.gd": {
+    "before": "c6ca82d5a1f80c88974055440c22c95ecfc0e34880f73b50c4c2a8fb0a47cab5",
+    "after": "c6ca82d5a1f80c88974055440c22c95ecfc0e34880f73b50c4c2a8fb0a47cab5",
+    "unchanged": true
+  },
+  "godot/scripts/save_manager.gd": {
+    "before": "6d4c5033bd4eafcfe66af62ce2b1bc459802c9d740992032f5f39977d8b55b71",
+    "after": "6d4c5033bd4eafcfe66af62ce2b1bc459802c9d740992032f5f39977d8b55b71",
+    "unchanged": true
+  },
+  "godot/scripts/deployment_plan.gd": {
+    "before": "fbfb940763a43106e442b5e3b2b4b8fd14417f0b0eee1447463ccc5e0450cca9",
+    "after": "fbfb940763a43106e442b5e3b2b4b8fd14417f0b0eee1447463ccc5e0450cca9",
+    "unchanged": true
+  },
+  "godot/scripts/character_ability.gd": {
+    "before": "e5c0cdbea28c82b9a7e883b2e9fa683fb802532efdecbeddbe02f83310c152e1",
+    "after": "e5c0cdbea28c82b9a7e883b2e9fa683fb802532efdecbeddbe02f83310c152e1",
+    "unchanged": true
+  },
+  "godot/scripts/recruit_state.gd": {
+    "before": "1c93aa0f50a9878159e97a042188ff849ca59a9943b2d1496c1f87aca2d6e0f2",
+    "after": "1c93aa0f50a9878159e97a042188ff849ca59a9943b2d1496c1f87aca2d6e0f2",
+    "unchanged": true
+  },
+  "godot/scripts/combat_persistence.gd": {
+    "before": "a89e627a2070dc4cdc6d3894bf121e06195a8fb4c563e9f1ff5d95be16c4a9e8",
+    "after": "a89e627a2070dc4cdc6d3894bf121e06195a8fb4c563e9f1ff5d95be16c4a9e8",
+    "unchanged": true
+  },
+  "godot/scripts/run_state.gd": {
+    "before": "9c8eb7e66ea2634e9bb63ccde7fa3ebfbeb134741cac0e4ecdc2a3d94caa1d95",
+    "after": "9c8eb7e66ea2634e9bb63ccde7fa3ebfbeb134741cac0e4ecdc2a3d94caa1d95",
+    "unchanged": true
+  },
+  "godot/scripts/dodge_controller.gd": {
+    "before": "78b1da506aba63f85cba3e104656f4cc59ddc8977e7be8748a690b3c252950a5",
+    "after": "78b1da506aba63f85cba3e104656f4cc59ddc8977e7be8748a690b3c252950a5",
+    "unchanged": true
+  },
+  "godot/scripts/deployment_rules.gd": {
+    "before": "4ff2c7302cfc02003ea0d0be9a729765ff5af6e66140fed4fb067a4a90fd2c5a",
+    "after": "4ff2c7302cfc02003ea0d0be9a729765ff5af6e66140fed4fb067a4a90fd2c5a",
+    "unchanged": true
+  },
+  "godot/scripts/item_catalog.gd": {
+    "before": "cc5b94f261a983505fbff6dcbf3c874b6ab717247a5b05ed76498e256c8d5a6a",
+    "after": "cc5b94f261a983505fbff6dcbf3c874b6ab717247a5b05ed76498e256c8d5a6a",
+    "unchanged": true
+  },
+  "godot/scripts/strategy_command.gd": {
+    "before": "a40b3dcbcc2e5b92c132c02e98d2dfe99a403312043363f69e395e51cd69f5f2",
+    "after": "a40b3dcbcc2e5b92c132c02e98d2dfe99a403312043363f69e395e51cd69f5f2",
+    "unchanged": true
+  },
+  "godot/scripts/battle_end_reason.gd": {
+    "before": "3070d4f3a23b7a429baae88ca4319858b6845b8cdce90bae7f9e38562a535124",
+    "after": "3070d4f3a23b7a429baae88ca4319858b6845b8cdce90bae7f9e38562a535124",
+    "unchanged": true
+  },
+  "godot/scripts/damage_outcome.gd": {
+    "before": "203b5039a7e71a1f9a464309518a6ac59fb58142077159a15990cb4f3f252bf5",
+    "after": "203b5039a7e71a1f9a464309518a6ac59fb58142077159a15990cb4f3f252bf5",
+    "unchanged": true
+  },
+  "godot/scripts/character_catalog.gd": {
+    "before": "e68977ea97a901441c702d5e9d8b66035d1023c6dae7e56121e789ada8207e04",
+    "after": "e68977ea97a901441c702d5e9d8b66035d1023c6dae7e56121e789ada8207e04",
+    "unchanged": true
+  },
+  "godot/scripts/retreat_controller.gd": {
+    "before": "2bb8f1aa462c69672e25a4de7b35034b1bd6cdda19977e7910748e7c9682a9a0",
+    "after": "2bb8f1aa462c69672e25a4de7b35034b1bd6cdda19977e7910748e7c9682a9a0",
+    "unchanged": true
+  },
+  "godot/scripts/save_snapshot_loader.gd": {
+    "before": "3929957ee5153c901e6556f0e8941e7de1e4bcd585dd0471a5b825fa721672ed",
+    "after": "3929957ee5153c901e6556f0e8941e7de1e4bcd585dd0471a5b825fa721672ed",
+    "unchanged": true
+  },
+  "godot/data/lightning.tres": {
+    "before": "084e34fcb998bd066c93e3308f75366ef849c7508998b011c933c15a66f56155",
+    "after": "084e34fcb998bd066c93e3308f75366ef849c7508998b011c933c15a66f56155",
+    "unchanged": true
+  },
+  "godot/data/bomber.tres": {
+    "before": "842c833a68bd00cca4737cbecf069dd0fc2193eed58c91d11fa1c7c38192ee61",
+    "after": "842c833a68bd00cca4737cbecf069dd0fc2193eed58c91d11fa1c7c38192ee61",
+    "unchanged": true
+  },
+  "godot/data/fanatic.tres": {
+    "before": "4794c736a2a89957e03fd77570cf66624f6eee3fc667c2018054db518198c5d2",
+    "after": "4794c736a2a89957e03fd77570cf66624f6eee3fc667c2018054db518198c5d2",
+    "unchanged": true
+  },
+  "godot/data/warrior.tres": {
+    "before": "584d46fa6afd28c4653d825647fef18ec7953d9f511822cb36f74e1f6746fca7",
+    "after": "584d46fa6afd28c4653d825647fef18ec7953d9f511822cb36f74e1f6746fca7",
+    "unchanged": true
+  },
+  "godot/data/dolphin.tres": {
+    "before": "301da1f810187499f42acd7203428153ce94072e90bcd4eb30d48c135195ee57",
+    "after": "301da1f810187499f42acd7203428153ce94072e90bcd4eb30d48c135195ee57",
+    "unchanged": true
+  },
+  "godot/data/machine_gun.tres": {
+    "before": "fe5d4493502ae9a24517b0e9d1b66b3d1aa0dfa7be5efe287662efcb032995b1",
+    "after": "fe5d4493502ae9a24517b0e9d1b66b3d1aa0dfa7be5efe287662efcb032995b1",
+    "unchanged": true
+  },
+  "godot/data/mage.tres": {
+    "before": "04affc58885cb136d08eddfebcc931fab1524c4ff03bda28514abaee0791eb1d",
+    "after": "04affc58885cb136d08eddfebcc931fab1524c4ff03bda28514abaee0791eb1d",
+    "unchanged": true
+  },
+  "godot/data/swordsman.tres": {
+    "before": "717c6b61fcca82a9fdeb7e843297497cd5df84d25110a279c5884ca8636f4cb2",
+    "after": "717c6b61fcca82a9fdeb7e843297497cd5df84d25110a279c5884ca8636f4cb2",
+    "unchanged": true
+  },
+  "godot/data/guardian.tres": {
+    "before": "253b7f0668ba85d8ba3842a52d7405d5bab5c3d54b9547bd23e07d360303f942",
+    "after": "253b7f0668ba85d8ba3842a52d7405d5bab5c3d54b9547bd23e07d360303f942",
+    "unchanged": true
+  },
+  "godot/data/sniper.tres": {
+    "before": "da239cf8e75409d5fc2309a9aee7be52b117aa0819394deff821d9c578426efc",
+    "after": "da239cf8e75409d5fc2309a9aee7be52b117aa0819394deff821d9c578426efc",
+    "unchanged": true
+  },
+  "godot/data/satellite.tres": {
+    "before": "ed245e68f38b2a412c2667e82e7eb517d77f1fe66ea0d860e4d05f3ebd0bc27b",
+    "after": "ed245e68f38b2a412c2667e82e7eb517d77f1fe66ea0d860e4d05f3ebd0bc27b",
+    "unchanged": true
+  },
+  "godot/data/predator.tres": {
+    "before": "383051714120aa4fd871d812366f178f31da5666227cb4920b8f9895a779501d",
+    "after": "383051714120aa4fd871d812366f178f31da5666227cb4920b8f9895a779501d",
+    "unchanged": true
+  },
+  "godot/data/assassin.tres": {
+    "before": "e605874d330960c1e03aa6f11586eeeb5aef12f435557d7307b37db7d7645148",
+    "after": "e605874d330960c1e03aa6f11586eeeb5aef12f435557d7307b37db7d7645148",
+    "unchanged": true
+  },
+  "godot/data/greatsword.tres": {
+    "before": "78c6528bf4f93a443429825614df4c82f628aefe4117199b6ab3dcda9fab941d",
+    "after": "78c6528bf4f93a443429825614df4c82f628aefe4117199b6ab3dcda9fab941d",
+    "unchanged": true
+  },
+  "godot/data/frog.tres": {
+    "before": "32637e361a6a15672c5c7fc261606cbe9c1ea15e87d35fae41b786f843c3cc95",
+    "after": "32637e361a6a15672c5c7fc261606cbe9c1ea15e87d35fae41b786f843c3cc95",
+    "unchanged": true
+  },
+  "godot/data/archer.tres": {
+    "before": "59af356748219e7874f1fbb53f1c1d4ab9dd08b437f6c1a0780c23ecb5a2a3f7",
+    "after": "59af356748219e7874f1fbb53f1c1d4ab9dd08b437f6c1a0780c23ecb5a2a3f7",
+    "unchanged": true
+  },
+  "godot/data/tank.tres": {
+    "before": "4456b7662688ddf0f7655546dfe026b8908e40f8615fbc0715774e56b8a5c6b7",
+    "after": "4456b7662688ddf0f7655546dfe026b8908e40f8615fbc0715774e56b8a5c6b7",
+    "unchanged": true
+  },
+  "godot/data/paladin.tres": {
+    "before": "f1f29e05dbc2930937a6bab1b7e2bfb769d521f7fbb64a9469dd36b6442566e8",
+    "after": "f1f29e05dbc2930937a6bab1b7e2bfb769d521f7fbb64a9469dd36b6442566e8",
+    "unchanged": true
+  },
+  "godot/data/mirror.tres": {
+    "before": "a0851dee4d77ac1ded0ed642279f0c5a0f52220e97d9b0b45383cf3c6e398105",
+    "after": "a0851dee4d77ac1ded0ed642279f0c5a0f52220e97d9b0b45383cf3c6e398105",
+    "unchanged": true
+  },
+  "godot/data/galaxy.tres": {
+    "before": "aa8c9c7d518d9a268749f80746529ab1d64eba4cf77023541f896388575a7a7e",
+    "after": "aa8c9c7d518d9a268749f80746529ab1d64eba4cf77023541f896388575a7a7e",
+    "unchanged": true
+  },
+  "godot/data/ufc.tres": {
+    "before": "56c3ae4467aa42e71482fa22882fac4218565e1123d7ba0be1c9e37d144d2747",
+    "after": "56c3ae4467aa42e71482fa22882fac4218565e1123d7ba0be1c9e37d144d2747",
+    "unchanged": true
+  },
+  "godot/data/puppet.tres": {
+    "before": "fe25fc71dea0d3b234df68c9612f8a5cd08917effefc6d14e8044106486357c6",
+    "after": "fe25fc71dea0d3b234df68c9612f8a5cd08917effefc6d14e8044106486357c6",
+    "unchanged": true
+  },
+  "godot/data/rps.tres": {
+    "before": "d551f2f0c55142ccfce46d84c1b9619531fc7fdb2f846c56e2da5974d7af707a",
+    "after": "d551f2f0c55142ccfce46d84c1b9619531fc7fdb2f846c56e2da5974d7af707a",
+    "unchanged": true
+  },
+  "godot/data/hero.tres": {
+    "before": "ba6094878e68cfac4fbc261033348ef7d6a9b8a853abc2006dc03b65c0dcd397",
+    "after": "ba6094878e68cfac4fbc261033348ef7d6a9b8a853abc2006dc03b65c0dcd397",
+    "unchanged": true
+  },
+  "godot/data/shotgun.tres": {
+    "before": "5d1620d6b576d5947ccf630189c3ff2f259fd589ecf65e7e727d339ee942b105",
+    "after": "5d1620d6b576d5947ccf630189c3ff2f259fd589ecf65e7e727d339ee942b105",
+    "unchanged": true
+  },
+  "godot/data/healer.tres": {
+    "before": "97cb112ad57aff16c8bfb6ff1ccbb51ed95f2b778bf095e0b074459f53905c2f",
+    "after": "97cb112ad57aff16c8bfb6ff1ccbb51ed95f2b778bf095e0b074459f53905c2f",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/frog_ability.gd": {
+    "before": "80f8c4b20c67571969b9a8c053fa9d93bc8cfe6da38f1ab4aa81242ce9742d22",
+    "after": "80f8c4b20c67571969b9a8c053fa9d93bc8cfe6da38f1ab4aa81242ce9742d22",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/ufc_ability.gd": {
+    "before": "ff9e598d64f4a46b099543aa79a8741dbba8c69ee9948d10c27ae88bc0f53d6d",
+    "after": "ff9e598d64f4a46b099543aa79a8741dbba8c69ee9948d10c27ae88bc0f53d6d",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/galaxy_ability.gd": {
+    "before": "7cb676f30a2dfb291b147a044b35b924c26d783c987c4917fecfa7a667a219e7",
+    "after": "7cb676f30a2dfb291b147a044b35b924c26d783c987c4917fecfa7a667a219e7",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/bomber_ability.gd": {
+    "before": "79930646326eac19a77163e6e1a156665ebd52b355b1cd3a28a3961a03275063",
+    "after": "79930646326eac19a77163e6e1a156665ebd52b355b1cd3a28a3961a03275063",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/mage_ability.gd": {
+    "before": "664c8330417a638bda5a338bc2ac60df4c23b8007a3d4f47f7c318cb496ae9db",
+    "after": "664c8330417a638bda5a338bc2ac60df4c23b8007a3d4f47f7c318cb496ae9db",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/dolphin_ability.gd": {
+    "before": "362a4fbc48b6aa55321103ab9fbe6a31f1bd624e755daf25b50d5f3e973d288d",
+    "after": "362a4fbc48b6aa55321103ab9fbe6a31f1bd624e755daf25b50d5f3e973d288d",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/fanatic_ability.gd": {
+    "before": "5354761408191455155abfaa7e3a6e48787e61dcb94291114eef88b84a1641ab",
+    "after": "5354761408191455155abfaa7e3a6e48787e61dcb94291114eef88b84a1641ab",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/shotgun_ability.gd": {
+    "before": "b207b27a3b249a49e6e38ade8e2aaee76bbfb35aa018a6d83227954b84f7510a",
+    "after": "b207b27a3b249a49e6e38ade8e2aaee76bbfb35aa018a6d83227954b84f7510a",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/guardian_ability.gd": {
+    "before": "231b4bccacce5837d8a8c05f6d02c6aed1232618503adf0e77709607471af938",
+    "after": "231b4bccacce5837d8a8c05f6d02c6aed1232618503adf0e77709607471af938",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/swordsman_ability.gd": {
+    "before": "9b63919325d78f7e0a1a95d30f42eb2f305234ab4abad4d996ae647a94988f88",
+    "after": "9b63919325d78f7e0a1a95d30f42eb2f305234ab4abad4d996ae647a94988f88",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/greatsword_ability.gd": {
+    "before": "17d316a4e55a8e4fc99e22abbfc98cc1edbb994f012c8da11b357d9b66c88f3a",
+    "after": "17d316a4e55a8e4fc99e22abbfc98cc1edbb994f012c8da11b357d9b66c88f3a",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/mirror_ability.gd": {
+    "before": "ac066199ca137ea53a00bcfb811083098615286845b07262c3f405ec5a11c50e",
+    "after": "ac066199ca137ea53a00bcfb811083098615286845b07262c3f405ec5a11c50e",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/assassin_ability.gd": {
+    "before": "f981130ba604793de30374b0ae661713f85d8ac61341b2819d0ce38729521776",
+    "after": "f981130ba604793de30374b0ae661713f85d8ac61341b2819d0ce38729521776",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/hero_ability.gd": {
+    "before": "0f575d69dd394a345d35a8431526113e5c486adf3247c07ac7f476bb90aef76c",
+    "after": "0f575d69dd394a345d35a8431526113e5c486adf3247c07ac7f476bb90aef76c",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/sniper_ability.gd": {
+    "before": "c1b5830271350e3149b6e623f1f5b0e0f1edec35811e288ca03de7941752dc08",
+    "after": "c1b5830271350e3149b6e623f1f5b0e0f1edec35811e288ca03de7941752dc08",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/archer_ability.gd": {
+    "before": "ba6da2be29b885336c6d1fae8d583b991af483e5dbd3d2dd8d4d9769ab8f9f69",
+    "after": "ba6da2be29b885336c6d1fae8d583b991af483e5dbd3d2dd8d4d9769ab8f9f69",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/puppet_ability.gd": {
+    "before": "dc400bad9fffb5e26a84e558a12fc0afc56f84f69360efca305fca11bee77e86",
+    "after": "dc400bad9fffb5e26a84e558a12fc0afc56f84f69360efca305fca11bee77e86",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/tank_ability.gd": {
+    "before": "bf663d66f986fe6df9d94f2f860f79d3650b1c1c4c75d34d11733638941141c5",
+    "after": "bf663d66f986fe6df9d94f2f860f79d3650b1c1c4c75d34d11733638941141c5",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/predator_ability.gd": {
+    "before": "b5a9d9faa63979e69e0abc8e87339e8d68cdc1b763720cd0214ef33fdf15d062",
+    "after": "b5a9d9faa63979e69e0abc8e87339e8d68cdc1b763720cd0214ef33fdf15d062",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/warrior_ability.gd": {
+    "before": "ed98d0fd25379cbc129a8c6b7962059d5d9c69e62c56d27324d9be61ec800042",
+    "after": "ed98d0fd25379cbc129a8c6b7962059d5d9c69e62c56d27324d9be61ec800042",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/rps_ability.gd": {
+    "before": "c3c571b25bc206a00c7c603c4ba46afddf94e379853a1752452a6a2bcd61c4d7",
+    "after": "c3c571b25bc206a00c7c603c4ba46afddf94e379853a1752452a6a2bcd61c4d7",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/satellite_ability.gd": {
+    "before": "0e3307d9ee298997ca7174e450840bdbf15db96bba50692d436ef42ae06b11b4",
+    "after": "0e3307d9ee298997ca7174e450840bdbf15db96bba50692d436ef42ae06b11b4",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/machine_gun_ability.gd": {
+    "before": "7cc38a35908e8fa0229042950e8c9dcd9ab102014a109417637c8f16af098ff3",
+    "after": "7cc38a35908e8fa0229042950e8c9dcd9ab102014a109417637c8f16af098ff3",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/paladin_ability.gd": {
+    "before": "3b291d64dc2bbcc99fef1072f4dc9aa8292b9893220c29d15d9190e1f0c167fb",
+    "after": "3b291d64dc2bbcc99fef1072f4dc9aa8292b9893220c29d15d9190e1f0c167fb",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/lightning_ability.gd": {
+    "before": "7a8731816ef5a0a84114980336c82e5db55f081b765d2f49bb424381d7e91d12",
+    "after": "7a8731816ef5a0a84114980336c82e5db55f081b765d2f49bb424381d7e91d12",
+    "unchanged": true
+  },
+  "godot/scripts/abilities/healer_ability.gd": {
+    "before": "175936e07768723d7ad385403fcc50e49870e0ee8e0602f90a9d1dbe3c1a48cc",
+    "after": "175936e07768723d7ad385403fcc50e49870e0ee8e0602f90a9d1dbe3c1a48cc",
+    "unchanged": true
+  },
+  "godot/data/strategy/evade.tres": {
+    "before": "91dbdef3fc626963f8f74e2078af107aac4a4ea6ed2ad181788a89680d17a043",
+    "after": "91dbdef3fc626963f8f74e2078af107aac4a4ea6ed2ad181788a89680d17a043",
+    "unchanged": true
+  },
+  "godot/data/strategy/iron.tres": {
+    "before": "54a67da9cf7c7dbb2ae40ae587a006c003e6553a1e80384c9e561201719345e1",
+    "after": "54a67da9cf7c7dbb2ae40ae587a006c003e6553a1e80384c9e561201719345e1",
+    "unchanged": true
+  },
+  "godot/data/strategy/shield.tres": {
+    "before": "29cb63ca34c2039311957de5e8cc1bd745b017d31e8ef38884ab814376e1f65d",
+    "after": "29cb63ca34c2039311957de5e8cc1bd745b017d31e8ef38884ab814376e1f65d",
+    "unchanged": true
+  },
+  "godot/data/strategy/charge.tres": {
+    "before": "871432cced84c5a0207524897bbcc19f2fbc58b2cde26b63815325cb901dbf91",
+    "after": "871432cced84c5a0207524897bbcc19f2fbc58b2cde26b63815325cb901dbf91",
+    "unchanged": true
+  },
+  "godot/data/strategy/mango.tres": {
+    "before": "b166c0a7dada1018abfdf2295925ee6cad5d794341551933a4f4581b625dd28c",
+    "after": "b166c0a7dada1018abfdf2295925ee6cad5d794341551933a4f4581b625dd28c",
+    "unchanged": true
+  },
+  "godot/data/strategy/taunt.tres": {
+    "before": "af7fa4de00e3982fa9d01d8b99dee5481b8e888d28ea3d8cd9c1a1dc38cf9d1b",
+    "after": "af7fa4de00e3982fa9d01d8b99dee5481b8e888d28ea3d8cd9c1a1dc38cf9d1b",
+    "unchanged": true
+  },
+  "godot/data/items/greenNecklace.tres": {
+    "before": "2d34c09e5ea4a9daadbb5839015cf8b2541ac6f76e040d50198e960f5090c15f",
+    "after": "2d34c09e5ea4a9daadbb5839015cf8b2541ac6f76e040d50198e960f5090c15f",
+    "unchanged": true
+  },
+  "godot/data/items/vital.tres": {
+    "before": "21738b69370bbde706c0830ae0da660728d7e9d177e0bfcfa66f91497b5a4998",
+    "after": "21738b69370bbde706c0830ae0da660728d7e9d177e0bfcfa66f91497b5a4998",
+    "unchanged": true
+  },
+  "godot/data/items/vigorTotem.tres": {
+    "before": "1c2d414e2f23767f8f748d0edc3d23404197e60de49bfba9d8c920456352cccb",
+    "after": "1c2d414e2f23767f8f748d0edc3d23404197e60de49bfba9d8c920456352cccb",
+    "unchanged": true
+  },
+  "godot/data/items/goldToken.tres": {
+    "before": "cef7da0424449e631c9bae21d10ad70ced89fcc5bb69ef024f372a7d8a5ae870",
+    "after": "cef7da0424449e631c9bae21d10ad70ced89fcc5bb69ef024f372a7d8a5ae870",
+    "unchanged": true
+  },
+  "godot/data/items/reengrave.tres": {
+    "before": "62dc6696d810ddcafc32c3619286c477bd547d6141bf66e220e2c160def1e0c0",
+    "after": "62dc6696d810ddcafc32c3619286c477bd547d6141bf66e220e2c160def1e0c0",
+    "unchanged": true
+  },
+  "godot/data/items/predatorFang.tres": {
+    "before": "e258156b5a28bb1077c49f00ece082a31048e4db5fd63ac09c459a39b4087efc",
+    "after": "e258156b5a28bb1077c49f00ece082a31048e4db5fd63ac09c459a39b4087efc",
+    "unchanged": true
+  },
+  "godot/data/items/chargeTotem.tres": {
+    "before": "f88191ee39fb2577cd29a09632e03641caee3ac3a1e5366cd65930b0c51b7ab6",
+    "after": "f88191ee39fb2577cd29a09632e03641caee3ac3a1e5366cd65930b0c51b7ab6",
+    "unchanged": true
+  },
+  "godot/data/items/boots.tres": {
+    "before": "d901461192649b90621a630fd987951522849dcd8ba5b13841b2cda38add8be6",
+    "after": "d901461192649b90621a630fd987951522849dcd8ba5b13841b2cda38add8be6",
+    "unchanged": true
+  },
+  "godot/data/items/thickAwl.tres": {
+    "before": "d660c24d8ea51db723cdbc889a02cd96b690b26671a13db8385e50536c75350f",
+    "after": "d660c24d8ea51db723cdbc889a02cd96b690b26671a13db8385e50536c75350f",
+    "unchanged": true
+  },
+  "godot/data/items/fang.tres": {
+    "before": "74d468a358351e69c9d41e431987a990d9cf184d277d6b76485109b833e6a33a",
+    "after": "74d468a358351e69c9d41e431987a990d9cf184d277d6b76485109b833e6a33a",
+    "unchanged": true
+  }
+}

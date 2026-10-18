@@ -1,0 +1,10 @@
+[gd_resource type="Resource" script_class="ItemData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/item_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"predatorFang"
+display_name = "포식자의 엄니"
+description = "처치마다 이 유닛의 공격력 영구 +1.5%"
+emoji = "🦷"
+gold_price = 200
+kill_growth = true

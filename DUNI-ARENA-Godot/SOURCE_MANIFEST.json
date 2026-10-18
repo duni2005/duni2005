@@ -1,0 +1,3744 @@
+{
+  "version": "0.12.5-preview.6",
+  "engine": "4.6.3.stable",
+  "contents": "Editable native Godot project, tests and unchanged HTML reference sources. Phase 1–12.5 plus latest impact refinement.",
+  "base_deployed_commit": "733fbd905d1d3b8d8c1c4b87105ed2b066dcb67b",
+  "files": {
+    "dist/ai.js": {
+      "bytes": 40828,
+      "sha256": "7dda3a31c38fd97149dc31edc70802e7daec03a5aa02443368baa0fc5a76e650"
+    },
+    "dist/app.js": {
+      "bytes": 52214,
+      "sha256": "bc5ae16d3f78a5f4cd783508dd2271d0e3478eeabfbb0922b3d0dfe577d6d7fb"
+    },
+    "dist/archetypes.js": {
+      "bytes": 40657,
+      "sha256": "8b1e8aae38e45172c9818a6bb002644f5dadc355387fd407fcc617b82a52aae7"
+    },
+    "dist/combat.js": {
+      "bytes": 56971,
+      "sha256": "39e61fc01d486cc5f5113910a7cf5df4b0d208ad4ce26475beb22f2bbb00cf69"
+    },
+    "dist/faith-lightning.js": {
+      "bytes": 14192,
+      "sha256": "407ae915b2790ea792583c53e0d1e59ee7587e83d0832fb90b967539205d1328"
+    },
+    "dist/frog.js": {
+      "bytes": 12011,
+      "sha256": "da604aa76c79ee0b4ad1bbc52fc729a29cb9bbc595685177b7ec141a5f8407f4"
+    },
+    "dist/hero-tank.js": {
+      "bytes": 14897,
+      "sha256": "5e4697f2700e127ac270d3a26ba7139d90bc180a0110e76645ebceeb5c91af78"
+    },
+    "dist/index.html": {
+      "bytes": 14648,
+      "sha256": "3332a7f922f36d45e49619a0377b11ae686ffd168d65e721d4e8b7823e7d333e"
+    },
+    "dist/novel.js": {
+      "bytes": 21442,
+      "sha256": "ee404cab9ef2f883a8b098b9c4ead0f33c242a1ef239b743d1e37933e23db04a"
+    },
+    "dist/physical.js": {
+      "bytes": 12665,
+      "sha256": "369ac5a14b4b3cb199a9585ef7f6a2d98a6e7977fb57f367380841ab3fa7a7fb"
+    },
+    "dist/pixels.js": {
+      "bytes": 25923,
+      "sha256": "626a40fdfd732f69e0fa66c792acaf6cfd2f1be2d9f12a392c136316bded6f4c"
+    },
+    "dist/puppet.js": {
+      "bytes": 10205,
+      "sha256": "a255edca3610d704c58957a035f382af34f17702aee4cbddc7fcb9707feb230a"
+    },
+    "dist/rear-galaxy.js": {
+      "bytes": 7810,
+      "sha256": "b4cd8e29769544d0906458d41ad28fea55789e379f53c73c9a4cb3432690bf0c"
+    },
+    "dist/spectator.js": {
+      "bytes": 15275,
+      "sha256": "efadba5bea7018f711827e3c4a42be0297fdaa026a79999f613c15681d8fc199"
+    },
+    "dist/strategy.js": {
+      "bytes": 34858,
+      "sha256": "32298e87af96ecc718002a3e1362b0377714141c437eab9ef45d88d0e1ddf08d"
+    },
+    "dist/style.css": {
+      "bytes": 115115,
+      "sha256": "c1aff15fbedb3672388f2825460b1307765b379ff3bb102d98d0041640779d15"
+    },
+    "dist/tower.js": {
+      "bytes": 113797,
+      "sha256": "13240c2c38e4e7985ad76c76c948323b1c069e1cd971f925da2070f46e6fd410"
+    },
+    "dist/transcendence.js": {
+      "bytes": 16221,
+      "sha256": "d8c5070685b02f74397dba4a1404a6a047dd37c0820e53dc28ef75497aa266f5"
+    },
+    "dist/ultimate.js": {
+      "bytes": 13146,
+      "sha256": "617b426fae98b3b93e35cdab10747c5e79572fd51ee911a43ba31f5558b19b13"
+    },
+    "godot/.gitignore": {
+      "bytes": 14,
+      "sha256": "222c6925c1e8c1074e0ba2608e6395592fcfe1370d4a662ee0af1a4b4d3a5100"
+    },
+    "godot/ATTACK_MOTION_REPORT.md": {
+      "bytes": 9380,
+      "sha256": "40c3b8bde4ddd65d6d25b4692a80a694638640a6c531d29f332a11c9e6acb354"
+    },
+    "godot/BLUE_UI_TOUCH_REPORT.md": {
+      "bytes": 6428,
+      "sha256": "a97bcb2f952dc0aa6a470e97b03da99d9fe48e2e3fbd4199552317140b4a8fa0"
+    },
+    "godot/CAMERA_GRID_FIX_REPORT.md": {
+      "bytes": 3302,
+      "sha256": "d5314e4c869fc56facf404458b08957d5e891ba79163e16eb329e492cd45d0c6"
+    },
+    "godot/CINEMATIC_FLOW_REPORT.md": {
+      "bytes": 6781,
+      "sha256": "4f20fd6f1241fa5062a73b1ca3dbf55618a3c615047d9e39b861151b12c9eee4"
+    },
+    "godot/COMPACT_UI_FIX_REPORT.md": {
+      "bytes": 5456,
+      "sha256": "bacea58fe41135c8b8d5383b4ed3d80572a654c66556b8a96e83ce0844d60a87"
+    },
+    "godot/EVENT_UI_PARITY_REPORT.md": {
+      "bytes": 9703,
+      "sha256": "d7c327d55bf76002c6b796fbff72b60dc7d9bc924751fb2cc59595de81b2b94d"
+    },
+    "godot/IMPACT_REFINEMENT_REPORT.md": {
+      "bytes": 4803,
+      "sha256": "161e1fae1dabc6c197d83643b155a1c15b8f8f021a80247f91e371dd1895b5ed"
+    },
+    "godot/IMPACT_UI_REPORT.md": {
+      "bytes": 6692,
+      "sha256": "479683ab4c3aeeb10cbe180e917cda3abcbf8cd5ecd216989c66a3cf07fc9166"
+    },
+    "godot/LATENCY_FIX_REPORT.md": {
+      "bytes": 6434,
+      "sha256": "c47fa31a3490099cae30fd545941d40874eb427921225adf3a094801367fb2c8"
+    },
+    "godot/LAYOUT_PARITY_REPORT.md": {
+      "bytes": 5936,
+      "sha256": "1387e04d85f74c25648cef429cedec182e3daee2e48a2df2138df1ac3a4a4cf2"
+    },
+    "godot/MOBILE_UI_FIX_REPORT.md": {
+      "bytes": 2593,
+      "sha256": "510b9f3fac488a8cd81372c03c579d18631bd715f0b91dc3083846b8f3e243bc"
+    },
+    "godot/NAVIGATION_UI_REPORT.md": {
+      "bytes": 3389,
+      "sha256": "c95a87350015aed2b3eb8ef08556ea6fcf9cf762879f3adb935d8da5f157c3b9"
+    },
+    "godot/PHASE105_REPORT.md": {
+      "bytes": 37204,
+      "sha256": "d74c50d755aa6e8d77d151fe1448504f158dabdbf1424c80874da4f3a1e539cd"
+    },
+    "godot/PHASE10_REPORT.md": {
+      "bytes": 31397,
+      "sha256": "9d3828e6263c3f9d9674b22a9e4882f36fb233a5137ba846a6d905b8e1f09876"
+    },
+    "godot/PHASE11_REPORT.md": {
+      "bytes": 25015,
+      "sha256": "18cd66f24353167650e164368e02c692d3496dd791eebc46eff3c81b46be54f1"
+    },
+    "godot/PHASE125_REPORT.md": {
+      "bytes": 25238,
+      "sha256": "a2b9b2495ea1d19bcbcaad7aa4a728efcd7529bfeca0defb0ebd1032b34fcdea"
+    },
+    "godot/PHASE125_VISUAL_AUDIT.md": {
+      "bytes": 6713,
+      "sha256": "7933f5a1fd1b22b71a7760235478f62bf48a1ea65d0c8ad13d1f4c36647aa04a"
+    },
+    "godot/PHASE12_REPORT.md": {
+      "bytes": 22102,
+      "sha256": "2790966b457ecaa769ab0b9eceeabd70ba44b5c3f35879e792915bcf06e36aa1"
+    },
+    "godot/PHASE12_UI_AUDIT.md": {
+      "bytes": 5165,
+      "sha256": "d2b4bf1ed160a190973d2f408c756a3e0d94bae606c475935a3de804efef7756"
+    },
+    "godot/PHASE2_REPORT.md": {
+      "bytes": 20331,
+      "sha256": "21d55131bb724b378296e8f559d5bfc575f6dada82d759b94085eb1390ef539b"
+    },
+    "godot/PHASE3_REPORT.md": {
+      "bytes": 21322,
+      "sha256": "3282188de2c70b899a16e99aff7fcd99dff306d57006f59944de8582b3cfb4f4"
+    },
+    "godot/PHASE4_REPORT.md": {
+      "bytes": 32202,
+      "sha256": "7760e320cf2223b3338038bdfd3ed4cc95bd6e1d1cb8d180dc0ad93ac9a3bd16"
+    },
+    "godot/PHASE5_REPORT.md": {
+      "bytes": 27848,
+      "sha256": "d2e201580c98d6f27a91014fe4cd88d43e9af491275389d1c356de7f7111122e"
+    },
+    "godot/PHASE6_REPORT.md": {
+      "bytes": 25493,
+      "sha256": "fcce5ff0b29ca9b7eb632a919fdd34e071a991eb4ec275d96f68aba7f261a848"
+    },
+    "godot/PHASE7_REPORT.md": {
+      "bytes": 33108,
+      "sha256": "1545943bcd52d8befb8a0c9640dd49792e340c6e3c7d1c49bb4d2b87537ab81d"
+    },
+    "godot/PHASE8_REPORT.md": {
+      "bytes": 34636,
+      "sha256": "2890a73d6abe985d759a11338547a1bc1e6210bb6bbf80af205521e77e210f28"
+    },
+    "godot/PHASE9_REPORT.md": {
+      "bytes": 26099,
+      "sha256": "b1ab776a151006c81960d19fca6dfc8939953365d298ea06efbcdc535db58b22"
+    },
+    "godot/README.md": {
+      "bytes": 20748,
+      "sha256": "4c8c62b9f422c065f236a5123f83eb3311fd9418fbdabc57024a24f7b82c301e"
+    },
+    "godot/SCREEN_PRESENTATION_REPORT.md": {
+      "bytes": 8212,
+      "sha256": "f9cba465f8cc544d6a2ff4772ac8810f9500bcd7613645d6a51e0362061cf5de"
+    },
+    "godot/SOURCE_UI_REPORT.md": {
+      "bytes": 6370,
+      "sha256": "144b957473d812e1c5833a02ef701fc3f9e6b9306347f09a91a87829ce109717"
+    },
+    "godot/UNIT_STALL_FIX_REPORT.md": {
+      "bytes": 4531,
+      "sha256": "753c9227e297e1c678608e1caad26c8589d1897dcdb48ab24b95f67f62b0a11a"
+    },
+    "godot/VFX_UPGRADE_REPORT.md": {
+      "bytes": 8087,
+      "sha256": "77cd3e878936d458cb01a4a32b9c7f5730283f5c074d9ff66cc2c325fbae22b5"
+    },
+    "godot/WEB_PREVIEW.md": {
+      "bytes": 1709,
+      "sha256": "eb7792309c4f37691cf461de3cc5e81fd42f651d8fb6ed2dd7a54f877cc1a328"
+    },
+    "godot/assets/characters/portrait_00.svg": {
+      "bytes": 1601,
+      "sha256": "5196438c5c88df76a7bf95af34b2ff2ce754f0e6567ab0a5b2a70dfc41c9ff87"
+    },
+    "godot/assets/characters/portrait_00.svg.import": {
+      "bytes": 1052,
+      "sha256": "ec62712497311a6e75cc081ebf51da09c851ef715e3de54f99d753df661d972b"
+    },
+    "godot/assets/characters/portrait_01.svg": {
+      "bytes": 1473,
+      "sha256": "b6efce66aeb7d5d9300d6336a87ff62ae1866d4cd56f93d589b6f10d1c2c615f"
+    },
+    "godot/assets/characters/portrait_01.svg.import": {
+      "bytes": 1052,
+      "sha256": "b604564503744b730b06d31b218fdb9ade7340c3d089613541e29d56c5b4e624"
+    },
+    "godot/assets/characters/portrait_02.svg": {
+      "bytes": 1324,
+      "sha256": "27e8e89b19294163677153545910020226fae7c1a0bc63cf72dfa5ce19c900a1"
+    },
+    "godot/assets/characters/portrait_02.svg.import": {
+      "bytes": 1052,
+      "sha256": "6bb805ba593616cd3db4f9633a67c0c718d6b16c3ab89d3a1a590a370c2126db"
+    },
+    "godot/assets/characters/portrait_03.svg": {
+      "bytes": 1436,
+      "sha256": "52312707fe0583f947b0b5c1f23310e17e01893e357f951b5b079738d59fedce"
+    },
+    "godot/assets/characters/portrait_03.svg.import": {
+      "bytes": 1052,
+      "sha256": "c6b63aa613cb9bcc8fbbb2c6d604fee33bcde936ce685689fd27f9478cfdda2e"
+    },
+    "godot/assets/characters/portrait_04.svg": {
+      "bytes": 1601,
+      "sha256": "b9d79fde7626d94a78ba39da01397f26a2dc65bfd4543bc2960e94ea31149db5"
+    },
+    "godot/assets/characters/portrait_04.svg.import": {
+      "bytes": 1051,
+      "sha256": "580aadc382d5615db5636de87e4706e7cb9ef58ea3e263729ab0f11220416ba6"
+    },
+    "godot/assets/characters/portrait_05.svg": {
+      "bytes": 1404,
+      "sha256": "621295848f16a8cb6874bb01cbc60e6d2afe74358119addc4005d70dbb341b03"
+    },
+    "godot/assets/characters/portrait_05.svg.import": {
+      "bytes": 1052,
+      "sha256": "b4b18a76446c50abe72cc91a70f49c102d769b52664dc43620c75db556ea23ea"
+    },
+    "godot/assets/characters/portrait_06.svg": {
+      "bytes": 1657,
+      "sha256": "16f265fde1235bef81a112f77515abe5b455a99d17862d50b402dea54df436e6"
+    },
+    "godot/assets/characters/portrait_06.svg.import": {
+      "bytes": 1052,
+      "sha256": "050f82c8e77055ea97387e2aaf268c70167e9cd5c7ea526d4ee721c03c4a4dd5"
+    },
+    "godot/assets/characters/portrait_07.svg": {
+      "bytes": 1657,
+      "sha256": "67be3a48cba1460a56b893d182e7bde20c5b2915e48585fdfd23961dba4cc563"
+    },
+    "godot/assets/characters/portrait_07.svg.import": {
+      "bytes": 1052,
+      "sha256": "92b3b0e7b518d6256c2d779a1f68630b6222fb98fe09b24002dc69c4526fbf82"
+    },
+    "godot/assets/characters/portrait_08.svg": {
+      "bytes": 1489,
+      "sha256": "7e410cca9f4255a45dc6ed041456c024bb80232095484e35e588a69ac4b1acb6"
+    },
+    "godot/assets/characters/portrait_08.svg.import": {
+      "bytes": 1051,
+      "sha256": "6c2eae54be9e80cef399fb77144b01d069864490df2636016dc64f9fe924b887"
+    },
+    "godot/assets/characters/portrait_09.svg": {
+      "bytes": 1430,
+      "sha256": "9b58ecc6698da9218fe38c06257432e48cd397b60818887064c49621de213399"
+    },
+    "godot/assets/characters/portrait_09.svg.import": {
+      "bytes": 1052,
+      "sha256": "0018198f65e5b7e6df9b45e3b88b3e9b745f8babf447d17f0f4bbc56b67a55b8"
+    },
+    "godot/assets/characters/portrait_10.svg": {
+      "bytes": 1379,
+      "sha256": "4f5f3d708d1658fdbbbaa1dae7a2f3a737176d9e81602b48c880d6ee6ad71760"
+    },
+    "godot/assets/characters/portrait_10.svg.import": {
+      "bytes": 1051,
+      "sha256": "1fe68e0faf5e54dedb19d76254435a7cdcad18159695a75aba8542c171967ae7"
+    },
+    "godot/assets/characters/portrait_11.svg": {
+      "bytes": 567,
+      "sha256": "1f6823a0bd952609e3480705622eb2d8bb73e09884da3966346539abfc26ba34"
+    },
+    "godot/assets/characters/portrait_11.svg.import": {
+      "bytes": 1052,
+      "sha256": "5d50ff976aaac45be0387bdba9079edd7013c67089469292ee59aacaea79e166"
+    },
+    "godot/assets/characters/portrait_12.svg": {
+      "bytes": 759,
+      "sha256": "0278eeabe2679550f11d3c139732af975ae21cfcf2c304e7b470c702856bf943"
+    },
+    "godot/assets/characters/portrait_12.svg.import": {
+      "bytes": 1051,
+      "sha256": "cd3dab4e6f5cef5518affef11f0241f5dc83e12a99baf85ebdefb8b2f1a704b4"
+    },
+    "godot/assets/characters/portrait_13.svg": {
+      "bytes": 685,
+      "sha256": "0f875d2fd2cfe667f640b68367b4c65ebc5f661542047183247169a7046df92f"
+    },
+    "godot/assets/characters/portrait_13.svg.import": {
+      "bytes": 1052,
+      "sha256": "388cb710ad6c09bfb5c1accc16eaea896165f0b7027e5fa3236b9be939ebcba7"
+    },
+    "godot/assets/characters/portrait_14.svg": {
+      "bytes": 1431,
+      "sha256": "c453137513d194549e7bd1fc26c937932d73168336031e5427ec0769b152af77"
+    },
+    "godot/assets/characters/portrait_14.svg.import": {
+      "bytes": 1052,
+      "sha256": "f9d460b3e9807a1c768fbd5e44f5fe83ed6fa4d748e2a4eacda1ea3dbfb95216"
+    },
+    "godot/assets/characters/portrait_15.svg": {
+      "bytes": 804,
+      "sha256": "a72c6b03e538c7441f33f3dbe6b6245d034e44363b7646672cb4213310c9c253"
+    },
+    "godot/assets/characters/portrait_15.svg.import": {
+      "bytes": 1052,
+      "sha256": "48daa4fb92e40a2ca0910e8dffdff831321b9f8c086b0dd6dffca144ca21c648"
+    },
+    "godot/assets/characters/portrait_16.svg": {
+      "bytes": 1715,
+      "sha256": "575db5fa1884bd75ca80d5811c500fa3f705812b27fb0130ce186630921ae661"
+    },
+    "godot/assets/characters/portrait_16.svg.import": {
+      "bytes": 1052,
+      "sha256": "177f0310d0ac40a9dddb20959388777bb0901f5f7754cd38a7ca818c7fd1aaa6"
+    },
+    "godot/assets/characters/portrait_17.svg": {
+      "bytes": 1453,
+      "sha256": "dc96484fc29b954a63b539e0972ae36798dbfc5c0b007fe59fdbe8ed1a74c645"
+    },
+    "godot/assets/characters/portrait_17.svg.import": {
+      "bytes": 1052,
+      "sha256": "475965f273c17521b25fa59432a17435e63476903581d9974c12ec1f52dffb43"
+    },
+    "godot/assets/characters/portrait_18.svg": {
+      "bytes": 1032,
+      "sha256": "8237ab3c221d3787aaff02a1a34309186818eca4c6775b1d0a68c57f54b4b31e"
+    },
+    "godot/assets/characters/portrait_18.svg.import": {
+      "bytes": 1051,
+      "sha256": "6d293a6def254329fea3b1fd5371e05214cfad0b01fafe7a2a6349995cfc4fd6"
+    },
+    "godot/assets/characters/portrait_19.svg": {
+      "bytes": 1354,
+      "sha256": "48e5c72b954d2dfdec0375e4ea7172baf77c884876207a5809d66bcad911d509"
+    },
+    "godot/assets/characters/portrait_19.svg.import": {
+      "bytes": 1052,
+      "sha256": "f928a153367e0558ab7ba7c7a97954ced8099617e5fdeffe3107d2a8851e9526"
+    },
+    "godot/assets/characters/portrait_20.svg": {
+      "bytes": 1307,
+      "sha256": "6bdde3a364c9c675f82395a37f1f42a74182669e195ddec32cc7c0048d33b93a"
+    },
+    "godot/assets/characters/portrait_20.svg.import": {
+      "bytes": 1052,
+      "sha256": "f9dd3926249c9f239dac25bdc771665362257778d75707095cc101dc6549917e"
+    },
+    "godot/assets/characters/portrait_21.svg": {
+      "bytes": 424,
+      "sha256": "45b314ea022fe7672b46225cdad458e45c50ed8adf5e0f7f473cd89d2e09d46a"
+    },
+    "godot/assets/characters/portrait_21.svg.import": {
+      "bytes": 1052,
+      "sha256": "cdca102cc3f49a8a95d3e83bfb78c36778241f637b2275cd8d5145883c1d9137"
+    },
+    "godot/assets/characters/portrait_22.svg": {
+      "bytes": 1458,
+      "sha256": "bb96cbbe172b60f89da3b23c2908fb5c102a8a971d6e79c92a7050e4d8cba7c2"
+    },
+    "godot/assets/characters/portrait_22.svg.import": {
+      "bytes": 1052,
+      "sha256": "b3363da302d01f71904f0a538f3d5887d147d332b8a6eefa7e46bd401c9d5d9a"
+    },
+    "godot/assets/characters/portrait_23.svg": {
+      "bytes": 1657,
+      "sha256": "19b4e4a8cf9c1d2d80df656f212d60e5a8166f6d29b18c6f79c290b75d79d5c0"
+    },
+    "godot/assets/characters/portrait_23.svg.import": {
+      "bytes": 1052,
+      "sha256": "fc103779df8514de9bc820dffde5973d5a304a54e4bf8179dd149d4de8221669"
+    },
+    "godot/assets/characters/portrait_24.svg": {
+      "bytes": 862,
+      "sha256": "0a1dbc5569cc7e5299f77eb1b6687387776d5aac5528ca218a41c0cc20fc0bee"
+    },
+    "godot/assets/characters/portrait_24.svg.import": {
+      "bytes": 1052,
+      "sha256": "12df4c249ee4f7308f98a4d3c42965ec2424089834a522e654560be4feb3569e"
+    },
+    "godot/assets/characters/portrait_25.svg": {
+      "bytes": 1575,
+      "sha256": "486f7f251dcdaed40ef571a9f9c0ffdf05b72351c10173da0cc71dabffe8b27d"
+    },
+    "godot/assets/characters/portrait_25.svg.import": {
+      "bytes": 1051,
+      "sha256": "2fbb6413d2b9bb66c95ae12258d02b9a050b6852d02f11bd3dadf52c181d0d66"
+    },
+    "godot/assets/motion/motion.json": {
+      "bytes": 91184,
+      "sha256": "2a3b2cf030d940cac5398d521b1642758b976a9c8a026fe3d6d09cb0d73a223e"
+    },
+    "godot/assets/motion/weapons_0.png": {
+      "bytes": 1077090,
+      "sha256": "ef2c9909916a3963c4d549335ef04706c9200f16790c5cf8d6db29936c3e913c"
+    },
+    "godot/assets/motion/weapons_0.png.import": {
+      "bytes": 945,
+      "sha256": "040df4a9231c89295ca769f22cf8c354ba6960dc4265b80f92917fea27f49d0c"
+    },
+    "godot/assets/motion/weapons_1.png": {
+      "bytes": 800077,
+      "sha256": "85809ee3e15b3628a0798231ad8efba049c7ec7b02d9e6c0aa5ca94da04b459d"
+    },
+    "godot/assets/motion/weapons_1.png.import": {
+      "bytes": 945,
+      "sha256": "07646ef905dcd1cf8051d575c02e0c6e4066a589b5429a4c898f1f6257495568"
+    },
+    "godot/assets/ui/fonts/BARLOW_OFL.txt": {
+      "bytes": 4377,
+      "sha256": "186d750eb496a4c17a76385f82be6aea2ac1cf2de074a811d63786cf374ea73f"
+    },
+    "godot/assets/ui/fonts/BarlowCondensed-ExtraBold.ttf": {
+      "bytes": 110296,
+      "sha256": "724c9c25952d5f4a2d87185d9767aa006144c5f0d944dc05bf7d5d603551c260"
+    },
+    "godot/assets/ui/fonts/BarlowCondensed-ExtraBold.ttf.import": {
+      "bytes": 816,
+      "sha256": "c9c824d3e02fa1f79ce741950c63d596cccab823a60718f486638f8cbe2f1b6b"
+    },
+    "godot/assets/ui/fonts/NOTO_LICENSES.txt": {
+      "bytes": 19799,
+      "sha256": "a934d5c7e1b98be96183612877a4b8a0279d3e2739a275bc9865e681c5c726cb"
+    },
+    "godot/assets/ui/fonts/emoji.ttf": {
+      "bytes": 80152,
+      "sha256": "db911f3c0482edd0ee7cb811558aa3f4686119527bfdcf81d8ccbd31057c944d"
+    },
+    "godot/assets/ui/fonts/emoji.ttf.import": {
+      "bytes": 756,
+      "sha256": "c153517d1051861a7edea2835e775c4f5e0ca86d96091ceeaa9a3da6ab62943c"
+    },
+    "godot/assets/ui/fonts/korean.otf": {
+      "bytes": 1676260,
+      "sha256": "0a06bc8281da147a769268098975dcf833452ac65a32932cc013193d1fdb3f0b"
+    },
+    "godot/assets/ui/fonts/korean.otf.import": {
+      "bytes": 759,
+      "sha256": "94afc7244a195400df7f333c386e52219c23e6169407eda5aaf4db6ad98ac2b2"
+    },
+    "godot/assets/ui/symbols/battle.svg": {
+      "bytes": 1259,
+      "sha256": "537cc2f24edbbd2c93af76cd551b88b3300c011355303e8db7944247d4f61edb"
+    },
+    "godot/assets/ui/symbols/battle.svg.import": {
+      "bytes": 1037,
+      "sha256": "9634df1f051871376c6a6c665e2dfad5bd8c8df0c3f6277b0ef177d1f39a4386"
+    },
+    "godot/assets/ui/symbols/boots.svg": {
+      "bytes": 1091,
+      "sha256": "ee6b0b73bef2d7e85ada1949db22011aba400c9599c6fc0d70db1c1f139b233c"
+    },
+    "godot/assets/ui/symbols/boots.svg.import": {
+      "bytes": 1034,
+      "sha256": "dac00b6b4b54ef5e8000875a52bd24073228bc5c49030c8a0a1624e08ab3d8e6"
+    },
+    "godot/assets/ui/symbols/boss.svg": {
+      "bytes": 1154,
+      "sha256": "766e12ee1a9aefa6a306c824a96feca6d8da96f516707206ff00c8f62688639e"
+    },
+    "godot/assets/ui/symbols/boss.svg.import": {
+      "bytes": 1031,
+      "sha256": "0199423f6a7dcd47ea7ff9eab4f9172e31d61343c0b9404b2029f0ef6dc9e85e"
+    },
+    "godot/assets/ui/symbols/charge.svg": {
+      "bytes": 990,
+      "sha256": "122dc89912904f9db6db1218021cd3d0d0b31a1264854ed19cf5c22ab9075daa"
+    },
+    "godot/assets/ui/symbols/charge.svg.import": {
+      "bytes": 1036,
+      "sha256": "9c1da530f97f76dbf82cd07e036d1a97bc033c6e350d7f68c1cf1bcab5ce2b56"
+    },
+    "godot/assets/ui/symbols/chargeTotem.svg": {
+      "bytes": 1069,
+      "sha256": "e01e48fc1a0c0be4c6f67474cf8286f64fd31dc025da6cfdfc6af32b3b83ae15"
+    },
+    "godot/assets/ui/symbols/chargeTotem.svg.import": {
+      "bytes": 1052,
+      "sha256": "5add0baa6c59c40fcbdfac3ca99191ffc297fd058725a4dde7466bab5c5f8d40"
+    },
+    "godot/assets/ui/symbols/clear_all.svg": {
+      "bytes": 250,
+      "sha256": "6baf30e1a0bde03590f093738ac246de756d16dee3ed58ca0111227f5d3f0c3f"
+    },
+    "godot/assets/ui/symbols/clear_all.svg.import": {
+      "bytes": 1046,
+      "sha256": "ab243627912996720b36f21b72f92e0f2c9bb1368e21c30f1aab50ad1d055ed9"
+    },
+    "godot/assets/ui/symbols/crown.svg": {
+      "bytes": 1205,
+      "sha256": "b1de719c3db9c6069dda6cbf4ee01e8444038edd0e7d5a87fe88d9dd0aed46e7"
+    },
+    "godot/assets/ui/symbols/crown.svg.import": {
+      "bytes": 1033,
+      "sha256": "8d51fdebd9c63536f4dc433abd49d6c94ea2d9d27606053cc6d4c305b76252af"
+    },
+    "godot/assets/ui/symbols/defense.svg": {
+      "bytes": 985,
+      "sha256": "59818cb78824cf5d390187b72a5cd6660deb85d36f43e2ba3d68061afcde96b0"
+    },
+    "godot/assets/ui/symbols/defense.svg.import": {
+      "bytes": 1040,
+      "sha256": "b84a926becfef3406e6e260f32da07ea59c2f70e12acef82cc489bb83a1a4379"
+    },
+    "godot/assets/ui/symbols/energy.svg": {
+      "bytes": 205,
+      "sha256": "f8a229dc097715c490078a2269f2983ee87c95191dd192b70ae40c26c64e1634"
+    },
+    "godot/assets/ui/symbols/energy.svg.import": {
+      "bytes": 1037,
+      "sha256": "a960968ba2918fa48689eeeacc374d16e219562901d6657bded43c9e85ade531"
+    },
+    "godot/assets/ui/symbols/eraser.svg": {
+      "bytes": 252,
+      "sha256": "136205221eaec60839a2f0cd2f43650bb1c63bd1dd5b4698b4516a08084756c8"
+    },
+    "godot/assets/ui/symbols/eraser.svg.import": {
+      "bytes": 1037,
+      "sha256": "cea9a2bd8efdfe4d3a171f391b0d64271d330f0dbfbb6a3634c9bccdb5a9968e"
+    },
+    "godot/assets/ui/symbols/evade.svg": {
+      "bytes": 1032,
+      "sha256": "188a1b0d458389361d3530b8d4707542182233bd9d1b2788996fac464f043d4b"
+    },
+    "godot/assets/ui/symbols/evade.svg.import": {
+      "bytes": 1034,
+      "sha256": "392e23cf882b991f90d9d98675d79164b9a72afd0f487be0c60d200253e6943f"
+    },
+    "godot/assets/ui/symbols/event.svg": {
+      "bytes": 1064,
+      "sha256": "214195dc0c79ac0fbd14ea1918b8e20405e4a36acf4c1ce5cca1fd24e9275a54"
+    },
+    "godot/assets/ui/symbols/event.svg.import": {
+      "bytes": 1033,
+      "sha256": "9378eafbe6fdb96ee71886a0304d8a9ee84a3a301c4f260d3a86dd717bce9536"
+    },
+    "godot/assets/ui/symbols/fang.svg": {
+      "bytes": 1053,
+      "sha256": "5d478d5cd5fa60c50dcac4dfc6e175c0557fb54132571eb6b5ed98535db38626"
+    },
+    "godot/assets/ui/symbols/fang.svg.import": {
+      "bytes": 1031,
+      "sha256": "e8b5b49e85606490b6517b5074492e13d18f09bf29c1b51ba2bb07c4fb40ee84"
+    },
+    "godot/assets/ui/symbols/flag.svg": {
+      "bytes": 957,
+      "sha256": "f10401dc07be4ac013260cd5506c0a15896fcda98d93efd0c8e822142238a186"
+    },
+    "godot/assets/ui/symbols/flag.svg.import": {
+      "bytes": 1031,
+      "sha256": "e3ced73a3158d1b0f2eb19305837d062fe94ba8504b54bb0ab5c273339964b36"
+    },
+    "godot/assets/ui/symbols/gem.svg": {
+      "bytes": 1064,
+      "sha256": "b788c2d526cdcc262bd6a8961e0beebff441a9d478ee1886adb8a00e6023a9e7"
+    },
+    "godot/assets/ui/symbols/gem.svg.import": {
+      "bytes": 1028,
+      "sha256": "a3ebeb33695bad9ab87d1e12f154628c32c0e0611a35129b8d325351cadede07"
+    },
+    "godot/assets/ui/symbols/gold.svg": {
+      "bytes": 1131,
+      "sha256": "57f7bc117f92a7a52b3a167380e6a7e9fd8e9831ee3a0dacfdf90407fc54a678"
+    },
+    "godot/assets/ui/symbols/gold.svg.import": {
+      "bytes": 1031,
+      "sha256": "03bb78ea50c8ecd637e52127ab678b266e77db0740b3b038eb4ea10abcb08ebf"
+    },
+    "godot/assets/ui/symbols/goldToken.svg": {
+      "bytes": 986,
+      "sha256": "af42e721aa5b80358507d28bf3ba71449a5a564e88a49ba54ad53db9bd2cd031"
+    },
+    "godot/assets/ui/symbols/goldToken.svg.import": {
+      "bytes": 1046,
+      "sha256": "d9dc237e48bf62eb01fc0606978b4c9a36603bf3334818869aa3e4228201eed5"
+    },
+    "godot/assets/ui/symbols/greenNecklace.svg": {
+      "bytes": 1082,
+      "sha256": "2af07786b8ade703d846df2b98e534ad864fbf0eb2c4acae1c0e3537c69a5f3d"
+    },
+    "godot/assets/ui/symbols/greenNecklace.svg.import": {
+      "bytes": 1057,
+      "sha256": "7f2dae567aceee92da45f35d5cb2fc723a6c98d107d198c360fd7876d3453952"
+    },
+    "godot/assets/ui/symbols/guild.svg": {
+      "bytes": 1059,
+      "sha256": "52f750ad917fd754d4aff9828af88542f897f20d9062597a952c76e72285b0be"
+    },
+    "godot/assets/ui/symbols/guild.svg.import": {
+      "bytes": 1033,
+      "sha256": "a105b7789df73ae9b8d89bafa5d5de1ba56d0ed162e00d816721618931b1032c"
+    },
+    "godot/assets/ui/symbols/heart.svg": {
+      "bytes": 1013,
+      "sha256": "b936e8a214462aa1e921d3707605744f4afb503eebd5ea2d4d66e9c156fc613d"
+    },
+    "godot/assets/ui/symbols/heart.svg.import": {
+      "bytes": 1033,
+      "sha256": "607edad884a30ae02cf71b9246000fdebb3141c9e90b339c0a99b7b21a457ec0"
+    },
+    "godot/assets/ui/symbols/home.svg": {
+      "bytes": 945,
+      "sha256": "8b03884d80e26b552881208fc315bc6dc7ff347564f1b31b8bc4848747321461"
+    },
+    "godot/assets/ui/symbols/home.svg.import": {
+      "bytes": 1030,
+      "sha256": "6e63f16510d62efed6914c38f68451128a2633954db25106b83b2914334c4690"
+    },
+    "godot/assets/ui/symbols/hotSpring.svg": {
+      "bytes": 1102,
+      "sha256": "802061b44cb47b0ecd161aa1e23fd42fb0461a9ff282542fd8cee614ae4f7df3"
+    },
+    "godot/assets/ui/symbols/hotSpring.svg.import": {
+      "bytes": 1046,
+      "sha256": "618f219238ce2b7e795ef4da26caadd9dac7af080cbc5ab38d6bd231cbd70d8d"
+    },
+    "godot/assets/ui/symbols/iron.svg": {
+      "bytes": 1191,
+      "sha256": "06355af1e22af48d1aa1d50a5ae0d076e36336c8a8133142f599fec8f67ef5ee"
+    },
+    "godot/assets/ui/symbols/iron.svg.import": {
+      "bytes": 1030,
+      "sha256": "df629ecae1ede4654cd2af870d0133f3b08ec30eb76098e626ef1bbb5bb0b629"
+    },
+    "godot/assets/ui/symbols/mango.svg": {
+      "bytes": 1114,
+      "sha256": "2e6553e7f5aafa941efc6fdb56ab128361e30254e5a4094c5efa277a1f206a7d"
+    },
+    "godot/assets/ui/symbols/mango.svg.import": {
+      "bytes": 1034,
+      "sha256": "76c0081eed4a215ece765cef21e504711b40840797cf3fc8b398fbaf976ac893"
+    },
+    "godot/assets/ui/symbols/normal.svg": {
+      "bytes": 942,
+      "sha256": "53e577677227f83b9aeb2b6fb7654d84023a20fe5f3b9614f4dd841a1a508176"
+    },
+    "godot/assets/ui/symbols/normal.svg.import": {
+      "bytes": 1037,
+      "sha256": "58773b075d6c1abc7c1e266537c06f47cd0a224a0ffcbf7aba6c933e20c8d095"
+    },
+    "godot/assets/ui/symbols/play.svg": {
+      "bytes": 863,
+      "sha256": "83e154ee508ef2f2b0cdda2fbd2e0e41b2ba3dbbafe80e7613f7671ed5946f0a"
+    },
+    "godot/assets/ui/symbols/play.svg.import": {
+      "bytes": 1031,
+      "sha256": "cf4a4ed4ab423345f2478055f0817242c7f3a1129d2e624b3a191dee74ba6197"
+    },
+    "godot/assets/ui/symbols/predatorFang.svg": {
+      "bytes": 1051,
+      "sha256": "ec998b74e9ea0ad4c5bceed536eea4abcf7cbd1b033426b5fcbc061c738882d8"
+    },
+    "godot/assets/ui/symbols/predatorFang.svg.import": {
+      "bytes": 1054,
+      "sha256": "e3915cd375c574c2fb6dc6af3e84c27d586dbc279be15c83342f6984c72732e9"
+    },
+    "godot/assets/ui/symbols/prediction.svg": {
+      "bytes": 1099,
+      "sha256": "fba54e7e7bc120c8976e4b0a2db48ecb764b9ddbf007db053d4e64f2d0f4c8aa"
+    },
+    "godot/assets/ui/symbols/prediction.svg.import": {
+      "bytes": 1049,
+      "sha256": "ad6ebb1a2386c082c245e42cc3bc8773e16b01fb525ff093a57d9ec60e24f147"
+    },
+    "godot/assets/ui/symbols/recruit.svg": {
+      "bytes": 1186,
+      "sha256": "edfece3a821a3e45c5ac588b857afc2dab5c6a0a5f4ab3844bb37279cb9dfe50"
+    },
+    "godot/assets/ui/symbols/recruit.svg.import": {
+      "bytes": 1040,
+      "sha256": "b4c5a79035a77df21540323ba338269b1350d228830603ec732bb487e4c753de"
+    },
+    "godot/assets/ui/symbols/redo.svg": {
+      "bytes": 237,
+      "sha256": "048b13efe91f5b2e41069ae74bc2b4e453a6992302c5ebe16c4ad4deae0e3028"
+    },
+    "godot/assets/ui/symbols/redo.svg.import": {
+      "bytes": 1030,
+      "sha256": "9dbc63dfcaab2c7e4d8e0d02330bf8ad88955d50a73f60eb9dbc7297933fe86b"
+    },
+    "godot/assets/ui/symbols/reengrave.svg": {
+      "bytes": 1085,
+      "sha256": "02f6b796b1c17057ec190bd88731842cc81a9d2646d167f708ca7afcc1e6a602"
+    },
+    "godot/assets/ui/symbols/reengrave.svg.import": {
+      "bytes": 1046,
+      "sha256": "f0dd5370a332345c9357158a0f18a6e83e2c5f0b1e036a6c9a59d6490bdc9436"
+    },
+    "godot/assets/ui/symbols/rest.svg": {
+      "bytes": 1107,
+      "sha256": "51bb68204525893ad9a2cc189269ef6c6bea5d23c54c307eb4af16eb47afded8"
+    },
+    "godot/assets/ui/symbols/rest.svg.import": {
+      "bytes": 1031,
+      "sha256": "149eb2d148f47ab66575397667a0daa299a499746f4aad1f68aa1b45fce2bb07"
+    },
+    "godot/assets/ui/symbols/save.svg": {
+      "bytes": 1052,
+      "sha256": "b87cb45d10657177297b9e1606ae713657f1c39704bdf7c49983e8d4d9a432b2"
+    },
+    "godot/assets/ui/symbols/save.svg.import": {
+      "bytes": 1031,
+      "sha256": "d39d58a3d14482fbc7b35a521b67aaf31a7d2b507c5611e1c33f849b4e94bdb0"
+    },
+    "godot/assets/ui/symbols/shield.svg": {
+      "bytes": 1165,
+      "sha256": "028776a17cd15a41e8cac46735e361eee36015aa82f3ee8193900cea80dcecdf"
+    },
+    "godot/assets/ui/symbols/shield.svg.import": {
+      "bytes": 1037,
+      "sha256": "9e643d69b4435546be900fc6b2a18950d27c81394038a8cf3c31ff2b90af00bd"
+    },
+    "godot/assets/ui/symbols/shop.svg": {
+      "bytes": 1200,
+      "sha256": "64974ed8e3fd61bb8cb86df72db980dbd4067ea6a08deaa594f2754a87762303"
+    },
+    "godot/assets/ui/symbols/shop.svg.import": {
+      "bytes": 1031,
+      "sha256": "bd31221a498d6d54a2641559e27c2367544eba06db46a66f9de2a610dadedb85"
+    },
+    "godot/assets/ui/symbols/skull.svg": {
+      "bytes": 1154,
+      "sha256": "766e12ee1a9aefa6a306c824a96feca6d8da96f516707206ff00c8f62688639e"
+    },
+    "godot/assets/ui/symbols/skull.svg.import": {
+      "bytes": 1034,
+      "sha256": "29a3df32a9bb6c2c049e08f251bed4e725a2cdf012ebbf65ca86af16508091bf"
+    },
+    "godot/assets/ui/symbols/star.svg": {
+      "bytes": 1016,
+      "sha256": "b0cf55a353803938fabb153db8284e831fb59e4e23f49cfe3b59521e2536085f"
+    },
+    "godot/assets/ui/symbols/star.svg.import": {
+      "bytes": 1031,
+      "sha256": "549384d12df7cd715ccc49fdb4fdead3f267aeb3e7cd5fc6b8401165889b8624"
+    },
+    "godot/assets/ui/symbols/supply.svg": {
+      "bytes": 1065,
+      "sha256": "0848a8e1e441a1fcdbd7a8fea49f047fd5e67a9e9bc4c52cfe34cc6be1b31d61"
+    },
+    "godot/assets/ui/symbols/supply.svg.import": {
+      "bytes": 1036,
+      "sha256": "6f93030bb3c33079da115fc5e07051bd2e1b1736165d39ebff6d5a0e51bc5b4c"
+    },
+    "godot/assets/ui/symbols/taunt.svg": {
+      "bytes": 1160,
+      "sha256": "defac8c9587bea7631e621bf7f3f85e7850cd393212315a5a14a802da9ff8189"
+    },
+    "godot/assets/ui/symbols/taunt.svg.import": {
+      "bytes": 1034,
+      "sha256": "f6732b8ffa4a1469e96d9b73bad30d2e045400f82fda985f927921c1d0e05170"
+    },
+    "godot/assets/ui/symbols/thickAwl.svg": {
+      "bytes": 1116,
+      "sha256": "963f2cee429f89e4956092b5185b6c8401d8aca0d6639731d6edd296b1b57696"
+    },
+    "godot/assets/ui/symbols/thickAwl.svg.import": {
+      "bytes": 1042,
+      "sha256": "7d6d9a4395de176182461fea8e624697944f6ef0669e2fc76d5f392b0faba8b2"
+    },
+    "godot/assets/ui/symbols/undo.svg": {
+      "bytes": 239,
+      "sha256": "17b56c38da47dae95aa8b051b0d52788d3b6a52efb84d572eef9b8b50fcaab95"
+    },
+    "godot/assets/ui/symbols/undo.svg.import": {
+      "bytes": 1031,
+      "sha256": "0681daec446df7a9752469ec0c3c05b0693a786de10f72a9d2c4c14ad1a865b1"
+    },
+    "godot/assets/ui/symbols/vigorTotem.svg": {
+      "bytes": 1137,
+      "sha256": "a28901e7dd43fd71bbfc4234b7b4edd7edb20f9efa9f85ff6999893ffa3cca9c"
+    },
+    "godot/assets/ui/symbols/vigorTotem.svg.import": {
+      "bytes": 1049,
+      "sha256": "0958a325fe873fde87e2a4c827950cab2cddd7fb726b3e15ad3686ba40c5a225"
+    },
+    "godot/assets/ui/symbols/vital.svg": {
+      "bytes": 1117,
+      "sha256": "870da36a8103fcfd712ac5c0e0a8304c3fbe69a53158d8be68838f11cd993ddb"
+    },
+    "godot/assets/ui/symbols/vital.svg.import": {
+      "bytes": 1033,
+      "sha256": "b3f7bed99738fe579128b0c9c99e463e0aafa625c01a64cab9007a4650aa0932"
+    },
+    "godot/assets/ui/unit-icons/00.png": {
+      "bytes": 10881,
+      "sha256": "4df9473a70228c74ae58eb46dc328916f92e00f6875f5f7669e69dd2d8555154"
+    },
+    "godot/assets/ui/unit-icons/00.png.import": {
+      "bytes": 931,
+      "sha256": "6850bac126fe4015bcc048b2fd75dae26a67a5fb2bda1c73bd66e6b3c3607712"
+    },
+    "godot/assets/ui/unit-icons/01.png": {
+      "bytes": 12346,
+      "sha256": "a2b3a17d090e7b6e2cebe1dea01681b83c8d076f7a1a2a1e91e7b31581b489d6"
+    },
+    "godot/assets/ui/unit-icons/01.png.import": {
+      "bytes": 930,
+      "sha256": "d584decbe17ac69e34fb99c6cb4dad2c90274e20609777d31b36338dc3c48f96"
+    },
+    "godot/assets/ui/unit-icons/02.png": {
+      "bytes": 15344,
+      "sha256": "dcab51e80c611ad5eb7d74f9651226827b8e7d0d6ade2c2a4ecca85a9970cbd6"
+    },
+    "godot/assets/ui/unit-icons/02.png.import": {
+      "bytes": 930,
+      "sha256": "3ae954fb64a66b6732171bbcda8cdaf98cee01fde87dde6d12c0e9b988ec4eb9"
+    },
+    "godot/assets/ui/unit-icons/03.png": {
+      "bytes": 14109,
+      "sha256": "c070ad27e2899ebddba74ea674fd49f504cfc965d20940fa5a5263b86f9831ad"
+    },
+    "godot/assets/ui/unit-icons/03.png.import": {
+      "bytes": 931,
+      "sha256": "49e45815b86b3f48117b95748b8a401e899d3e24d216dee1014bf864cbab0272"
+    },
+    "godot/assets/ui/unit-icons/04.png": {
+      "bytes": 13040,
+      "sha256": "49227ff2415fa30e0797a74385e7ec3a0b3113f04bebaff2bc8d414a60dc1b21"
+    },
+    "godot/assets/ui/unit-icons/04.png.import": {
+      "bytes": 931,
+      "sha256": "3f5af7bebe082acefc31de73ae449836a2727f1b7795281d6ceb5de70a3988fd"
+    },
+    "godot/assets/ui/unit-icons/05.png": {
+      "bytes": 10637,
+      "sha256": "e5dfa6445bdc861db2b069c302f3a8021f936ee9742bd25b1e62e1f43e276c57"
+    },
+    "godot/assets/ui/unit-icons/05.png.import": {
+      "bytes": 931,
+      "sha256": "acfb15aa886e084a203c3e50321f374238e09f28e3b845f46dca9746ce785352"
+    },
+    "godot/assets/ui/unit-icons/06.png": {
+      "bytes": 14194,
+      "sha256": "c378904c112f3f174533f67100514cd60b38bf21847404542f5ccc06e4ab9359"
+    },
+    "godot/assets/ui/unit-icons/06.png.import": {
+      "bytes": 931,
+      "sha256": "8eb9332e24a7c08c930a239a8d8cc6547d690181dd91ab9ecf34829ef655c2c4"
+    },
+    "godot/assets/ui/unit-icons/07.png": {
+      "bytes": 15458,
+      "sha256": "dd54e80334f1dfbed41b1fd8d2bbf1812e301ddccbe5ffe362202fd66aefc87a"
+    },
+    "godot/assets/ui/unit-icons/07.png.import": {
+      "bytes": 931,
+      "sha256": "ceb4d017aa8bd8426d5c380ce2af028efe6cbcb5f427d584562fecd231722e8c"
+    },
+    "godot/assets/ui/unit-icons/08.png": {
+      "bytes": 13517,
+      "sha256": "3e296653432e97cdaa115c80b6bb5f69c7dcef545e06c54f91e4cadfc80a513c"
+    },
+    "godot/assets/ui/unit-icons/08.png.import": {
+      "bytes": 931,
+      "sha256": "7dc0ffb172a43a2acdba912fb5a918e451f6db73df98f40bb65f5614ee8a94fb"
+    },
+    "godot/assets/ui/unit-icons/09.png": {
+      "bytes": 9648,
+      "sha256": "5c549410865834bc8b078223412fe776178eab9bf590f96632c36d5d7abd2cc6"
+    },
+    "godot/assets/ui/unit-icons/09.png.import": {
+      "bytes": 931,
+      "sha256": "d358cf0b0c929f973ff03fd78ad1f3b42995248254fa442813f90934ac0347bd"
+    },
+    "godot/assets/ui/unit-icons/10.png": {
+      "bytes": 12052,
+      "sha256": "b8420afa5b90c7117476f742238ed8d1ddff709e4c0fd39fac63e7414a40e11f"
+    },
+    "godot/assets/ui/unit-icons/10.png.import": {
+      "bytes": 931,
+      "sha256": "bf903a5be6bd14f4df4e8c2c8fc137dd98ad1c0d77d388608321e5108e34c6fa"
+    },
+    "godot/assets/ui/unit-icons/11.png": {
+      "bytes": 12646,
+      "sha256": "30e56d05ace39071ea3b651195702ce38adfc5ed88d99e1528c2ffdc72163c94"
+    },
+    "godot/assets/ui/unit-icons/11.png.import": {
+      "bytes": 931,
+      "sha256": "230164496b4a425ec47c6192de618416010d73eed3694994eda5d5b00d68b88d"
+    },
+    "godot/assets/ui/unit-icons/12.png": {
+      "bytes": 12831,
+      "sha256": "7b6d4a898917afacb65ed64fd749986b9814d69ed1a99ff3d161d6981b02cb47"
+    },
+    "godot/assets/ui/unit-icons/12.png.import": {
+      "bytes": 931,
+      "sha256": "495f284c460e4ec6a1bcba1c501c79ecc233abd0e18e911e6bb11f38a9600d62"
+    },
+    "godot/assets/ui/unit-icons/13.png": {
+      "bytes": 11688,
+      "sha256": "dc9d833b2e3f892d40fc939a73cce9a19a86e7a147bb7f30707b7796d2529923"
+    },
+    "godot/assets/ui/unit-icons/13.png.import": {
+      "bytes": 931,
+      "sha256": "72157e1bb466d1b798847cb2598699f03aec5d6816406a5b580f51b0fcd3dd40"
+    },
+    "godot/assets/ui/unit-icons/14.png": {
+      "bytes": 13246,
+      "sha256": "2061cb7bcbb8b9878e356783c5eef4a85e199a01d7c6b9f3e3c4640cbef2604d"
+    },
+    "godot/assets/ui/unit-icons/14.png.import": {
+      "bytes": 931,
+      "sha256": "ffc5433de40925101336401401c1250feea62df8364051220afba605a89f9806"
+    },
+    "godot/assets/ui/unit-icons/15.png": {
+      "bytes": 13503,
+      "sha256": "3731fbe483c5654cfbf987775a03f17980db4ebaf08efea15947b5301637b838"
+    },
+    "godot/assets/ui/unit-icons/15.png.import": {
+      "bytes": 930,
+      "sha256": "8663f11148b70de711269e1a13729f59f5045db25475384b46909e55c0e380bc"
+    },
+    "godot/assets/ui/unit-icons/16.png": {
+      "bytes": 13676,
+      "sha256": "d5dab15b45e0ccec782bd08b1a2dccef78f2088c1393cb2260148030ea2c3224"
+    },
+    "godot/assets/ui/unit-icons/16.png.import": {
+      "bytes": 931,
+      "sha256": "5054bbe2c642ab2a2f1920752b1d50a07f6a7db9fc0df0c1fed2f223c0c40156"
+    },
+    "godot/assets/ui/unit-icons/17.png": {
+      "bytes": 12755,
+      "sha256": "9b90714fc9d9fe98b541e8081d71791edb14f8a73c732c0f64ec12bcfcc73b20"
+    },
+    "godot/assets/ui/unit-icons/17.png.import": {
+      "bytes": 931,
+      "sha256": "31d48f7971d10238e055b0d72e0dfccc61a8682994c3ce245e44946bbdeac9ed"
+    },
+    "godot/assets/ui/unit-icons/18.png": {
+      "bytes": 14046,
+      "sha256": "e6a46a657d17419841a5ea2a228c78b0c37bd68d87bada4a3d864748620d062f"
+    },
+    "godot/assets/ui/unit-icons/18.png.import": {
+      "bytes": 931,
+      "sha256": "40368eec8449ae09d20e03aea9d595a48e9c1a3810526c22539060df14367aa5"
+    },
+    "godot/assets/ui/unit-icons/19.png": {
+      "bytes": 10475,
+      "sha256": "92c314946e285f395300f2a329402090fa7aa429742b6f42874809860d937686"
+    },
+    "godot/assets/ui/unit-icons/19.png.import": {
+      "bytes": 931,
+      "sha256": "44a001c44e9f9d227d01b84927a27c12e41714c4343c33984ae270fabe2d1480"
+    },
+    "godot/assets/ui/unit-icons/20.png": {
+      "bytes": 10790,
+      "sha256": "d5fd4b04f8b798a94d57c1060c5b7bf832cdb85635e86720d2cca85d67d69f58"
+    },
+    "godot/assets/ui/unit-icons/20.png.import": {
+      "bytes": 931,
+      "sha256": "5144733ccf49222d564e628e55e950ec2ed9d0c459066797ba8e5f9e4ac004bb"
+    },
+    "godot/assets/ui/unit-icons/21.png": {
+      "bytes": 14526,
+      "sha256": "78b15f4b2c6888b1f2b103ffb877c2907abf727dd60ccf19df15bde98d25bd7b"
+    },
+    "godot/assets/ui/unit-icons/21.png.import": {
+      "bytes": 931,
+      "sha256": "8be223cdf99fee587ac0d09e2aec6506bebd7cb05e590b6977180cf88d596b82"
+    },
+    "godot/assets/ui/unit-icons/22.png": {
+      "bytes": 13977,
+      "sha256": "d47146c26cbc3170da63fee042bae7318f4070c0681498609d22d84f2c91cf4c"
+    },
+    "godot/assets/ui/unit-icons/22.png.import": {
+      "bytes": 931,
+      "sha256": "a9a6df700123304cb9c5789d2a6b9ae4b3569896adab0be5188241264edcf0f7"
+    },
+    "godot/assets/ui/unit-icons/23.png": {
+      "bytes": 10701,
+      "sha256": "a00a48b5dda2234189aa84ce2d8e1bdf19080dc82548296508a2cb80bb2104eb"
+    },
+    "godot/assets/ui/unit-icons/23.png.import": {
+      "bytes": 931,
+      "sha256": "c68e9eafdf0672c18948bd7c23ca4ea03fba3671922fd0cb65933a49d318f9d5"
+    },
+    "godot/assets/ui/unit-icons/24.png": {
+      "bytes": 11961,
+      "sha256": "43d2832f35f0fc6fcb68bfe242321414184aee71ca0454abe058bd5f15785ea9"
+    },
+    "godot/assets/ui/unit-icons/24.png.import": {
+      "bytes": 930,
+      "sha256": "73da52449cf93b6afca73baf803b54ac6b99c109b29aa8f2b35677f054a93986"
+    },
+    "godot/assets/ui/unit-icons/25.png": {
+      "bytes": 15072,
+      "sha256": "a797ce8f9b3e7ea831b4b92833491ebfb0233a6b8e71488f5a14ad05b65d0d8e"
+    },
+    "godot/assets/ui/unit-icons/25.png.import": {
+      "bytes": 931,
+      "sha256": "b6207030ac3ba75db4eb786e28e0b4ae0e8f6d865a40296ac097248e876dc6c4"
+    },
+    "godot/assets/vfx/death_wave.svg": {
+      "bytes": 543,
+      "sha256": "ee050f02421d814337824fe7cf7e7e9acbff1ecc5cad1ddd341c864678ebad5f"
+    },
+    "godot/assets/vfx/death_wave.svg.import": {
+      "bytes": 1042,
+      "sha256": "b45d65ccaf33b469d7dd52d0a15dcaab5dc39c4e872287075fc78819bbf0e42b"
+    },
+    "godot/assets/vfx/flare.png": {
+      "bytes": 1919,
+      "sha256": "21577cba0c9a517c0fcc5ce8f4c45f6a855d3c7b288f6664942bd9ad88e1803b"
+    },
+    "godot/assets/vfx/flare.png.import": {
+      "bytes": 929,
+      "sha256": "c01036fdab3b3875b7e4d2425ba3245f833c3a24a423f394686390e3f968e8fa"
+    },
+    "godot/assets/vfx/flow_noise.png": {
+      "bytes": 11298,
+      "sha256": "3e96a2eb657203c590ef92754ec16c22da94252ab344fded8ba20176d0fd3d43"
+    },
+    "godot/assets/vfx/flow_noise.png.import": {
+      "bytes": 944,
+      "sha256": "5913daa184e6ea62b07a0fa9361504b64199d7d60fb04d0091d1d8c6b7b618e3"
+    },
+    "godot/assets/vfx/glint.png": {
+      "bytes": 1683,
+      "sha256": "fd3aa641ed9d5083e0595db8559334801a8c7a56e72187673680931d47736661"
+    },
+    "godot/assets/vfx/glint.png.import": {
+      "bytes": 930,
+      "sha256": "d5f817d2f414d756eba4cf23a986b956ada7e63eb932d07f007e6ca492950a96"
+    },
+    "godot/assets/vfx/glow.png": {
+      "bytes": 3862,
+      "sha256": "b0840116be39bf10aaae41b28d167b46085c857c38eda9e660664993415fb538"
+    },
+    "godot/assets/vfx/glow.png.import": {
+      "bytes": 927,
+      "sha256": "773f742ec1f6e76d57604fb2227980641d06cfcb2b0e0bb5fc3e9bf3b080cdae"
+    },
+    "godot/assets/vfx/magic_flow.gdshader": {
+      "bytes": 1814,
+      "sha256": "ee9599ab5cac6824fed982fe3cecf0e97f178b8189eed62ef29a0f264a801e3f"
+    },
+    "godot/assets/vfx/magic_flow.gdshader.uid": {
+      "bytes": 20,
+      "sha256": "9fb66dabee99ab0efd2b5b9d291dc6d797ce2b0607a52dc8efd8e37c225d966a"
+    },
+    "godot/assets/vfx/pressure_wave.png": {
+      "bytes": 9371,
+      "sha256": "633b537d8ee458aeeec4e94b19c7f91298acabc48c3eaf865e8b152ddda56c7c"
+    },
+    "godot/assets/vfx/pressure_wave.png.import": {
+      "bytes": 954,
+      "sha256": "13e7aeb46021780ae4ee428e12df8a92fe40e5795ba4962199cd5b8346fdc7a9"
+    },
+    "godot/assets/vfx/smoke.png": {
+      "bytes": 6092,
+      "sha256": "1a60091de5eb78da889958448d26969b785fe98fc6397a3d1b850be711515132"
+    },
+    "godot/assets/vfx/smoke.png.import": {
+      "bytes": 929,
+      "sha256": "42be26566f0a6e4d79b094548250dadf4c7e39e25e83a97ff936456f9d8739ce"
+    },
+    "godot/assets/weapons/atlas_manifest.json": {
+      "bytes": 3398,
+      "sha256": "3003183b2d59237f1fec1fff305bc3c3595b99af566d6ae38ff415212e1bb5bf"
+    },
+    "godot/assets/weapons/weapon_00.png": {
+      "bytes": 36569,
+      "sha256": "927bf1d3c09ddd0a9704359664a682d2d5d5cc9adff2530408cf10cccadb871f"
+    },
+    "godot/assets/weapons/weapon_00.png.import": {
+      "bytes": 946,
+      "sha256": "20b8a9362daf37e5889f77d306c72ea4e196f54fa2060c64cce7e8da53ebbed7"
+    },
+    "godot/assets/weapons/weapon_01.png": {
+      "bytes": 35580,
+      "sha256": "a160e90140c86195f32b6e9f64f75de4202987e75c973df748c12026960ac38f"
+    },
+    "godot/assets/weapons/weapon_01.png.import": {
+      "bytes": 946,
+      "sha256": "20aef51d80c8df2a68fb61d80f5de4b856cbc1ab201eb29781f8896bf9cfe250"
+    },
+    "godot/assets/weapons/weapon_02.png": {
+      "bytes": 13329,
+      "sha256": "8beac96afa2ba6c804fae2adabcf6b5076518a97b620fea4b74a030dfec72e75"
+    },
+    "godot/assets/weapons/weapon_02.png.import": {
+      "bytes": 946,
+      "sha256": "960c2bc55a44c7803c613499f9c7598172769bd0bc83a68f33e81f2460869a82"
+    },
+    "godot/assets/weapons/weapon_03.png": {
+      "bytes": 44175,
+      "sha256": "49801c14fd86b82b12fc5263fbeac1526dcbb33a964360530ea3c5b3185465f1"
+    },
+    "godot/assets/weapons/weapon_03.png.import": {
+      "bytes": 946,
+      "sha256": "454b4b5c83f9784815d9b2bbec44632ac2f8cf1f2ebbc7b7977a2c4524276c30"
+    },
+    "godot/assets/weapons/weapon_04.png": {
+      "bytes": 35916,
+      "sha256": "cbe6c520fd5eae81c4a5e4c4c7c79fcd77460da2f267034f6bb0b103bf110a45"
+    },
+    "godot/assets/weapons/weapon_04.png.import": {
+      "bytes": 946,
+      "sha256": "e02265979a9c6a0ec19d1213b30f8e667d38fdbffc48ae4c65b8f25ae4e80342"
+    },
+    "godot/assets/weapons/weapon_05.png": {
+      "bytes": 13192,
+      "sha256": "56c6b1613621a7d85baa80c3f5c02a18c9ab21c933dfff5e2e07b7c8fe0b0797"
+    },
+    "godot/assets/weapons/weapon_05.png.import": {
+      "bytes": 945,
+      "sha256": "5bdd0bd8a4764af18316ff7a98ff3dd5158cda7cda0e4d60c8d4bb03a2d770f6"
+    },
+    "godot/assets/weapons/weapon_06.png": {
+      "bytes": 11932,
+      "sha256": "27240716793711a760064ffe4ab67832128cf27eeff8ec10316027b074dba779"
+    },
+    "godot/assets/weapons/weapon_06.png.import": {
+      "bytes": 946,
+      "sha256": "d561ccbb061cfad3dfe2d21c9a63b29ef81982d90dac54a97a92b08861c8f2d9"
+    },
+    "godot/assets/weapons/weapon_07.png": {
+      "bytes": 8476,
+      "sha256": "79622b4b73ce6b4119040c05470f9236d9f85177e3940d9e23a0d136d35dcc79"
+    },
+    "godot/assets/weapons/weapon_07.png.import": {
+      "bytes": 946,
+      "sha256": "a5f78b91d78baa66b343d8ac7b6893e022c09c239f0548839cbfe2d23e46ad73"
+    },
+    "godot/assets/weapons/weapon_08.png": {
+      "bytes": 9348,
+      "sha256": "949294f62d6b0fb681399806838ab46bdd477a2e70e19f0440ae4bba947201ae"
+    },
+    "godot/assets/weapons/weapon_08.png.import": {
+      "bytes": 946,
+      "sha256": "34976d9dd7815c4beb5158ebbfdc29c9cf1ad7a70d1a7c24b30aaeaf78e6bff3"
+    },
+    "godot/assets/weapons/weapon_09.png": {
+      "bytes": 10052,
+      "sha256": "7a9329ed650bb835060544e96fffc34a0d0739d4cefbcc78b537769a17ac9e1c"
+    },
+    "godot/assets/weapons/weapon_09.png.import": {
+      "bytes": 945,
+      "sha256": "28f50aec5540c05f8312fafdc8a1718706bf7cc7bb695ffcaf9708fddc1fc02b"
+    },
+    "godot/assets/weapons/weapon_10.png": {
+      "bytes": 92989,
+      "sha256": "002468f87ae8004f245e833cea81b7a98f5f075a6dc7fc745df6f2b9155cce96"
+    },
+    "godot/assets/weapons/weapon_10.png.import": {
+      "bytes": 946,
+      "sha256": "cf65b5c17215c11869b28b910ab2ffd77aa3bd86e0feb79ff21503358d8b8fde"
+    },
+    "godot/assets/weapons/weapon_11.png": {
+      "bytes": 4144,
+      "sha256": "59141e9a74fea7b8e5ccee9078846a0efaaab2e3628f0fd0f6c472b4c1ca8322"
+    },
+    "godot/assets/weapons/weapon_11.png.import": {
+      "bytes": 946,
+      "sha256": "32db278a512b38180964b091bf59205a2d704cb4bab94aeac64ab9e94d1509b4"
+    },
+    "godot/assets/weapons/weapon_12.png": {
+      "bytes": 83419,
+      "sha256": "4d115a1d245b5649ee6d2891ed3b837c6cae6d89ced2db2675b847ca5e6d9628"
+    },
+    "godot/assets/weapons/weapon_12.png.import": {
+      "bytes": 945,
+      "sha256": "1e2e7205b3c872fc88d5734cc9e3cda16a26ce3be6379a9a74c7d70f0f62f130"
+    },
+    "godot/assets/weapons/weapon_13.png": {
+      "bytes": 13287,
+      "sha256": "7bde53b640916ec96154e7c0397ad12c40efbb20967f64e461045c38c157f5d8"
+    },
+    "godot/assets/weapons/weapon_13.png.import": {
+      "bytes": 946,
+      "sha256": "9993f63d87422184a2cf214968478b675e86e084fa76f03b15aee6230107972c"
+    },
+    "godot/assets/weapons/weapon_14.png": {
+      "bytes": 36939,
+      "sha256": "2c483354927debcd13de93b3c17406e00b588cb1660e9b67f859182eab8d6f36"
+    },
+    "godot/assets/weapons/weapon_14.png.import": {
+      "bytes": 946,
+      "sha256": "0953bf3eae841d1066fcbd03d7741855e49dc688c717d586ca0dad8e29ea9f22"
+    },
+    "godot/assets/weapons/weapon_15.png": {
+      "bytes": 15759,
+      "sha256": "78cdd4fc9b6592d58d8020a615695d6d1bb23d7eb97b198924638816d9a919e5"
+    },
+    "godot/assets/weapons/weapon_15.png.import": {
+      "bytes": 946,
+      "sha256": "28b0f35a1c92b427b882e23c845ae2c772c70b233eb674e48aa9d7b5d6d87034"
+    },
+    "godot/assets/weapons/weapon_16.png": {
+      "bytes": 22728,
+      "sha256": "86db87298be93d02ae9fa761c1483932071e1efa87abe57aa30db9730b3ad192"
+    },
+    "godot/assets/weapons/weapon_16.png.import": {
+      "bytes": 946,
+      "sha256": "3a70183e5407bb524833dfb3b59fd594773b081cdfb5373100717a0b7f1a77fb"
+    },
+    "godot/assets/weapons/weapon_17.png": {
+      "bytes": 19247,
+      "sha256": "1c67d7e8b847df1fec884e195e4389275cde4a35c723ac008bb1aa99a169194a"
+    },
+    "godot/assets/weapons/weapon_17.png.import": {
+      "bytes": 946,
+      "sha256": "a984c0f118ba67281b8d12d8e2adce15fec87f347f6b1c4d8cabaf2a52e2ae32"
+    },
+    "godot/assets/weapons/weapon_18.png": {
+      "bytes": 6528,
+      "sha256": "5e1b616c013940c5877442dbf20af2e3a394aee46c32dde98c05d58f35a46cae"
+    },
+    "godot/assets/weapons/weapon_18.png.import": {
+      "bytes": 946,
+      "sha256": "c25fee6dbd34eae52955882cdc3f6d929b21779670a425a174f4d7e4ea1eae21"
+    },
+    "godot/assets/weapons/weapon_19.png": {
+      "bytes": 25763,
+      "sha256": "355329bdfb34deb719f89f1cc7216b17358330a46e69956278a9943db1645631"
+    },
+    "godot/assets/weapons/weapon_19.png.import": {
+      "bytes": 946,
+      "sha256": "05b6b8b21c2a908227b56ef15c8fc4d9e579fd07acbd4df503a5964aca5dd64e"
+    },
+    "godot/assets/weapons/weapon_20.png": {
+      "bytes": 19537,
+      "sha256": "ff8b973a20d4aa54affe3f54c4e42403d16a8420241f89db0584a60186f61cee"
+    },
+    "godot/assets/weapons/weapon_20.png.import": {
+      "bytes": 946,
+      "sha256": "ca3a14b49a89415a5909a5ea6ba8c07581cc76ea4c1894e3267a7e7dbd127bf3"
+    },
+    "godot/assets/weapons/weapon_21.png": {
+      "bytes": 21719,
+      "sha256": "dbf67a62a4bb8519741d1cdc1991eb8f4a7649db81a3d3c0100618a899456571"
+    },
+    "godot/assets/weapons/weapon_21.png.import": {
+      "bytes": 946,
+      "sha256": "3505f3b392f3295474eb7ce9dbfa63562a18c30a052e74dcb469d635eb261da1"
+    },
+    "godot/assets/weapons/weapon_22.png": {
+      "bytes": 7102,
+      "sha256": "79d33f319e9afb6a8f5869146b3df013fd6becdc36f9571a3a5f1b3feb6ddf81"
+    },
+    "godot/assets/weapons/weapon_22.png.import": {
+      "bytes": 946,
+      "sha256": "4aece56147e1de34f97a10a8269e316d9473d7ca430d76b7e0fc44c6b177e467"
+    },
+    "godot/assets/weapons/weapon_23.png": {
+      "bytes": 17597,
+      "sha256": "f5f11ab39a55506cd0db1bc65785bcadcc89813e4f9288b3424ab3e9d36deb38"
+    },
+    "godot/assets/weapons/weapon_23.png.import": {
+      "bytes": 946,
+      "sha256": "5adf275e7a8aa067008930b7c9272c070975e2cd82ac07db0ee92cace3d8f39e"
+    },
+    "godot/assets/weapons/weapon_24.png": {
+      "bytes": 10475,
+      "sha256": "d7ec09d2dab1fc33fa72e3fcd2eb65eea88c2dd5fbf92c9f7b62a62663b47a88"
+    },
+    "godot/assets/weapons/weapon_24.png.import": {
+      "bytes": 946,
+      "sha256": "d1bd0ae09135d6e07625623052c5e59278d395003ff7a79cba6f893377f1a9c7"
+    },
+    "godot/assets/weapons/weapon_25.png": {
+      "bytes": 17477,
+      "sha256": "e4486c154f6819dbb77055555644017f1450c6eab8ae35e710733d9d4ed3fe74"
+    },
+    "godot/assets/weapons/weapon_25.png.import": {
+      "bytes": 945,
+      "sha256": "9313931e241058edafa9db81f638863713cb622d30341097aca8a95e3c86f6af"
+    },
+    "godot/data/archer.tres": {
+      "bytes": 928,
+      "sha256": "59af356748219e7874f1fbb53f1c1d4ab9dd08b437f6c1a0780c23ecb5a2a3f7"
+    },
+    "godot/data/assassin.tres": {
+      "bytes": 899,
+      "sha256": "e605874d330960c1e03aa6f11586eeeb5aef12f435557d7307b37db7d7645148"
+    },
+    "godot/data/bomber.tres": {
+      "bytes": 886,
+      "sha256": "842c833a68bd00cca4737cbecf069dd0fc2193eed58c91d11fa1c7c38192ee61"
+    },
+    "godot/data/dolphin.tres": {
+      "bytes": 876,
+      "sha256": "301da1f810187499f42acd7203428153ce94072e90bcd4eb30d48c135195ee57"
+    },
+    "godot/data/fanatic.tres": {
+      "bytes": 882,
+      "sha256": "4794c736a2a89957e03fd77570cf66624f6eee3fc667c2018054db518198c5d2"
+    },
+    "godot/data/frog.tres": {
+      "bytes": 888,
+      "sha256": "32637e361a6a15672c5c7fc261606cbe9c1ea15e87d35fae41b786f843c3cc95"
+    },
+    "godot/data/galaxy.tres": {
+      "bytes": 878,
+      "sha256": "aa8c9c7d518d9a268749f80746529ab1d64eba4cf77023541f896388575a7a7e"
+    },
+    "godot/data/greatsword.tres": {
+      "bytes": 883,
+      "sha256": "78c6528bf4f93a443429825614df4c82f628aefe4117199b6ab3dcda9fab941d"
+    },
+    "godot/data/guardian.tres": {
+      "bytes": 884,
+      "sha256": "253b7f0668ba85d8ba3842a52d7405d5bab5c3d54b9547bd23e07d360303f942"
+    },
+    "godot/data/healer.tres": {
+      "bytes": 900,
+      "sha256": "97cb112ad57aff16c8bfb6ff1ccbb51ed95f2b778bf095e0b074459f53905c2f"
+    },
+    "godot/data/hero.tres": {
+      "bytes": 884,
+      "sha256": "ba6094878e68cfac4fbc261033348ef7d6a9b8a853abc2006dc03b65c0dcd397"
+    },
+    "godot/data/items/boots.tres": {
+      "bytes": 362,
+      "sha256": "d901461192649b90621a630fd987951522849dcd8ba5b13841b2cda38add8be6"
+    },
+    "godot/data/items/chargeTotem.tres": {
+      "bytes": 362,
+      "sha256": "f88191ee39fb2577cd29a09632e03641caee3ac3a1e5366cd65930b0c51b7ab6"
+    },
+    "godot/data/items/fang.tres": {
+      "bytes": 369,
+      "sha256": "74d468a358351e69c9d41e431987a990d9cf184d277d6b76485109b833e6a33a"
+    },
+    "godot/data/items/goldToken.tres": {
+      "bytes": 347,
+      "sha256": "cef7da0424449e631c9bae21d10ad70ced89fcc5bb69ef024f372a7d8a5ae870"
+    },
+    "godot/data/items/greenNecklace.tres": {
+      "bytes": 350,
+      "sha256": "2d34c09e5ea4a9daadbb5839015cf8b2541ac6f76e040d50198e960f5090c15f"
+    },
+    "godot/data/items/predatorFang.tres": {
+      "bytes": 360,
+      "sha256": "e258156b5a28bb1077c49f00ece082a31048e4db5fd63ac09c459a39b4087efc"
+    },
+    "godot/data/items/reengrave.tres": {
+      "bytes": 353,
+      "sha256": "62dc6696d810ddcafc32c3619286c477bd547d6141bf66e220e2c160def1e0c0"
+    },
+    "godot/data/items/thickAwl.tres": {
+      "bytes": 447,
+      "sha256": "d660c24d8ea51db723cdbc889a02cd96b690b26671a13db8385e50536c75350f"
+    },
+    "godot/data/items/vigorTotem.tres": {
+      "bytes": 363,
+      "sha256": "1c2d414e2f23767f8f748d0edc3d23404197e60de49bfba9d8c920456352cccb"
+    },
+    "godot/data/items/vital.tres": {
+      "bytes": 362,
+      "sha256": "21738b69370bbde706c0830ae0da660728d7e9d177e0bfcfa66f91497b5a4998"
+    },
+    "godot/data/lightning.tres": {
+      "bytes": 897,
+      "sha256": "084e34fcb998bd066c93e3308f75366ef849c7508998b011c933c15a66f56155"
+    },
+    "godot/data/machine_gun.tres": {
+      "bytes": 882,
+      "sha256": "fe5d4493502ae9a24517b0e9d1b66b3d1aa0dfa7be5efe287662efcb032995b1"
+    },
+    "godot/data/mage.tres": {
+      "bytes": 933,
+      "sha256": "04affc58885cb136d08eddfebcc931fab1524c4ff03bda28514abaee0791eb1d"
+    },
+    "godot/data/mirror.tres": {
+      "bytes": 885,
+      "sha256": "a0851dee4d77ac1ded0ed642279f0c5a0f52220e97d9b0b45383cf3c6e398105"
+    },
+    "godot/data/paladin.tres": {
+      "bytes": 882,
+      "sha256": "f1f29e05dbc2930937a6bab1b7e2bfb769d521f7fbb64a9469dd36b6442566e8"
+    },
+    "godot/data/predator.tres": {
+      "bytes": 881,
+      "sha256": "383051714120aa4fd871d812366f178f31da5666227cb4920b8f9895a779501d"
+    },
+    "godot/data/puppet.tres": {
+      "bytes": 884,
+      "sha256": "fe25fc71dea0d3b234df68c9612f8a5cd08917effefc6d14e8044106486357c6"
+    },
+    "godot/data/rps.tres": {
+      "bytes": 890,
+      "sha256": "d551f2f0c55142ccfce46d84c1b9619531fc7fdb2f846c56e2da5974d7af707a"
+    },
+    "godot/data/satellite.tres": {
+      "bytes": 883,
+      "sha256": "ed245e68f38b2a412c2667e82e7eb517d77f1fe66ea0d860e4d05f3ebd0bc27b"
+    },
+    "godot/data/shotgun.tres": {
+      "bytes": 878,
+      "sha256": "5d1620d6b576d5947ccf630189c3ff2f259fd589ecf65e7e727d339ee942b105"
+    },
+    "godot/data/sniper.tres": {
+      "bytes": 892,
+      "sha256": "da239cf8e75409d5fc2309a9aee7be52b117aa0819394deff821d9c578426efc"
+    },
+    "godot/data/strategy/charge.tres": {
+      "bytes": 331,
+      "sha256": "871432cced84c5a0207524897bbcc19f2fbc58b2cde26b63815325cb901dbf91"
+    },
+    "godot/data/strategy/evade.tres": {
+      "bytes": 352,
+      "sha256": "91dbdef3fc626963f8f74e2078af107aac4a4ea6ed2ad181788a89680d17a043"
+    },
+    "godot/data/strategy/iron.tres": {
+      "bytes": 357,
+      "sha256": "54a67da9cf7c7dbb2ae40ae587a006c003e6553a1e80384c9e561201719345e1"
+    },
+    "godot/data/strategy/mango.tres": {
+      "bytes": 341,
+      "sha256": "b166c0a7dada1018abfdf2295925ee6cad5d794341551933a4f4581b625dd28c"
+    },
+    "godot/data/strategy/shield.tres": {
+      "bytes": 341,
+      "sha256": "29cb63ca34c2039311957de5e8cc1bd745b017d31e8ef38884ab814376e1f65d"
+    },
+    "godot/data/strategy/taunt.tres": {
+      "bytes": 347,
+      "sha256": "af7fa4de00e3982fa9d01d8b99dee5481b8e888d28ea3d8cd9c1a1dc38cf9d1b"
+    },
+    "godot/data/swordsman.tres": {
+      "bytes": 879,
+      "sha256": "717c6b61fcca82a9fdeb7e843297497cd5df84d25110a279c5884ca8636f4cb2"
+    },
+    "godot/data/tank.tres": {
+      "bytes": 878,
+      "sha256": "4456b7662688ddf0f7655546dfe026b8908e40f8615fbc0715774e56b8a5c6b7"
+    },
+    "godot/data/ufc.tres": {
+      "bytes": 883,
+      "sha256": "56c3ae4467aa42e71482fa22882fac4218565e1123d7ba0be1c9e37d144d2747"
+    },
+    "godot/data/warrior.tres": {
+      "bytes": 879,
+      "sha256": "584d46fa6afd28c4653d825647fef18ec7953d9f511822cb36f74e1f6746fca7"
+    },
+    "godot/migration/phase10-file-changes.json": {
+      "bytes": 11718,
+      "sha256": "52df944c4b8f3cb13f8762a289825c45dc4ed3e933c9b7a0ffba1711795007a2"
+    },
+    "godot/migration/phase10-godot-before-sha256.json": {
+      "bytes": 40032,
+      "sha256": "028e6f730da975cc75ebca2b5d51f0863e3a0c9946f901d5fa5e54e916b64528"
+    },
+    "godot/migration/phase10-web-rules.json": {
+      "bytes": 415265,
+      "sha256": "ff4958b8befba502c07029a484e18eae2576725b53a084319389bf45b190346f"
+    },
+    "godot/migration/phase10-web-sha256.json": {
+      "bytes": 4304,
+      "sha256": "684712145408adf0f2495e0473b92f44e7dfeaa40efbb7944ed68cc102baf62b"
+    },
+    "godot/migration/phase105-ai-golden.json": {
+      "bytes": 30468,
+      "sha256": "2e445a77cb0fd6135acfb00f7b61e9f8c5cd07b77c14b510ee162c7827dcd22b"
+    },
+    "godot/migration/phase105-comparison-summary.json": {
+      "bytes": 35811,
+      "sha256": "a9893aa0c6b30c404e3e3e3214f749af50609ef8f183b08fd060547be58d86c1"
+    },
+    "godot/migration/phase105-endpoint-scenarios.json": {
+      "bytes": 9937,
+      "sha256": "ebf98094b535cfcc8b4aa8063b659dc6aa7b29324bead9ab375180bf12b6bf16"
+    },
+    "godot/migration/phase105-file-changes.json": {
+      "bytes": 5062,
+      "sha256": "c018bd1ddcc2f55e7eaf68ef48ed5c0433f82157f49e94b08f539a2f8a14a5fe"
+    },
+    "godot/migration/phase105-fps-scenarios.json": {
+      "bytes": 4581,
+      "sha256": "31c8221aedabc9dc27e5bc488d2c59e0e228e14f202acf769337c1654de523b3"
+    },
+    "godot/migration/phase105-godot-openings.json": {
+      "bytes": 16468,
+      "sha256": "cfea0da35141fef7f9c24bc38cff07983629ea55f0609f5224fa1ee57d6c1b07"
+    },
+    "godot/migration/phase105-godot-reactions.json": {
+      "bytes": 636,
+      "sha256": "414bd3eb8c9f52d005377465cff2904f5171808bfd57bcac56e3cd4e90dbd8a3"
+    },
+    "godot/migration/phase105-gui-status.json": {
+      "bytes": 788,
+      "sha256": "4ba682be4833bbe75ae18f9adf7af4f158773ca875e86c03d5df30f106f5415f"
+    },
+    "godot/migration/phase105-scenarios.json": {
+      "bytes": 19735,
+      "sha256": "ebcbe2034d67fca835230a60ca173c001ce4643631676555110add955ca5da7a"
+    },
+    "godot/migration/phase105-trace-validation.json": {
+      "bytes": 115,
+      "sha256": "2c95c51bd66aa096498dfa94250874114a01216fe25fb60a4f49611eca6661e1"
+    },
+    "godot/migration/phase105-web-openings.json": {
+      "bytes": 17128,
+      "sha256": "6b2e76973a60d4ec9b5d3da1e66a7a4d449aad57e8f5967afb9162a4974fb638"
+    },
+    "godot/migration/phase105-web-reactions.json": {
+      "bytes": 628,
+      "sha256": "8337d27fd25f17bc84d61a12eb4a06944217cf342e2f51243704e980f60d3e30"
+    },
+    "godot/migration/phase105-web-sha256.json": {
+      "bytes": 4305,
+      "sha256": "1fdd278f200ec550bf153bd83ecaf130df8265494000e5cba912f51de38fd9fe"
+    },
+    "godot/migration/phase11-before-hashes.json": {
+      "bytes": 57825,
+      "sha256": "a7eba3c7f596f3bdb895fd488d34dda8c39228ea723f14fd207a1a4efaffebf6"
+    },
+    "godot/migration/phase11-file-changes.json": {
+      "bytes": 4013,
+      "sha256": "705fa605b319a7e68bd2bdcf143192779b4466fd57f49c52a5c6f38861508d57"
+    },
+    "godot/migration/phase11-gui-results.json": {
+      "bytes": 2309,
+      "sha256": "c05b58bbc0cf1309a56f1a0f6a081a80359db5a389c3c862dd4aaf271db86f28"
+    },
+    "godot/migration/phase11-restart-results.json": {
+      "bytes": 327,
+      "sha256": "29ffab594cc30847a3126f6c9630d332c2a580ad90b391e1ffa8b68d15ea8efc"
+    },
+    "godot/migration/phase11-web-before.json": {
+      "bytes": 1702,
+      "sha256": "ce92491827abf244872c756d7bc16aa99b097d021d110a1f6fab998eff0f8434"
+    },
+    "godot/migration/phase11-web-sha256.json": {
+      "bytes": 4305,
+      "sha256": "1fdd278f200ec550bf153bd83ecaf130df8265494000e5cba912f51de38fd9fe"
+    },
+    "godot/migration/phase12-X11-gui-results.json": {
+      "bytes": 1915,
+      "sha256": "38092b66cc582209730f2769d87dabbf69871d2e8be51d752eebb281793c1c2a"
+    },
+    "godot/migration/phase12-before-hashes.json": {
+      "bytes": 66442,
+      "sha256": "d0e76bb616579f9ce8b6218ceba5d2c1431494bf9c70804a0424272c59940e80"
+    },
+    "godot/migration/phase12-file-changes.json": {
+      "bytes": 14483,
+      "sha256": "b3b58e40e6d0747bca3fae84612d6fa59916728c18c1bf4df97a6fd88f8bff09"
+    },
+    "godot/migration/phase12-gui-initial.json": {
+      "bytes": 2317,
+      "sha256": "49df61034bcab92071ddc81cf27a386d94077427f289eed31c0cfd5c078158dd"
+    },
+    "godot/migration/phase12-headless-gui-results.json": {
+      "bytes": 2011,
+      "sha256": "588cffeee64b943e969876051518aae19cd21f1db0ca70e6019d0407ca0ddeae"
+    },
+    "godot/migration/phase12-protected-sha256.json": {
+      "bytes": 39919,
+      "sha256": "6cdbfe1ebfe0c7331b3123e7e1f2d60138f73e408be9a87f2673e526d8ce618b"
+    },
+    "godot/migration/phase12-restart-results.json": {
+      "bytes": 622,
+      "sha256": "8c4c5ca36c6655f874a6b77edd6e3f3f75255dd264cbaa0772a5a611b209fe6e"
+    },
+    "godot/migration/phase12-web-before.json": {
+      "bytes": 1701,
+      "sha256": "c1dfe2cbc56ded5880a02fd67ac35a06c4cc467564ad8979a5ca03f63d2be03e"
+    },
+    "godot/migration/phase12-web-sha256.json": {
+      "bytes": 4057,
+      "sha256": "f5b459f78f2a20842a02d53321ceb7b6a9ef2abb46b782d69f8b249ec6a74ec7"
+    },
+    "godot/migration/phase6-web-sha256.json": {
+      "bytes": 1702,
+      "sha256": "ce92491827abf244872c756d7bc16aa99b097d021d110a1f6fab998eff0f8434"
+    },
+    "godot/migration/phase7-web-sha256.json": {
+      "bytes": 1702,
+      "sha256": "ce92491827abf244872c756d7bc16aa99b097d021d110a1f6fab998eff0f8434"
+    },
+    "godot/migration/phase8-file-audit.json": {
+      "bytes": 6874,
+      "sha256": "9177712bea242df2c5435f1ec52fe6d55fd99ecdd867f0c42e077c345b2c222d"
+    },
+    "godot/migration/phase8-web-catalog.json": {
+      "bytes": 25091,
+      "sha256": "8dafbc843456e2e896f908781bdd3d308fdf75348e617c06a29ea7c6b23712d0"
+    },
+    "godot/migration/phase8-web-sha256.json": {
+      "bytes": 1701,
+      "sha256": "c1dfe2cbc56ded5880a02fd67ac35a06c4cc467564ad8979a5ca03f63d2be03e"
+    },
+    "godot/migration/phase9-file-audit.json": {
+      "bytes": 8356,
+      "sha256": "0535d7fc1f21b1d6fe5f18ce0739ff7f70189d9d684701b4fdbb3c3a632bdbc1"
+    },
+    "godot/migration/phase9-web-rules.json": {
+      "bytes": 57162,
+      "sha256": "9cc7c376419045794ab5c2c7e945c8c06ff0b8c14af25eb5419d3578dfc1d19f"
+    },
+    "godot/migration/phase9-web-sha256.json": {
+      "bytes": 1702,
+      "sha256": "ce92491827abf244872c756d7bc16aa99b097d021d110a1f6fab998eff0f8434"
+    },
+    "godot/project.godot": {
+      "bytes": 784,
+      "sha256": "5b14d25eb4f0caf22fcc2b194defdc9ca32f3fc05f1330c21577465da96af761"
+    },
+    "godot/scenes/battle.tscn": {
+      "bytes": 1300,
+      "sha256": "95710af61d1a2f0b739816d4e9fbdfad5cc7866b46300e698630113c31cbf840"
+    },
+    "godot/scenes/deployment.tscn": {
+      "bytes": 298,
+      "sha256": "6f0f0499af0895b1193a9a928463a7bd3c908179ce53bd2f7333f06c97ec58c3"
+    },
+    "godot/scenes/main_menu.tscn": {
+      "bytes": 287,
+      "sha256": "ad0e52f0b5a5021e1e31a305055580196c828e4fc146cc9689440fd85be3897b"
+    },
+    "godot/scenes/projectile.tscn": {
+      "bytes": 171,
+      "sha256": "29923f4ff587df98fe39918638022b4f19f98414659e6a15f94824307950f7d8"
+    },
+    "godot/scenes/room_battle.tscn": {
+      "bytes": 297,
+      "sha256": "2ace6deb57cf48264bd40548af46d7a475263ce8beb6137716e85bc921553f91"
+    },
+    "godot/scenes/tower.tscn": {
+      "bytes": 286,
+      "sha256": "46ab48ab00f0cea9fa74e75ad1a197ec8115c1e702ed5f83e8ad39f724eac00f"
+    },
+    "godot/scenes/unit.tscn": {
+      "bytes": 159,
+      "sha256": "cf2ed0432f935da0579692f3d3c897913c93e4352a4c50fdbd34c4500be21181"
+    },
+    "godot/scripts/abilities/archer_ability.gd": {
+      "bytes": 924,
+      "sha256": "ba6da2be29b885336c6d1fae8d583b991af483e5dbd3d2dd8d4d9769ab8f9f69"
+    },
+    "godot/scripts/abilities/archer_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "e34185a0f6f504975bf150c99ba83509194fa5c9f1ba65daf112528fc6482926"
+    },
+    "godot/scripts/abilities/assassin_ability.gd": {
+      "bytes": 1738,
+      "sha256": "f981130ba604793de30374b0ae661713f85d8ac61341b2819d0ce38729521776"
+    },
+    "godot/scripts/abilities/assassin_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "db74980c756083c631d7ab451f970045cbb7ed015a6b3db77bdf8b7ecdcc04a7"
+    },
+    "godot/scripts/abilities/bomber_ability.gd": {
+      "bytes": 2760,
+      "sha256": "79930646326eac19a77163e6e1a156665ebd52b355b1cd3a28a3961a03275063"
+    },
+    "godot/scripts/abilities/bomber_ability.gd.uid": {
+      "bytes": 19,
+      "sha256": "0399de9781e105ff5895c12c29bb56b88922a739d36081d4825f0f3fe09e997f"
+    },
+    "godot/scripts/abilities/dolphin_ability.gd": {
+      "bytes": 3431,
+      "sha256": "362a4fbc48b6aa55321103ab9fbe6a31f1bd624e755daf25b50d5f3e973d288d"
+    },
+    "godot/scripts/abilities/dolphin_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "77391b52cc14c39161cba6ecac4c70bbd7eb60f384461217209de24a00a8c73f"
+    },
+    "godot/scripts/abilities/fanatic_ability.gd": {
+      "bytes": 2770,
+      "sha256": "5354761408191455155abfaa7e3a6e48787e61dcb94291114eef88b84a1641ab"
+    },
+    "godot/scripts/abilities/fanatic_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "13688212b70b71e8f57fb5fca35447311d4a0091bad7b971dac4e9bdd02b48d9"
+    },
+    "godot/scripts/abilities/frog_ability.gd": {
+      "bytes": 3356,
+      "sha256": "80f8c4b20c67571969b9a8c053fa9d93bc8cfe6da38f1ab4aa81242ce9742d22"
+    },
+    "godot/scripts/abilities/frog_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "a194f895ff01fced452ace32eca80572bf8be282927afdebdb0169c0178c97a3"
+    },
+    "godot/scripts/abilities/galaxy_ability.gd": {
+      "bytes": 957,
+      "sha256": "7cb676f30a2dfb291b147a044b35b924c26d783c987c4917fecfa7a667a219e7"
+    },
+    "godot/scripts/abilities/galaxy_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "9983bcef6416380b0657111b5d3e72b1dcdd392cfacf5b1905301476de78b2db"
+    },
+    "godot/scripts/abilities/greatsword_ability.gd": {
+      "bytes": 3461,
+      "sha256": "17d316a4e55a8e4fc99e22abbfc98cc1edbb994f012c8da11b357d9b66c88f3a"
+    },
+    "godot/scripts/abilities/greatsword_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "6cdf5094dd041417f2702d3e23f1a6e79c42108601f8f9dcaa24bf48d45ea15e"
+    },
+    "godot/scripts/abilities/guardian_ability.gd": {
+      "bytes": 1382,
+      "sha256": "231b4bccacce5837d8a8c05f6d02c6aed1232618503adf0e77709607471af938"
+    },
+    "godot/scripts/abilities/guardian_ability.gd.uid": {
+      "bytes": 19,
+      "sha256": "7a7d90278d2eb97481bf7faf48babb52a44ca37c733a7789ac9bc5d15d64dbab"
+    },
+    "godot/scripts/abilities/healer_ability.gd": {
+      "bytes": 1817,
+      "sha256": "175936e07768723d7ad385403fcc50e49870e0ee8e0602f90a9d1dbe3c1a48cc"
+    },
+    "godot/scripts/abilities/healer_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "8105d061bcef40f7a4a593629069dc3b88ea41ea64fa9973e52268ab945d1960"
+    },
+    "godot/scripts/abilities/hero_ability.gd": {
+      "bytes": 1553,
+      "sha256": "0f575d69dd394a345d35a8431526113e5c486adf3247c07ac7f476bb90aef76c"
+    },
+    "godot/scripts/abilities/hero_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "169b1d48f19abff8b1e1777a5893f8d8c5a29dd11a1a2887752cc9f6c4dad503"
+    },
+    "godot/scripts/abilities/lightning_ability.gd": {
+      "bytes": 3105,
+      "sha256": "7a8731816ef5a0a84114980336c82e5db55f081b765d2f49bb424381d7e91d12"
+    },
+    "godot/scripts/abilities/lightning_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "718e21e4cdc8c476f3dd8494fbb4f9f8274274692af6bdbd0f17d08df70b1686"
+    },
+    "godot/scripts/abilities/machine_gun_ability.gd": {
+      "bytes": 4353,
+      "sha256": "7cc38a35908e8fa0229042950e8c9dcd9ab102014a109417637c8f16af098ff3"
+    },
+    "godot/scripts/abilities/machine_gun_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "22b3707afb337f2e7a77fe6bbd11aab1ab50c3f317cdf1a0a6a51b4389abdcab"
+    },
+    "godot/scripts/abilities/mage_ability.gd": {
+      "bytes": 1920,
+      "sha256": "664c8330417a638bda5a338bc2ac60df4c23b8007a3d4f47f7c318cb496ae9db"
+    },
+    "godot/scripts/abilities/mage_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "aeef9f60a312f3e063369b506cb88821a0af9b4bde8b5eec2436c3212f0d4697"
+    },
+    "godot/scripts/abilities/mirror_ability.gd": {
+      "bytes": 1937,
+      "sha256": "ac066199ca137ea53a00bcfb811083098615286845b07262c3f405ec5a11c50e"
+    },
+    "godot/scripts/abilities/mirror_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "c58cdf01d2702cfcbac880f49b4d65969aa036d5f9e2de7986d04240a0eccb3e"
+    },
+    "godot/scripts/abilities/paladin_ability.gd": {
+      "bytes": 3365,
+      "sha256": "3b291d64dc2bbcc99fef1072f4dc9aa8292b9893220c29d15d9190e1f0c167fb"
+    },
+    "godot/scripts/abilities/paladin_ability.gd.uid": {
+      "bytes": 19,
+      "sha256": "37f0042c9767c95b85df5d9f48286dab8aa3797a6c874be0a227a24680381119"
+    },
+    "godot/scripts/abilities/predator_ability.gd": {
+      "bytes": 1667,
+      "sha256": "b5a9d9faa63979e69e0abc8e87339e8d68cdc1b763720cd0214ef33fdf15d062"
+    },
+    "godot/scripts/abilities/predator_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "2b4450d94712cdf8b643c30c3787b40e721107df573e929b5edbe8c652cc5b97"
+    },
+    "godot/scripts/abilities/puppet_ability.gd": {
+      "bytes": 1701,
+      "sha256": "dc400bad9fffb5e26a84e558a12fc0afc56f84f69360efca305fca11bee77e86"
+    },
+    "godot/scripts/abilities/puppet_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "8f3cbd55f77a3325414436f623ddd06f510fac984cb133846ba3a9af0ef73465"
+    },
+    "godot/scripts/abilities/rps_ability.gd": {
+      "bytes": 1712,
+      "sha256": "c3c571b25bc206a00c7c603c4ba46afddf94e379853a1752452a6a2bcd61c4d7"
+    },
+    "godot/scripts/abilities/rps_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "86a1f78ef603f90805c27cf6cd4d073701f2e878a46ab953429c0b71b507b3cb"
+    },
+    "godot/scripts/abilities/satellite_ability.gd": {
+      "bytes": 3113,
+      "sha256": "0e3307d9ee298997ca7174e450840bdbf15db96bba50692d436ef42ae06b11b4"
+    },
+    "godot/scripts/abilities/satellite_ability.gd.uid": {
+      "bytes": 19,
+      "sha256": "e695816f80d81b63734dabcf28f3e9089a95b88bb2bff96219ee76c512f81fd6"
+    },
+    "godot/scripts/abilities/shotgun_ability.gd": {
+      "bytes": 1983,
+      "sha256": "b207b27a3b249a49e6e38ade8e2aaee76bbfb35aa018a6d83227954b84f7510a"
+    },
+    "godot/scripts/abilities/shotgun_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "e8e2a1fd9c371214fdcabd3aaf730a580f49ec4d5566357d54556ad239d68c1a"
+    },
+    "godot/scripts/abilities/sniper_ability.gd": {
+      "bytes": 3285,
+      "sha256": "c1b5830271350e3149b6e623f1f5b0e0f1edec35811e288ca03de7941752dc08"
+    },
+    "godot/scripts/abilities/sniper_ability.gd.uid": {
+      "bytes": 19,
+      "sha256": "6e8c9103df775c860a80c9422ea8f9769ef00f0ee81e5387f4ec8e24a7edabdd"
+    },
+    "godot/scripts/abilities/swordsman_ability.gd": {
+      "bytes": 3941,
+      "sha256": "9b63919325d78f7e0a1a95d30f42eb2f305234ab4abad4d996ae647a94988f88"
+    },
+    "godot/scripts/abilities/swordsman_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "92ab90a4a0f0a3581e18d4e533a8221150e7f68bb81bd99299c5f47424a53712"
+    },
+    "godot/scripts/abilities/tank_ability.gd": {
+      "bytes": 3452,
+      "sha256": "bf663d66f986fe6df9d94f2f860f79d3650b1c1c4c75d34d11733638941141c5"
+    },
+    "godot/scripts/abilities/tank_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "b1f527c76d07ea2c48ab1b3430209faf465c30bc6ffd41e66f47406c0e057870"
+    },
+    "godot/scripts/abilities/ufc_ability.gd": {
+      "bytes": 2694,
+      "sha256": "ff9e598d64f4a46b099543aa79a8741dbba8c69ee9948d10c27ae88bc0f53d6d"
+    },
+    "godot/scripts/abilities/ufc_ability.gd.uid": {
+      "bytes": 19,
+      "sha256": "d3ad90f5de9bfadc92e1d623447b3b9af7fc1e6ca31b17a04c16be4de7f6b7e8"
+    },
+    "godot/scripts/abilities/warrior_ability.gd": {
+      "bytes": 592,
+      "sha256": "ed98d0fd25379cbc129a8c6b7962059d5d9c69e62c56d27324d9be61ec800042"
+    },
+    "godot/scripts/abilities/warrior_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "88b1cb3c60fdcbea293ce4a5bdaafd332945622a4504e63159f63b0fdc3f3bc2"
+    },
+    "godot/scripts/ability_registry.gd": {
+      "bytes": 259,
+      "sha256": "9527ea4363e3796d9b40e3b360bbfa9588629c0168642d4e439b47a316cff79b"
+    },
+    "godot/scripts/ability_registry.gd.uid": {
+      "bytes": 20,
+      "sha256": "3483a48696b5acd0977e69a92db3f6e3d6f647ee44a2a131fa9708e2a94f8f7c"
+    },
+    "godot/scripts/area_evaluator.gd": {
+      "bytes": 12570,
+      "sha256": "e7159180887e933f1788d68f301f4ec9e436c15f340827ae9d21e6a9fbfb3180"
+    },
+    "godot/scripts/area_evaluator.gd.uid": {
+      "bytes": 20,
+      "sha256": "bec33927d1c52f8dc5e798d560f285f293c386370683f43f157f1d3af3267dbc"
+    },
+    "godot/scripts/attack_data.gd": {
+      "bytes": 708,
+      "sha256": "9e18d7d5aa03deedb09d242ffc6c05693f461eff6c85e02d082936d422063e65"
+    },
+    "godot/scripts/attack_data.gd.uid": {
+      "bytes": 20,
+      "sha256": "df1892437b7bb4856ccdf64f218a8542eafaf12958aa004be36edaa7a5df5cfe"
+    },
+    "godot/scripts/attack_instance.gd": {
+      "bytes": 1667,
+      "sha256": "932f46659be35edb833f1ea6cbfd76e7c1fa9aa07254809190fadb3c3bfea0a9"
+    },
+    "godot/scripts/attack_instance.gd.uid": {
+      "bytes": 20,
+      "sha256": "f0e8807e15b448c9dd331961b798083c960e8767d26d78912761894306886efd"
+    },
+    "godot/scripts/battle_brain.gd": {
+      "bytes": 31061,
+      "sha256": "d7fa495c0b6c2cd5f274b2edfdf34da618ce6f8b2f015d653edb3042f8792647"
+    },
+    "godot/scripts/battle_brain.gd.uid": {
+      "bytes": 20,
+      "sha256": "ee5a88b6b8e5219bda0de696fb442eb275655ef52780c1746bac9f772d49388c"
+    },
+    "godot/scripts/battle_clock.gd": {
+      "bytes": 2096,
+      "sha256": "8424be532bda41523ef3c4565f3eb2b268d4366e904de1aee9e8d90134f27286"
+    },
+    "godot/scripts/battle_clock.gd.uid": {
+      "bytes": 19,
+      "sha256": "4701c084778cd857193ff9d77f90829f9a91a69f8ae179c37b8d1a79b862f1a4"
+    },
+    "godot/scripts/battle_end_reason.gd": {
+      "bytes": 169,
+      "sha256": "3070d4f3a23b7a429baae88ca4319858b6845b8cdce90bae7f9e38562a535124"
+    },
+    "godot/scripts/battle_end_reason.gd.uid": {
+      "bytes": 20,
+      "sha256": "7062a91f0b831012983676340d478464abe1a138730c3b1f361e06aeff01f45b"
+    },
+    "godot/scripts/battle_manager.gd": {
+      "bytes": 17337,
+      "sha256": "b5d6b9f636c58254f520f91557abd1a660028b0fe20e5b697293c7a56cc72cad"
+    },
+    "godot/scripts/battle_manager.gd.uid": {
+      "bytes": 20,
+      "sha256": "731bfd2c90681d670bcc9df1d2d817586e38d32149419b0e155e392910c59126"
+    },
+    "godot/scripts/battle_result.gd": {
+      "bytes": 1799,
+      "sha256": "8c41eb22048f416761770bc2114dc1af8c58709cd297430ecd1f7e3bb0f0f956"
+    },
+    "godot/scripts/battle_result.gd.uid": {
+      "bytes": 20,
+      "sha256": "f4b95772806dddf973507e540fa2319f02c6402ca1930e8e18b2ad61b9f2dbfe"
+    },
+    "godot/scripts/battle_settlement.gd": {
+      "bytes": 6967,
+      "sha256": "728379775ce9aa62508172e87a791ad3ed459af0d38c607e9155d5e3a7f4374a"
+    },
+    "godot/scripts/battle_settlement.gd.uid": {
+      "bytes": 20,
+      "sha256": "321ecb08ce87398af0505d91954aaee2319cd9d5135a78892791e260494b6075"
+    },
+    "godot/scripts/battle_unit_factory.gd": {
+      "bytes": 4028,
+      "sha256": "3c20307e97f2a74bc492e7699d6cbedd9bb18ffb8a80627416fb77daebce2d1c"
+    },
+    "godot/scripts/battle_unit_factory.gd.uid": {
+      "bytes": 20,
+      "sha256": "f24762a6724fe89e8a2a0c8b2561182365011d7ce8cb1bb813fad539fe2c2c23"
+    },
+    "godot/scripts/battle_view.gd": {
+      "bytes": 827,
+      "sha256": "4818619602ab7382b0d5a18d491dc39b21d3b56fc3366b538633f7b4f4913573"
+    },
+    "godot/scripts/battle_view.gd.uid": {
+      "bytes": 19,
+      "sha256": "62723c89bfc4e18704d4e775642da801237374363a6ce7877690322357d3c904"
+    },
+    "godot/scripts/battle_zones.gd": {
+      "bytes": 8450,
+      "sha256": "de554729db38932432c010f4b1c638f6a247f1e1ec7aaf5a7145bca587d54898"
+    },
+    "godot/scripts/battle_zones.gd.uid": {
+      "bytes": 19,
+      "sha256": "9227b9aba5e02dc90ba05bf542a9bd416c16d39ec8f96006f96ae1cefe0e1452"
+    },
+    "godot/scripts/character_ability.gd": {
+      "bytes": 8526,
+      "sha256": "e5c0cdbea28c82b9a7e883b2e9fa683fb802532efdecbeddbe02f83310c152e1"
+    },
+    "godot/scripts/character_ability.gd.uid": {
+      "bytes": 20,
+      "sha256": "00403cfa2e4a550adb29ec9a795dd51f69c0d2596ae9340f622b006510b69173"
+    },
+    "godot/scripts/character_catalog.gd": {
+      "bytes": 561,
+      "sha256": "e68977ea97a901441c702d5e9d8b66035d1023c6dae7e56121e789ada8207e04"
+    },
+    "godot/scripts/character_catalog.gd.uid": {
+      "bytes": 20,
+      "sha256": "0fb125627b922043b2065b8b76d8d0269e17ad4121610ba935e8775e1d04cc9c"
+    },
+    "godot/scripts/character_combat.gd": {
+      "bytes": 2641,
+      "sha256": "285faae013f792d84c01ac5f207e64d452cc4310591e69290bbc1c8cb3951b74"
+    },
+    "godot/scripts/character_combat.gd.uid": {
+      "bytes": 20,
+      "sha256": "f0dcf9d79759f9b25ad9e341fd28a85b574e0208a311c7f2f444a25996d6a07d"
+    },
+    "godot/scripts/character_lifecycle.gd": {
+      "bytes": 13806,
+      "sha256": "dc7a0aca8c949ef70f7ddcb2d6dcf450255d80d52515ebe9a94af816fadb9a77"
+    },
+    "godot/scripts/character_lifecycle.gd.uid": {
+      "bytes": 20,
+      "sha256": "8bbbe45439ad0018e052489ccc8dd0ead76410a982ca77f229d8c5ab5f0790a1"
+    },
+    "godot/scripts/character_persistence.gd": {
+      "bytes": 3444,
+      "sha256": "fb7bd87f24648402e604845168ddba7fd705d76c282d976274d36f931e3db480"
+    },
+    "godot/scripts/character_persistence.gd.uid": {
+      "bytes": 20,
+      "sha256": "9e1cee1783b792b84c2996267f741fc4e701a7cc01f10f83b0850f5a256f77d0"
+    },
+    "godot/scripts/clash_resolver.gd": {
+      "bytes": 997,
+      "sha256": "df2d7ce88dcebdfc758c1c994b0668996c13426d0fd50dd27920540e2ef7b0dc"
+    },
+    "godot/scripts/clash_resolver.gd.uid": {
+      "bytes": 20,
+      "sha256": "cb175778c85a948e315b5e0f8de94519ed6df9d6353d17791e983f9f8108a9ff"
+    },
+    "godot/scripts/combat_controller.gd": {
+      "bytes": 9796,
+      "sha256": "7b99ecfe6d294124cf380fbe2143580fb2c0e76dded87b5a4e19ec839c14989d"
+    },
+    "godot/scripts/combat_controller.gd.uid": {
+      "bytes": 20,
+      "sha256": "bc21fd656de7adc6a397fd3a50c1071c24a98ec55b645e321a7e732b4170cfd5"
+    },
+    "godot/scripts/combat_perception.gd": {
+      "bytes": 1199,
+      "sha256": "5742f4c60cdcb6525c0b8f1adfcdce4e197edc2582a4ddd8d967cdfff14ce39e"
+    },
+    "godot/scripts/combat_perception.gd.uid": {
+      "bytes": 20,
+      "sha256": "80b49d09013b84a043037279d5b23a5c7033b6d756591bae6b7b9b44afc9b742"
+    },
+    "godot/scripts/combat_persistence.gd": {
+      "bytes": 1940,
+      "sha256": "a89e627a2070dc4cdc6d3894bf121e06195a8fb4c563e9f1ff5d95be16c4a9e8"
+    },
+    "godot/scripts/combat_persistence.gd.uid": {
+      "bytes": 19,
+      "sha256": "bdeb3a31b8eb52ed8aaafb17c9e2bdea3e6cbb936bd993087eee3d70cdac840b"
+    },
+    "godot/scripts/combat_rules.gd": {
+      "bytes": 1499,
+      "sha256": "96ce0ed47617f1daa0e98f359abc25c655f471674f255878efa26b8e8362626b"
+    },
+    "godot/scripts/combat_rules.gd.uid": {
+      "bytes": 19,
+      "sha256": "46efbe2f91f039eff2dea731b59e675a36758138fc3c790c0b93b829ae6aac04"
+    },
+    "godot/scripts/combat_stance.gd": {
+      "bytes": 539,
+      "sha256": "2c3c32217ea0786954bdd0794c914f0ed34dff07efdcb197a255c6862cc27e55"
+    },
+    "godot/scripts/combat_stance.gd.uid": {
+      "bytes": 20,
+      "sha256": "d40d189cf38192a20e6fd7b6c043d470de77aab5422bfd83178fc1226e6d3f37"
+    },
+    "godot/scripts/combat_wave.gd": {
+      "bytes": 1252,
+      "sha256": "fc402460f7d0f1994d4a2796d1f3934702afd629bdac46ed32afeb5c7f2258ac"
+    },
+    "godot/scripts/combat_wave.gd.uid": {
+      "bytes": 20,
+      "sha256": "cca97fdba586f7c21abd2ef02679a453fd14e427d66296ba87b233ec5eff45a9"
+    },
+    "godot/scripts/combo_ability.gd": {
+      "bytes": 546,
+      "sha256": "2430d146cf284995d160cb3e6e29638f4b385c90986acd7544a626183a2900b7"
+    },
+    "godot/scripts/combo_ability.gd.uid": {
+      "bytes": 19,
+      "sha256": "325da9f154f91f8e8ac0b366eda3fa387b0149c1821433e70eae8eadcc158ca8"
+    },
+    "godot/scripts/damage_outcome.gd": {
+      "bytes": 768,
+      "sha256": "203b5039a7e71a1f9a464309518a6ac59fb58142077159a15990cb4f3f252bf5"
+    },
+    "godot/scripts/damage_outcome.gd.uid": {
+      "bytes": 20,
+      "sha256": "51e0ebbf9388aa9ed0b7dc074ce16ddd1d603e94a8d66bcf12b6bdf0d014b95e"
+    },
+    "godot/scripts/damage_resolver.gd": {
+      "bytes": 10679,
+      "sha256": "b6ce2e83c8c90d34ec139713896111d9eca3a98072ca34a308d7ada5e2d47429"
+    },
+    "godot/scripts/damage_resolver.gd.uid": {
+      "bytes": 20,
+      "sha256": "8d49d626ff6a99479ead4d96825569744a771578afc6a465b82b1fb83ecffcac"
+    },
+    "godot/scripts/deployment_board.gd": {
+      "bytes": 6671,
+      "sha256": "6edf7a47338ea59fb15b925318286a5df203a698af1e96d89788a915e620ec86"
+    },
+    "godot/scripts/deployment_board.gd.uid": {
+      "bytes": 20,
+      "sha256": "cc7b07256f04499af1f84416391021d56f4799c20427242ae5567c5ec8f7dbf5"
+    },
+    "godot/scripts/deployment_entry.gd": {
+      "bytes": 506,
+      "sha256": "2ac75ea76ffb8f609d941a7d30e6388f2ed65d7efadef4549f82ec33d66da5d1"
+    },
+    "godot/scripts/deployment_entry.gd.uid": {
+      "bytes": 20,
+      "sha256": "60985badce41ace209dba747e8a427a62efc711affe62b08cc5eb5a7600122c5"
+    },
+    "godot/scripts/deployment_plan.gd": {
+      "bytes": 3020,
+      "sha256": "fbfb940763a43106e442b5e3b2b4b8fd14417f0b0eee1447463ccc5e0450cca9"
+    },
+    "godot/scripts/deployment_plan.gd.uid": {
+      "bytes": 20,
+      "sha256": "0cd764849b782e39ddcb5595c707f1b253f1aa714a00e62abe0f340c5034d8a7"
+    },
+    "godot/scripts/deployment_rules.gd": {
+      "bytes": 2306,
+      "sha256": "4ff2c7302cfc02003ea0d0be9a729765ff5af6e66140fed4fb067a4a90fd2c5a"
+    },
+    "godot/scripts/deployment_rules.gd.uid": {
+      "bytes": 20,
+      "sha256": "f416b01dab18eee9a04316f9cf269bda067461e4202b9e30d27cff46c27e3ba3"
+    },
+    "godot/scripts/deployment_screen.gd": {
+      "bytes": 12427,
+      "sha256": "97502c3226917064d6a1ec8a5416e61816d886cf57592c2f982c6f31a8dac9de"
+    },
+    "godot/scripts/deployment_screen.gd.uid": {
+      "bytes": 18,
+      "sha256": "5c3f215b46c2693f43bc0af0735627b4f7920f5ce2d096f597adf1f8b15d0f3f"
+    },
+    "godot/scripts/dodge_controller.gd": {
+      "bytes": 1519,
+      "sha256": "78b1da506aba63f85cba3e104656f4cc59ddc8977e7be8748a690b3c252950a5"
+    },
+    "godot/scripts/dodge_controller.gd.uid": {
+      "bytes": 20,
+      "sha256": "61813dff8cdbd474f7630ea6af26152b432076839a780b3bbbd106f50d6ec591"
+    },
+    "godot/scripts/encounter_state.gd": {
+      "bytes": 153,
+      "sha256": "b363873bb2194482d1d9a2d5d46d400822d03557a6a42af871a5f4d1298556d7"
+    },
+    "godot/scripts/encounter_state.gd.uid": {
+      "bytes": 20,
+      "sha256": "7b5d80bd681f412e9266fa6ccff97f65cad2bed3951828670edc246a38af5303"
+    },
+    "godot/scripts/enemy_plan_executor.gd": {
+      "bytes": 2388,
+      "sha256": "4125de970ea97b1e9c473b8b8678241633f35b8249036d0c5fb3878ba0974517"
+    },
+    "godot/scripts/enemy_plan_executor.gd.uid": {
+      "bytes": 19,
+      "sha256": "3fe19e8afd90cd93928112b420528396fb8d9ca0e8b5c4c5c784747c7102d57b"
+    },
+    "godot/scripts/enemy_room_state.gd": {
+      "bytes": 820,
+      "sha256": "da51c5737668aa659833932633e70f8ffc6552ec3ebfdc1ff2aa87e9551037bf"
+    },
+    "godot/scripts/enemy_room_state.gd.uid": {
+      "bytes": 20,
+      "sha256": "6bec23773f0559c24805a78314170a1f6ac1af8528c3c61d3b4efe195d0f9f30"
+    },
+    "godot/scripts/enemy_spawn_entry.gd": {
+      "bytes": 715,
+      "sha256": "7bf2e42bb38754b9126a9f4083321c0c57c5ac3b8616d99f5d3ec3385e7ffa4c"
+    },
+    "godot/scripts/enemy_spawn_entry.gd.uid": {
+      "bytes": 19,
+      "sha256": "016dcf9434aab567bdead452537923a901d19163e28b9daeb0ab1818b997d73a"
+    },
+    "godot/scripts/enemy_state_codec.gd": {
+      "bytes": 4281,
+      "sha256": "be10bb7ef41ddb57c772dac14f8232d47b2ec70ad6f954dbedd527016207dd65"
+    },
+    "godot/scripts/enemy_state_codec.gd.uid": {
+      "bytes": 20,
+      "sha256": "a0c469b4292b909f108a64b4a9093f3cdbd9b17510e355c6165046803056f0b9"
+    },
+    "godot/scripts/enemy_turning_plan.gd": {
+      "bytes": 975,
+      "sha256": "0ba552c7b31d0c1dee3988ed10e55c63b8fc5260ff9cb45f2954cc8738d1caad"
+    },
+    "godot/scripts/enemy_turning_plan.gd.uid": {
+      "bytes": 20,
+      "sha256": "9e0b6f6cce7c9d5758b41ae42b639ba33a0f13eb52db975629c0876bf632fe8d"
+    },
+    "godot/scripts/equipment_combat_effects.gd": {
+      "bytes": 2158,
+      "sha256": "6f90877995a677ca850f522d1f0763054b050c69517ce9e7dc37170aba19290c"
+    },
+    "godot/scripts/equipment_combat_effects.gd.uid": {
+      "bytes": 20,
+      "sha256": "22cee17f38f0c048b87a9ab52ed3a016d7b1cb3f86923739e4a63cfb33e2fd03"
+    },
+    "godot/scripts/event_state.gd": {
+      "bytes": 434,
+      "sha256": "513af2e4f1c1138be4cf10ce4baf1fbb7e01bd266b6c6f6c46729c49b62411ce"
+    },
+    "godot/scripts/event_state.gd.uid": {
+      "bytes": 20,
+      "sha256": "93998392add1833913b00ffda321bf40bb478c02ec73564517924f487c4a44b2"
+    },
+    "godot/scripts/floor_state.gd": {
+      "bytes": 300,
+      "sha256": "dba151259d102ea11f80649665f44ea0b2d3764765da05617fa930cd91d5bd6a"
+    },
+    "godot/scripts/floor_state.gd.uid": {
+      "bytes": 19,
+      "sha256": "90fff13ce2ba09361157a7280c7003dba1155a7e64089fb592b410b171e15daf"
+    },
+    "godot/scripts/formation_position_finder.gd": {
+      "bytes": 1238,
+      "sha256": "fab13915a51c1d8eb714617d4f3f2d66b8928223c1882192eba430afa49b3e46"
+    },
+    "godot/scripts/formation_position_finder.gd.uid": {
+      "bytes": 19,
+      "sha256": "5f38d0bc251fd7c985bbe4089b570eb9634516dcb02185526436dfce344bd39e"
+    },
+    "godot/scripts/formation_state.gd": {
+      "bytes": 475,
+      "sha256": "4298a5b5cfb3cc9f0b30ff8835adc47b580bb1b665ac833288f483b6ab982ff0"
+    },
+    "godot/scripts/formation_state.gd.uid": {
+      "bytes": 19,
+      "sha256": "ff10e1ad1767c0b578ca54704c3c19c2bb48c6d3cad5257f4e30bd6e09cd5e4f"
+    },
+    "godot/scripts/guild_management_panel.gd": {
+      "bytes": 16918,
+      "sha256": "1193a6a04d85645daba7632bb348c25ca78175cd2c9e4500f0f60d3df755736a"
+    },
+    "godot/scripts/guild_management_panel.gd.uid": {
+      "bytes": 20,
+      "sha256": "394e005e7317fc759b9f187282536b1d9379f17e10c964e587c68098ff37472d"
+    },
+    "godot/scripts/guild_manager.gd": {
+      "bytes": 2140,
+      "sha256": "deb990b087f97a05794259613357ca8f927f3123673fb3fd8aaa969e08bd971b"
+    },
+    "godot/scripts/guild_manager.gd.uid": {
+      "bytes": 20,
+      "sha256": "a889da3056b61012e83ec9ae0965b45e5ec6be8c599f43ad7b4c3e7b4c66dd06"
+    },
+    "godot/scripts/guild_member_combat_stats.gd": {
+      "bytes": 2002,
+      "sha256": "d2104c251055db3270df9bba73a88a145fbe6c78dfb25c2e1f30136403b656fd"
+    },
+    "godot/scripts/guild_member_combat_stats.gd.uid": {
+      "bytes": 20,
+      "sha256": "51eb4cbbd1dfd0f034c09d28e9ed86805a8d8c95e487271066d6ac8101fa1467"
+    },
+    "godot/scripts/guild_member_state.gd": {
+      "bytes": 1299,
+      "sha256": "980a351812d7f4713eabfceecb7252def7607ab5ab01dd82af6727829852d0fe"
+    },
+    "godot/scripts/guild_member_state.gd.uid": {
+      "bytes": 20,
+      "sha256": "6f2db4f1e579dbcce94c04e7c80fbf5d4bc599996d8a3226b62bee7cde230d2e"
+    },
+    "godot/scripts/inventory_service.gd": {
+      "bytes": 1696,
+      "sha256": "4337c145f9b0b5a4a044e906e7ed80624b66c0fb9aa41a94e4758bec4888de04"
+    },
+    "godot/scripts/inventory_service.gd.uid": {
+      "bytes": 20,
+      "sha256": "1aba5e82acdad056479ed2b831be7b2adfa6c5a27c72254cffb07101a36e3939"
+    },
+    "godot/scripts/item_catalog.gd": {
+      "bytes": 471,
+      "sha256": "cc5b94f261a983505fbff6dcbf3c874b6ab717247a5b05ed76498e256c8d5a6a"
+    },
+    "godot/scripts/item_catalog.gd.uid": {
+      "bytes": 20,
+      "sha256": "447f59e9072a053e6ea5166c339d5ea2d7d26178dbe504c1be8ef7b49b198d46"
+    },
+    "godot/scripts/item_data.gd": {
+      "bytes": 622,
+      "sha256": "7cc69bc589e878a643f45479405a5c8043434d7b7d69119044b19ca19c545d58"
+    },
+    "godot/scripts/item_data.gd.uid": {
+      "bytes": 20,
+      "sha256": "a0af6940c8916b21f8a72f5996a42a921ced36a246a7bd1077e2485ddb758207"
+    },
+    "godot/scripts/item_instance.gd": {
+      "bytes": 147,
+      "sha256": "00cc2a9246801a1e7b531104585c3737a10e060bfaf428cec819e939fc41a9e0"
+    },
+    "godot/scripts/item_instance.gd.uid": {
+      "bytes": 20,
+      "sha256": "540247f072e8f8b31bd1b3afc7203e0851ad7cac3c94d5d69d7c5368056c31a1"
+    },
+    "godot/scripts/knockback_controller.gd": {
+      "bytes": 4640,
+      "sha256": "2414aa9889238773953522d7309de5cc19da514bb3255145ff8fa3583e36bf17"
+    },
+    "godot/scripts/knockback_controller.gd.uid": {
+      "bytes": 20,
+      "sha256": "7bb91fe50f051126a69de267f0c842f379bc85fab8af7c8d7c757ed8866527c7"
+    },
+    "godot/scripts/main_menu_screen.gd": {
+      "bytes": 5773,
+      "sha256": "c48479d0386b29392da06b6dc98d629eabe4f49e76895ff57c516bd34310b94f"
+    },
+    "godot/scripts/main_menu_screen.gd.uid": {
+      "bytes": 20,
+      "sha256": "c57063b19d0fd394444d7b4607b916357800ce04169b39d0a6e58233aebe5a33"
+    },
+    "godot/scripts/movement_controller.gd": {
+      "bytes": 4560,
+      "sha256": "5c721646ef3d9d60917cb0776c2b76ecdd0fccfb6e1c962343aa797305ca375a"
+    },
+    "godot/scripts/movement_controller.gd.uid": {
+      "bytes": 18,
+      "sha256": "a192a0728a718bf11636a47a890f19b9c56bd133b4912994e9466d8037c9a80a"
+    },
+    "godot/scripts/parry_controller.gd": {
+      "bytes": 3550,
+      "sha256": "268a78eea3bac67cacc67da96bb992704146995efa488cd638a578e9db93cb20"
+    },
+    "godot/scripts/parry_controller.gd.uid": {
+      "bytes": 20,
+      "sha256": "a2ec4774279e4d8d96e4caaa77560a7ef863f257548fd2651d309bcb2ad37f3a"
+    },
+    "godot/scripts/parry_readiness.gd": {
+      "bytes": 570,
+      "sha256": "b6ed398a4f1c9b1121faea75447dc64e79527005a67344c3671c7cc9a478dd15"
+    },
+    "godot/scripts/parry_readiness.gd.uid": {
+      "bytes": 20,
+      "sha256": "e0922f654f9f54bb8fb7682a9db13a8d04a77203607ee4e70f1cbdb7a7d9ae21"
+    },
+    "godot/scripts/physical_attack_system.gd": {
+      "bytes": 12653,
+      "sha256": "27067856be14819674f0102edce1cfbfd2845557565ce696967baecb068f3292"
+    },
+    "godot/scripts/physical_attack_system.gd.uid": {
+      "bytes": 20,
+      "sha256": "583ef22804af7ea247769e55d121447d8518eb4fc2d2ad5cf5cb2fe182ff9e02"
+    },
+    "godot/scripts/prediction_rules.gd": {
+      "bytes": 1913,
+      "sha256": "e6c958361c464c71eb2e98aac31fa734f547ba6cce9a59a6fb8a87e6558c8d5a"
+    },
+    "godot/scripts/prediction_rules.gd.uid": {
+      "bytes": 20,
+      "sha256": "2e8960687bdb4c5dcc9f41827992e571ecb729fded45419f979ae4af9461af00"
+    },
+    "godot/scripts/prediction_state.gd": {
+      "bytes": 230,
+      "sha256": "9437842a7e4fef9ba52ece8e62df9bcd3ecc3f92bb66ea606a71156279a6f17f"
+    },
+    "godot/scripts/prediction_state.gd.uid": {
+      "bytes": 20,
+      "sha256": "a878ac323b188e97e6491e35dc0d00c27ee02f537f55cddcc6109c7ac880cf4a"
+    },
+    "godot/scripts/presentation/ability_motifs.gd": {
+      "bytes": 2878,
+      "sha256": "8b02e2bf7ffdb7913b80270cf88ff8cb0f0cb1eda3595df28e850029c6f90f18"
+    },
+    "godot/scripts/presentation/ability_motifs.gd.uid": {
+      "bytes": 20,
+      "sha256": "16331121c6e9f71bb8d6274c60de385661eaf20313a41b8e3c24c6194cde0b26"
+    },
+    "godot/scripts/presentation/arena_brand_bar.gd": {
+      "bytes": 1067,
+      "sha256": "7513f645fc965303dad1e7b0e6253524f5aef2ae491fb728ad1313c033a9da13"
+    },
+    "godot/scripts/presentation/arena_brand_bar.gd.uid": {
+      "bytes": 19,
+      "sha256": "84ef64be98cca0040c6b02a4ad854d007805c02e4d67c780e48e96c519dbbb73"
+    },
+    "godot/scripts/presentation/arena_card.gd": {
+      "bytes": 16938,
+      "sha256": "be029f7e63599a000076700b127dbeff2927fdad3059b7315b3faa91088839ac"
+    },
+    "godot/scripts/presentation/arena_card.gd.uid": {
+      "bytes": 19,
+      "sha256": "9b8e977cbfa424fd662742c996d57b13db42f30b6d17b57b28b3c4bff4543867"
+    },
+    "godot/scripts/presentation/arena_icon.gd": {
+      "bytes": 4050,
+      "sha256": "ffd3725cafc1e659d8ca837bf4fd528a76a2fdb0c1b2c2264ade1b4372d21195"
+    },
+    "godot/scripts/presentation/arena_icon.gd.uid": {
+      "bytes": 20,
+      "sha256": "43995ac78109b18e8a307adc20cd34d85683747eb4c938617185cef973bb1165"
+    },
+    "godot/scripts/presentation/attack_visuals.gd": {
+      "bytes": 10081,
+      "sha256": "a526f62b578e9affc70fc33e24a05800873d702bf500981f4dbd39b58449cf47"
+    },
+    "godot/scripts/presentation/attack_visuals.gd.uid": {
+      "bytes": 20,
+      "sha256": "3538be05f440fc892cdcfd3fa4b901d5fc1a80b070639a9a74e6b82db2803c81"
+    },
+    "godot/scripts/presentation/battle_cinematic_state.gd": {
+      "bytes": 1381,
+      "sha256": "9c073f0d64af13bd9b2ed91facdb64c7f49df69048d23b6f88d01d134942bb76"
+    },
+    "godot/scripts/presentation/battle_cinematic_state.gd.uid": {
+      "bytes": 20,
+      "sha256": "5b7d9fe8c4155dcc9e167ad6aebf4b6a79602324f9ae079016eecbf20130f271"
+    },
+    "godot/scripts/presentation/battle_cue_overlay.gd": {
+      "bytes": 2995,
+      "sha256": "bb79873db7b683f5454da98b5a760b3496f333d23f971e7c25c4329d8df69638"
+    },
+    "godot/scripts/presentation/battle_cue_overlay.gd.uid": {
+      "bytes": 20,
+      "sha256": "0d64515a68c873aeea1a080a227af554b7d046266f16b42d90afe5943225a72f"
+    },
+    "godot/scripts/presentation/battle_result_banner.gd": {
+      "bytes": 1103,
+      "sha256": "c9679740e509505f07b2fa32cbb5ba0e0ee39007d711cc97522db93e8155fc2e"
+    },
+    "godot/scripts/presentation/battle_result_banner.gd.uid": {
+      "bytes": 20,
+      "sha256": "7230af3613929700f8a073dd595858f09879dc89c7759882a68620ba0f472a3b"
+    },
+    "godot/scripts/presentation/battle_status_line.gd": {
+      "bytes": 1159,
+      "sha256": "0b2a69685ee10db294f5b3491fd62c9366734990c48f42b2627341a8f84d70d4"
+    },
+    "godot/scripts/presentation/battle_status_line.gd.uid": {
+      "bytes": 20,
+      "sha256": "5d610c1db5a957cd63303f12d6445ee76516a225a37ba442ae0542245c2f5d02"
+    },
+    "godot/scripts/presentation/camera_controller.gd": {
+      "bytes": 4228,
+      "sha256": "918bfc7b08e2221728c96418bf7793ee32c9f1dd9f50deef4b3f25065681006b"
+    },
+    "godot/scripts/presentation/camera_controller.gd.uid": {
+      "bytes": 20,
+      "sha256": "bef0a394e8662005d2b31de140bbf9bbd4ebf2ef5b2869092fabeb467e393f54"
+    },
+    "godot/scripts/presentation/character_painter.gd": {
+      "bytes": 7515,
+      "sha256": "400673f1b03d3863d1094b84dac915ccd8de3e6d50247cf31d07e38823e206a6"
+    },
+    "godot/scripts/presentation/character_painter.gd.uid": {
+      "bytes": 20,
+      "sha256": "50fc65abd66b99675a869c7e0808ca270e3272b3f1a534d6526ae9e6fa3f371f"
+    },
+    "godot/scripts/presentation/character_visuals.gd": {
+      "bytes": 1561,
+      "sha256": "bef8838c569006f2d823713bb75d9e50625289a4cd8756b79797a76f2d4b98c1"
+    },
+    "godot/scripts/presentation/character_visuals.gd.uid": {
+      "bytes": 20,
+      "sha256": "0d3bdf701539eda17e9bc7855f9d2c0b243d47f119dfb10bc457f08ef6488033"
+    },
+    "godot/scripts/presentation/cinematic_artwork.gd": {
+      "bytes": 5395,
+      "sha256": "b0f98a1114985b62c0a316c73897cf9a97fd470adb00ce4dbf83b4251d018497"
+    },
+    "godot/scripts/presentation/cinematic_artwork.gd.uid": {
+      "bytes": 20,
+      "sha256": "9f72b3cee91692f9e450be160cdb8ad3ef1c78a3f8350c2dda8a1fb4ab5e9a8e"
+    },
+    "godot/scripts/presentation/combat_glow_layer.gd": {
+      "bytes": 1868,
+      "sha256": "4a71ccd428e231a1480ac8043a85a946820fd18e168e20c560166196610832e3"
+    },
+    "godot/scripts/presentation/combat_glow_layer.gd.uid": {
+      "bytes": 20,
+      "sha256": "424fd7c5b5617d3fbe1501b320cd1d517c438cfd72e3bcc426861fda7b836a98"
+    },
+    "godot/scripts/presentation/combat_presentation.gd": {
+      "bytes": 31285,
+      "sha256": "f72327d57cd4d4e93492250394f5cc78e92e09925783123843f93acd77a9c258"
+    },
+    "godot/scripts/presentation/combat_presentation.gd.uid": {
+      "bytes": 20,
+      "sha256": "c098935b44e34e1d46829d0926fda894e96446b42d7991f012b132ed63d3acb9"
+    },
+    "godot/scripts/presentation/conquest_reward_button.gd": {
+      "bytes": 1184,
+      "sha256": "700ee8b5a3181589815aee8a581292a15f65d54ac39bf9eec8ee993c3d7f09f7"
+    },
+    "godot/scripts/presentation/conquest_reward_button.gd.uid": {
+      "bytes": 20,
+      "sha256": "ef55bdbca7d05c0ccdf8170adaf29758801295e62e71d298d6966a5221aed0ab"
+    },
+    "godot/scripts/presentation/conquest_reward_panel.gd": {
+      "bytes": 3559,
+      "sha256": "b98e6eeb32bf69b40806e14a676f9bbc3d11fc8ababc6f25870fd04ffd4522e3"
+    },
+    "godot/scripts/presentation/conquest_reward_panel.gd.uid": {
+      "bytes": 20,
+      "sha256": "b2fb94e492eb4fa08b25e46e7d4e98025798f1a26d05a1e4a17b15de30f08a9c"
+    },
+    "godot/scripts/presentation/deployment_tool_button.gd": {
+      "bytes": 1686,
+      "sha256": "939fc317b68b430a4c43a69909029d4a41f742788dae53a4a152f2239eeabdaf"
+    },
+    "godot/scripts/presentation/deployment_tool_button.gd.uid": {
+      "bytes": 20,
+      "sha256": "83d861c6d14ddbede63bcedf63127a0975fa570e32239df327416599882e10e2"
+    },
+    "godot/scripts/presentation/magic_field_layer.gd": {
+      "bytes": 1948,
+      "sha256": "7c90db719645b49c252eed2d60a4a164c9e31518a3e7ef390fce24b3c5ee55dd"
+    },
+    "godot/scripts/presentation/magic_field_layer.gd.uid": {
+      "bytes": 20,
+      "sha256": "abdd49c3a34ac0981b77c9ddf9668aef246968d925816362ab7d0e7aa6466d6e"
+    },
+    "godot/scripts/presentation/modal_backdrop.gd": {
+      "bytes": 720,
+      "sha256": "1e1f425b3d66ab7ae48663ab2d683b4cf9a0217f6616c97ae8a846266a05aefe"
+    },
+    "godot/scripts/presentation/modal_backdrop.gd.uid": {
+      "bytes": 20,
+      "sha256": "1cab9413a07ecd47fe632b11899c5f0a67dd00d37fcb98bb82d2472e3b07719f"
+    },
+    "godot/scripts/presentation/retreat_presentation.gd": {
+      "bytes": 974,
+      "sha256": "35f3a0623318cc05b3ef324064bb03b4d0b9b75dbebe086a5658b83540e44191"
+    },
+    "godot/scripts/presentation/retreat_presentation.gd.uid": {
+      "bytes": 20,
+      "sha256": "59e82f0f668de46869da81d337aaebb1563ac50979ca852d34f98327a5c2e215"
+    },
+    "godot/scripts/presentation/save_menu_preview.gd": {
+      "bytes": 2075,
+      "sha256": "f6d975bb210c5da8e0d8e6a548b774517c2d697f4f111a8654e031736a6d8444"
+    },
+    "godot/scripts/presentation/save_menu_preview.gd.uid": {
+      "bytes": 20,
+      "sha256": "302f72381a9addd92e99f347842dfcc6627539780f32dcd68d512ef4088ac039"
+    },
+    "godot/scripts/presentation/tower_scene_director.gd": {
+      "bytes": 5939,
+      "sha256": "a2ab65260d3a22f62bb6b5ea84d08e11dac4a9299baa89abe1a5731a5e9945fc"
+    },
+    "godot/scripts/presentation/tower_scene_director.gd.uid": {
+      "bytes": 20,
+      "sha256": "d26a79062d1bee99dcfe6c0476c5e7a37fdf54e83e021d6783c118c803efd9a7"
+    },
+    "godot/scripts/presentation/tower_scene_surface.gd": {
+      "bytes": 4851,
+      "sha256": "8ca16b8985df21dde0bfc5899e33f5e08dc45b8086ae37cc59580596b9b35ea7"
+    },
+    "godot/scripts/presentation/tower_scene_surface.gd.uid": {
+      "bytes": 20,
+      "sha256": "1a688587b937f23be6a448568b44ca5f70ba20f179f247d6e91c3882e6706e5e"
+    },
+    "godot/scripts/presentation/transcendence_overlay.gd": {
+      "bytes": 1390,
+      "sha256": "38f104ab012579771c70dedc10ed39a596b4ba29ee19a2392422f50bff087ec4"
+    },
+    "godot/scripts/presentation/transcendence_overlay.gd.uid": {
+      "bytes": 19,
+      "sha256": "8461b8320ed3d92c8bc59cd603a1786005d9bb3ffd65038325cdd023e1d4e908"
+    },
+    "godot/scripts/presentation/ui_style.gd": {
+      "bytes": 15010,
+      "sha256": "500c0c4827842132f2eb7cf2efb9194d9d887f822bf41a3a2825a6ad0baaa773"
+    },
+    "godot/scripts/presentation/ui_style.gd.uid": {
+      "bytes": 19,
+      "sha256": "8a1cb3bf72460bd9767e107185b9460355e5e6b88324eb11d604f8b8148ecbdc"
+    },
+    "godot/scripts/presentation/unit_icon.gd": {
+      "bytes": 454,
+      "sha256": "8e85b3bd808739d09df48613d6712a505260f05aaeff4a4167362e5971281a4e"
+    },
+    "godot/scripts/presentation/unit_icon.gd.uid": {
+      "bytes": 20,
+      "sha256": "d93141709aba4faaa0f51e5fdbc4cdd28652e1042fabeda71eb24c0b1c49123a"
+    },
+    "godot/scripts/presentation/upgrade_summary.gd": {
+      "bytes": 1950,
+      "sha256": "b17d62747d54a62dfc6f2acf01775208c92ad4e29d35b43c1dd86cbb97a0b588"
+    },
+    "godot/scripts/presentation/upgrade_summary.gd.uid": {
+      "bytes": 20,
+      "sha256": "4190b29b334e041f570257cdc89b767d79c287d7e94657ce696bcfeb7b1d85a8"
+    },
+    "godot/scripts/presentation/vfx_art.gd": {
+      "bytes": 13420,
+      "sha256": "08d419b692bc0af3e13d947255d9c5e3139fb2c34ddbfdba0512343a7601890f"
+    },
+    "godot/scripts/presentation/vfx_art.gd.uid": {
+      "bytes": 19,
+      "sha256": "9faaa250f960d901471c929aae1dcfa2203864c99630345af37562f8b20c3cb3"
+    },
+    "godot/scripts/presentation/visual_particles.gd": {
+      "bytes": 3070,
+      "sha256": "5695184b78b758dae88995ef3ea4ac0caae8a7fdd1add1cf989d8fc37ff3ddc4"
+    },
+    "godot/scripts/presentation/visual_particles.gd.uid": {
+      "bytes": 20,
+      "sha256": "e3bab004bc769ec0b69ee02c9a3915fb4c8626bd54c9d6564a5b220ddb8f30ba"
+    },
+    "godot/scripts/presentation/visual_shapes.gd": {
+      "bytes": 3651,
+      "sha256": "182aac8b5f1d9c66d1ce739b788c2f07b66fe5a683c95f4bf5ef6b0b6057c8b2"
+    },
+    "godot/scripts/presentation/visual_shapes.gd.uid": {
+      "bytes": 20,
+      "sha256": "acb81bf43d8f26f84404cfcd7627e1ba1f53192938ad970b3ded148592dbd66b"
+    },
+    "godot/scripts/presentation/wallet_bar.gd": {
+      "bytes": 4868,
+      "sha256": "b73083ec2286cfba0a598f1e3d1e25d06f1f7820575e8ae12628acdbe5e81639"
+    },
+    "godot/scripts/presentation/wallet_bar.gd.uid": {
+      "bytes": 20,
+      "sha256": "afdd8a0113e3f38a4b061732507cb4b1f12b590c83c76fbab06093522f48827c"
+    },
+    "godot/scripts/presentation/weapon_motion.gd": {
+      "bytes": 3427,
+      "sha256": "9db6d8cf25486feb5247e5fada8f1056aa348f2198caf7bcf27393940b0afd68"
+    },
+    "godot/scripts/presentation/weapon_motion.gd.uid": {
+      "bytes": 20,
+      "sha256": "1f5db936a19d9e7fbfd70767cc85a3f7b78c26bb095ffa37cc3c101c9e53412a"
+    },
+    "godot/scripts/presentation/weapon_motion_data.gd": {
+      "bytes": 91291,
+      "sha256": "f4693c728a0bb21dfef29bd5bc22b8e39a762f63b53691a42e321c31b1ecba70"
+    },
+    "godot/scripts/presentation/weapon_motion_data.gd.uid": {
+      "bytes": 20,
+      "sha256": "27f9ccb4058a3696749f47469b616b479bf1fdd8e404022a6c7c347ea4734c89"
+    },
+    "godot/scripts/projectile.gd": {
+      "bytes": 4011,
+      "sha256": "aa9f51bd04f1a9fe280dd516bcd7a7660077822935d5fdb37954b0e8a56a810e"
+    },
+    "godot/scripts/projectile.gd.uid": {
+      "bytes": 20,
+      "sha256": "cf9d747851ae4dabc64276bf91c68b69ab64e0670fbd668dcb522aa2f06ba1ad"
+    },
+    "godot/scripts/projectile_rules.gd": {
+      "bytes": 3672,
+      "sha256": "1aa9a93110a61a01436240025c9523bdae37589f19b65cc3df6257ece91d4699"
+    },
+    "godot/scripts/projectile_rules.gd.uid": {
+      "bytes": 19,
+      "sha256": "be00b1d9b65189816993dd1ba9cbc89899e97470d7f1357bf1a102aa04c9bad3"
+    },
+    "godot/scripts/recruit_offer.gd": {
+      "bytes": 159,
+      "sha256": "7c688d38332e070836cc56c4ebe3f2b5b53ebb097fcf563fd142f071b1831839"
+    },
+    "godot/scripts/recruit_offer.gd.uid": {
+      "bytes": 20,
+      "sha256": "b272a4ed8620b5cdd81ddd1b8e301a2e7b204cc75d6b9e44882d9953506768c5"
+    },
+    "godot/scripts/recruit_state.gd": {
+      "bytes": 102,
+      "sha256": "1c93aa0f50a9878159e97a042188ff849ca59a9943b2d1496c1f87aca2d6e0f2"
+    },
+    "godot/scripts/recruit_state.gd.uid": {
+      "bytes": 19,
+      "sha256": "52cb8e9d9b56c7719bb7c6a1ca2f2216262caca21e69313160b45a31e79e9b60"
+    },
+    "godot/scripts/resource_transaction.gd": {
+      "bytes": 562,
+      "sha256": "5fd899cdaa2c5a84c6ca02ecced50df28a44c35b4aad7aadec2b7092227d3404"
+    },
+    "godot/scripts/resource_transaction.gd.uid": {
+      "bytes": 19,
+      "sha256": "5a1420320fe60de4725d09b673a1ff7324e5ee7d327d1ae88d871efb317520a2"
+    },
+    "godot/scripts/retreat_controller.gd": {
+      "bytes": 1532,
+      "sha256": "2bb8f1aa462c69672e25a4de7b35034b1bd6cdda19977e7910748e7c9682a9a0"
+    },
+    "godot/scripts/retreat_controller.gd.uid": {
+      "bytes": 20,
+      "sha256": "f1dbd3e36b485b932ad22dd20d1c173f61e127d890a81eec6b178c78d40a28ea"
+    },
+    "godot/scripts/reward_request.gd": {
+      "bytes": 217,
+      "sha256": "696db55e0f71a265b020d80f52580c380cabbd309163388d7ebddba5032d9a4e"
+    },
+    "godot/scripts/reward_request.gd.uid": {
+      "bytes": 20,
+      "sha256": "1773b65334107e6f70dac0bc1a5a0b0a921e6eb89fe8da1fda1c638bc9c24a21"
+    },
+    "godot/scripts/room_battle_screen.gd": {
+      "bytes": 28967,
+      "sha256": "d0d76747d9349469013f6e285dc6f7baaa98a248bb91974880bed1071656455f"
+    },
+    "godot/scripts/room_battle_screen.gd.uid": {
+      "bytes": 19,
+      "sha256": "59ec3e34b6f59714114c633abc97f678e9c5231794a8a23f8055e0137e6c6bb3"
+    },
+    "godot/scripts/room_battle_session.gd": {
+      "bytes": 3556,
+      "sha256": "d9e99af2be3ab621f21a79c6b43260d2f46ad9610d5dec7299b7fdcbebf7856a"
+    },
+    "godot/scripts/room_battle_session.gd.uid": {
+      "bytes": 20,
+      "sha256": "fc0db0ba991cd1f7efdd486545087a7faf9288d705a5812c2f4073d8f34ab96b"
+    },
+    "godot/scripts/room_content_result.gd": {
+      "bytes": 250,
+      "sha256": "c6ca82d5a1f80c88974055440c22c95ecfc0e34880f73b50c4c2a8fb0a47cab5"
+    },
+    "godot/scripts/room_content_result.gd.uid": {
+      "bytes": 20,
+      "sha256": "42026e6ed28e051cf01837fd50e6b69ea8d9c7922a28a04daabae5d0f62da52d"
+    },
+    "godot/scripts/room_state.gd": {
+      "bytes": 1673,
+      "sha256": "099c7f00c4f36fc0d8c1d97e486187eadb8e8670eea8a0bea7452f808a9873df"
+    },
+    "godot/scripts/room_state.gd.uid": {
+      "bytes": 20,
+      "sha256": "540e6b5d06f29a0349815cd08abbe5d2fad3198fc879c4fdf8e7575077980074"
+    },
+    "godot/scripts/room_type.gd": {
+      "bytes": 508,
+      "sha256": "14640670c0f9f9c75f3472412defdadc0d5b3977266e7575c494b6047b4160a6"
+    },
+    "godot/scripts/room_type.gd.uid": {
+      "bytes": 19,
+      "sha256": "5e6a63de4def204d796a60e9d357082b7c5bf45cdc023366452b057c59dd7bc8"
+    },
+    "godot/scripts/run_state.gd": {
+      "bytes": 2142,
+      "sha256": "9c8eb7e66ea2634e9bb63ccde7fa3ebfbeb134741cac0e4ecdc2a3d94caa1d95"
+    },
+    "godot/scripts/run_state.gd.uid": {
+      "bytes": 20,
+      "sha256": "c0d7cf72f01196ced5a12b9650df0062235920e0a3223482332abda4a2790208"
+    },
+    "godot/scripts/save_domain_codec.gd": {
+      "bytes": 8882,
+      "sha256": "820104a3c586f617d2827724b6ca20afd5399785c68a47997d3c312cfb75d45e"
+    },
+    "godot/scripts/save_domain_codec.gd.uid": {
+      "bytes": 19,
+      "sha256": "8c7133961d5b31dcfa905cbc2eb5f7cfd71f0f911ed8bcde8fe8ff932fc98fa7"
+    },
+    "godot/scripts/save_load_result.gd": {
+      "bytes": 523,
+      "sha256": "fb249fe3ec2557bdd4be594ba9048a97c018f0b5a807ae74f68a5bf6015df95c"
+    },
+    "godot/scripts/save_load_result.gd.uid": {
+      "bytes": 20,
+      "sha256": "3583ca80c1e7cc4972b0e8b0582875bf22c9dec4ef63ac887955106c84b28efe"
+    },
+    "godot/scripts/save_manager.gd": {
+      "bytes": 11068,
+      "sha256": "6c8932fde06ad52f8990711b8b47d2107fbc15efef23f36c4a6cff3247fbb7cb"
+    },
+    "godot/scripts/save_manager.gd.uid": {
+      "bytes": 20,
+      "sha256": "fbfff98b25ca4e1c2cdc6f97f7b0bd4da027db6830b8794130942ebc62b0bd8f"
+    },
+    "godot/scripts/save_migrator.gd": {
+      "bytes": 587,
+      "sha256": "88e68553eca4f850c220503435db95ba78ae570e50602a7d2e4d849d5bd11434"
+    },
+    "godot/scripts/save_migrator.gd.uid": {
+      "bytes": 19,
+      "sha256": "f43cee3e6544d60d73f2f56502c7e9fe7c79c67133dcccd830df6eb4295c6854"
+    },
+    "godot/scripts/save_snapshot_builder.gd": {
+      "bytes": 2468,
+      "sha256": "047b30fce1d31392b49b8afcf49321d41e7cdb8ea918a260b23aab1123160b2c"
+    },
+    "godot/scripts/save_snapshot_builder.gd.uid": {
+      "bytes": 20,
+      "sha256": "20b2ee89858aed5c0b05ad9f1af11a8d3752571f723082de6ff174486929e288"
+    },
+    "godot/scripts/save_snapshot_loader.gd": {
+      "bytes": 1110,
+      "sha256": "3929957ee5153c901e6556f0e8941e7de1e4bcd585dd0471a5b825fa721672ed"
+    },
+    "godot/scripts/save_snapshot_loader.gd.uid": {
+      "bytes": 20,
+      "sha256": "b1ea5198e8664a79a0823e99ddd2dc044f3832becd4e5930d4dfd2390dbb9c89"
+    },
+    "godot/scripts/save_validator.gd": {
+      "bytes": 16712,
+      "sha256": "91485fccf8be229e40708e353e6e581d1eacbc09741fb80c1ef6a2295ddb777d"
+    },
+    "godot/scripts/save_validator.gd.uid": {
+      "bytes": 19,
+      "sha256": "20d45ed79f42190e750b8a763a8b4c87eda82bf2fb34290f773efb90f5aaebd0"
+    },
+    "godot/scripts/save_value_codec.gd": {
+      "bytes": 3093,
+      "sha256": "3fb8d8fd6d806a67c77fc5ccfea2b2ee67ff57d4d3109b7549bd7d5881b6bb4f"
+    },
+    "godot/scripts/save_value_codec.gd.uid": {
+      "bytes": 20,
+      "sha256": "f5f06d1b9ee7e3d5c00c894500e0ca69b3347366f4752a564c3675bbd5c17e6b"
+    },
+    "godot/scripts/shop_offer.gd": {
+      "bytes": 224,
+      "sha256": "477e03dcfd80a9840637e2efa14f0f518b72456e41bf9f95984f88bda1353a74"
+    },
+    "godot/scripts/shop_offer.gd.uid": {
+      "bytes": 20,
+      "sha256": "2f02298351e1c7df194951dd6da664305a5e3a2dc68be177a41c3742185582ed"
+    },
+    "godot/scripts/shop_state.gd": {
+      "bytes": 74,
+      "sha256": "faf13614c2a4ee2a5dfa9b1c1b034d8c00b84e7d2016c6999c2016613f6cbdbe"
+    },
+    "godot/scripts/shop_state.gd.uid": {
+      "bytes": 20,
+      "sha256": "d78bf80bf76fd34a4d09ace1048f2297325a9af5933f4d7857e69f447a26f855"
+    },
+    "godot/scripts/status_controller.gd": {
+      "bytes": 1686,
+      "sha256": "744b4e8c03a3dbdb0960ab140fbfa895f5670d27329f5509611543c9ddf7d001"
+    },
+    "godot/scripts/status_controller.gd.uid": {
+      "bytes": 19,
+      "sha256": "e7af86516395d21bc77f69ff78af3f058cca0ba67ca20c928e3045b93a589bd7"
+    },
+    "godot/scripts/strategy_card_catalog.gd": {
+      "bytes": 490,
+      "sha256": "696708b7969abedf5ed40b59de037ad755fe9316a52de3b923a0c5ae7ea24cd6"
+    },
+    "godot/scripts/strategy_card_catalog.gd.uid": {
+      "bytes": 20,
+      "sha256": "2ea51fec919dd39b615df5bc7af1070c4d81040280f8937aafa496cd31782ece"
+    },
+    "godot/scripts/strategy_card_data.gd": {
+      "bytes": 413,
+      "sha256": "5db9b5c9006154302cd2824aa7e4ef937c8fa1014012c4f4796c07e94d778716"
+    },
+    "godot/scripts/strategy_card_data.gd.uid": {
+      "bytes": 19,
+      "sha256": "9724d2111ca0e7f3eb2771902b6079a5de0d6451b0e7e85c0ddee1faf0d6ee66"
+    },
+    "godot/scripts/strategy_card_executor.gd": {
+      "bytes": 4190,
+      "sha256": "0f8077e71ddd97c78fa62c09316eec042610e2ec6e50d0f4f31fae17fd33881e"
+    },
+    "godot/scripts/strategy_card_executor.gd.uid": {
+      "bytes": 19,
+      "sha256": "0b85913169ca10b15c90cee15ac81db04d76a08f0f0dcf2d7526be715cadbd07"
+    },
+    "godot/scripts/strategy_card_instance.gd": {
+      "bytes": 279,
+      "sha256": "fb71bd5d7d161a0bfe6d78feda62fc8d108f00418d7408745a4cd47227d2a5c6"
+    },
+    "godot/scripts/strategy_card_instance.gd.uid": {
+      "bytes": 20,
+      "sha256": "7c607f053ce3600d28dcebc3e30f5ac9d51c435ad242b2f17ae0e75ba0513ee8"
+    },
+    "godot/scripts/strategy_command.gd": {
+      "bytes": 439,
+      "sha256": "a40b3dcbcc2e5b92c132c02e98d2dfe99a403312043363f69e395e51cd69f5f2"
+    },
+    "godot/scripts/strategy_command.gd.uid": {
+      "bytes": 20,
+      "sha256": "73b1982470f973b9271b91ee06453e479a98ddfec5fdb71f9118b680855026dd"
+    },
+    "godot/scripts/strategy_command_executor.gd": {
+      "bytes": 1842,
+      "sha256": "24f6daef54cd39a1cb55a5d522ee3fece71aa226735ff9ad57efdea9e276ca44"
+    },
+    "godot/scripts/strategy_command_executor.gd.uid": {
+      "bytes": 20,
+      "sha256": "2c137ec3f94ecfe3ec93d5cd7c6f3a90d54b5239cf0f127815d87f6aa6c0d31f"
+    },
+    "godot/scripts/strategy_effects.gd": {
+      "bytes": 2885,
+      "sha256": "bfd49284d08ed366a6b4788b6303a8e48182c29cfb568ef2e5f5c7fdba9788e5"
+    },
+    "godot/scripts/strategy_effects.gd.uid": {
+      "bytes": 19,
+      "sha256": "eaddbbd953d1d5d4a2d00d5ca3ac2dbdb004a8d59a45e61af205708837c12473"
+    },
+    "godot/scripts/strategy_movement_controller.gd": {
+      "bytes": 4668,
+      "sha256": "b9d3b9b23d70a9952f8fca9cc9116fab3f9f2b90a69779dc25b75a3588765958"
+    },
+    "godot/scripts/strategy_movement_controller.gd.uid": {
+      "bytes": 20,
+      "sha256": "19f37bded50277e5a0146d5fd3e50e4d9ae6af588369f9bf605e928f78809ce2"
+    },
+    "godot/scripts/strategy_progress_context.gd": {
+      "bytes": 194,
+      "sha256": "bc50297f5d65678df83213c0d14703e54976ba471c33d7b658eb388e7c19c494"
+    },
+    "godot/scripts/strategy_progress_context.gd.uid": {
+      "bytes": 20,
+      "sha256": "4a4582484d09baa6a04c1dfbeb8d479297ffb7e421aff438340bd4c04018c9a2"
+    },
+    "godot/scripts/target_selector.gd": {
+      "bytes": 2466,
+      "sha256": "cf38c2742cbaa1cfe29333c2485ccb3e9495851b1edb160563a10bad92457fb6"
+    },
+    "godot/scripts/target_selector.gd.uid": {
+      "bytes": 20,
+      "sha256": "b2ef3a160914fbd740ad3cedac874ad440cedba01ba9e9cbe7bf3fa8310e700d"
+    },
+    "godot/scripts/threat_response_controller.gd": {
+      "bytes": 11122,
+      "sha256": "8e0745e43854e35db4baf1f5daf70d583e23b9af287d57234ca89140c667021f"
+    },
+    "godot/scripts/threat_response_controller.gd.uid": {
+      "bytes": 20,
+      "sha256": "2dae404435c71512f17ad479b24e80c80e7b420a05dce98972d439b99c3550ef"
+    },
+    "godot/scripts/tower_battle_screen.gd": {
+      "bytes": 14669,
+      "sha256": "bfc3a4a32ba63202c2b1addef6d370878a729289bea1b63038d3949c5d0b02bf"
+    },
+    "godot/scripts/tower_battle_screen.gd.uid": {
+      "bytes": 20,
+      "sha256": "3ae63aebac853d939f436cc8d6934e13dbf1a056dcd9150a4afc15813ce06009"
+    },
+    "godot/scripts/tower_content_screen.gd": {
+      "bytes": 30044,
+      "sha256": "9516ffa892a2a431e40bcd21a2e48fe678e849e5f7e60cdfc157ef1a61fb4d80"
+    },
+    "godot/scripts/tower_content_screen.gd.uid": {
+      "bytes": 20,
+      "sha256": "b6813858f542de996c1e7e5ffb21783d8c90c8fd9205f093913fc5da26bfee40"
+    },
+    "godot/scripts/tower_content_service.gd": {
+      "bytes": 15821,
+      "sha256": "05436b0946ee02b5577d1ca540951ce202f4e8b5e0bf344510c639a504ab1913"
+    },
+    "godot/scripts/tower_content_service.gd.uid": {
+      "bytes": 19,
+      "sha256": "b1b90eac6f713a924ea47317ba06ee25e8d532f23f5246bb12d1cf15c8426ac5"
+    },
+    "godot/scripts/tower_controller.gd": {
+      "bytes": 17777,
+      "sha256": "f13e409bdcea3be0a9bdbf4c744fcf3456efd12329f55422623a13f581d428c1"
+    },
+    "godot/scripts/tower_controller.gd.uid": {
+      "bytes": 20,
+      "sha256": "c8bfbe7fd399b372fa6856747aaf3d642cd7fddae73788d68d8a57f764977e28"
+    },
+    "godot/scripts/tower_enemy_stats_assembler.gd": {
+      "bytes": 658,
+      "sha256": "d184418eae321f997c18b93d2d73071efdecb8687037065ce0a39cbd7fbb78da"
+    },
+    "godot/scripts/tower_enemy_stats_assembler.gd.uid": {
+      "bytes": 19,
+      "sha256": "baab197713087f9856b18ea55824d7f3808622d30c88a3c3fe336e7b5b70ef18"
+    },
+    "godot/scripts/tower_map_generator.gd": {
+      "bytes": 8482,
+      "sha256": "402eaf23050bc630ccf6392ad9caad67c69909a787b85fd44baeb680f9faf8b4"
+    },
+    "godot/scripts/tower_map_generator.gd.uid": {
+      "bytes": 20,
+      "sha256": "4446a1fe2b2d17df9bb11cfdb773913927de5dfd917eda340e7e49493f3af525"
+    },
+    "godot/scripts/tower_map_state.gd": {
+      "bytes": 201,
+      "sha256": "1d476839c4d38bafcc9d14c08849bce3800e1fd733ecd8294ca032940878a166"
+    },
+    "godot/scripts/tower_map_state.gd.uid": {
+      "bytes": 19,
+      "sha256": "e7a208fbd3accac1b76300773f4ad4beddcde97cd8cbcd78cd4984369f989657"
+    },
+    "godot/scripts/tower_navigation_policy.gd": {
+      "bytes": 860,
+      "sha256": "a614abd48206133fd1fe4e40c6abe79fe011a0f2d5b2ba1caf221f554b8d0255"
+    },
+    "godot/scripts/tower_navigation_policy.gd.uid": {
+      "bytes": 19,
+      "sha256": "a5224fe0c0c094282bfe67086d5378d4fa0746191869bd0c8e487b30f5111f28"
+    },
+    "godot/scripts/tower_run_state.gd": {
+      "bytes": 619,
+      "sha256": "b741f7b582c3612ca14e498accb29fe081ba9a92da2e5f7a54667eba5755938b"
+    },
+    "godot/scripts/tower_run_state.gd.uid": {
+      "bytes": 19,
+      "sha256": "1aa1437986db3272cec717d92b6f385ba6d3bcdf9b182f1c79d16600c5d26f82"
+    },
+    "godot/scripts/tower_screen.gd": {
+      "bytes": 21437,
+      "sha256": "0a948984e750cf564d103d5793bba399a77390c2c67e5bb97f2f276b5db13023"
+    },
+    "godot/scripts/tower_screen.gd.uid": {
+      "bytes": 19,
+      "sha256": "1c9c6f6ff3efe4214c5f89d9302cf12e733f89e8dedaf8902999f1c32704ee50"
+    },
+    "godot/scripts/transcendence_controller.gd": {
+      "bytes": 2997,
+      "sha256": "7fa6079d71dbf953b86cd8e697dab1c8f1676c0f56908a55240226a083f4dda6"
+    },
+    "godot/scripts/transcendence_controller.gd.uid": {
+      "bytes": 20,
+      "sha256": "8f2c9813a0a6f4e585fead2efe2aea2af9db74a8485ed8c6a6b02f2f025d61c7"
+    },
+    "godot/scripts/turning_point_manager.gd": {
+      "bytes": 6771,
+      "sha256": "07f488ad1665d40894a34276e5a73ee51e5884fda4f5e89353c1e779e4192f37"
+    },
+    "godot/scripts/turning_point_manager.gd.uid": {
+      "bytes": 19,
+      "sha256": "e0e94a59f9bff46379a46e231006e5c5d2e3855b7f75f94437c38c75d98e6e56"
+    },
+    "godot/scripts/turning_point_panel.gd": {
+      "bytes": 10462,
+      "sha256": "5ad37a0eb261c2553fea3f86bb4958149d3339630a3018319c7abbbbfde2cab2"
+    },
+    "godot/scripts/turning_point_panel.gd.uid": {
+      "bytes": 19,
+      "sha256": "260332838277109c36dfa32c3dabcbf5bae5104dc082516e065b4e0ed2876f1a"
+    },
+    "godot/scripts/turning_point_state.gd": {
+      "bytes": 611,
+      "sha256": "82408d573bfa36c411f6b73523aa9634945989b7d0880d1a37e102498a22179d"
+    },
+    "godot/scripts/turning_point_state.gd.uid": {
+      "bytes": 20,
+      "sha256": "a2a9fc03bcaf5e70db52deaa6571fc836efde8129e0a56281add5670312f09cf"
+    },
+    "godot/scripts/ultimate_controller.gd": {
+      "bytes": 3717,
+      "sha256": "57d373970ebcc0d35a099ec364dbcbf61ac24117cfd47136790ccdf666fddf19"
+    },
+    "godot/scripts/ultimate_controller.gd.uid": {
+      "bytes": 20,
+      "sha256": "d561550cf056d35b5e8b6e3979341a05ceffe762079a3f583fb5501af829a02b"
+    },
+    "godot/scripts/unit.gd": {
+      "bytes": 9998,
+      "sha256": "49e27d0d36aa56dd65a5604abefff4baea65d0a372bd2e56ac86eb1e5342502c"
+    },
+    "godot/scripts/unit.gd.uid": {
+      "bytes": 20,
+      "sha256": "efb4ab96335324bc6c1b106ce49fc0c9859fc9e931900a6e983b683f494b2764"
+    },
+    "godot/scripts/unit_combat_stats.gd": {
+      "bytes": 428,
+      "sha256": "4bcef1c463894dfb1547800d420e3b73223c8f7570476ac5246460353cb6b594"
+    },
+    "godot/scripts/unit_combat_stats.gd.uid": {
+      "bytes": 20,
+      "sha256": "b538c0972861e103f7fd1085d8ba11361b29fba221b6b2d23cab7b27f8ee83d4"
+    },
+    "godot/scripts/unit_data.gd": {
+      "bytes": 678,
+      "sha256": "0d8801d46437b908d31355b27bf7b2d825843efe162a59acd8cc3683bb39b200"
+    },
+    "godot/scripts/unit_data.gd.uid": {
+      "bytes": 20,
+      "sha256": "508e96c0606d0f761df42ab429144044f2b74cbf7ef5e3a47fbb5c98047381a2"
+    },
+    "godot/scripts/unit_state_codec.gd": {
+      "bytes": 4407,
+      "sha256": "b35660308f2588f5c18660599966f024028b702a14c7a9ca06653706c5527c76"
+    },
+    "godot/scripts/unit_state_codec.gd.uid": {
+      "bytes": 20,
+      "sha256": "04f8d8a9e7b1d99753d34dd3fe25fac7681411173986c32e275f449285834641"
+    },
+    "godot/tests/ai_compare_report.py": {
+      "bytes": 7059,
+      "sha256": "8f2632b3559b78307bc9d63fa3d45d0d6a1f7fbee61549f802da751e4baae99c"
+    },
+    "godot/tests/ai_comparison_runner.gd": {
+      "bytes": 3881,
+      "sha256": "c9a546d8977346ca4f33857e5f15354d6f4d5374e66904fc3e4fc503eb1de0c1"
+    },
+    "godot/tests/ai_comparison_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "d10e05e0888dc9a1c6fcad1265f21ca061ab6d49a8cebb58305b6c4ab2c6c5ae"
+    },
+    "godot/tests/ai_golden_reference.cjs": {
+      "bytes": 6318,
+      "sha256": "5955c80de0f5b0a56948ae42ed644a535e24ba2ac5b6a32b2a3ef0a173f42f3e"
+    },
+    "godot/tests/ai_opening_reference.cjs": {
+      "bytes": 1285,
+      "sha256": "ca7fc62cf8c7b45df27e1575a050c8212df9f22daf09dfc3c7c2087dc6c2e91d"
+    },
+    "godot/tests/ai_opening_runner.gd": {
+      "bytes": 2357,
+      "sha256": "5b14a7ef3e10e1c1dbd0491267bb5e72bd92da9177a579da591324bb61b366f0"
+    },
+    "godot/tests/ai_opening_runner.gd.uid": {
+      "bytes": 19,
+      "sha256": "3e2e1d9cc10ec4c4b1a6516ef57f52251b590631fa3bdf8d4cdcfd26b9ae5ce4"
+    },
+    "godot/tests/ai_reaction_reference.cjs": {
+      "bytes": 1221,
+      "sha256": "4d4dd7eec2963cfca38815b95002c94a18cfc0a0da187a2202da053aa5046d59"
+    },
+    "godot/tests/ai_ui_smoke.gd": {
+      "bytes": 3871,
+      "sha256": "d68d19e0468d59b08447647572fa6fb88a4d829fa49430fdbd8134ad9519139d"
+    },
+    "godot/tests/ai_ui_smoke.gd.uid": {
+      "bytes": 20,
+      "sha256": "316c900807dacde7c8b18bfba9f0a16a59478f79ff4a83fd80c575728fc00408"
+    },
+    "godot/tests/ai_web_reference.cjs": {
+      "bytes": 3264,
+      "sha256": "f87b394986462f1290178e0695ea25c54368c9a6b12260cc4a4a85c2bdac33d4"
+    },
+    "godot/tests/android_display_runner.gd": {
+      "bytes": 1490,
+      "sha256": "288e1e9e355f01cfd3355313ad32ee59daf189e579e01723fad3e65b195cf5d3"
+    },
+    "godot/tests/android_display_runner.gd.uid": {
+      "bytes": 19,
+      "sha256": "cb4d41a7e73144ceafa96630b627ccd1887c1e41680092526e5cbc83cfba6f86"
+    },
+    "godot/tests/attack_effect_capture.gd": {
+      "bytes": 2082,
+      "sha256": "052a5b694556b176d8455ff1a469824f6807c71032ec9c85d3033086e986f28e"
+    },
+    "godot/tests/attack_effect_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "5862d1701c331dc25264b0228d21b40a68e66e11b42f38563ff6ef978d2932a8"
+    },
+    "godot/tests/attack_motion_capture.gd": {
+      "bytes": 1860,
+      "sha256": "dbefe20faf3b07db5975f7326618beded088da236ddc024ee057628ac01d68f1"
+    },
+    "godot/tests/attack_motion_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "0e12d0c91d81f39a746e9d6943000b1b60c04ccd8e3e75f7292f3f0cf5e95086"
+    },
+    "godot/tests/attack_motion_runner.gd": {
+      "bytes": 5155,
+      "sha256": "169940481ccadacbe985b16d9e48ea78ca854788345b06294cb7dd18cdb3eabb"
+    },
+    "godot/tests/attack_motion_runner.gd.uid": {
+      "bytes": 19,
+      "sha256": "95e5d82f031d94a16a926274d71035411ec07cd909f7846cdd2ca862aaad2f63"
+    },
+    "godot/tests/blue_touch_runner.gd": {
+      "bytes": 10009,
+      "sha256": "c83a31cdee3bc5f510a0ce52af9f8714c7ea8b0e13ee695a9615412074ad2fe9"
+    },
+    "godot/tests/blue_touch_runner.gd.uid": {
+      "bytes": 19,
+      "sha256": "4ec5b51cdb0939c622ce7b70cd540dddb25d259fcc6f0fc59854723dc58db7d6"
+    },
+    "godot/tests/camera_grid_runner.gd": {
+      "bytes": 4364,
+      "sha256": "e763c9a68353dd82057eccfc1b71673ea51986742e4248f8785f75a643ec60f7"
+    },
+    "godot/tests/camera_grid_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "fbc4910879e3a74ac91356436577ea981366b8e20da16fb5fd0da42f0f62b853"
+    },
+    "godot/tests/character_ui_smoke.gd": {
+      "bytes": 4821,
+      "sha256": "cd63910fe40064b0e064d1cd67324fec6135c4b65e6a2809d25b9171be8686d2"
+    },
+    "godot/tests/character_ui_smoke.gd.uid": {
+      "bytes": 20,
+      "sha256": "758fe13b9fe49465fc8fd35c91d1eed8105697f0ae556f1e6d5f89126cca8ffd"
+    },
+    "godot/tests/cinematic_flow_runner.gd": {
+      "bytes": 7886,
+      "sha256": "c822508ce7b2bf4dc3de0747b20989f1f8d2609c32ab71391bd264e97b5bdbc5"
+    },
+    "godot/tests/cinematic_flow_runner.gd.uid": {
+      "bytes": 19,
+      "sha256": "ec2b9f6fd4630a0735cadd83ee8b6d62f654ed917b37fab9739cb5f15903cd51"
+    },
+    "godot/tests/combat_ui_smoke.gd": {
+      "bytes": 7660,
+      "sha256": "c5bafc0513e2ca9e77402a43712b9b37d229406af66c19a055a20ee8c1c4f281"
+    },
+    "godot/tests/combat_ui_smoke.gd.uid": {
+      "bytes": 20,
+      "sha256": "02ea8117af96b47d455d97d61cfd2bfb3825e6f713ed17553ecef349c34a21f0"
+    },
+    "godot/tests/deployment_ui_smoke.gd": {
+      "bytes": 7580,
+      "sha256": "a59e87a69aae4220a8d1d9471c5f6407a5f1e35cff2d201499d3e1c528062a2d"
+    },
+    "godot/tests/deployment_ui_smoke.gd.uid": {
+      "bytes": 20,
+      "sha256": "0a6b01ebda26085e0d6f2956b4d2b53b2460a716c7f415b66e5f80c61d4bb261"
+    },
+    "godot/tests/event_parity_runner.gd": {
+      "bytes": 9215,
+      "sha256": "5cc247ea1673a4544a282cd0dc84b462fe8655992fe397ff7a80a3e468d7d8e6"
+    },
+    "godot/tests/event_parity_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "c3758541137a2cbc83bedd4e6ee64ebf6cba75f4d56849659981e8bda2d348f1"
+    },
+    "godot/tests/event_tp_capture.gd": {
+      "bytes": 1053,
+      "sha256": "cde28bce8839652a46ea63b3454720e10fa5cb08907724467b00f0803d3fc9b9"
+    },
+    "godot/tests/event_tp_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "663d4fdad569b19525bd029a52ef6d028d6350340ce552aee6e7e00f56ce1c2e"
+    },
+    "godot/tests/fixtures/save_v1.json": {
+      "bytes": 451274,
+      "sha256": "5298e137a00460b17a7c06c33000c098f5aab4e1e55f792012a89427852d81a2"
+    },
+    "godot/tests/frog_motion_capture.gd": {
+      "bytes": 1759,
+      "sha256": "a9852f3b4455cde9dc99db3aca0364bf39a4efd72a2c06b471e343e10607a40b"
+    },
+    "godot/tests/frog_motion_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "3b925b8a91a89a009c79b1906f3293ef132bfe18bc6d47057e943a128b4ebed2"
+    },
+    "godot/tests/impact_refinement_capture.gd": {
+      "bytes": 2619,
+      "sha256": "5cb1efc37a6fa46533bb77402747da1bfd94c8b58712a1ab2c551b2ba47cdde8"
+    },
+    "godot/tests/impact_refinement_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "4f2a4574684a20609459c2cc3c19525e567081d41ea72a6673af006f1f6004c9"
+    },
+    "godot/tests/impact_refinement_runner.gd": {
+      "bytes": 3142,
+      "sha256": "b6b6517b4473e1072013ee321783e6361c1a54677f9f214ccf2d12449fa9f22d"
+    },
+    "godot/tests/impact_refinement_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "174abb696fd1c99e0d2ea434daf9d956b9c11b32a838e4146b9dd9e8230bd72f"
+    },
+    "godot/tests/impact_result_capture.gd": {
+      "bytes": 2433,
+      "sha256": "9f0a5b1f72aec16e2096adfec9682346b1ce08609ebd318be1fd57434bfbe08a"
+    },
+    "godot/tests/impact_result_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "8801e1e5f6b1fc6464b5a5bea9ac86cffd960ab0b124bcb176c8f20dbeb9e34d"
+    },
+    "godot/tests/impact_stress_capture.gd": {
+      "bytes": 2352,
+      "sha256": "06561580b2c3953d1764bb5415669986e3dd0cf87f5e318ef0f81b782cb629e8"
+    },
+    "godot/tests/impact_ui_capture.gd": {
+      "bytes": 3623,
+      "sha256": "e7b756360eb871b986e4122ebe0205eaed9aaddd74bef94d1d026fb21d406693"
+    },
+    "godot/tests/impact_ui_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "311b970d3f3b8625d5abc5c7dc789574e825bd114405ef34a33843672363ca9c"
+    },
+    "godot/tests/impact_ui_runner.gd": {
+      "bytes": 7401,
+      "sha256": "1789b7fb1ff76062dab90633f53f8bb1397298f6cd86cfc8dc525184b93bd445"
+    },
+    "godot/tests/impact_ui_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "6d5bbf9b731eec5dcd2616598c6fb39bcc5d43af67b5631518a8e97ed78b9df4"
+    },
+    "godot/tests/latency_profile.gd": {
+      "bytes": 2627,
+      "sha256": "5d8a401871e470ee8c8ed4ccedeb58948e6571b342a93936686f3aed3f3be8c3"
+    },
+    "godot/tests/latency_profile.gd.uid": {
+      "bytes": 20,
+      "sha256": "2845715892ef4d6125adce5012e1e7334b66850ed05def67605f0888d5131230"
+    },
+    "godot/tests/latency_runner.gd": {
+      "bytes": 7408,
+      "sha256": "91206da89371ba0a3ac34135b23cb98aa12c55171dc02d8dc74529edcf263131"
+    },
+    "godot/tests/latency_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "d9763a9e1b295e4d424b837822fd763698f7e339f59838bd2ec03cfc29dd2e86"
+    },
+    "godot/tests/layout_audit_runner.gd": {
+      "bytes": 773,
+      "sha256": "e5864ef3e955902a7484394d050153139b5edeaca9494bcd1eb80154cf774c82"
+    },
+    "godot/tests/layout_audit_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "883d46e2218c6c27d0558edf5960325cd17f3ba3063f7415cc4688401c1c9e37"
+    },
+    "godot/tests/layout_parity_runner.gd": {
+      "bytes": 4679,
+      "sha256": "2d59c0fb22a22ccb5628d8568064d5d9abb609aeaa7a1be2e4d78f74416b270a"
+    },
+    "godot/tests/layout_parity_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "573e914713077d572c644b54d08e3bab5f81282a1598fd6b16972cdabec6963c"
+    },
+    "godot/tests/mobile_browser_fixture.gd": {
+      "bytes": 1118,
+      "sha256": "37319c5fda94d9baea00746769304d5a0f742e70050382f71d5d429aaca7d4ed"
+    },
+    "godot/tests/mobile_browser_fixture.gd.uid": {
+      "bytes": 20,
+      "sha256": "c5452683fc8eefa5a8971ef9ebac6c937a8a51b9889fd7f41d1d54e467993166"
+    },
+    "godot/tests/mobile_layout_smoke.gd": {
+      "bytes": 5087,
+      "sha256": "b5b790dc9f6e16a16765d340eb888448f665100056b0cf380690a9140a172444"
+    },
+    "godot/tests/mobile_layout_smoke.gd.uid": {
+      "bytes": 20,
+      "sha256": "09d90c20a92b7722c58f156c6d0ae4d94bd77376ee07f43fdd052c47f6ba2d00"
+    },
+    "godot/tests/navigation_ui_runner.gd": {
+      "bytes": 5312,
+      "sha256": "533127bc17f631060f00246aca71ca25aa63a458148d2033b6433ddac3de31b5"
+    },
+    "godot/tests/navigation_ui_runner.gd.uid": {
+      "bytes": 19,
+      "sha256": "80093982b15578978851a08e37ac5f9d83a2f8346a41abb9fa1120802a828e32"
+    },
+    "godot/tests/phase105_runner.gd": {
+      "bytes": 167,
+      "sha256": "73c06fa32bec14705f07c62cea38827a4ce97a68011cc3113092b314726ffc4b"
+    },
+    "godot/tests/phase105_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "3c3038dd4254b7c32ffe70fdae22a1bdf82219831a3f6377f4b4df29111b891d"
+    },
+    "godot/tests/phase105_tests.gd": {
+      "bytes": 13179,
+      "sha256": "4d48bb3733fc9568748e0584d266363ba33e5a5f386d361a307c162a87818148"
+    },
+    "godot/tests/phase105_tests.gd.uid": {
+      "bytes": 19,
+      "sha256": "1b32b5392e25e09f464824e2443af41dd77444f470c90ffe21c1152f719724f7"
+    },
+    "godot/tests/phase10_runner.gd": {
+      "bytes": 166,
+      "sha256": "d88aa6458c6902246bc65d5b0934f52532d05b2e1b5be42f7604b832038a5980"
+    },
+    "godot/tests/phase10_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "082ae3ff4ae7520c2e284dbcd399a54995a79fa35c7ba90598733d51e269d52d"
+    },
+    "godot/tests/phase10_tests.gd": {
+      "bytes": 30462,
+      "sha256": "a278ce300f739909af4db4e28e44cc544ce0c76f95bebebccb33838265db24b7"
+    },
+    "godot/tests/phase10_tests.gd.uid": {
+      "bytes": 20,
+      "sha256": "3bd225675e13b68cd43a5c85f67269b74f6428f7a89e42352122c2d637945214"
+    },
+    "godot/tests/phase11_fixture.gd": {
+      "bytes": 4406,
+      "sha256": "01cfb4eb01e435c308e2e1bf4696d178034f025306d91bb006665299bbc112cc"
+    },
+    "godot/tests/phase11_fixture.gd.uid": {
+      "bytes": 20,
+      "sha256": "41558208cc3db6526eb47db32767640defca40a1c8b0275683a0f8d211edd08a"
+    },
+    "godot/tests/phase11_fixture_writer.gd": {
+      "bytes": 843,
+      "sha256": "8ac0b328601f870e828769b781baa91fbf682db6b8b8e60c15fb574c6c143da1"
+    },
+    "godot/tests/phase11_fixture_writer.gd.uid": {
+      "bytes": 20,
+      "sha256": "3ddd9fd8cc73a23cad5d9c17b8bcc4427ae47702b375a0c2acd0898d9af9309c"
+    },
+    "godot/tests/phase11_restart.gd": {
+      "bytes": 3092,
+      "sha256": "c3b861f9dac4b05344349bf20be7e6481dcd300f1e5e0172bb3372706464c28a"
+    },
+    "godot/tests/phase11_restart.gd.uid": {
+      "bytes": 19,
+      "sha256": "227f05ab39fcf0e7e7f5a92e5f68fa12f418d3f1cd03cb5f065cf16221c71561"
+    },
+    "godot/tests/phase11_runner.gd": {
+      "bytes": 172,
+      "sha256": "e82fc4ac76b9e84fb2674fbb27c3f40fb5709455e1610513fc357021b4522951"
+    },
+    "godot/tests/phase11_runner.gd.uid": {
+      "bytes": 19,
+      "sha256": "2753e0c4185454ffce09a533f21c37190af408734aba270f9f5ed90a6c83cf4b"
+    },
+    "godot/tests/phase11_runtime_tests.gd": {
+      "bytes": 15173,
+      "sha256": "a1532f740c44763f409dd0b095e65c6252ffcf7e0e31edfbc64ab1223fc17952"
+    },
+    "godot/tests/phase11_runtime_tests.gd.uid": {
+      "bytes": 20,
+      "sha256": "36cb082c3a1f8042a20f85f9780baa5e37470d9a36219567bc9b4fc413ba116b"
+    },
+    "godot/tests/phase11_tests.gd": {
+      "bytes": 13691,
+      "sha256": "4da9b54d93a2b5108c2bb2dd0c129c4fe505c61aea1850ce339c674b8c9b0bfe"
+    },
+    "godot/tests/phase11_tests.gd.uid": {
+      "bytes": 20,
+      "sha256": "4937f2350143566f8fde5d49e9f913d852a264b79ed403da182e713670212213"
+    },
+    "godot/tests/phase125_capture.gd": {
+      "bytes": 5804,
+      "sha256": "1d604ca894eafbaeb8818a06228e7d90b74e47b025f6898f94d46cff6bdba0ce"
+    },
+    "godot/tests/phase125_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "9721976ac7f6fcb05eb4d726bce7c9e045668b861d4cc9faf0d7ae88e5b1658d"
+    },
+    "godot/tests/phase125_combat_frames.gd": {
+      "bytes": 1925,
+      "sha256": "3b297fe00ff0ce5a5df1160e5bcbcc0129556d703b13d515d0a23c76974c33e5"
+    },
+    "godot/tests/phase125_combat_frames.gd.uid": {
+      "bytes": 19,
+      "sha256": "4883a2f4545cc58bc2a853a2dfb027ee6441a0cef16a49292954ee80218e0a62"
+    },
+    "godot/tests/phase125_gallery.gd": {
+      "bytes": 1763,
+      "sha256": "5d8b781aea8dd69bdabb4604dc21b88a390f2cc898b38972d6ecaabd4920578a"
+    },
+    "godot/tests/phase125_gallery.gd.uid": {
+      "bytes": 20,
+      "sha256": "4c85959b28346fa69b2b26e33b1e0c7f3f1a85fedb35c38c2094e77d4da95cde"
+    },
+    "godot/tests/phase125_layout_capture.gd": {
+      "bytes": 728,
+      "sha256": "0c826e48d35ff810ed2bac779ea8d6c26faaa2832328c3a83507536f23b62777"
+    },
+    "godot/tests/phase125_layout_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "1563a1e046875423db6e4f9379d05d45d3aaeab6ded62a9c1723077c5f0673d4"
+    },
+    "godot/tests/phase125_rest_capture.gd": {
+      "bytes": 559,
+      "sha256": "d7725a684a82e419481b0d06067b49e376ac65100d4343fd424ff00631120363"
+    },
+    "godot/tests/phase125_rest_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "31e11ce5322f7d257292eea41ea4f2a83929e6e8507cff59ddb9439de3df96c5"
+    },
+    "godot/tests/phase125_room_pair.gd": {
+      "bytes": 4371,
+      "sha256": "91eaedab22c50556bc9fb5f2cb2e8d2a7c29076bb42f043391f774335810f6a5"
+    },
+    "godot/tests/phase125_room_pair.gd.uid": {
+      "bytes": 19,
+      "sha256": "d93b6f04de5b8347c3d14045783d66ddb319d1baa2cb10450731ce33d70a7f51"
+    },
+    "godot/tests/phase125_runner.gd": {
+      "bytes": 173,
+      "sha256": "6df8461d7e036bd229aeddf1f111f17f861be9cabd44c88d23896d7af9a15e33"
+    },
+    "godot/tests/phase125_runner.gd.uid": {
+      "bytes": 19,
+      "sha256": "77477dfd0e5a2d50556c66c3c0d64810b5e496d20bd9287a41b20a67c845e577"
+    },
+    "godot/tests/phase125_tests.gd": {
+      "bytes": 5937,
+      "sha256": "1d518faad97620a5b78d535cb8913f8fe27fbda3a19ade12c2aae6e8d9015fcf"
+    },
+    "godot/tests/phase125_tests.gd.uid": {
+      "bytes": 20,
+      "sha256": "3d16aa82d9d9caa870aa186541d2ffdb046f1c9e5dbf2153c48aaef9bbfa87ab"
+    },
+    "godot/tests/phase125_tower_capture.gd": {
+      "bytes": 430,
+      "sha256": "ad5d79c31a7f273eace3e5d8fee0a60b68bdfbc6d09393d98c3fed18de223eae"
+    },
+    "godot/tests/phase125_tower_capture.gd.uid": {
+      "bytes": 19,
+      "sha256": "0248afd1022e69f6082298de5031d8409b4a6836d22916846d7270a8f853c859"
+    },
+    "godot/tests/phase12_runner.gd": {
+      "bytes": 172,
+      "sha256": "067e087b74232d0d47f8b659e74f2d8e8b8752240831d200a7d38b15d309130b"
+    },
+    "godot/tests/phase12_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "afa607541feb0861ad6981a24d31c75ca21eb2b861ced21f5f1fcbf9dee18520"
+    },
+    "godot/tests/phase12_tests.gd": {
+      "bytes": 14920,
+      "sha256": "a60c1d3f8e098c69cde3eeb1f4448aaa3f1ff18c5debc1f9463c455274ccda5d"
+    },
+    "godot/tests/phase12_tests.gd.uid": {
+      "bytes": 19,
+      "sha256": "1912f8baa2082e84fd542671e77e8fda3525505aa88f1d977c8cba5c19d530fb"
+    },
+    "godot/tests/phase12_ui_runner.gd": {
+      "bytes": 156,
+      "sha256": "54da1dfb0833ee196b5f9cbaab7912d15ed8ea9cc3151c263fcb20c1854fc02b"
+    },
+    "godot/tests/phase12_ui_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "1ed95112ea3572b1aa2576d15c9a60e41ac8dd8cdadafa8a13d26095d0eb564f"
+    },
+    "godot/tests/phase12_ui_smoke.gd": {
+      "bytes": 101,
+      "sha256": "1097586fc021eca206625b8b4bc530b62af347848c36e82d3ef42337986ed102"
+    },
+    "godot/tests/phase12_ui_smoke.gd.uid": {
+      "bytes": 20,
+      "sha256": "11e630dacad6d3855deeded4f737140e0a6c97974ff46e4ee072e913cf6c876c"
+    },
+    "godot/tests/phase2_tests.gd": {
+      "bytes": 20228,
+      "sha256": "a5ce29c161015421c634afc21e6a747229e738ac525d462488aa04eeabb7ec1b"
+    },
+    "godot/tests/phase2_tests.gd.uid": {
+      "bytes": 20,
+      "sha256": "53f9e531c150557658e34792fada4134d9ff0624344b76d4e2a34e367b056c5d"
+    },
+    "godot/tests/phase3_tests.gd": {
+      "bytes": 18105,
+      "sha256": "f8f3fe9f5b84983aca26cb52100fcfd3ad067d1986679dd3bd0c0d9b4ddce14a"
+    },
+    "godot/tests/phase3_tests.gd.uid": {
+      "bytes": 20,
+      "sha256": "a8e5854c52cab0f130def6d9f9a1987a664b67498978059e72e63588ef0f3cc0"
+    },
+    "godot/tests/phase4_tests.gd": {
+      "bytes": 22970,
+      "sha256": "63d16a851691df0d4e44ffe6aa7bd6ef8ae96572200f1bd8b771db13d3c9de23"
+    },
+    "godot/tests/phase4_tests.gd.uid": {
+      "bytes": 20,
+      "sha256": "467260672b8349ce9faad4134340bf03fd4f3d5dfccf507890efae398397f41a"
+    },
+    "godot/tests/phase5_tests.gd": {
+      "bytes": 17315,
+      "sha256": "20605557cdddb51fad28b457c57c134f85c0a791795a883997faabef59ff92ee"
+    },
+    "godot/tests/phase5_tests.gd.uid": {
+      "bytes": 20,
+      "sha256": "71a6b08ea4d7a9f90058c7780992f7113d3aae943cf811bda2d4527790c5facb"
+    },
+    "godot/tests/phase6_tests.gd": {
+      "bytes": 18028,
+      "sha256": "05b31d234c15d2efcbb16031a2b7968fd7fe8f67015b8e3396353604cec5a6b0"
+    },
+    "godot/tests/phase6_tests.gd.uid": {
+      "bytes": 20,
+      "sha256": "0348e449fc063a366b513da727b96fb709f89984960411d23cf7bb3688c808ca"
+    },
+    "godot/tests/phase7_tests.gd": {
+      "bytes": 32436,
+      "sha256": "826b7f9eb89539fbb0053017ec59b5de0a0420e1c271c7d782d498226c6774a9"
+    },
+    "godot/tests/phase7_tests.gd.uid": {
+      "bytes": 20,
+      "sha256": "44e91ec2d27ee9e4c05bb154db943924bbf44e6e776c0ecbc40206d30e739dc6"
+    },
+    "godot/tests/phase8_batch_runner.gd": {
+      "bytes": 1919,
+      "sha256": "bed9357a71a4069fe4c107c82d60a38ee68aa161934f611c4c761f7650557c5c"
+    },
+    "godot/tests/phase8_batch_runner.gd.uid": {
+      "bytes": 19,
+      "sha256": "9000d1b9067896cf2af4ea33652d54147a8fb109e0342fb45fc06722d4396828"
+    },
+    "godot/tests/phase8_runner.gd": {
+      "bytes": 165,
+      "sha256": "81be9eb04d1b349877959ab0e6f5e197895cc09f999b5297e538bde732458b5d"
+    },
+    "godot/tests/phase8_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "e90987b90b67ca4d0aea65e2a5a834a2f9f05d506d1d1231251c91d44569bfee"
+    },
+    "godot/tests/phase8_tests.gd": {
+      "bytes": 32687,
+      "sha256": "5001ed475c9d4fc8f81def15ce2e26ef094a6cf0d47cef3e1e925149ff3dfb08"
+    },
+    "godot/tests/phase8_tests.gd.uid": {
+      "bytes": 20,
+      "sha256": "796d165645672c08044cff414ebfc5eeafbab64172e51bad8ae5c3d20237bae6"
+    },
+    "godot/tests/phase9_runner.gd": {
+      "bytes": 165,
+      "sha256": "fd392c58e3b1ab1b123e360e6c49abd4de6c3bf05b7d3201878f671dbc430415"
+    },
+    "godot/tests/phase9_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "dc04f78314a23eb777e80ff228811c93a6fc0031e2f2771762c4a989f37fde39"
+    },
+    "godot/tests/phase9_tests.gd": {
+      "bytes": 18807,
+      "sha256": "1a38d0b134b57109f61fcbb9426ea4ead62b5ebdf7670947894954ea4d3ffedd"
+    },
+    "godot/tests/phase9_tests.gd.uid": {
+      "bytes": 20,
+      "sha256": "26045e6f53372d22324f0d0e873b100c5dda35cf0d8fde1b632fb646f04b3a55"
+    },
+    "godot/tests/room_ui_smoke.gd": {
+      "bytes": 6564,
+      "sha256": "ee21e442aa68dcfc1f60c35a2fe538fb898ea920b7ae99d12dcc350c486383bb"
+    },
+    "godot/tests/room_ui_smoke.gd.uid": {
+      "bytes": 20,
+      "sha256": "9a1d0ad3ba80f65c0ec15f0ef40a3720e9cf5528264a6b58309643e1a7575f3d"
+    },
+    "godot/tests/save_ui_smoke.gd": {
+      "bytes": 8013,
+      "sha256": "3f640c683441dba56159b5ca6b8c27a717fb45e36d19b9e2795e1048b70e2e50"
+    },
+    "godot/tests/save_ui_smoke.gd.uid": {
+      "bytes": 19,
+      "sha256": "dbf20a573d18f63c63fee090d0cc9ac38176eb47ca7dd83a4f1c45a328f6d37e"
+    },
+    "godot/tests/screen_presentation_capture.gd": {
+      "bytes": 3366,
+      "sha256": "5f1c90e9958b71594b9ad024ce7c8daa3a3295c6fcecf210ab54d29bf05f3075"
+    },
+    "godot/tests/screen_presentation_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "0ff0b181e6b448ed034474933eeb7519ba4c64d6fe2e7e95b9cc2670e2e38bde"
+    },
+    "godot/tests/screen_presentation_detail_capture.gd": {
+      "bytes": 1575,
+      "sha256": "2f34d3741eb156ff5cbd20551002a39be4e154c57bc08673982a35d04ecf5c90"
+    },
+    "godot/tests/screen_presentation_detail_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "9439f820825c539556289b9099c0652a4b5535515c7a9d0c015ce067484fa6ba"
+    },
+    "godot/tests/screen_presentation_runner.gd": {
+      "bytes": 5247,
+      "sha256": "0b83f92bd2af6df2181d77840b397f9e2d7d9ec860c9a6edfc3fa4a062d9ee6c"
+    },
+    "godot/tests/screen_presentation_runner.gd.uid": {
+      "bytes": 19,
+      "sha256": "445b4f29c0b5ffb55b75debc0c5027ce4fbc5cd2fe460652c80d69777a918501"
+    },
+    "godot/tests/source_presentation_regression.gd": {
+      "bytes": 330,
+      "sha256": "ac08560ce5edd05fe6f0a2f6f50fcfcc602b00ead3cd72d9562ac5559f1450c0"
+    },
+    "godot/tests/source_presentation_regression.gd.uid": {
+      "bytes": 20,
+      "sha256": "612d4cc5ab6a0e5fdbdd9eeff0f83531000b43da3439d7e428f3fd4e5511b197"
+    },
+    "godot/tests/source_ui_runner.gd": {
+      "bytes": 4612,
+      "sha256": "fc90a44b958d167635cf8005aa04986cbd6a1396a37ee7db99233e8403484687"
+    },
+    "godot/tests/source_ui_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "f7827cd80c65bdd606a4c3ed4627b9d5dc3e239bdd65c9a41589cf49375fd93f"
+    },
+    "godot/tests/strategy_ui_smoke.gd": {
+      "bytes": 7079,
+      "sha256": "3c02922b3ebe485082f736fa707cfbb3161af53b707fdde6f2169edd9e680ea4"
+    },
+    "godot/tests/strategy_ui_smoke.gd.uid": {
+      "bytes": 19,
+      "sha256": "bf10f2f0c6b2ce80e25276589d109f4912a15f0185e364002f370227dbe95eea"
+    },
+    "godot/tests/test_runner.gd": {
+      "bytes": 13894,
+      "sha256": "12ecb1ce7e5c0364d388f0ea1dd0729bd0c4f3e3208521d342fdcdcb261f80b4"
+    },
+    "godot/tests/test_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "1f9cec3f5bffa64cdc7741f20cc9477df34dcccd81772b407444a401d6aad240"
+    },
+    "godot/tests/tower_content_ui_smoke.gd": {
+      "bytes": 10680,
+      "sha256": "7874a47b0c0c751454f7c4027121d698160a7995a797acef370a61bf46440ed7"
+    },
+    "godot/tests/tower_content_ui_smoke.gd.uid": {
+      "bytes": 19,
+      "sha256": "8b10aae584adba4d5cb10a7bcd573747f0de5265424b7b4aaf4fff30eabf4b2e"
+    },
+    "godot/tests/tower_ui_smoke.gd": {
+      "bytes": 8805,
+      "sha256": "58ab3578dc35187c5ba8c4dc8fecc55bd23c60f1c5eb4c0bd7a9d319309bfb90"
+    },
+    "godot/tests/tower_ui_smoke.gd.uid": {
+      "bytes": 20,
+      "sha256": "9c61443275969131f7db29552b13c1545803032518dc9ef507757bde83df74c2"
+    },
+    "godot/tests/turning_ui_smoke.gd": {
+      "bytes": 6173,
+      "sha256": "776a2a30b6a15efa5dfc9c02ae66e651c41bd369774ff4609a867e5d0194826a"
+    },
+    "godot/tests/turning_ui_smoke.gd.uid": {
+      "bytes": 20,
+      "sha256": "6ab5ba13c7a27e2cdc5f9401b0c2d80d90333311c0d673ad8f853fdf1e209357"
+    },
+    "godot/tests/ui_parity_smoke.gd": {
+      "bytes": 3614,
+      "sha256": "874abf160307b517804f90639f55ceae75399b25a3813f769e68126ab7075f02"
+    },
+    "godot/tests/ui_parity_smoke.gd.uid": {
+      "bytes": 19,
+      "sha256": "fee47a645332bc24e750f72012044ca2e405a1c7320c6191dbffcfc56dd414ad"
+    },
+    "godot/tests/unit_stall_probe.gd": {
+      "bytes": 1396,
+      "sha256": "be5dc6bac0ea3203a675e6e54929f4d7391130dca41c9aa9fa1523b6c0d8e697"
+    },
+    "godot/tests/unit_stall_probe.gd.uid": {
+      "bytes": 20,
+      "sha256": "49231d7c5b8db1cbd828b36b28be9b16b10ad5226e8ef3e76bd4fbd1f4120ff2"
+    },
+    "godot/tests/unit_stall_runner.gd": {
+      "bytes": 5205,
+      "sha256": "c095526f56601b526b93e18a8fd82bbf1825ed5b4108586fc8c714203afccefc"
+    },
+    "godot/tests/unit_stall_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "62629bae125188a544378f9905d12eeeeac06599e4db753ea584f945da843348"
+    },
+    "godot/tests/vfx_showcase_capture.gd": {
+      "bytes": 2687,
+      "sha256": "1f9151b6629ab9ae6429c48c0a345e9c17b378f83ad38fa9f7deecb376ab890e"
+    },
+    "godot/tests/vfx_showcase_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "a280ca3c631c349207945991fb3c101a2c6b533bc80ef3cd9b159eb74a25caf9"
+    },
+    "godot/tests/vfx_stress_capture.gd": {
+      "bytes": 2334,
+      "sha256": "b7ab4aade21b74a0d2024770bb2153b78de4e1c0096599a97d4ea6bb91e2e459"
+    },
+    "godot/tests/vfx_stress_capture.gd.uid": {
+      "bytes": 20,
+      "sha256": "a2ff2a77d98225a847308b87861f82e4aa42e4858632030bdc79822197a9777f"
+    },
+    "godot/tests/vfx_upgrade_runner.gd": {
+      "bytes": 4891,
+      "sha256": "333209c43cf506e405fe4732d91d6d5dfff6b77cb204e08bb482acfcee428e01"
+    },
+    "godot/tests/vfx_upgrade_runner.gd.uid": {
+      "bytes": 20,
+      "sha256": "7cff0b97bc8b49111d287be0dbd57f2893a0eb2fec4d5590e96b6eac80458bd2"
+    },
+    "godot/tests/web_phase10_reference.cjs": {
+      "bytes": 2376,
+      "sha256": "0b64a1231e83b6d13dbad8fca15422d7f6ed3903f58dc1549cffb2200373bd3a"
+    },
+    "godot/tests/web_phase9_reference.cjs": {
+      "bytes": 1447,
+      "sha256": "a00212fc5a3ba4cfdddfad6b73780ff3f9cb91acad4c03933e4ea2b08f372b3a"
+    }
+  }
+}

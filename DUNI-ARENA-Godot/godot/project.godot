@@ -1,0 +1,27 @@
+; Phase 11 file persistence. The web project remains independent.
+config_version=5
+
+[application]
+config/name="DUNI ARENA — Phase 12"
+config/use_custom_user_dir=true
+config/custom_user_dir_name="DUNI_ARENA"
+run/main_scene="res://scenes/main_menu.tscn"
+config/features=PackedStringArray("4.6", "GL Compatibility")
+
+[display]
+window/size/viewport_width=900
+window/size/viewport_height=1000
+window/size/window_width_override=720
+window/size/window_height_override=800
+window/stretch/mode="canvas_items"
+
+[physics]
+common/physics_ticks_per_second=60
+
+[rendering]
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+environment/defaults/default_clear_color=Color(0.035, 0.045, 0.07, 1)
+
+[input_devices]
+pointing/emulate_mouse_from_touch=true
