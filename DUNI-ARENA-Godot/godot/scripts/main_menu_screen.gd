@@ -6,6 +6,8 @@ var tower_screen: TowerScreen
 var menu: VBoxContainer
 var new_button: Button
 var continue_button: Button
+var custom_button: Button
+var custom_screen: CustomBattleScreen
 var status: Label
 var menu_margin: MarginContainer
 var backdrop: TitleBackdrop
@@ -30,6 +32,7 @@ func _ready() -> void:
 	for state in ["normal","hover","pressed","disabled"]:
 		var style: StyleBoxFlat=ArenaUI.box(Color("1b2338",.92) if state!="disabled" else Color("141824",.85),Color("4b5a86") if state!="disabled" else Color("2a3150"));style.set_corner_radius_all(10);continue_button.add_theme_stylebox_override(state,style)
 	continue_button.add_theme_color_override("font_disabled_color",Color("59627e"))
+	custom_button=Button.new();custom_button.text="커스텀 전투 · 자유 배치 테스트";custom_button.custom_minimum_size.y=48;menu.add_child(custom_button);ArenaUI.bind(custom_button,open_custom);ArenaUI.quiet(custom_button)
 	var save_card:=PanelContainer.new();var card_style: StyleBoxFlat=ArenaUI.box(Color(ArenaUI.PANEL,.88),Color("34406a"));card_style.set_corner_radius_all(10);card_style.content_margin_left=14;card_style.content_margin_right=14;card_style.content_margin_top=10;card_style.content_margin_bottom=10;save_card.add_theme_stylebox_override("panel",card_style);menu.add_child(save_card)
 	status=Label.new();status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;status.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;status.add_theme_font_size_override("font_size",12);status.add_theme_color_override("font_color",Color("c9d0e6"));save_card.add_child(status)
 	overwrite_dialog=ConfirmationDialog.new();overwrite_dialog.dialog_text="저장된 탐험을 새 게임으로 교체하겠습니까?";add_child(overwrite_dialog);overwrite_dialog.confirmed.connect(new_game)
@@ -72,6 +75,14 @@ func continue_run() -> void:
 	if not loaded.ok():status.text="이어하기 실패 · "+loaded.detail;continue_button.disabled=true;return
 	open_tower(loaded.controller)
 	if loaded.from_backup:tower_screen.show_notice("이전 정상 저장에서 복구했습니다.")
+func open_custom() -> void:
+	if is_instance_valid(custom_screen) or is_instance_valid(tower_screen):return
+	menu.get_parent().hide();backdrop.hide()
+	custom_screen=CustomBattleScreen.new();add_child(custom_screen)
+	custom_screen.closed.connect(func():call_deferred("close_custom"))
+func close_custom() -> void:
+	if is_instance_valid(custom_screen):remove_child(custom_screen);custom_screen.queue_free();custom_screen=null
+	menu.get_parent().show();backdrop.show()
 func open_tower(controller: TowerController) -> void:
 	menu.get_parent().hide();backdrop.hide()
 	if is_instance_valid(tower_screen):remove_child(tower_screen);tower_screen.queue_free()

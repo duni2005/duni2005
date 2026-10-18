@@ -247,8 +247,10 @@ func _run() -> void:
 	await phase12.run(self)
 	var phase125:=Phase125Tests.new()
 	await phase125.run(self)
-	print("TOTAL: ", checks + phase2.checks + phase3.checks + phase4.checks + phase5.checks + phase6.checks + phase7.checks + phase8.checks + phase9.checks + phase10.checks + phase105.checks + phase11.checks + phase12.checks + phase125.checks, " checks; ", failures + phase2.failures + phase3.failures + phase4.failures + phase5.failures + phase6.failures + phase7.failures + phase8.failures + phase9.failures + phase10.failures + phase105.failures + phase11.failures + phase12.failures + phase125.failures, " failures")
-	quit(1 if failures + phase2.failures + phase3.failures + phase4.failures + phase5.failures + phase6.failures + phase7.failures + phase8.failures + phase9.failures + phase10.failures + phase105.failures + phase11.failures + phase12.failures + phase125.failures else 0)
+	var custom:=CustomBattleTests.new()
+	await custom.run(self)
+	print("TOTAL: ", checks + phase2.checks + phase3.checks + phase4.checks + phase5.checks + phase6.checks + phase7.checks + phase8.checks + phase9.checks + phase10.checks + phase105.checks + phase11.checks + phase12.checks + phase125.checks + custom.checks, " checks; ", failures + phase2.failures + phase3.failures + phase4.failures + phase5.failures + phase6.failures + phase7.failures + phase8.failures + phase9.failures + phase10.failures + phase105.failures + phase11.failures + phase12.failures + phase125.failures + custom.failures, " failures")
+	quit(1 if failures + phase2.failures + phase3.failures + phase4.failures + phase5.failures + phase6.failures + phase7.failures + phase8.failures + phase9.failures + phase10.failures + phase105.failures + phase11.failures + phase12.failures + phase125.failures + custom.failures else 0)
 
 func legacy_manager() -> BattleManager:
 	var manager := BattleManager.new()

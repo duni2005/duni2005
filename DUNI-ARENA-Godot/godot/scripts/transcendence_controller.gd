@@ -7,7 +7,7 @@ var aim: Dictionary = {}
 var cast: Dictionary = {}
 func _init(owner):battle=owner
 func ready(u) -> bool:
-	return u!=null and not u.source_member_id.is_empty() and u.team==0 and u.alive and u.transcendence_gauge>=100 and not StatusController.skill_charge_blocked(u) and u.ultimate.cast.is_empty() and u.frog_action.is_empty() and u.hero_rescue.is_empty() and u.state_value("guardRemaining")<=0 and battle.started and not battle.finished
+	return u!=null and (battle.custom_mode or not u.source_member_id.is_empty() and u.team==0) and u.alive and u.transcendence_gauge>=100 and not StatusController.skill_charge_blocked(u) and u.ultimate.cast.is_empty() and u.frog_action.is_empty() and u.hero_rescue.is_empty() and u.state_value("guardRemaining")<=0 and battle.started and not battle.finished
 func begin(u,origin: Vector2) -> bool:
 	if not aim.is_empty() or not cast.is_empty() or not ready(u):return false
 	previous_clock_state=battle.clock.state;battle.clock.state=BattleClock.State.TRANSCENDENCE_AIM

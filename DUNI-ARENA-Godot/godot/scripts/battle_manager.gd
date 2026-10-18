@@ -13,6 +13,8 @@ const ARCHER: UnitData = preload("res://data/archer.tres")
 # Explicit golden-comparison mode preserves Phases 1–6 numerical fixtures.
 # The current room/F5 screen enables the migrated common rules.
 @export var common_combat_enabled: bool = true
+## Custom battle: any number of teams/free-for-all units, every unit may use transcendence.
+var custom_mode: bool = false
 @export var full_characters_enabled: bool = true
 @export var auto_start: bool = true
 @export var random_seed: int = -1
@@ -236,7 +238,8 @@ func check_outcome() -> void:
 	if factions.size() > 1:
 		return
 	var winning_team: int = -1 if factions.is_empty() else int(factions.keys()[0])
-	var reason: BattleEndReason.Value = BattleEndReason.Value.DRAW if factions.is_empty() else BattleEndReason.Value.VICTORY if winning_team == 0 else BattleEndReason.Value.DEFEAT
+	# Custom battles have no player side: whichever faction survives is the victor.
+	var reason: BattleEndReason.Value = BattleEndReason.Value.DRAW if factions.is_empty() else BattleEndReason.Value.VICTORY if winning_team == 0 or custom_mode else BattleEndReason.Value.DEFEAT
 	finish_with_reason(reason, winning_team)
 
 func finish_with_reason(reason: BattleEndReason.Value, winning_team: int) -> bool:

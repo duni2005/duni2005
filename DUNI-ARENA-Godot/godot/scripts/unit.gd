@@ -154,6 +154,7 @@ func announce_death(source) -> void:
 		died.emit(self,source)
 
 func team_color() -> Color:
+	if battle != null and battle.get("custom_mode") == true:return CustomBattleSetup.faction_color(team, data.type_id)
 	return Color("88b7ff") if team == 0 else Color("ff947d")
 
 func debug_state() -> String:

@@ -13,7 +13,7 @@ func gain(u,amount: float) -> float:
 	var before: float=u.ultimate_gauge;u.ultimate_gauge=clampf(before+amount,0,100);return u.ultimate_gauge-before
 func charge(u,damage: float,dealt: bool) -> void:
 	if StatusController.skill_charge_blocked(u) or damage<=0:return
-	if not u.source_member_id.is_empty() and u.team==0 and u.puppet_control.is_empty() and (u.battle.transcendence==null or u.battle.transcendence.cast.get("actor","")!=u.actor_id()):
+	if (u.battle.get("custom_mode")==true or not u.source_member_id.is_empty() and u.team==0) and u.puppet_control.is_empty() and (u.battle.transcendence==null or u.battle.transcendence.cast.get("actor","")!=u.actor_id()):
 		u.transcendence_gauge=clampf(u.transcendence_gauge+damage/u.max_hp*(12 if dealt else 16)*(1-clampi(5-u.energy,0,5)*.07),0,100)
 	gain(u,damage/u.max_hp*(65 if dealt else 90)*(1.3 if u.data.type_id==3 else 1.2 if u.data.type_id==0 else 1)*efficiency(u))
 func advance(u,dt: float) -> void:

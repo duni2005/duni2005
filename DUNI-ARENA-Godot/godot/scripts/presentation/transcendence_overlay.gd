@@ -1,7 +1,7 @@
 class_name TranscendenceOverlay
 extends Control
 ## Screen-space gesture feedback; owns no command, gauge or gameplay timer.
-var screen: RoomBattleScreen
+var screen: Control # Any screen exposing `battle` and `trans_press` (room or custom battle).
 func _ready() -> void:
 	mouse_filter=Control.MOUSE_FILTER_IGNORE;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);z_index=20
 func _process(_dt: float) -> void:queue_redraw()

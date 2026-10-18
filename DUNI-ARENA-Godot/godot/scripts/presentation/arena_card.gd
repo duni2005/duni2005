@@ -27,7 +27,7 @@ var equipment_slots: int=2
 var strip_style: bool=false
 var cached_style: StyleBoxFlat
 # Visual tiers: units read as information, choices as warm actions, inventory as slots.
-const UNIT_TYPES: Array=["member","deploy_member","mini_member","party","revival_member","promotion_member","ally"]
+const UNIT_TYPES: Array=["member","deploy_member","mini_member","party","revival_member","promotion_member","ally","library"]
 const ACTION_TYPES: Array=["event_option","product","choice","recruit","stake","prediction_team","item"]
 const SHOP_TYPES: Array=["product","recruit"]
 func show_member(guild: GuildManager,member: GuildMemberState) -> void:
@@ -245,6 +245,13 @@ func _draw() -> void:
 		draw_multiline_string(get_theme_default_font(),Vector2(4,59),title,HORIZONTAL_ALIGNMENT_CENTER,size.x-8,12,2,Color("eef1fa"))
 		draw_multiline_string(get_theme_default_font(),Vector2(6,91),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-12,11,3,muted)
 		draw_price_chip(Rect2(6,size.y-37,size.x-12,30),"구매 완료")
+		return
+	if card_type=="library":
+		# Custom battle character card: name, portrait, temporary cost.
+		write(Vector2(0,17),title,11,Color("eef1fa"),size.x,true)
+		UnitIcon.draw(self,Rect2(size.x*.5-20,22,40,40),type_id)
+		ArenaIcon.draw(self,Vector2(size.x*.5-16,size.y-12),"gold",11,Color.WHITE)
+		draw_string(ArenaUI.numbers_font(),Vector2(size.x*.5-8,size.y-6),price,HORIZONTAL_ALIGNMENT_LEFT,-1,14,ArenaUI.GOLD)
 		return
 	if card_type=="slot":
 		ArenaIcon.draw(self,Vector2(size.x*.5,21),kind,23,gold)
