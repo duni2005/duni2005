@@ -36,7 +36,10 @@ static func fit_window(window: Window) -> Vector2i:
 	# the high-resolution buffer for sharp text and correct input transforms.
 	var logical: Vector2i=window.size
 	if OS.has_feature("web"):
-		logical=Vector2i(maxi(1,int(JavaScriptBridge.eval("window.innerWidth"))),maxi(1,int(JavaScriptBridge.eval("window.innerHeight"))))
+		var css_w=JavaScriptBridge.eval("window.innerWidth");var css_h=JavaScriptBridge.eval("window.innerHeight")
+		# A page whose CSP forbids eval returns null; derive CSS pixels from the buffer instead.
+		if css_w==null or css_h==null:logical=Vector2i((Vector2(window.size)/maxf(1,DisplayServer.screen_get_scale())).round())
+		else:logical=Vector2i(maxi(1,int(css_w)),maxi(1,int(css_h)))
 		window.content_scale_mode=Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
 		window.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_IGNORE
 	elif OS.has_feature("android"):
