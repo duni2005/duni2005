@@ -112,7 +112,8 @@ static func safe_margin(margin: MarginContainer) -> void:
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,10 if side in ["top","bottom"] else 8)
 	if DisplayServer.get_name()!="headless":
 		var safe: Rect2i=DisplayServer.get_display_safe_area()
-		var window: Window=margin.get_window()
+		# Full-page dialogs are embedded subwindows; the device insets belong to the app's root window.
+		var window: Window=margin.get_tree().root if margin.is_inside_tree() else margin.get_window()
 		if safe.size.x>0 and window.mode==Window.MODE_FULLSCREEN:
 			var scale: Vector2=Vector2(window.content_scale_size)/Vector2(window.size)
 			margin.add_theme_constant_override("margin_top",maxi(16,int((safe.position.y-window.position.y)*scale.y)))
