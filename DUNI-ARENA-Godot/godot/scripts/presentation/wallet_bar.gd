@@ -58,7 +58,7 @@ func advance_view(dt: float) -> void:
 	if state!=_paint_state:_paint_state=state;queue_redraw()
 func _draw() -> void:
 	if guild==null:return
-	if _panel_style==null:_panel_style=ArenaUI.box(Color("222b24"),Color("5a6550"));_panel_style.set_corner_radius_all(9)
+	if _panel_style==null:_panel_style=ArenaUI.box(Color("141b2d"),Color("4a5680"));_panel_style.set_corner_radius_all(9)
 	if compact:_draw_compact();return
 	draw_style_box(_panel_style,Rect2(0,0,size.x,68))
 	var font: Font=get_theme_default_font();var numbers: Font=ArenaUI.numbers_font();var w: float=size.x*.30
@@ -77,7 +77,7 @@ func _draw() -> void:
 	var health: String=str(ceili(guild.state.player_hp));var health_width: float=numbers.get_string_size(health,HORIZONTAL_ALIGNMENT_LEFT,-1,30).x
 	draw_string(numbers,Vector2(w*2+8,48),health,HORIZONTAL_ALIGNMENT_LEFT,-1,30,ArenaUI.HP)
 	draw_string(numbers,Vector2(w*2+13+health_width,48),"/ %d"%ceili(guild.state.player_max_hp),HORIZONTAL_ALIGNMENT_LEFT,-1,14,ArenaUI.MUTED)
-	draw_rect(Rect2(w*2+8,61,size.x-w*2-20,3),Color("35452e"));draw_rect(Rect2(w*2+8,61,(size.x-w*2-20)*clampf(guild.state.player_hp/maxf(1,guild.state.player_max_hp),0,1),3),ArenaUI.HP)
+	draw_rect(Rect2(w*2+8,61,size.x-w*2-20,3),Color("26304a"));draw_rect(Rect2(w*2+8,61,(size.x-w*2-20)*clampf(guild.state.player_hp/maxf(1,guild.state.player_max_hp),0,1),3),ArenaUI.HP)
 func _draw_compact() -> void:
 	draw_style_box(_panel_style,Rect2(0,0,size.x,40))
 	var numbers: Font=ArenaUI.numbers_font();var w: float=size.x*.30
@@ -91,4 +91,4 @@ func _draw_compact() -> void:
 	draw_string(numbers,Vector2(w*2+28,29),health,HORIZONTAL_ALIGNMENT_LEFT,-1,22,ArenaUI.HP)
 	var bar_x: float=w*2+36+hw;var bar_w: float=size.x-bar_x-14
 	if bar_w>24:
-		draw_rect(Rect2(bar_x,18,bar_w,5),Color("35452e"));draw_rect(Rect2(bar_x,18,bar_w*clampf(guild.state.player_hp/maxf(1,guild.state.player_max_hp),0,1),5),ArenaUI.HP)
+		draw_rect(Rect2(bar_x,18,bar_w,5),Color("26304a"));draw_rect(Rect2(bar_x,18,bar_w*clampf(guild.state.player_hp/maxf(1,guild.state.player_max_hp),0,1),5),ArenaUI.HP)

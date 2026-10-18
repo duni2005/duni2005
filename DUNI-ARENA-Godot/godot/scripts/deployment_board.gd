@@ -130,10 +130,10 @@ func _draw() -> void:
 	var factor: float = rect.size.x / 800.0
 	draw_set_transform(rect.position, 0.0, Vector2.ONE * factor)
 	VisualShapes.arena(self)
-	draw_rect(Rect2(40,40,340,720),Color(.25,.62,.47,.10))
-	draw_rect(Rect2(40,40,340,720),Color("8eac82"),false,2)
+	draw_rect(Rect2(40,40,340,720),Color(.35,.5,.95,.09))
+	draw_rect(Rect2(40,40,340,720),Color("7f9cd6"),false,2)
 	var font: Font = ThemeDB.fallback_font
-	draw_string(font, Vector2(48, 25), "아군 배치 영역", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("bdc9b4"))
+	draw_string(font, Vector2(48, 25), "아군 배치 영역", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("bcc6e0"))
 	for enemy in enemies:
 		_draw_token(enemy.position, enemy.data, "적", float(enemy.get("current_hp", enemy.data.max_hp)), Color("ff947d"), false, enemy.combat_stats.max_hp if enemy.get("combat_stats") != null else enemy.data.max_hp)
 	for entry in plan.entries():
@@ -148,7 +148,7 @@ func _draw_token(at: Vector2, data: UnitData, id: String, hp: float, color: Colo
 	var rect: Rect2=board_rect();var factor: float=rect.size.x/800
 	UnitIcon.draw(self,Rect2(at-Vector2.ONE*27,Vector2.ONE*54),data.type_id)
 	if selected:draw_arc(at,34,0,TAU,32,ArenaUI.GOLD,2)
-	draw_rect(Rect2(at + Vector2(-28, -40), Vector2(56, 5)), Color("293142"))
+	draw_rect(Rect2(at + Vector2(-28, -40), Vector2(56, 5)), Color("202a44"))
 	draw_rect(Rect2(at + Vector2(-28, -40), Vector2(56 * clampf(hp / hp_limit, 0, 1), 5)), color)
 	if selected:draw_string(font, at + Vector2(-27, -45), "HP %d" % ceili(hp), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
 	if selected:draw_string(font, at + Vector2(-27, 43), id, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, color)

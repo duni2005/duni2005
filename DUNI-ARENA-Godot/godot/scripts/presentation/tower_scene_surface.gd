@@ -16,7 +16,7 @@ func _draw() -> void:
 	var screen: Vector2=get_viewport_rect().size
 	for i in range(director.toasts.size()):
 		var item: Dictionary=director.toasts[i];var alpha: float=minf(clampf(item.age/.16,0,1),clampf((2.2-item.age)/.4,0,1));var width: float=minf(340,screen.x-32)
-		var box:=Rect2(Vector2((screen.x-width)*.5,screen.y-88-i*64),Vector2(width,56));draw_style_box(ArenaUI.box(Color(.075,.12,.09,alpha*.96),Color(.47,.54,.38,alpha)),box)
+		var box:=Rect2(Vector2((screen.x-width)*.5,screen.y-88-i*64),Vector2(width,56));draw_style_box(ArenaUI.box(Color(.055,.07,.13,alpha*.96),Color(.42,.48,.7,alpha)),box)
 		ArenaIcon.draw(self,box.position+Vector2(26,28),item.icon,30,Color(1,1,1,alpha));text(box.position+Vector2(52,24),item.title,14,Color(ArenaUI.GOLD,alpha),width-64)
 		if not item.detail.is_empty():text(box.position+Vector2(52,44),item.detail,11,Color(ArenaUI.MUTED,alpha),width-64)
 	if director.active.is_empty():_draw_flights();return
@@ -24,7 +24,7 @@ func _draw() -> void:
 	if t<0:_draw_flights();return
 	var alpha: float=minf(clampf(t/.2,0,1),clampf((s.duration-t)/.8,0,1));var kind: String=s.kind
 	var strong: bool=kind in ["recruit","promotion","chapterConquest"]
-	draw_rect(Rect2(Vector2.ZERO,screen),Color(.015,.035,.04,alpha*(.94 if strong else .72)))
+	draw_rect(Rect2(Vector2.ZERO,screen),Color(.02,.025,.055,alpha*(.94 if strong else .72)))
 	var center: Vector2=screen*.5+Vector2(0,-18+(1-clampf(t/.3,0,1))*8)
 	var accent:=Color("f0d490") if kind!="entry" else Color("c4cdbb")
 	for i in range(18 if strong else 10):

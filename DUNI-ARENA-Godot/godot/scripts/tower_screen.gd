@@ -47,12 +47,12 @@ func _ready() -> void:
 	body=VBoxContainer.new();margin.add_child(body)
 	var brand:=ArenaBrandBar.new();body.add_child(brand)
 	var top:=HBoxContainer.new();top.custom_minimum_size.y=44;body.add_child(top)
-	var heading:=Label.new();heading.name="TowerHeading";heading.text="두니 타워 · 탐험 지도";heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_theme_font_size_override("font_size",18);top.add_child(heading)
+	var heading:=Label.new();heading.name="TowerHeading";heading.text="두니 타워 · 탐험 지도";heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_theme_font_override("font",ArenaUI.heading_font());heading.add_theme_font_size_override("font_size",19);top.add_child(heading)
 	guild_button=make_nav_button(top,"guild",open_guild);guild_button.custom_minimum_size=Vector2(44,44);guild_button.tooltip_text="유닛 / 인벤토리 / 강화"
 	menu_button=make_nav_button(top,"menu",func():menu_dialog.popup_centered(Vector2i(280,0)));menu_button.custom_minimum_size=Vector2(44,44);menu_button.tooltip_text="메뉴"
 	for button in [guild_button,menu_button]:
 		for state in ["normal","hover","pressed"]:
-			var style: StyleBoxFlat=ArenaUI.box(Color("26342d"));style.set_corner_radius_all(22);button.add_theme_stylebox_override(state,style)
+			var style: StyleBoxFlat=ArenaUI.box(Color("1c2540"));style.set_corner_radius_all(22);button.add_theme_stylebox_override(state,style)
 	wallet=WalletBar.new();wallet.guild=controller.guild;body.add_child(wallet)
 	menu_dialog=AcceptDialog.new();menu_dialog.title="메뉴";menu_dialog.get_ok_button().text="닫기";add_child(menu_dialog);ArenaModalBackdrop.new().connect_window(menu_dialog,self)
 	var actions:=VBoxContainer.new();menu_dialog.add_child(actions);ArenaUI.dialog_header(menu_dialog,actions,"메뉴")
@@ -167,7 +167,7 @@ func _refresh_map_cards() -> void:
 	for floor in state.map.floors:
 		var widgets: Dictionary=floor_widgets[floor.floor_index]
 		widgets.label.text="%d층%s"%[floor.floor_index+1,"  ·  정복 ✓" if floor.conquered else ""]
-		widgets.label.add_theme_color_override("font_color",ArenaUI.GOLD if floor.conquered else Color("edf1ef") if floor.unlocked else ArenaUI.MUTED)
+		widgets.label.add_theme_color_override("font_color",ArenaUI.GOLD if floor.conquered else Color("eef1fa") if floor.unlocked else ArenaUI.MUTED)
 		widgets.progress.text=_floor_progress(floor,state)
 		widgets.progress.add_theme_color_override("font_color",ArenaUI.HP if floor.unlocked and floor.cleared_count>=floor.required_clear_count else ArenaUI.MUTED)
 		widgets.conquest.text=("" if floor.unlocked else "잠김 · ")+"층 정복 보상"+(" ✓" if floor.conquered else "")

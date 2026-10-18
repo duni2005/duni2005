@@ -55,10 +55,10 @@ func _ready() -> void:
 	menu_button=ArenaUI.nav_button("menu",_open_menu);top.add_child(menu_button)
 	wallet=WalletBar.new();wallet.guild=controller.guild;column.add_child(wallet)
 	room_frame=PanelContainer.new();room_frame.size_flags_vertical=Control.SIZE_EXPAND_FILL;column.add_child(room_frame)
-	room_frame.add_theme_stylebox_override("panel",ArenaUI.box(Color("19241f"),Color("3f5043")))
+	room_frame.add_theme_stylebox_override("panel",ArenaUI.box(Color("131a2b"),Color("34406a")))
 	var room_column:=VBoxContainer.new();room_frame.add_child(room_column)
 	var actions:=HBoxContainer.new();room_column.add_child(actions)
-	room_title=Label.new();room_title.text=RoomType.LABELS[controller.current_room().room_type];room_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;room_title.add_theme_font_size_override("font_size",18);actions.add_child(room_title)
+	room_title=Label.new();room_title.text=RoomType.LABELS[controller.current_room().room_type];room_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;room_title.add_theme_font_override("font",ArenaUI.heading_font());room_title.add_theme_font_size_override("font_size",20);room_title.add_theme_color_override("font_color",ArenaUI.GOLD);actions.add_child(room_title)
 	map_footer=CenterContainer.new();column.add_child(map_footer)
 	map_button=button(map_footer,"지도로",_return_map);map_button.custom_minimum_size.y=48;ArenaUI.primary(map_button);ArenaUI.with_icon(map_button,"play",12,true)
 	status=Label.new();status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;status.add_theme_font_size_override("font_size",12);room_column.add_child(status)
@@ -230,11 +230,11 @@ func render_promotion(node: RoomState) -> void:
 		var detail:=Label.new();detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;detail.add_theme_font_size_override("font_size",11);detail.text="첫 길드원과 장비는 유지됩니다. 다른 두 길드원은 소비되며 장비는 인벤토리로 반환됩니다.";content_box.add_child(detail)
 func render_event(node: RoomState) -> void:
 	if node.event.resolved:
-		var box:=PanelContainer.new();box.custom_minimum_size.y=210;box.add_theme_stylebox_override("panel",ArenaUI.box(Color("25382a"),Color("65714c")));content_box.add_child(box)
+		var box:=PanelContainer.new();box.custom_minimum_size.y=210;box.add_theme_stylebox_override("panel",ArenaUI.box(Color("1f2a44"),Color("4b5a86")));content_box.add_child(box)
 		var center:=CenterContainer.new();box.add_child(center);var result:=VBoxContainer.new();result.add_theme_constant_override("separation",16);center.add_child(result)
 		var icon:=TextureRect.new();icon.texture=ArenaIcon.texture("hotSpring" if node.event.selected_choice==&"bathe" else "gold");icon.custom_minimum_size=Vector2(60,60);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;result.add_child(icon)
 		var title:=Label.new();title.text="온천욕 완료" if node.event.selected_choice==&"bathe" else "복권 당첨";title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;title.add_theme_font_size_override("font_size",23);result.add_child(title)
-		var detail:=Label.new();detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;detail.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;detail.custom_minimum_size.x=minf(350,get_viewport_rect().size.x-70);detail.text="생존 유닛 HP +10% · 기력 +2칸" if node.event.selected_choice==&"bathe" else _event_reward_text(node.event.outcome);detail.add_theme_color_override("font_color",Color("c4cdbb"));result.add_child(detail);return
+		var detail:=Label.new();detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;detail.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;detail.custom_minimum_size.x=minf(350,get_viewport_rect().size.x-70);detail.text="생존 유닛 HP +10% · 기력 +2칸" if node.event.selected_choice==&"bathe" else _event_reward_text(node.event.outcome);detail.add_theme_color_override("font_color",Color("c3cbe3"));result.add_child(detail);return
 	var grid: GridContainer=_event_choices()
 	var options: Dictionary={&"bathe":["온천에 들어가기","생존 유닛 HP +10%\n기력 +2칸","hotSpring"],&"lottery":["온천 복권 구매","무작위 보상","gold"],&"heal":["플레이어 회복","HP +10","heart"],&"guild":["생존 유닛 회복","HP +10% · 기력 +1","rest"],&"gold":["자원 획득","골드 +300 · 토큰 +1","gold"],&"loot":["무작위 아이템" if node.event.treasure_kind==&"item" else "무작위 전략카드","아이템 1개" if node.event.treasure_kind==&"item" else "전략카드 1장","supply" if node.event.treasure_kind==&"item" else "prediction"]}
 	for choice in node.event.choices:

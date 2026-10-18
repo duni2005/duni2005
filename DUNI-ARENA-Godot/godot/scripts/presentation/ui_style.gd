@@ -1,15 +1,15 @@
 class_name ArenaUI
 extends RefCounted
 ## Shared presentation vocabulary. No domain/RNG/state mutation.
-const BACKGROUND=Color("101619")
-const PANEL=Color("19241f")
-const SURFACE=Color("233229")
-const BORDER=Color("50604b")
-const ACCENT=Color("ffae70")
-const GOLD=Color("ffe1a2")
-const MUTED=Color("a1afb3")
-const DANGER=Color("ff9b91")
-const HP=Color("badfa4")
+const BACKGROUND=Color("0a0e18")
+const PANEL=Color("131a2b")
+const SURFACE=Color("1b2338")
+const BORDER=Color("36446a")
+const ACCENT=Color("ffb15c")
+const GOLD=Color("ffd98c")
+const MUTED=Color("9aa5c2")
+const DANGER=Color("ff8088")
+const HP=Color("86e3a4")
 const STANCE_NAMES={&"normal":"기본",&"cautious":"신중함",&"rush":"저돌적",&"cover":"엄호"}
 const STANCE_HELP={&"normal":"균형 잡힌 기본 전투 성향",&"cautious":"위험을 살피며 신중하게 교전합니다.",&"rush":"공격을 적극적으로 시도합니다.",&"cover":"아군을 엄호하는 위치를 선택합니다."}
 static var shared_theme: Theme
@@ -46,7 +46,7 @@ static func fit_window(window: Window) -> Vector2i:
 	if window.content_scale_size!=logical:window.content_scale_size=logical
 	return logical
 static func pip_style(on: bool) -> StyleBoxFlat:
-	if pip_on==null:pip_on=box(GOLD,GOLD);pip_off=box(Color("35452e"),Color("35452e"));pip_on.set_corner_radius_all(1);pip_off.set_corner_radius_all(1)
+	if pip_on==null:pip_on=box(GOLD,GOLD);pip_off=box(Color("26304a"),Color("26304a"));pip_on.set_corner_radius_all(1);pip_off.set_corner_radius_all(1)
 	return pip_on if on else pip_off
 static func primary(button: Button) -> void:
 	button.add_theme_stylebox_override("normal",button_box(ACCENT,Color("efbc8f")))
@@ -59,9 +59,9 @@ static func danger(button: Button) -> void:
 	for name in ["font_color","font_hover_color","font_pressed_color","font_disabled_color","font_focus_color"]:button.add_theme_color_override(name,DANGER)
 static func button_box(color: Color,border: Color) -> StyleBoxFlat:
 	var s: StyleBoxFlat=box(color,border);return s
-static func box(color: Color,border: Color=Color("50604b")) -> StyleBoxFlat:
+static func box(color: Color,border: Color=Color("36446a")) -> StyleBoxFlat:
 	var s:=StyleBoxFlat.new();s.bg_color=color;s.border_color=border
-	s.set_border_width_all(1);s.set_corner_radius_all(5)
+	s.set_border_width_all(1);s.set_corner_radius_all(7)
 	s.content_margin_left=8;s.content_margin_right=8;s.content_margin_top=5;s.content_margin_bottom=5
 	return s
 static func get_theme() -> Theme:
@@ -71,16 +71,16 @@ static func get_theme() -> Theme:
 	shared_theme.set_stylebox("panel","PanelContainer",box(PANEL))
 	shared_theme.set_stylebox("panel","AcceptDialog",box(PANEL,BORDER))
 	for state in ["normal","hover","pressed","hover_pressed","disabled","focus"]:
-		var color: Color=Color("253034") if state=="normal" else Color("344241") if state=="hover" else Color("51432d") if state in ["pressed","hover_pressed"] else Color("29252a")
-		shared_theme.set_stylebox(state,"Button",button_box(color,Color("ebc27a") if state in ["pressed","hover_pressed","focus"] else Color("745563") if state=="disabled" else Color("405052")))
+		var color: Color=Color("1c253c") if state=="normal" else Color("26314e") if state=="hover" else Color("51432d") if state in ["pressed","hover_pressed"] else Color("191c28")
+		shared_theme.set_stylebox(state,"Button",button_box(color,Color("ebc27a") if state in ["pressed","hover_pressed","focus"] else Color("4a3f58") if state=="disabled" else Color("3a4870")))
 	var focus:=box(Color.TRANSPARENT,ACCENT);focus.draw_center=false;shared_theme.set_stylebox("focus","Button",focus)
 	shared_theme.set_type_variation("ArenaCard","Button")
 	for state in ["normal","hover","pressed","hover_pressed","disabled","focus"]:shared_theme.set_stylebox(state,"ArenaCard",StyleBoxEmpty.new())
 	# Native text is accessibility metadata; the authored card draws all visible type.
 	shared_theme.set_font_size("font_size","ArenaCard",1)
 	for state in ["font_color","font_hover_color","font_pressed_color","font_disabled_color","font_focus_color","font_hover_pressed_color"]:shared_theme.set_color(state,"ArenaCard",Color.TRANSPARENT)
-	shared_theme.set_color("font_color","Label",Color("edf1ef"))
-	shared_theme.set_color("font_color","Button",Color("edf1ef"))
+	shared_theme.set_color("font_color","Label",Color("eef1fa"))
+	shared_theme.set_color("font_color","Button",Color("eef1fa"))
 	shared_theme.set_color("font_disabled_color","Button",DANGER)
 	shared_theme.set_color("font_pressed_color","Button",Color("e6eff7"))
 	shared_theme.set_constant("separation","VBoxContainer",6);shared_theme.set_constant("separation","HBoxContainer",6)
@@ -183,7 +183,7 @@ static func dialog_header(window: AcceptDialog,column: VBoxContainer,title: Stri
 	var label:=Label.new();label.text=title;label.add_theme_font_override("font",heading_font());label.add_theme_font_size_override("font_size",18);label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;row.add_child(label)
 	var close:=Button.new();close.text="×";close.tooltip_text="닫기";close.custom_minimum_size=Vector2(44,44);close.add_theme_font_size_override("font_size",23)
 	for state in ["normal","pressed"]:close.add_theme_stylebox_override(state,StyleBoxEmpty.new())
-	close.add_theme_stylebox_override("hover",box(Color("25382a"),Color.TRANSPARENT));row.add_child(close);bind(close,window.hide)
+	close.add_theme_stylebox_override("hover",box(Color("1f2a44"),Color.TRANSPARENT));row.add_child(close);bind(close,window.hide)
 	return close
 
 static func with_icon(button: Button,kind: String,width: int=16,right: bool=false) -> void:

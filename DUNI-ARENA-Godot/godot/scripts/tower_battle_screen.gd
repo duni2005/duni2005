@@ -156,29 +156,32 @@ func _build_tower_result() -> void:
 	var column:=VBoxContainer.new();margin.add_child(column);column.add_child(ArenaBrandBar.new())
 	var heading:=Label.new();heading.text="%d층 · %d번 방 · %s"%[room.floor_index+1,room.lane+1,RoomType.LABELS[room.room_type]];heading.custom_minimum_size.y=44;heading.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;column.add_child(heading)
 	result_wallet=WalletBar.new();result_wallet.guild=guild;column.add_child(result_wallet)
-	result_panel=PanelContainer.new();result_panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;result_panel.add_theme_stylebox_override("panel",ArenaUI.box(ArenaUI.PANEL,Color("3f5043")));column.add_child(result_panel)
+	result_panel=PanelContainer.new();result_panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;result_panel.add_theme_stylebox_override("panel",ArenaUI.box(ArenaUI.PANEL,Color("34406a")));column.add_child(result_panel)
 	var center:=CenterContainer.new();result_panel.add_child(center)
 	result_column=VBoxContainer.new();result_column.add_theme_constant_override("separation",16);center.add_child(result_column)
 	result_banner.hide();result_column.add_child(result_banner)
 	result_kicker=Label.new();result_kicker.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;result_kicker.add_theme_font_override("font",ArenaUI.numbers_font());result_kicker.add_theme_font_size_override("font_size",16);result_kicker.add_theme_color_override("font_color",ArenaUI.ACCENT);result_column.add_child(result_kicker)
-	result_heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;result_heading.add_theme_color_override("font_color",Color("edf1ef"));result_column.add_child(result_heading)
+	result_heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;result_heading.add_theme_font_override("font",ArenaUI.heading_font());result_heading.add_theme_font_size_override("font_size",30);result_heading.add_theme_color_override("font_color",Color("eef1fa"));result_column.add_child(result_heading)
 	var summary_center:=CenterContainer.new();result_column.add_child(summary_center)
-	var summary:=PanelContainer.new();summary.custom_minimum_size.x=230;var summary_style:=ArenaUI.box(Color("243128"),Color("47563e"));summary_style.content_margin_left=16;summary_style.content_margin_right=16;summary_style.content_margin_top=12;summary_style.content_margin_bottom=12;summary.add_theme_stylebox_override("panel",summary_style);summary_center.add_child(summary)
+	var summary:=PanelContainer.new();summary.custom_minimum_size.x=260;var summary_style:=ArenaUI.box(Color("1b2338"),Color("36446a"));summary_style.set_corner_radius_all(10);summary_style.content_margin_left=20;summary_style.content_margin_right=20;summary_style.content_margin_top=12;summary_style.content_margin_bottom=12;summary.add_theme_stylebox_override("panel",summary_style);summary_center.add_child(summary)
 	result_detail=VBoxContainer.new();result_detail.add_theme_constant_override("separation",12);summary.add_child(result_detail)
-	result_losses=Label.new();result_losses.add_theme_color_override("font_color",Color("ff9b91"));result_detail.add_child(result_losses)
-	result_rewards=Label.new();result_rewards.add_theme_color_override("font_color",Color("97e09a"));result_detail.add_child(result_rewards)
+	result_losses=Label.new();result_losses.add_theme_color_override("font_color",Color("ff8088"));result_detail.add_child(result_losses)
+	result_rewards=Label.new();result_rewards.add_theme_color_override("font_color",ArenaUI.HP);result_detail.add_child(result_rewards)
 	result_column.add_child(result_scroll);result_scroll.hide();result_column.add_child(result_actions)
 	next_button.custom_minimum_size.x=210;ArenaUI.with_icon(next_button,"play",14,true)
 func _format_result(result: BattleResult) -> void:
 	var victory: bool=room.cleared
 	result_kicker.text="ROOM CLEAR" if victory else "RETREAT" if result.end_reason==BattleEndReason.Value.RETREAT else "EXPLORATION ENDED" if guild.state.game_over else "TRY AGAIN"
 	result_heading.text="방 클리어!" if victory else "안전하게 후퇴했습니다" if result.end_reason==BattleEndReason.Value.RETREAT else "탐험이 종료되었습니다" if guild.state.game_over else "길드원을 정비해 다시 도전하세요"
-	result_heading.add_theme_color_override("font_color",Color("edf1ef"))
-	result_panel.add_theme_stylebox_override("panel",ArenaUI.box(ArenaUI.PANEL,Color("3f5043")))
+	result_heading.add_theme_color_override("font_color",ArenaUI.GOLD if victory else Color("eef1fa"))
+	result_kicker.add_theme_color_override("font_color",ArenaUI.ACCENT if victory else ArenaUI.DANGER if guild.state.game_over else ArenaUI.MUTED)
+	var panel_style: StyleBoxFlat=ArenaUI.box(ArenaUI.PANEL,Color("36446a") if not victory else Color("6a5a34"));panel_style.set_corner_radius_all(12)
+	result_panel.add_theme_stylebox_override("panel",panel_style)
 	var losses: Dictionary=guild.state.death_losses_by_result_id.get(result.result_id,{})
 	var death_loss: float=losses.values().reduce(func(a,b):return a+float(b),0.0)
 	var penalty: float=20 if result.end_reason==BattleEndReason.Value.DEFEAT else 0
 	result_losses.text="유닛 손실 %d명\n플레이어 HP -%s"%[result.dead_member_ids.size(),ArenaUI.number(death_loss+penalty)]
+	result_losses.add_theme_color_override("font_color",ArenaUI.MUTED if result.dead_member_ids.is_empty() and death_loss+penalty<=0 else ArenaUI.DANGER)
 	result_rewards.visible=room.reward_claimed and victory
 	if result_rewards.visible:
 		var equipment_gold: int=0

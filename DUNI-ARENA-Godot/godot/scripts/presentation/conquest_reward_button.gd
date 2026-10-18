@@ -2,8 +2,8 @@ class_name ConquestRewardButton
 extends Button
 var fraction: float=0
 func _ready() -> void:
-	for state in ["normal","hover","pressed"]:add_theme_stylebox_override(state,ArenaUI.box(Color("233229") if state=="normal" else Color("354a30"),Color("53634c")))
-	add_theme_font_size_override("font_size",11);add_theme_color_override("font_color",Color("d8e7c5"))
+	for state in ["normal","hover","pressed"]:add_theme_stylebox_override(state,ArenaUI.box(Color("1b2338") if state=="normal" else Color("26314e"),Color("3a4870")))
+	add_theme_font_size_override("font_size",11);add_theme_color_override("font_color",Color("d6def5"))
 func _draw() -> void:
 	if fraction<=0:return
 	# Clockwise progress around the reward frame, as in the source conic border.
@@ -15,5 +15,5 @@ func _draw() -> void:
 	var remaining: float=total*clampf(fraction,0,1)
 	for i in range(1,points.size()):
 		var segment: float=points[i-1].distance_to(points[i]);var to: Vector2=points[i-1].lerp(points[i],minf(1,remaining/maxf(.001,segment)))
-		draw_line(points[i-1],to,Color("b6e78b"),2,true);remaining-=segment
+		draw_line(points[i-1],to,Color("86e3a4"),2,true);remaining-=segment
 		if remaining<=0:break

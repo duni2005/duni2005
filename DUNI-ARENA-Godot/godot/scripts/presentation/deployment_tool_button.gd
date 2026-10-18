@@ -9,8 +9,8 @@ func _ready() -> void:
 func _draw() -> void:
 	var active: bool=toggle_mode and button_pressed
 	var destructive: bool=tool_kind=="clear_all"
-	var color: Color=Color("ff9b91") if destructive else Color("ffe1a2") if active else Color("d2dcd5")
-	var fill: Color=Color("482d2c") if destructive else Color("675236") if active else Color("253034")
+	var color: Color=Color("ff8088") if destructive else Color("ffd98c") if active else Color("d2dcd5")
+	var fill: Color=Color("482d2c") if destructive else Color("675236") if active else Color("1c253c")
 	var edge: Color=Color("a55c58") if destructive else Color("ffce8a") if active else Color("63726c")
 	if disabled:color=Color("7a8580") if not destructive else Color("a56d66");fill=Color("1b2522") if not destructive else Color("302322");edge=Color("3b4841") if not destructive else Color("63413e")
 	elif is_hovered():fill=fill.lightened(.1)

@@ -269,7 +269,7 @@ func _draw() -> void:
 	# Screen-space fill covers the viewport beyond the arena at its edges.
 	# All actual map geometry must share the actor camera, including shake.
 	draw_set_transform(rect.position,0,Vector2.ONE*factor)
-	draw_rect(Rect2(0,0,800,800),Color("122219"))
+	draw_rect(Rect2(0,0,800,800),Color("101a26"))
 	parent_transform=Transform2D(0,Vector2.ONE*factor,0,rect.position)*camera.transform()
 	draw_set_transform_matrix(parent_transform)
 	if is_instance_valid(field_layer):field_layer.align(parent_transform)

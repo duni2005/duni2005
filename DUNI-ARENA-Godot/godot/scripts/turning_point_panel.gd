@@ -28,7 +28,7 @@ func _ready() -> void:
 	heading.add_theme_font_size_override("font_size",14)
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(heading)
-	heading.draw.connect(func():ArenaIcon.draw(heading,Vector2(8,heading.size.y*.5),"clock",14,Color("a7e0d8")))
+	heading.draw.connect(func():ArenaIcon.draw(heading,Vector2(8,heading.size.y*.5),"clock",14,Color("8fe3ff")))
 	resume_button = Button.new()
 	resume_button.text = "전투 재개"
 	ArenaUI.with_icon(resume_button,"play",12,true)

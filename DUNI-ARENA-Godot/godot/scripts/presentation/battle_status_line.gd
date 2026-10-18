@@ -11,6 +11,6 @@ func _draw() -> void:
 	if combat_active and is_instance_valid(battle) and not battle.finished:
 		var allies: int=battle.units.filter(func(u):return u.alive and u.original_team==0).size();var enemies: int=battle.units.filter(func(u):return u.alive and u.original_team==1).size()
 		tooltip_text="생존 아군 %d / 적 %d"%[allies,enemies]
-		draw_string(font,Vector2(0,18),"일시정지" if spectator_paused else "전투 중",HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color("c6dfce"))
-		draw_string(ArenaUI.numbers_font(),Vector2(size.x-80,23),"%02d:%02d"%[int(battle.clock.elapsed)/60,int(battle.clock.elapsed)%60],HORIZONTAL_ALIGNMENT_RIGHT,80,27,Color("edf1ef"))
+		draw_string(font,Vector2(0,18),"일시정지" if spectator_paused else "전투 중",HORIZONTAL_ALIGNMENT_LEFT,-1,11,Color("c6d2ee"))
+		draw_string(ArenaUI.numbers_font(),Vector2(size.x-80,23),"%02d:%02d"%[int(battle.clock.elapsed)/60,int(battle.clock.elapsed)%60],HORIZONTAL_ALIGNMENT_RIGHT,80,27,Color("eef1fa"))
 	else:draw_string(font,Vector2(0,18),text,HORIZONTAL_ALIGNMENT_LEFT,size.x,11,ArenaUI.MUTED)

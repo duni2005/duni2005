@@ -92,7 +92,7 @@ func _build_ui() -> void:
 	speed_row=HBoxContainer.new();speed_row.add_theme_constant_override("separation",0);battle_toolbar.add_child(speed_row)
 	for speed in [1,2,4]:
 		var choice:=Button.new();choice.text="%d×"%speed;choice.toggle_mode=true;choice.custom_minimum_size=Vector2(34,44);ArenaUI.bind(choice,func():if is_instance_valid(battle):battle.clock.set_speed(float(speed)));speed_row.add_child(choice);speed_buttons[speed]=choice
-		for state in ["normal","hover","pressed","hover_pressed"]:choice.add_theme_stylebox_override(state,ArenaUI.box(Color("4a5c50") if state in ["pressed","hover_pressed"] else Color("25312c"),Color("33473b")))
+		for state in ["normal","hover","pressed","hover_pressed"]:choice.add_theme_stylebox_override(state,ArenaUI.box(Color("3a4a72") if state in ["pressed","hover_pressed"] else Color("1a2238"),Color("2e3b5c")))
 	var space:=Control.new();space.size_flags_horizontal=Control.SIZE_EXPAND_FILL;battle_toolbar.add_child(space);retreat_button.reparent(battle_toolbar)
 	next_button.text = "같은 방 재도전"
 	deployment_legend = column.get_child(board.get_index()+1)
