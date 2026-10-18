@@ -47,7 +47,7 @@ func source_flow(res: Vector2i):
 	b.check_outcome();s.board.presentation.advance(BattleCinematicState.DURATION);s._process(0);await frames();await shot("defeat")
 func run():
 	root.gui_embed_subwindows=true
-	verify(ArenaUI.BACKGROUND==Color("101619") and ArenaUI.PANEL==Color("19241f") and ArenaUI.ACCENT==Color("ffae70") and ArenaUI.HP==Color("badfa4"),"palette equals actual HTML CSS")
+	verify(ArenaUI.BACKGROUND==Color("0a0e18") and ArenaUI.PANEL==Color("131a2b") and ArenaUI.ACCENT==Color("ffb15c") and ArenaUI.HP==Color("86e3a4"),"palette equals the midnight/amber game palette")
 	for res in [Vector2i(390,844),Vector2i(1280,800)]:await source_flow(res)
 	if is_instance_valid(ui):ui.free()
 	await frames();print("SOURCE UI RESULT: ",checks," checks; ",failures," failures");quit(1 if failures else 0)
