@@ -48,6 +48,10 @@ static func fit_window(window: Window) -> Vector2i:
 		window.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_IGNORE
 	if window.content_scale_size!=logical:window.content_scale_size=logical
 	return logical
+static func page_rect(node: Node) -> Rect2i:
+	# Full-page dialogs open at their final rect, so they never jump after the first frames.
+	var root: Window=node.get_tree().root
+	return Rect2i(Vector2i.ZERO,root.content_scale_size if root.content_scale_size!=Vector2i.ZERO else root.size)
 static func touch_ui() -> bool:
 	return DisplayServer.is_touchscreen_available()
 static func is_held(button: BaseButton) -> bool:

@@ -237,7 +237,7 @@ func _refresh_wallet() -> void:
 	wallet.text="두니 타워 · 탐험 지도\n플레이어 HP %.0f / %.0f   🪙 %d   💎 %d   생존 %d/%d"%[controller.guild.state.player_hp,controller.guild.state.player_max_hp,controller.guild.state.gold,controller.guild.state.tokens,controller.guild.living_members().size(),controller.guild.all_members().size()]
 func open_guild() -> void:
 	if controller.guild.state.tower.phase!=&"route" or controller.guild.state.game_over:return
-	guild_panel.show_tab("guild");guild_dialog.popup_centered(Vector2i(mini(700,int(get_viewport_rect().size.x)-24),mini(650,int(get_viewport_rect().size.y)-65)))
+	guild_panel.show_tab("guild");guild_dialog.popup(ArenaUI.page_rect(self))
 
 func _fit_display() -> void:
 	# Tower UI uses the actual window width; the battle board keeps 800 logical units.

@@ -102,7 +102,7 @@ func refresh_wallet() -> void:
 	heading.text=ArenaUI.room_title(room)
 func _open_guild() -> void:
 	if _watch_running():return
-	guild_panel.show_tab("guild");guild_dialog.popup_centered(Vector2i(mini(700,int(get_viewport_rect().size.x)-24),mini(650,int(get_viewport_rect().size.y)-65)))
+	guild_panel.show_tab("guild");guild_dialog.popup(ArenaUI.page_rect(self))
 func _open_menu() -> void:
 	if not _watch_running():content_menu.popup_centered(Vector2i(280,0))
 func _watch_running() -> bool:
@@ -111,7 +111,8 @@ func _action(action: StringName,options: Dictionary={}) -> void:
 	var result: Dictionary=controller.content_action(action,options)
 	status.text=outcome_text(result.get("outcome",{})) if result.ok else "사용 불가 · "+ArenaUI.reason(String(result.code).to_upper())
 	if result.ok:
-		if action in [&"event",&"rest",&"promotion_select"]:status.text=""
+		# Purchases already show in the wallet animation and the sold card; no "GOLD -n" line.
+		if action in [&"event",&"rest",&"promotion_select",&"buy"]:status.text=""
 		_present_action(action,result.get("outcome",{}))
 	if result.ok and controller.guild.state.tower.phase==&"route":map_requested.emit()
 	else:call_deferred("render")

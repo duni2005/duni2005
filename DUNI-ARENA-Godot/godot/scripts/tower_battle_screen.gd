@@ -136,7 +136,7 @@ func _open_management() -> void:
 		management_panel=GuildManagementPanel.new();management_panel.controller=tower_controller;management_panel.prebattle_room=room;management_dialog.add_child(management_panel)
 		management_panel.home_requested.connect(func():main_menu_requested.emit())
 		management_panel.modified.connect(func():_refresh_roster();_update_room_hud())
-	management_panel.show_tab("inventory");management_dialog.popup_centered(Vector2i(mini(920,int(get_viewport_rect().size.x)),mini(940,int(get_viewport_rect().size.y))))
+	management_panel.show_tab("inventory");management_dialog.popup(ArenaUI.page_rect(self))
 func _open_menu() -> void:
 	if board.editing and not starting_battle:menu_dialog.popup_centered(Vector2i(280,0))
 

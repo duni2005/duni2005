@@ -30,6 +30,15 @@ var page_action: Button
 var menu_dialog: AcceptDialog
 var menu_button: Button
 var page_title: Label
+var item_icon: TextureRect
+var item_name: Label
+var item_kind: Label
+var item_desc: Label
+var item_target: PanelContainer
+var item_portrait: TextureRect
+var item_member: Label
+var item_slots: Label
+var item_note: Label
 signal home_requested
 func _ready() -> void:
  theme=ArenaUI.get_theme();var outer:=StyleBoxFlat.new();outer.bg_color=ArenaUI.BACKGROUND;add_theme_stylebox_override("panel",outer)
@@ -67,14 +76,15 @@ func _ready() -> void:
  inventory_name=Label.new();inventory_name.add_theme_font_override("font",ArenaUI.heading_font());inventory_name.size_flags_horizontal=Control.SIZE_EXPAND_FILL;inventory_heading.add_child(inventory_name)
  inventory_count=Label.new();inventory_count.add_theme_font_size_override("font_size",10);inventory_count.add_theme_color_override("font_color",ArenaUI.MUTED);inventory_heading.add_child(inventory_count)
  details=Label.new();details.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;details.add_theme_font_size_override("font_size",12);content.add_child(details)
- upgrade_frame=PanelContainer.new();upgrade_frame.add_theme_stylebox_override("panel",ArenaUI.box(Color("203326"),Color.TRANSPARENT));content.add_child(upgrade_frame)
+ upgrade_frame=PanelContainer.new();upgrade_frame.add_theme_stylebox_override("panel",ArenaUI.box(Color("1b2338"),Color.TRANSPARENT));content.add_child(upgrade_frame)
  var upgrade_column:=VBoxContainer.new();upgrade_frame.add_child(upgrade_column)
  upgrade_summary=UpgradeSummary.new();upgrade_column.add_child(upgrade_summary)
  upgrade_button=Button.new();upgrade_button.custom_minimum_size.y=44;ArenaUI.bind(upgrade_button,_upgrade);upgrade_column.add_child(upgrade_button)
  status=Label.new();status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;status.add_theme_font_size_override("font_size",12);content.add_child(status)
  inventory_scroll=ScrollContainer.new();inventory_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;inventory_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;content.add_child(inventory_scroll)
  inventory_grid=GridContainer.new();inventory_grid.columns=4;inventory_grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;inventory_grid.add_theme_constant_override("h_separation",6);inventory_grid.add_theme_constant_override("v_separation",6);inventory_scroll.add_child(inventory_grid)
- item_dialog=ConfirmationDialog.new();item_dialog.dialog_autowrap=true;add_child(item_dialog);item_dialog.confirmed.connect(_confirm_item);ArenaModalBackdrop.new().connect_window(item_dialog,self)
+ item_dialog=ConfirmationDialog.new();add_child(item_dialog);item_dialog.confirmed.connect(_confirm_item);ArenaModalBackdrop.new().connect_window(item_dialog,self)
+ _build_item_dialog()
  if window is AcceptDialog:
   menu_dialog=AcceptDialog.new();menu_dialog.title="메뉴";add_child(menu_dialog);var list:=VBoxContainer.new();menu_dialog.add_child(list);ArenaUI.dialog_header(menu_dialog,list,"메뉴")
   var home:=Button.new();home.text="메인화면";home.alignment=HORIZONTAL_ALIGNMENT_LEFT;home.custom_minimum_size=Vector2(240,54);ArenaUI.with_icon(home,"home",24);ArenaUI.bind(home,func():menu_dialog.hide();home_requested.emit());list.add_child(home);ArenaModalBackdrop.new().connect_window(menu_dialog,self)
@@ -87,7 +97,8 @@ func _fit_dialog() -> void:
  await get_tree().process_frame
  var window: Window=get_window();var root_window: Window=get_tree().root
  if window!=root_window and window is AcceptDialog:
-  window.size=root_window.content_scale_size;window.move_to_center()
+  var target: Rect2i=ArenaUI.page_rect(self)
+  if window.size!=target.size or window.position!=target.position:window.size=target.size;window.position=target.position
 func _process(_dt: float) -> void:
  var wide: bool=size.x>650
  roster.columns=(4 if wide else 2) if active_tab=="guild" else maxi(1,controller.guild.all_members().size())
@@ -139,20 +150,69 @@ func render() -> void:
   var button:=ArenaCard.new();var data: StrategyCardData=StrategyCardCatalog.get_card(card.kind);button.card_type="strategy";button.kind=String(card.kind);button.title=data.display_name;button.description=data.description;button.text="🃏 %s · 전략카드"%data.display_name;button.status_text="전략";button.price="일회성" if data.usage_rule==StrategyCardData.Usage.ONCE else "층당 1회" if data.usage_rule==StrategyCardData.Usage.FLOOR else "두 층 쿨타임";button.card_type="slot";button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description
   ArenaUI.bind(button,_inspect_card.bind(data));inventory_grid.add_child(button)
  while inventory_grid.get_child_count()<24:
-  var empty:=PanelContainer.new();empty.custom_minimum_size=Vector2(60,64);empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.mouse_filter=Control.MOUSE_FILTER_IGNORE;empty.add_theme_stylebox_override("panel",ArenaUI.box(Color("13221a"),Color("334538")));inventory_grid.add_child(empty)
+  var empty:=PanelContainer.new();empty.custom_minimum_size=Vector2(60,64);empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.mouse_filter=Control.MOUSE_FILTER_IGNORE;empty.add_theme_stylebox_override("panel",ArenaUI.box(Color("111726"),Color("26304a")));inventory_grid.add_child(empty)
 func _select(id: String) -> void:selected_member_id=id;call_deferred("render")
 func _upgrade() -> void:
  get_tree().root.set_meta("action_point",ArenaUI.control_center(upgrade_button))
  var result: Dictionary=controller.content_action(&"upgrade",{"member_id":selected_member_id});status.text="강화 완료" if result.ok else "강화 불가 · "+String(result.code)
  modified.emit();call_deferred("render")
+func _build_item_dialog() -> void:
+ # Item sheet: what it is, what it does, and who receives it, before the player commits.
+ item_dialog.borderless=true;item_dialog.title="";item_dialog.theme=ArenaUI.get_theme()
+ item_dialog.add_theme_constant_override("buttons_min_height",48);item_dialog.add_theme_constant_override("buttons_min_width",132);item_dialog.add_theme_constant_override("buttons_separation",12)
+ var sheet: StyleBoxFlat=ArenaUI.box(ArenaUI.PANEL,Color("4a5680"));sheet.set_corner_radius_all(14);sheet.content_margin_left=18;sheet.content_margin_right=18;sheet.content_margin_top=16;sheet.content_margin_bottom=14;item_dialog.add_theme_stylebox_override("panel",sheet)
+ var body:=VBoxContainer.new();body.add_theme_constant_override("separation",12);item_dialog.add_child(body)
+ var head:=HBoxContainer.new();head.add_theme_constant_override("separation",12);body.add_child(head)
+ var icon_frame:=PanelContainer.new();var icon_style: StyleBoxFlat=ArenaUI.box(Color("1b2338"),Color("6a5a34"));icon_style.set_corner_radius_all(12);icon_frame.add_theme_stylebox_override("panel",icon_style);head.add_child(icon_frame)
+ item_icon=TextureRect.new();item_icon.custom_minimum_size=Vector2(48,48);item_icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;item_icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;icon_frame.add_child(item_icon)
+ var names:=VBoxContainer.new();names.add_theme_constant_override("separation",2);names.size_flags_horizontal=Control.SIZE_EXPAND_FILL;names.alignment=BoxContainer.ALIGNMENT_CENTER;head.add_child(names)
+ item_name=Label.new();item_name.add_theme_font_override("font",ArenaUI.heading_font());item_name.add_theme_font_size_override("font_size",20);item_name.add_theme_color_override("font_color",ArenaUI.GOLD);names.add_child(item_name)
+ item_kind=Label.new();item_kind.add_theme_font_size_override("font_size",12);item_kind.add_theme_color_override("font_color",ArenaUI.MUTED);names.add_child(item_kind)
+ item_desc=Label.new();item_desc.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;item_desc.add_theme_font_size_override("font_size",14);body.add_child(item_desc)
+ item_target=PanelContainer.new();var target_style: StyleBoxFlat=ArenaUI.box(Color("1b2338"),Color("36446a"));target_style.set_corner_radius_all(10);target_style.content_margin_left=10;target_style.content_margin_right=10;target_style.content_margin_top=8;target_style.content_margin_bottom=8;item_target.add_theme_stylebox_override("panel",target_style);body.add_child(item_target)
+ var target_row:=HBoxContainer.new();target_row.add_theme_constant_override("separation",10);item_target.add_child(target_row)
+ item_portrait=TextureRect.new();item_portrait.custom_minimum_size=Vector2(44,44);item_portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;item_portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;target_row.add_child(item_portrait)
+ var who:=VBoxContainer.new();who.add_theme_constant_override("separation",0);who.size_flags_horizontal=Control.SIZE_EXPAND_FILL;who.alignment=BoxContainer.ALIGNMENT_CENTER;target_row.add_child(who)
+ var caption:=Label.new();caption.text="장착 대상";caption.add_theme_font_size_override("font_size",11);caption.add_theme_color_override("font_color",ArenaUI.MUTED);who.add_child(caption)
+ item_member=Label.new();item_member.add_theme_font_size_override("font_size",15);who.add_child(item_member)
+ item_slots=Label.new();item_slots.add_theme_font_override("font",ArenaUI.numbers_font());item_slots.add_theme_font_size_override("font_size",18);target_row.add_child(item_slots)
+ item_note=Label.new();item_note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;item_note.add_theme_font_size_override("font_size",12);body.add_child(item_note)
+ var ok: Button=item_dialog.get_ok_button();var cancel: Button=item_dialog.get_cancel_button();cancel.text="취소"
+ for button in [ok,cancel]:button.add_theme_font_size_override("font_size",15)
+ ArenaUI.primary(ok);ok.add_theme_color_override("font_disabled_color",ArenaUI.MUTED)
+func _show_item_sheet(icon: String,name: String,kind: String,description: String) -> void:
+ item_icon.texture=ArenaIcon.texture(icon);item_name.text=name;item_kind.text=kind;item_desc.text=description
+ # Fix the text width first so wrapped lines size the sheet, not the other way round.
+ var width: int=mini(380,int(get_viewport_rect().size.x)-24)
+ for label in [item_desc,item_note]:label.custom_minimum_size.x=width-36
+ item_dialog.popup_centered(Vector2i(width,0));call_deferred("_settle_item_sheet",width)
+func _settle_item_sheet(width: int) -> void:
+ # The first layout pass can wrap text at a stale width and over-grow the window; shrink to content.
+ await get_tree().process_frame
+ if not item_dialog.visible:return
+ item_dialog.size=Vector2i(width,ceili(item_dialog.get_contents_minimum_size().y));item_dialog.move_to_center()
 func _inspect(id: int) -> void:
  var item: ItemInstance=controller.content.inventory.get_item(id);var data: ItemData=ItemCatalog.get_item(item.kind)
- pending_item_id=id;pending_member_id=selected_member_id;item_dialog.title=data.display_name;item_dialog.dialog_text=data.description
- item_dialog.get_ok_button().text="사용" if data.consumable else "장착";item_dialog.get_ok_button().disabled=not controller.content.can_manage()
- item_dialog.popup_centered(Vector2i(mini(360,int(get_viewport_rect().size.x)-25),190))
+ pending_item_id=id;pending_member_id=selected_member_id
+ var member: GuildMemberState=controller.guild.get_member(selected_member_id)
+ var used: int=controller.content.inventory.equipped(selected_member_id).size();var limit: int=GuildMemberCombatStats.equipment_limit(member) if member!=null else 0
+ var full: bool=not data.consumable and used>=limit
+ item_target.visible=member!=null
+ if member!=null:
+  item_portrait.texture=CharacterPainter.portrait(member.unit_type_id)
+  item_member.text="%s %s · Lv. %d"%[controller.guild.definition(member.unit_type_id).display_name,ArenaUI.member_label(member.member_id),member.level]
+  item_slots.text="%d/%d"%[used,limit] if data.consumable else "%d → %d / %d"%[used,mini(used+1,limit),limit]
+  item_slots.add_theme_color_override("font_color",ArenaUI.DANGER if full else ArenaUI.HP)
+ item_note.text="장비 칸이 가득 찼습니다. 재각인으로 회수한 뒤 장착하세요." if full else "사용하면 사라집니다." if data.consumable else "장착한 장비는 자유롭게 해제할 수 없습니다. 회수하려면 재각인이 필요합니다."
+ item_note.add_theme_color_override("font_color",ArenaUI.DANGER if full else ArenaUI.MUTED)
+ item_dialog.get_ok_button().text="사용" if data.consumable else "장착";item_dialog.get_ok_button().disabled=not controller.content.can_manage() or full or member==null
+ _show_item_sheet(String(item.kind),data.display_name,"소모품" if data.consumable else "장비",data.description)
 func _inspect_card(data: StrategyCardData) -> void:
- pending_item_id=0;item_dialog.title=data.display_name;item_dialog.dialog_text=data.description;item_dialog.get_ok_button().text="터닝포인트에서 사용";item_dialog.get_ok_button().disabled=true
- item_dialog.popup_centered(Vector2i(mini(360,int(get_viewport_rect().size.x)-25),190))
+ pending_item_id=0;item_target.visible=false
+ item_note.text="전투 중 터닝포인트에서 아군을 골라 사용합니다.";item_note.add_theme_color_override("font_color",ArenaUI.MUTED)
+ item_dialog.get_ok_button().text="터닝포인트에서 사용";item_dialog.get_ok_button().disabled=true
+ var usage: String="일회성" if data.usage_rule==StrategyCardData.Usage.ONCE else "층당 1회" if data.usage_rule==StrategyCardData.Usage.FLOOR else "두 층 쿨타임"
+ _show_item_sheet(String(data.kind),data.display_name,"전략카드 · "+usage,data.description)
 func _confirm_item() -> void:
  if pending_item_id==0:return
  var result: Dictionary=controller.content_action(&"equip",{"item_id":pending_item_id,"member_id":pending_member_id});status.text="장비 적용" if result.ok else "장비 적용 불가 · "+String(result.code)
