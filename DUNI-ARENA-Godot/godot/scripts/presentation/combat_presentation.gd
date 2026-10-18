@@ -318,11 +318,10 @@ func _draw() -> void:
 	for u in ([] if battle.finished else battle.units):
 		if u.data.type_id==27 and u.state_value("trainFx")>0 and u.ultimate.cast.has("track"):_draw_train(u)
 	particles.draw(self)
-	var banners: Array=[]
 	for e in effects:
 		if e.kind=="ultimate":
 			var caster: BattleUnit=battle.find_actor(String(e.get("actor","")))
-			if caster!=null:AbilityMotifs.draw(self,caster,e.point,real_age,float(e.age)/float(e.life));banners.append([caster,float(e.age)])
+			if caster!=null:AbilityMotifs.draw(self,caster,e.point,real_age,float(e.age)/float(e.life))
 		var t: float=float(e.age)/float(e.life);var c: Color=Color(e.color,1-t);var radius: float=float(e.radius)*(.25+t)
 		if e.kind=="death":
 			VfxArt.effect(self,e)
@@ -337,10 +336,6 @@ func _draw() -> void:
 			for i in range(4):
 				var v:=Vector2.from_angle(i*TAU/4+float(e.age)*.7);VfxArt.star(self,e.point+v*radius,5,e.color,1-t)
 		if e.kind in ["parry_success","warrior_parry","clash"]:draw_string(ThemeDB.fallback_font,e.point+Vector2(-26,-50-t*18),{"parry_success":"패링","warrior_parry":"반격","clash":"상쇄"}[e.kind],HORIZONTAL_ALIGNMENT_LEFT,-1,18,c)
-	if not banners.is_empty():
-		draw_set_transform(Vector2.ZERO)
-		for row in banners:_ult_banner(row[0],row[1])
-		draw_set_transform_matrix(parent_transform)
 	for n in numbers:
 		var prefix: String="+" if n.kind=="heal" else "흡수 " if n.kind=="shield" else ""
 		draw_string(ThemeDB.fallback_font,n.point+Vector2(-14,-38-float(n.age)*42),prefix+str(ceili(n.value)),HORIZONTAL_ALIGNMENT_LEFT,-1,23 if n.kind=="critical" else 18,Color(n.color,1-clampf(float(n.age)/.9,0,1)))
@@ -390,6 +385,12 @@ func _unit(u: BattleUnit,parent: Transform2D) -> void:
 	_ability_state(u)
 	draw_rect(Rect2(at+Vector2(-25,-radius-13),Vector2(50,5)),Color("32455c"))
 	draw_rect(Rect2(at+Vector2(-25,-radius-13),Vector2(50*clampf(u.current_hp/u.max_hp,0,1),5)),color)
+	if u.data.ultimate_windup>=0:
+		# Ultimate gauge under the HP bar; glows when ready.
+		var gauge: float=clampf(u.ultimate_gauge/100,0,1)
+		draw_rect(Rect2(at+Vector2(-25,-radius-7),Vector2(50,4)),Color("1c2433"))
+		draw_rect(Rect2(at+Vector2(-25,-radius-7),Vector2(50*gauge,4)),Color("ffe28a") if gauge>=1 else Color("b98cff"))
+		if gauge>=1:VfxArt.glow(self,at+Vector2(0,-radius-6),30,Color("ffe28a"),.25+.15*sin(real_age*6),.2)
 	if u.shield_hp>0:
 		VfxArt.shield(self,at,radius+9,Color("7ddfff"),real_age);draw_rect(Rect2(at+Vector2(-25,-radius-20),Vector2(50*minf(1,u.shield_hp/100),3)),Color("7ddfff"))
 	if u.invincible_remaining>0:
@@ -535,23 +536,6 @@ func _ultimate_charge(u: BattleUnit,at: Vector2,parent: Transform2D) -> void:
 		VfxArt.star(self,at+Vector2.from_angle(a)*r*1.9*(1-f),3+5*f,ink.lightened(.35),f*.9,a)
 	VfxArt.glow(self,at+Vector2(0,-36)*u.combat_scale(),r*.55,ink.lightened(.45),.2+.4*k,2.6)
 	draw_arc(at,r*.78,-PI/2,-PI/2+TAU*k,48,Color(1,1,1,.9),3,true)
-func _ult_banner(u: BattleUnit,age: float) -> void:
-	# Name plate over the caster so every ultimate reads as one at a glance. Drawn in screen
-	# space so it keeps a readable size at any board zoom.
-	var font: Font=ThemeDB.fallback_font;var ink: Color=AttackVisuals.ink(u.data.type_id)
-	var appear: float=clampf(age/.12,0,1);var alpha: float=appear*clampf((1.3-age)/.35,0,1)
-	if alpha<=0:return
-	var title: String=u.data.display_name
-	var width: float=font.get_string_size(title,HORIZONTAL_ALIGNMENT_LEFT,-1,15).x+60
-	var anchor: Vector2=parent_transform*(u.position+Vector2(0,-38*u.combat_scale()))
-	var at: Vector2=anchor+Vector2(-width*.5,-34-(1-appear)*10)
-	var plate:=Rect2(at,Vector2(width,25))
-	VfxArt.glow(self,plate.get_center(),width*.75,ink,.4*alpha,.3)
-	draw_rect(plate,Color(.04,.05,.08,.9*alpha))
-	draw_rect(Rect2(at,Vector2(46,25)),Color(ink,.95*alpha))
-	draw_string(font,at+Vector2(5,18),"궁극기",HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.07,.05,.08,alpha))
-	draw_string(font,at+Vector2(53,18),title,HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color(1,1,1,alpha))
-	draw_rect(plate,Color(ink.lightened(.35),alpha),false,1.5)
 
 ## 기관사: warning lane while the whistle blows, then the locomotive in track space (x along the rails).
 func _train_warning(u: BattleUnit,cast: Dictionary,parent: Transform2D) -> void:
