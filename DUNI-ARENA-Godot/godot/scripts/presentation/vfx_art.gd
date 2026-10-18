@@ -132,6 +132,30 @@ static func effect(c: CanvasItem,e: Dictionary) -> bool:
 				var a: float=i*2.399;var at: Vector2=p+Vector2.from_angle(a)*r*(.5+sin(t*PI)*.3)
 				star(c,at,5+sin(t*PI)*5,Color("f2e3ff"),fade,a)
 			flare(c,p,angle,r*(1-t),Color("fff0e7"),fade*.9)
+			if e.kind=="ultimate":glow(c,p+Vector2(0,-r*.7),r*.45,Color("fff6e6"),fade*.55,2.6)
+			return true
+		"ult_release":
+			var spread: float=1-pow(1-t,3)
+			glow(c,p,r*(1.1-t*.5),color,fade*.8);glow(c,p,r*.4,Color("fff6e6"),fade)
+			for i in range(2):
+				var phase: float=clampf((t-i*.15)/.85,0,1)
+				if phase>0:pressure(c,p,angle,r*(.25+phase*1.3),Color("fff3dc") if i==0 else color,pow(1-phase,1.5)*.9)
+			for i in range(12):
+				var a: float=angle+i*TAU/12;flare(c,p+Vector2.from_angle(a)*r*spread*.6,a,r*.5*(1-t),color,fade*.85)
+			star(c,p,r*.5*(1-t),Color.WHITE,fade)
+			return true
+		"ult_impact":
+			# Ground cracks radiate from the landing point and linger while the shockwaves roll out.
+			for i in range(9):
+				var a: float=i*TAU/9+VisualParticles.noise(i+p.x)*.5;var length: float=r*(.55+VisualParticles.noise(i*3+p.y)*.6)*minf(1,t*6)
+				var points:=PackedVector2Array([p])
+				for j in range(1,5):points.append(p+Vector2.from_angle(a+(VisualParticles.noise(i*7+j+p.x)-.5)*.5)*length*j/4)
+				c.draw_polyline(points,Color("2a1e14",fade*.85),3,true);c.draw_polyline(points,Color(color,fade*.6),1,true)
+			glow(c,p,r*(1.2-t*.6),color,fade*.7);glow(c,p,r*.4,Color("fff1d8"),fade)
+			for i in range(3):
+				var phase: float=clampf((t-i*.1)/.6,0,1)
+				if phase>0 and phase<1:pressure(c,p,0,r*(.2+phase*1.6),Color("ffe9c4") if i==0 else color,pow(1-phase,1.4))
+			ellipse(c,p,r*(1-pow(1-t,4))*1.3,.5,Color("d8b98a",fade*.7),4)
 			return true
 		"launch":
 			glow(c,p,r*1.5,color,fade*.6);flare(c,p,angle,r*(1-t),Color("fff1d5"),fade)

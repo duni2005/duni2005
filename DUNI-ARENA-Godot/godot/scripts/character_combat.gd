@@ -7,6 +7,10 @@ static func champion_factor(u) -> float:
 	return u.ability.attack_factor(u)*(1+devotees*.1)
 static func plan_share(u,hp_damage: float,source,options: Dictionary) -> Array[Dictionary]:
 	var result: Array[Dictionary]=[]
+	if hp_damage>0 and u.state_value("magnetTime")>0 and u.state_value("magnetPull")<=0:
+		var partner=u.battle.find_actor(str(u.character_specific_state.get("magnetPartner","")))
+		var echo: int=CombatRules.js_round(hp_damage*BindingController.MAGNET_SHARE)
+		if partner!=null and partner.alive and echo>0:result.append({"unit":partner,"damage":echo,"source":source,"extra":true})
 	if u.puppet_links.is_empty() or hp_damage<=0 or options.get("puppet_shared",false):return result
 	var friends: Array=[]
 	for id in u.puppet_links:

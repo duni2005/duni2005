@@ -6,6 +6,7 @@ extends RefCounted
 const TETHER_RADIUS: float = 72
 const MAGNET_PULL_SPEED: float = 900
 const MAGNET_GAP: float = 46
+const MAGNET_SHARE: float = .1
 
 static func tether(unit, center: Vector2, duration: float, radius: float = TETHER_RADIUS) -> void:
 	unit.set_state("tetherTime", duration);unit.set_state("tetherRadius", radius)

@@ -133,7 +133,8 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	var executed: bool=false
 	if battle.full_characters_enabled:
 		shares=CharacterCombat.plan_share(target,maxf(0,amount-target.shield_hp),source,options)
-		for share in shares:amount-=float(share.damage)
+		for share in shares:
+			if not share.get("extra",false):amount-=float(share.damage)
 		var threshold: float=float(options.get("execute_threshold",0))
 		executed=threshold>0 and amount>target.shield_hp and target.current_hp-maxf(0,amount-target.shield_hp)<=target.max_hp*threshold+1e-7
 		if CharacterLifecycle.intercept_lethal(target,maxf(0,amount-target.shield_hp),executed):out.avoided=true;return complete(source,target,out)

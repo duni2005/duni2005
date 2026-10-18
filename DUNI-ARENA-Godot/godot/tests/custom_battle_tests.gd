@@ -95,29 +95,41 @@ func new_characters(tree: SceneTree) -> void:
 	b.units[1].receive_damage(9999,b.units[2]);step(b,.1)
 	verify(not courier.alive,"courier dies when no fighting ally remains")
 	b.queue_free()
-	# 자석: ultimate links two enemies, pulls them together and holds them.
-	b=duel(tree,[[30,0,Vector2(100,400)],[4,1,Vector2(500,150)],[4,1,Vector2(500,650)]])
+	# 자석: ultimate links the two farthest enemies, pulls them together and holds them.
+	b=duel(tree,[[30,0,Vector2(100,400)],[4,1,Vector2(500,150)],[4,1,Vector2(500,650)],[4,1,Vector2(300,400)]])
 	var magnet: BattleUnit=b.units[0];magnet.ultimate_gauge=100
 	for i in range(60*4):
 		step(b,1.0/60)
 		if b.units[1].state_value("magnetTime")>0:break
 	verify(b.units[1].state_value("magnetTime")>0 and b.units[2].state_value("magnetTime")>0,"magnet links two enemies")
 	step(b,1)
+	verify(b.units[3].state_value("magnetTime")<=0,"the nearer enemy is not linked")
 	verify(b.units[1].position.distance_to(b.units[2].position)<BindingController.MAGNET_GAP+12,"linked enemies are pulled together")
+	var partner_hp: float=b.units[2].current_hp
+	var hit: DamageOutcome=b.damage_resolver.resolve(magnet,b.units[1],100,{"critical":false,"impulse":0})
+	verify(hit.hp_damage>0 and is_equal_approx(partner_hp-b.units[2].current_hp,float(CombatRules.js_round(hit.hp_damage*.1))),"linked partner takes 10% of the damage")
 	b.queue_free()
 	# 기관사: the train hits enemies on the line hard and shoves allies lightly.
-	b=duel(tree,[[27,0,Vector2(100,700)],[4,0,Vector2(250,400)],[1,1,Vector2(500,400)],[1,1,Vector2(650,400)]])
+	b=duel(tree,[[27,0,Vector2(100,400)],[4,0,Vector2(250,400)],[1,1,Vector2(500,400)],[1,1,Vector2(650,400)]])
 	var conductor: BattleUnit=b.units[0];conductor.ultimate_gauge=100
 	verify(not conductor.ability.can_attack(conductor,b.units[2]),"conductor has no basic attack")
 	var enemy_hp: float=b.units[2].current_hp+b.units[3].current_hp;var ally_hp: float=b.units[1].current_hp
 	var ran: bool=false
 	for i in range(60*5):
 		step(b,1.0/60)
-		if conductor.state_value("trainFx")>0:ran=true
+		if conductor.state_value("trainFx")>0 and not ran:
+			ran=true;var track: Dictionary=conductor.ultimate.cast.track
+			verify(absf(float(track.angle))<.3 and float(track.from)<-80,"train enters behind the conductor and heads toward the enemies")
 		if ran and conductor.state_value("trainFx")<=0:break
 	verify(ran,"conductor runs the train")
 	verify(enemy_hp-b.units[2].current_hp-b.units[3].current_hp>=60,"train deals heavy damage to enemies on the track")
 	verify(ally_hp-b.units[1].current_hp<20,"allies take only a little train damage")
+	b.queue_free()
+	verify(CharacterCatalog.all()[29].move_speed<CharacterCatalog.all()[0].move_speed+10,"courier is no faster than a fighter")
+	# 말뚝 궁극기 lands with a shockwave cue.
+	b=duel(tree,[[26,0,Vector2(200,400)],[1,1,Vector2(500,400)]])
+	b.units[0].ultimate_gauge=100;step(b,3)
+	verify(b.combat_event_counts.get(&"ult_impact",0)>=1,"stake ultimate emits a landing shockwave")
 	b.queue_free()
 	# Each new character survives a full battle without errors.
 	for type in range(26,31):

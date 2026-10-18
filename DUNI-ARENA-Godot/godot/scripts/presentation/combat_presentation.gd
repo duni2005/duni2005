@@ -41,6 +41,8 @@ var trans_active: bool=false
 var trans_point:=Vector2.ZERO
 var glow_layer: CombatGlowLayer
 var field_layer: MagicFieldLayer
+var ult_released: Dictionary={}
+var ult_timers: Dictionary={}
 func impact_pause(milliseconds: int) -> void:
 	if impact_cooldown>0:return
 	impact_remaining=milliseconds/1000.0;impact_cooldown=.16;freeze_positions=visual_positions.duplicate()
@@ -66,7 +68,7 @@ func cleanup() -> void:
 		if battle.battle_finalizing.is_connected(_prepare_ending):battle.battle_finalizing.disconnect(_prepare_ending)
 	cinematic=BattleCinematicState.new()
 	kill_notices.clear()
-	connected=false;battle=null;effects.clear();numbers.clear();previous.clear();feed.clear();event_total=0;end_age=0;camera.reset();particles.clear();flashes.clear();visual_positions.clear();freeze_positions.clear();impact_remaining=0;trans_active=false;explosive_seen.clear();tracked_projectiles.clear();projectile_trails.clear();projectile_origins.clear();release_counts.clear();weapon_releases.clear();afterimages.clear();trail_tick=-1;queue_redraw()
+	connected=false;battle=null;effects.clear();numbers.clear();previous.clear();feed.clear();event_total=0;end_age=0;camera.reset();particles.clear();flashes.clear();visual_positions.clear();freeze_positions.clear();impact_remaining=0;trans_active=false;explosive_seen.clear();tracked_projectiles.clear();projectile_trails.clear();projectile_origins.clear();release_counts.clear();weapon_releases.clear();ult_released.clear();ult_timers.clear();afterimages.clear();trail_tick=-1;queue_redraw()
 	if is_instance_valid(glow_layer):glow_layer.queue_redraw()
 	if is_instance_valid(field_layer):field_layer.clear()
 func add_effect(kind: String,point: Vector2,color: Color=Color.WHITE,radius: float=28,life: float=.45,direction: float=0) -> void:
@@ -219,6 +221,7 @@ func advance(delta: float) -> void:
 					effects[-1].angle=angle;effects[-1]["type"]=type
 					if type in [6,7,18,23]:particles.burst(muzzle,Color("fff0c7"),8,180,angle,"spark")
 			release_counts[fighter.battle_id]=releases
+			if fighter.alive:_ultimate_cues(fighter,delta)
 		var transcending: bool=battle.transcendence!=null and not battle.transcendence.cast.is_empty()
 		if transcending:
 			var caster: BattleUnit=battle.find_actor(battle.transcendence.cast.actor)
@@ -240,12 +243,19 @@ func advance(delta: float) -> void:
 		var fresh: int=mini(total-event_total,battle.combat_events.size());event_total=total
 		for i in range(battle.combat_events.size()-fresh,battle.combat_events.size()):
 			var e: Dictionary=battle.combat_events[i];var kind: String=String(e.kind)
+			if kind=="ult_impact":
+				add_effect("ult_impact",e.point,AttackVisuals.ink(int(e.metadata.get("type",0))),float(e.metadata.get("radius",110)),1.1)
+				particles.burst(e.point,Color("c8a77c"),20,340,0,"shard",true);particles.burst(e.point,Color("6b5a4a"),12,90,0,"smoke",true)
+				impact_pause(90);camera.impact(14,e.point)
 			if kind in ["clash","parry_success","warrior_parry","ultimate","hero_rescue","wave_stun","vigor_totem","charge_totem"]:
-				add_effect(kind,e.point,Color("8edff7") if "parry" in kind else ArenaUI.GOLD if kind=="clash" else Color("cb9aff"),42 if kind=="clash" else 32)
+				var tint: Color=Color("8edff7") if "parry" in kind else ArenaUI.GOLD if kind=="clash" else AttackVisuals.ink(int(e.metadata.get("type",0))) if kind=="ultimate" else Color("cb9aff")
+				add_effect(kind,e.point,tint,42 if kind=="clash" else 80 if kind=="ultimate" else 32)
 				if kind in ["parry_success","warrior_parry"]:
 					var defender: BattleUnit=battle.units.filter(func(u):return u.position.distance_to(e.point)<2).front() if battle.units.any(func(u):return u.position.distance_to(e.point)<2) else null
 					if defender!=null:effects[-1].angle=defender.facing;effects[-1].radius=135*defender.combat_scale()
-				if kind=="ultimate":effects[-1]["actor"]=String(e.metadata.get("actor",""));effects[-1]["type"]=int(e.metadata.get("type",0))
+				if kind=="ultimate":
+					effects[-1]["actor"]=String(e.metadata.get("actor",""));effects[-1]["type"]=int(e.metadata.get("type",0));effects[-1].life=1.3
+					add_effect("ult_flash",e.point,tint,0,.45)
 				if kind in ["clash","ultimate"]:camera.impact(5,e.point);camera.focus(e.point)
 		for u in battle.units:
 			var old: Dictionary=previous.get(u.battle_id,{"hp":u.current_hp,"shield":0,"stun":0,"inv":0})
@@ -305,22 +315,32 @@ func _draw() -> void:
 			visual_positions[u.battle_id]=u.position
 			var difference: Vector2=Vector2(freeze_positions.get(u.battle_id,u.position))-u.position if impact_remaining>0 else Vector2.ZERO
 			draw_set_transform_matrix(parent_transform*Transform2D(0,difference));_unit(u,parent_transform*Transform2D(0,difference));draw_set_transform_matrix(parent_transform)
+	for u in ([] if battle.finished else battle.units):
+		if u.data.type_id==27 and u.state_value("trainFx")>0 and u.ultimate.cast.has("track"):_draw_train(u)
 	particles.draw(self)
+	var banners: Array=[]
 	for e in effects:
 		if e.kind=="ultimate":
 			var caster: BattleUnit=battle.find_actor(String(e.get("actor","")))
-			if caster!=null:AbilityMotifs.draw(self,caster,e.point,real_age,float(e.age)/float(e.life))
+			if caster!=null:AbilityMotifs.draw(self,caster,e.point,real_age,float(e.age)/float(e.life));banners.append([caster,float(e.age)])
 		var t: float=float(e.age)/float(e.life);var c: Color=Color(e.color,1-t);var radius: float=float(e.radius)*(.25+t)
 		if e.kind=="death":
 			VfxArt.effect(self,e)
 			CharacterPainter.draw_battle_portrait(self,Rect2(e.point-Vector2(32,33)*float(e.get("scale",1))+Vector2(0,t*12),Vector2(64,64)*float(e.get("scale",1))),int(e.get("type",0)),1-t)
 			for i in range(5):draw_line(e.point+Vector2(-25,-20+i*10),e.point+Vector2(25+t*30,-20+i*10),Color(e.color,.5*(1-t)),2)
+		elif e.kind=="ult_flash":
+			draw_rect(Rect2(0,0,800,800),Color(e.color,.16*pow(1-t,2)))
+			draw_arc(e.point,40+t*760,0,TAU,72,Color(Color(e.color).lightened(.4),.55*(1-t)),7*(1-t)+1,true)
 		elif VfxArt.effect(self,e):pass
 		else:draw_arc(e.point,radius,0,TAU,32,c,2)
-		if e.kind not in ["hit","critical","projectile_hit","explosion","heal","parry_success","warrior_parry","clash","ultimate","transcendence","launch","reflect","shield_break","shield_hit"]:
+		if e.kind not in ["hit","critical","projectile_hit","explosion","heal","parry_success","warrior_parry","clash","ultimate","transcendence","launch","reflect","shield_break","shield_hit","ult_flash","ult_release","ult_impact"]:
 			for i in range(4):
 				var v:=Vector2.from_angle(i*TAU/4+float(e.age)*.7);VfxArt.star(self,e.point+v*radius,5,e.color,1-t)
-		if e.kind in ["parry_success","warrior_parry","clash","ultimate"]:draw_string(ThemeDB.fallback_font,e.point+Vector2(-26,-50-t*18),{"parry_success":"패링","warrior_parry":"반격","clash":"상쇄","ultimate":"궁극기"}[e.kind],HORIZONTAL_ALIGNMENT_LEFT,-1,18,c)
+		if e.kind in ["parry_success","warrior_parry","clash"]:draw_string(ThemeDB.fallback_font,e.point+Vector2(-26,-50-t*18),{"parry_success":"패링","warrior_parry":"반격","clash":"상쇄"}[e.kind],HORIZONTAL_ALIGNMENT_LEFT,-1,18,c)
+	if not banners.is_empty():
+		draw_set_transform(Vector2.ZERO)
+		for row in banners:_ult_banner(row[0],row[1])
+		draw_set_transform_matrix(parent_transform)
 	for n in numbers:
 		var prefix: String="+" if n.kind=="heal" else "흡수 " if n.kind=="shield" else ""
 		draw_string(ThemeDB.fallback_font,n.point+Vector2(-14,-38-float(n.age)*42),prefix+str(ceili(n.value)),HORIZONTAL_ALIGNMENT_LEFT,-1,23 if n.kind=="critical" else 18,Color(n.color,1-clampf(float(n.age)/.9,0,1)))
@@ -390,6 +410,7 @@ func _unit(u: BattleUnit,parent: Transform2D) -> void:
 		var angle: float=u.knockback_velocity.angle()
 		VfxArt.flare(self,at-Vector2.from_angle(angle)*25,angle,minf(50,u.knockback_velocity.length()*.12),color,.35)
 	if not battle.finished and not u.ultimate.cast.is_empty():
+		_ultimate_charge(u,at,parent)
 		AbilityMotifs.draw(self,u,at,real_age,0)
 		var area: Dictionary=u.ability.cast_area(u,u.ultimate.cast)
 		if not area.is_empty():
@@ -483,20 +504,129 @@ func _new_character_state(u: BattleUnit,p: Vector2,s: float) -> void:
 		var t: float=1-u.state_value("deliveryFx")/1.2
 		var icon: String={"heal":"heal","power":"fang","charge":"charge","shield":"shield"}.get(kind,"heal")
 		ArenaIcon.draw(self,p+Vector2(0,-58-t*22)*s,icon,18,Color({"heal":"8ff0a4","power":"ff9a7a","charge":"9fd8ff","shield":"7ddfff"}.get(kind,"ffffff"),1-t))
-	# 기관사 locomotive crossing the map on its track.
-	if u.data.type_id==27 and u.state_value("trainFx")>0 and u.ultimate.cast.has("track"):
-		var track: Dictionary=u.ultimate.cast.track;var dir: Vector2=Vector2.from_angle(float(track.angle))
-		var center: Vector2=Vector2(float(track.x),float(track.y));var head: Vector2=center+dir*float(u.ultimate.cast.s)
-		var side: Vector2=dir.orthogonal()
-		var arena:=Rect2(0,0,800,800)
-		for k in [-1,1]:
-			var rail: Array=[];for i in range(-40,41):if arena.has_point(center+dir*i*30+side*k*14):rail.append(center+dir*i*30+side*k*14)
-			if rail.size()>1:draw_line(rail[0],rail[-1],Color("8c7a6a",.55),2)
-		for i in range(-40,41):if arena.has_point(center+dir*i*30):draw_line(center+dir*i*30-side*18,center+dir*i*30+side*18,Color("6a5646",.35),3)
-		var body: PackedVector2Array=PackedVector2Array([head+side*26,head+dir*16,head-side*26,head-dir*170-side*26,head-dir*170+side*26])
-		draw_colored_polygon(body,Color("e07a5f"));draw_polyline(body+PackedVector2Array([body[0]]),Color("3a1f18"),2)
-		draw_circle(head-dir*40,12,Color("ffd27a"));draw_circle(head-dir*120,10,Color("2b2b33"))
-		for i in range(4):draw_circle(head-dir*(60+i*22)+side*sin(real_age*20+i)*6,10+i*3,Color(.85,.85,.85,.35-i*.07))
+## Shared ultimate cues: gathering motes during the windup, one burst when the ultimate fires.
+func _ultimate_cues(u: BattleUnit,delta: float) -> void:
+	var cast: Dictionary=u.ultimate.cast;var serial: int=u.ultimate.serial;var ink: Color=AttackVisuals.ink(u.data.type_id)
+	if not ult_released.has(u.battle_id):ult_released[u.battle_id]=serial
+	var winding: bool=not cast.is_empty() and float(cast.t)<float(cast.duration)
+	if winding:
+		ult_timers[u.battle_id]=float(ult_timers.get(u.battle_id,0))+delta
+		if float(ult_timers[u.battle_id])>=.07:ult_timers[u.battle_id]=0;particles.burst(u.position+Vector2(0,12),ink,3,90,-PI/2,"mote")
+	elif int(ult_released[u.battle_id])<serial:
+		ult_released[u.battle_id]=serial
+		add_effect("ult_release",u.position,ink,150*u.combat_scale(),.6,u.facing)
+		particles.burst(u.position,Color("fff3d6"),20,360,u.facing,"spark",true);particles.burst(u.position,ink,14,130,0,"mote",true)
+		camera.impact(7,u.position)
+	if u.data.type_id==27 and u.state_value("trainFx")>0 and cast.has("track"):_train_exhaust(u,cast,delta)
+func _ultimate_charge(u: BattleUnit,at: Vector2,parent: Transform2D) -> void:
+	var cast: Dictionary=u.ultimate.cast;var k: float=clampf(float(cast.t)/maxf(.05,float(cast.duration)),0,1)
+	var ink: Color=AttackVisuals.ink(u.data.type_id);var r: float=58*u.combat_scale();var ground: Vector2=at+Vector2(0,14)*u.combat_scale()
+	if u.data.type_id==27 and not cast.has("track"):_train_warning(u,cast,parent)
+	# Rune circle on the ground, counter-rotating rings and rising pillar of light.
+	VfxArt.glow(self,ground,r*1.7,ink,.22+.25*k,.45)
+	VfxArt.ellipse(self,ground,r*(.75+.3*k),.42,Color(ink,.9),2.5)
+	VfxArt.ellipse(self,ground,r*(1.05+.3*k),.42,Color(ink,.5),1.5,real_age*2,real_age*2+PI*1.3)
+	VfxArt.ellipse(self,ground,r*(1.05+.3*k),.42,Color(ink,.5),1.5,-real_age*2+PI,-real_age*2+PI*2.3)
+	for i in range(12):
+		var a: float=i*TAU/12+real_age*1.3;var point: Vector2=ground+Vector2(cos(a)*r*(.9+.3*k),sin(a)*r*(.9+.3*k)*.42)
+		draw_line(point,point+Vector2(0,-5-9*k),Color(ink.lightened(.3),.8),2)
+	for i in range(10):
+		var f: float=fmod(real_age*1.7+i*.1,1.0);var a: float=i*2.399
+		VfxArt.star(self,at+Vector2.from_angle(a)*r*1.9*(1-f),3+5*f,ink.lightened(.35),f*.9,a)
+	VfxArt.glow(self,at+Vector2(0,-36)*u.combat_scale(),r*.55,ink.lightened(.45),.2+.4*k,2.6)
+	draw_arc(at,r*.78,-PI/2,-PI/2+TAU*k,48,Color(1,1,1,.9),3,true)
+func _ult_banner(u: BattleUnit,age: float) -> void:
+	# Name plate over the caster so every ultimate reads as one at a glance. Drawn in screen
+	# space so it keeps a readable size at any board zoom.
+	var font: Font=ThemeDB.fallback_font;var ink: Color=AttackVisuals.ink(u.data.type_id)
+	var appear: float=clampf(age/.12,0,1);var alpha: float=appear*clampf((1.3-age)/.35,0,1)
+	if alpha<=0:return
+	var title: String=u.data.display_name
+	var width: float=font.get_string_size(title,HORIZONTAL_ALIGNMENT_LEFT,-1,15).x+60
+	var anchor: Vector2=parent_transform*(u.position+Vector2(0,-38*u.combat_scale()))
+	var at: Vector2=anchor+Vector2(-width*.5,-34-(1-appear)*10)
+	var plate:=Rect2(at,Vector2(width,25))
+	VfxArt.glow(self,plate.get_center(),width*.75,ink,.4*alpha,.3)
+	draw_rect(plate,Color(.04,.05,.08,.9*alpha))
+	draw_rect(Rect2(at,Vector2(46,25)),Color(ink,.95*alpha))
+	draw_string(font,at+Vector2(5,18),"궁극기",HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(.07,.05,.08,alpha))
+	draw_string(font,at+Vector2(53,18),title,HORIZONTAL_ALIGNMENT_LEFT,-1,15,Color(1,1,1,alpha))
+	draw_rect(plate,Color(ink.lightened(.35),alpha),false,1.5)
+
+## 기관사: warning lane while the whistle blows, then the locomotive in track space (x along the rails).
+func _train_warning(u: BattleUnit,cast: Dictionary,parent: Transform2D) -> void:
+	var angle: float=float(cast.angle);var span: Vector2=u.ability.track_span(u.position,Vector2.from_angle(angle))
+	draw_set_transform_matrix(parent*Transform2D(angle,u.position))
+	draw_rect(Rect2(span.x,-58,span.y-span.x,116),Color("ff4a3a",.1+.07*sin(real_age*18)))
+	for k in [-1,1]:draw_line(Vector2(span.x,k*58),Vector2(span.y,k*58),Color("ff6a4a",.65),2)
+	var x: float=span.x+fmod(real_age*260,64)
+	while x<span.y-12:
+		draw_polyline(PackedVector2Array([Vector2(x-12,-16),Vector2(x+4,0),Vector2(x-12,16)]),Color("ffb08c",.75),4)
+		x+=64
+	draw_set_transform_matrix(parent)
+func _train_exhaust(u: BattleUnit,cast: Dictionary,delta: float) -> void:
+	var key: String="train%d"%u.battle_id;ult_timers[key]=float(ult_timers.get(key,0))+delta
+	if float(ult_timers[key])<.03:return
+	ult_timers[key]=0
+	var track: Dictionary=cast.track;var dir: Vector2=Vector2.from_angle(float(track.angle));var side: Vector2=dir.orthogonal()
+	var head: Vector2=Vector2(float(track.x),float(track.y))+dir*float(cast.s);var arena:=Rect2(0,0,800,800)
+	var stack: Vector2=head-dir*62
+	if arena.has_point(stack):particles.burst(stack,Color("8a8a96"),3,50,dir.angle()+PI,"smoke",true)
+	for k in [-1,1]:
+		var wheel: Vector2=head-dir*(40+VisualParticles.noise(real_age*13+k)*100)+side*k*32
+		if arena.has_point(wheel):particles.burst(wheel,Color("ffb35c"),1,220,dir.angle()+PI+k*.5,"ember")
+	if arena.has_point(head):camera.impact(2.5,head)
+func _clip_rect(x0: float,x1: float,y0: float,y1: float,color: Color,lo: float,hi: float) -> void:
+	var a: float=maxf(x0,lo);var b: float=minf(x1,hi)
+	if b>a:draw_rect(Rect2(a,y0,b-a,y1-y0),color)
+func _draw_train(u: BattleUnit) -> void:
+	var cast: Dictionary=u.ultimate.cast;var track: Dictionary=cast.track;var angle: float=float(track.angle)
+	var lo: float=float(track.from);var hi: float=float(track.to);var h: float=float(cast.s);var center:=Vector2(float(track.x),float(track.y))
+	# Wider across than along so the body fills the track's hit width.
+	draw_set_transform_matrix(parent_transform*Transform2D(angle,Vector2(1,1.4),0,center))
+	# Sleepers and rails over the whole crossing; rails glow hot behind the train.
+	var sleeper: float=ceilf(lo/28)*28
+	while sleeper<hi:draw_rect(Rect2(sleeper-4,-26,8,52),Color("4e3c2e",.85));sleeper+=28
+	for k in [-1,1]:
+		draw_line(Vector2(lo,k*17),Vector2(hi,k*17),Color("aab4c4"),3)
+		var hot0: float=maxf(lo,h-560);var hot1: float=minf(hi,h-270)
+		if hot1>hot0:draw_line(Vector2(hot0,k*17),Vector2(hot1,k*17),Color("ff9a4a",.6),4)
+	for i in range(12):
+		var y: float=(VisualParticles.noise(i)*2-1)*44;var x: float=h-280-fmod(real_age*700+i*83,360)
+		if x>lo and x-60<hi:draw_line(Vector2(maxf(lo,x-60),y),Vector2(minf(hi,x),y),Color(1,.95,.85,.35),2)
+	# Rear wagon, coal tender, cab, boiler and the red cowcatcher in front.
+	_clip_rect(h-270,h-214,-25,25,Color("8c3b2c"),lo,hi)
+	for i in range(4):_clip_rect(h-264+i*13,h-256+i*13,-21,21,Color("a94c37"),lo,hi)
+	for k in [-1,1]:_clip_rect(h-270,h-214,k*25-2,k*25+2,Color("4a1d14"),lo,hi)
+	_clip_rect(h-214,h-204,-4,4,Color("2a2a30"),lo,hi)
+	_clip_rect(h-204,h-160,-26,26,Color("3a3330"),lo,hi)
+	_clip_rect(h-198,h-166,-19,19,Color("17130f"),lo,hi)
+	for i in range(3):
+		var coal:=Vector2(h-192+i*11,(i-1)*7.0)
+		if coal.x>lo and coal.x<hi:draw_circle(coal,5,Color("2c2620"))
+	_clip_rect(h-160,h-152,-4,4,Color("2a2a30"),lo,hi)
+	_clip_rect(h-152,h-110,-29,29,Color("e07a5f"),lo,hi)
+	for k in [-1,1]:_clip_rect(h-152,h-110,k*29-(6 if k>0 else 0),k*29+(0 if k>0 else 6),Color("a8462f"),lo,hi)
+	for k in [-1,1]:_clip_rect(h-146,h-132,k*16-4,k*16+4,Color("ffe3a6"),lo,hi)
+	for k in [-1,1]:_clip_rect(h-142,h-18,k*31-3,k*31+3,Color("1d1f25"),lo,hi)
+	_clip_rect(h-110,h-14,-22,22,Color("353c4a"),lo,hi)
+	_clip_rect(h-110,h-14,-22,-13,Color("5b6880"),lo,hi)
+	for x in [h-98,h-72,h-44]:_clip_rect(x,x+5,-22,22,Color("d6a84a"),lo,hi)
+	var roll: float=sin(real_age*34)*5
+	for k in [-1,1]:
+		for x in [h-128,h-96,h-64,h-32]:
+			if x>lo and x<hi:draw_circle(Vector2(x,k*31),7,Color("3d414c"));draw_line(Vector2(x,k*31),Vector2(x+roll,k*31+cos(real_age*34)*5),Color("9aa2b0"),2)
+		if h-130>lo and h-30<hi:draw_line(Vector2(h-130+roll,k*31),Vector2(h-30+roll,k*31),Color("d0453a"),3)
+	if h-88>lo and h-88<hi:draw_circle(Vector2(h-88,0),7,Color("d6a84a"))
+	if h-62>lo and h-62<hi:draw_circle(Vector2(h-62,0),11,Color("15161b"));draw_arc(Vector2(h-62,0),11,0,TAU,20,Color("6c7080"),3)
+	_clip_rect(h-14,h+2,-23,23,Color("23262e"),lo,hi)
+	if h+28<hi and h+2>lo:
+		draw_colored_polygon(PackedVector2Array([Vector2(h+2,-26),Vector2(h+28,0),Vector2(h+2,26)]),Color("c43d2e"))
+		for k in [-1,1]:draw_line(Vector2(h+4,k*16),Vector2(h+20,k*5),Color("ff8a6e"),2)
+		draw_circle(Vector2(h+2,0),6,Color("fff1b0"))
+	draw_set_transform_matrix(parent_transform)
+	var dir: Vector2=Vector2.from_angle(angle);var lamp: Vector2=center+dir*(h+4)
+	if h+4>lo and h+4<hi:VfxArt.flare(self,lamp+dir*70,angle,150,Color("fff1b0"),.6);VfxArt.glow(self,lamp,40,Color("ffe6a0"),.5)
 
 func _draw_ending() -> void:
 	var time: float=BattleCinematicState.motion_seconds(cinematic.age)

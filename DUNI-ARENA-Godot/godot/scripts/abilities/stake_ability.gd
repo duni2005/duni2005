@@ -25,6 +25,7 @@ func release_ultimate(u,a,dt: float) -> bool:
 	var arrived: bool=dash_to(u,target.position,950,dt,34*target.combat_scale())
 	if not arrived and float(a.leap)<1.0:return false
 	u.battle.damage_resolver.resolve(u,target,ULT_DAMAGE,{"impulse":0,"visible_hazard":true})
+	u.battle.emit_combat_event(&"ult_impact",target.position,{"actor":u.actor_id(),"type":u.data.type_id,"radius":120})
 	if target.alive:StatusController.stun(target,ULT_STUN);BindingController.tether(target,target.position,ULT_STUN,40)
 	return true
 func ultimate_danger(u,observer,a: Dictionary) -> bool:return a.get("target","")==observer.actor_id()
