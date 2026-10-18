@@ -48,12 +48,19 @@ static func fit_window(window: Window) -> Vector2i:
 		window.content_scale_aspect=Window.CONTENT_SCALE_ASPECT_IGNORE
 	if window.content_scale_size!=logical:window.content_scale_size=logical
 	return logical
+static func touch_ui() -> bool:
+	return DisplayServer.is_touchscreen_available()
+static func is_held(button: BaseButton) -> bool:
+	# Finger (or mouse) is down on the button right now, and the gesture has not become a scroll.
+	if button.disabled or button.get_meta("drag_canceled",false):return false
+	var mode: int=button.get_draw_mode()
+	return (mode==BaseButton.DRAW_PRESSED or mode==BaseButton.DRAW_HOVER_PRESSED) and not (button.toggle_mode and button.button_pressed)
 static func pip_style(on: bool) -> StyleBoxFlat:
 	if pip_on==null:pip_on=box(GOLD,GOLD);pip_off=box(Color("26304a"),Color("26304a"));pip_on.set_corner_radius_all(1);pip_off.set_corner_radius_all(1)
 	return pip_on if on else pip_off
 static func primary(button: Button) -> void:
 	button.add_theme_stylebox_override("normal",button_box(ACCENT,Color("efbc8f")))
-	button.add_theme_stylebox_override("hover",button_box(Color("ffc49b"),Color("ffdab6")))
+	button.add_theme_stylebox_override("hover",button_box(Color("ffc49b"),Color("ffdab6")) if not touch_ui() else button.get_theme_stylebox("normal"))
 	button.add_theme_stylebox_override("pressed",button_box(Color("d98b53"),Color("ffce9f")))
 	for name in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:button.add_theme_color_override(name,Color("29211b"))
 static func danger(button: Button) -> void:
@@ -77,6 +84,9 @@ static func get_theme() -> Theme:
 		var color: Color=Color("1c253c") if state=="normal" else Color("26314e") if state=="hover" else Color("51432d") if state in ["pressed","hover_pressed"] else Color("191c28")
 		shared_theme.set_stylebox(state,"Button",button_box(color,Color("ebc27a") if state in ["pressed","hover_pressed","focus"] else Color("4a3f58") if state=="disabled" else Color("3a4870")))
 	var focus:=box(Color.TRANSPARENT,ACCENT);focus.draw_center=false;shared_theme.set_stylebox("focus","Button",focus)
+	if touch_ui():
+		# No hover on touch: a tapped button must not stay highlighted, nor keep a focus ring.
+		shared_theme.set_stylebox("hover","Button",shared_theme.get_stylebox("normal","Button"));shared_theme.set_stylebox("focus","Button",StyleBoxEmpty.new())
 	shared_theme.set_type_variation("ArenaCard","Button")
 	for state in ["normal","hover","pressed","hover_pressed","disabled","focus"]:shared_theme.set_stylebox(state,"ArenaCard",StyleBoxEmpty.new())
 	# Native text is accessibility metadata; the authored card draws all visible type.
@@ -139,7 +149,9 @@ static func bind(button: Button,callback: Callable) -> void:
 			if button.toggle_mode:button.set_pressed_no_signal(button.get_meta("touch_toggle",button.button_pressed));button.queue_redraw()
 			return
 		if button.get_meta("drag_canceled",false) or (not button.get_meta("touch_dispatch",false) and button.get_meta("action_frame",-1)==Engine.get_process_frames()):return
-		button.set_meta("action_frame",Engine.get_process_frames());button.get_tree().root.set_meta("action_point",control_center(button));callback.call()
+		button.set_meta("action_frame",Engine.get_process_frames());button.get_tree().root.set_meta("action_point",control_center(button))
+		if OS.has_feature("mobile"):Input.vibrate_handheld(12)
+		callback.call()
 	button.set_meta("bound_action",action);button.pressed.connect(action)
 static func _scroll_position(button: Control,tune: bool=false) -> Vector2:
 	var result:=Vector2.ZERO;var parent: Node=button.get_parent()
@@ -163,7 +175,7 @@ static func _button_input(event: InputEvent,button: Button) -> void:
 			else:button.set_meta("touch_toggle",button.button_pressed)
 			button.accept_event()
 	elif event is InputEventScreenDrag and button.get_meta("touch_index",-1)==event.index:
-		if event.position.distance_to(button.get_meta("tap_origin"))>18:button.set_meta("drag_canceled",true)
+		if event.position.distance_to(button.get_meta("tap_origin"))>18:button.set_meta("drag_canceled",true);button.queue_redraw()
 	elif event is InputEventMouseButton and event.device!=-1 and event.pressed:
 		button.set_meta("touch_owned",false);button.set_meta("tap_origin",event.position);button.set_meta("drag_canceled",false)
 	elif event is InputEventKey and event.pressed:button.set_meta("touch_owned",false);button.set_meta("drag_canceled",false)

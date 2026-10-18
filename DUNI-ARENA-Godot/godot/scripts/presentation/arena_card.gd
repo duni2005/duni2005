@@ -89,9 +89,13 @@ func write(at: Vector2,value: String,font_size: int=14,color: Color=Color("eef1f
 func _draw() -> void:
 	if cached_style==null:return
 	var active: bool=selected or button_pressed
-	cached_style.bg_color=Color("51432d") if active else Color("26314e") if is_hovered() and not disabled else Color("171b28") if disabled else ArenaUI.SURFACE
-	cached_style.border_color=ArenaUI.GOLD if active or has_focus() else Color("d7bd7a") if is_hovered() else Color("36446a")
-	if active or has_focus():cached_style.border_color=ArenaUI.ACCENT
+	# Touch screens have no hover, and a tap leaves focus behind; neither may stay lit.
+	var hovered: bool=is_hovered() and not ArenaUI.touch_ui();var focused: bool=has_focus() and not ArenaUI.touch_ui()
+	var held: bool=ArenaUI.is_held(self)
+	if held:draw_set_transform(size*.015,0,Vector2.ONE*.97)
+	cached_style.bg_color=Color("51432d") if active else Color("26314e") if hovered and not disabled else Color("171b28") if disabled else ArenaUI.SURFACE
+	cached_style.border_color=ArenaUI.GOLD if active or focused else Color("d7bd7a") if hovered else Color("36446a")
+	if active or focused:cached_style.border_color=ArenaUI.ACCENT
 	if dead or (disabled and card_type not in ["room","nav","promotion_slot"]):cached_style.border_color=ArenaUI.DANGER if active else Color("6e5a7e");cached_style.bg_color=Color("3a2f4f") if active else Color("221e33")
 	cached_style.set_border_width_all(2 if active else 1)
 	cached_style.border_width_bottom=1
@@ -101,6 +105,7 @@ func _draw() -> void:
 		if kind in ["boss","miniboss"]:cached_style.bg_color=Color("453a2b");cached_style.border_color=Color("e0b36b")
 		if sold:cached_style.bg_color=Color("1d3a3a");cached_style.border_color=Color("5fb592")
 		if spent:cached_style.bg_color=Color("111726");cached_style.border_color=Color("283250")
+	if held:cached_style.bg_color=cached_style.bg_color.lightened(.12);cached_style.border_color=ArenaUI.ACCENT
 	draw_style_box(cached_style,Rect2(Vector2.ONE,size-Vector2.ONE*2))
 	var muted: Color=Color("9aa5c2");var gold: Color=ArenaUI.GOLD
 	if dead or (disabled and card_type not in ["room","nav","promotion_slot"]):muted=ArenaUI.DANGER;gold=ArenaUI.DANGER
