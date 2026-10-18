@@ -144,13 +144,18 @@ func show_map() -> void:
 	room_buttons.clear();floor_widgets.clear();map_rendered_run=run.run_id
 	var floors:=VBoxContainer.new();floors.size_flags_horizontal=Control.SIZE_EXPAND_FILL;map_scroll.add_child(floors)
 	for floor in state.map.floors:
-		var box:=VBoxContainer.new();box.add_theme_constant_override("separation",8);floors.add_child(box);box.add_child(HSeparator.new())
+		var box:=VBoxContainer.new();box.add_theme_constant_override("separation",8);floors.add_child(box)
+		if floor.floor_index%5==0:
+			var banner:=ChapterBanner.new();banner.chapter=floor.chapter_index;box.add_child(banner)
+		else:box.add_child(HSeparator.new())
 		var heading:=HBoxContainer.new();box.add_child(heading)
-		var label:=Label.new();label.text="%d층   챕터 %d%s"%[floor.floor_index+1,floor.chapter_index," · 정복 ✓" if floor.conquered else ""];label.add_theme_font_size_override("font_size",14);label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_child(label)
+		var titles:=VBoxContainer.new();titles.add_theme_constant_override("separation",0);titles.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_child(titles)
+		var label:=Label.new();label.add_theme_font_override("font",ArenaUI.heading_font());label.add_theme_font_size_override("font_size",16);titles.add_child(label)
+		var progress:=Label.new();progress.add_theme_font_size_override("font_size",11);titles.add_child(progress)
 		var conquest_button:=ConquestRewardButton.new();conquest_button.text=("" if floor.unlocked else "잠김 · ")+"층 정복 보상"+(" ✓" if floor.conquered else "");conquest_button.fraction=float(floor.cleared_count)/maxi(1,floor.room_ids.size());ArenaUI.bind(conquest_button,show_reward.bind(floor.floor_index));heading.add_child(conquest_button)
 		var scroll:=ScrollContainer.new();scroll.custom_minimum_size.y=104 if get_viewport_rect().size.x<720 else 132;scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;box.add_child(scroll)
 		var row:=HBoxContainer.new();row.add_theme_constant_override("separation",5);scroll.add_child(row)
-		floor_widgets[floor.floor_index]={"label":label,"conquest":conquest_button}
+		floor_widgets[floor.floor_index]={"label":label,"progress":progress,"conquest":conquest_button}
 		for id in floor.room_ids:
 			var button:=ArenaCard.new();button.card_type="room";button.toggle_mode=true
 			ArenaUI.bind(button,select_room.bind(id));row.add_child(button);room_buttons[id]=button
@@ -161,7 +166,10 @@ func _refresh_map_cards() -> void:
 	var narrow: bool=get_viewport_rect().size.x<720
 	for floor in state.map.floors:
 		var widgets: Dictionary=floor_widgets[floor.floor_index]
-		widgets.label.text="%d층   챕터 %d%s"%[floor.floor_index+1,floor.chapter_index," · 정복 ✓" if floor.conquered else ""]
+		widgets.label.text="%d층%s"%[floor.floor_index+1,"  ·  정복 ✓" if floor.conquered else ""]
+		widgets.label.add_theme_color_override("font_color",ArenaUI.GOLD if floor.conquered else Color("edf1ef") if floor.unlocked else ArenaUI.MUTED)
+		widgets.progress.text=_floor_progress(floor,state)
+		widgets.progress.add_theme_color_override("font_color",ArenaUI.HP if floor.unlocked and floor.cleared_count>=floor.required_clear_count else ArenaUI.MUTED)
 		widgets.conquest.text=("" if floor.unlocked else "잠김 · ")+"층 정복 보상"+(" ✓" if floor.conquered else "")
 		widgets.conquest.fraction=float(floor.cleared_count)/maxi(1,floor.room_ids.size());widgets.conquest.queue_redraw()
 		for id in floor.room_ids:
@@ -171,11 +179,21 @@ func _refresh_map_cards() -> void:
 			var marker: String="잠김" if not floor.unlocked else "✓ 클리어" if room.cleared else "소비 완료" if room.consumed else "방문함" if room.visited else "발견" if room.discovered or room.publicly_visible else "탐험 가능"
 			button.text="%d번 방\n%s\n%s"%[room.lane+1,kind,marker];button.title=kind;button.subtitle="%d번 방"%(room.lane+1)
 			button.kind=String(room.event_type) if room.discovered and room.room_type==RoomType.EVENT else String(room.visible_kind()) if room.visible_kind()!=&"" else "hidden"
-			button.status_text=marker;button.sold=room.cleared;button.spent=room.consumed or room.cleared and RoomType.is_combat(room.room_type)
+			# Locked floors show one quiet "잠김" instead of repeating "미탐험 / 잠김" per room.
+			if not floor.unlocked and not room.publicly_visible:button.title="잠김";button.status_text=""
+			else:button.status_text=marker
+			button.sold=room.cleared;button.spent=room.consumed or room.cleared and RoomType.is_combat(room.room_type)
 			button.set_pressed_no_signal(id==state.selected_room_id);button.disabled=not floor.unlocked or run.game_over
 			button.modulate=Color(1,1,1,.52) if button.spent else Color(1,1,1,.4) if not floor.unlocked and not room.publicly_visible else Color.WHITE
 			button.custom_minimum_size=Vector2(54 if narrow else clampf((get_viewport_rect().size.x-96)/6-10,80,175),100 if narrow else 126)
 			button.queue_redraw()
+func _floor_progress(floor: FloorState,state: TowerRunState) -> String:
+	if not floor.unlocked:return "잠김 · 이전 층을 진행하세요"
+	var text: String="클리어 %d / %d"%[floor.cleared_count,floor.room_ids.size()]
+	if floor.floor_index>=state.unlocked_floor and floor.floor_index<14:
+		text+="  ·  다음 층 해금 %d / %d"%[mini(floor.cleared_count,floor.required_clear_count),floor.required_clear_count]
+		if floor.floor_index%5==4:text+=" + 보스"
+	return text
 func _restore_scroll() -> void:
 	map_scroll.scroll_vertical=controller.guild.state.tower.map_scroll_y
 func select_room(id: String) -> void:

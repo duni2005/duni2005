@@ -8,22 +8,30 @@ var new_button: Button
 var continue_button: Button
 var status: Label
 var menu_margin: MarginContainer
+var backdrop: TitleBackdrop
 var overwrite_dialog: ConfirmationDialog
 func _ready() -> void:
 	ArenaUI.install(self)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	get_window().gui_embed_subwindows=true;get_tree().auto_accept_quit=false
 	get_window().close_requested.connect(_close)
+	backdrop=TitleBackdrop.new();add_child(backdrop)
 	var margin:=MarginContainer.new();menu_margin=margin;margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);add_child(margin)
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,16)
 	ArenaUI.safe_margin(margin)
 	menu=VBoxContainer.new();margin.add_child(menu);menu.alignment=BoxContainer.ALIGNMENT_CENTER;menu.add_theme_constant_override("separation",12)
-	var title:=Label.new();title.text="두니 아레나의 승자가\n망고를 얻을 것이다";title.add_theme_font_size_override("font_size",30);menu.add_child(title)
-	var eyebrow:=Label.new();eyebrow.text="DUNI ARENA  /  TOWER";eyebrow.add_theme_color_override("font_color",Color("8fa9c3"));menu.add_child(eyebrow);menu.move_child(eyebrow,0)
-	var note:=Label.new();note.text="개별 길드원을 영입하고, 배치하고, 함께 타워를 정복하세요.";note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;note.add_theme_color_override("font_color",ArenaUI.MUTED);menu.add_child(note)
-	new_button=Button.new();new_button.text="새 게임 · 두니 타워 정복  →";new_button.custom_minimum_size.y=48;menu.add_child(new_button);ArenaUI.bind(new_button,_request_new);ArenaUI.primary(new_button)
-	continue_button=Button.new();continue_button.text="이어하기";continue_button.custom_minimum_size.y=48;menu.add_child(continue_button);ArenaUI.bind(continue_button,continue_run)
-	status=Label.new();status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;menu.add_child(status)
+	menu.add_child(TitleLogo.new())
+	var title:=Label.new();title.text="두니 아레나의 승자가\n망고를 얻을 것이다";title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;title.add_theme_font_override("font",ArenaUI.heading_font());title.add_theme_font_size_override("font_size",22);menu.add_child(title)
+	var note:=Label.new();note.text="개별 길드원을 영입하고, 배치하고, 함께 타워를 정복하세요.";note.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;note.add_theme_color_override("font_color",ArenaUI.MUTED);menu.add_child(note)
+	var gap:=Control.new();gap.custom_minimum_size.y=8;menu.add_child(gap)
+	new_button=Button.new();new_button.text="새 게임 · 두니 타워 정복  →";new_button.custom_minimum_size.y=56;new_button.add_theme_font_override("font",ArenaUI.heading_font());new_button.add_theme_font_size_override("font_size",17);menu.add_child(new_button);ArenaUI.bind(new_button,_request_new);ArenaUI.primary(new_button)
+	for state in ["normal","hover","pressed"]:new_button.get_theme_stylebox(state).set_corner_radius_all(10)
+	continue_button=Button.new();continue_button.text="이어하기";continue_button.custom_minimum_size.y=52;menu.add_child(continue_button);ArenaUI.bind(continue_button,continue_run)
+	for state in ["normal","hover","pressed","disabled"]:
+		var style: StyleBoxFlat=ArenaUI.box(Color("1d2a26",.92) if state!="disabled" else Color("171d1f",.85),Color("6e7d68") if state!="disabled" else Color("323b3a"));style.set_corner_radius_all(10);continue_button.add_theme_stylebox_override(state,style)
+	continue_button.add_theme_color_override("font_disabled_color",Color("5d686b"))
+	var save_card:=PanelContainer.new();var card_style: StyleBoxFlat=ArenaUI.box(Color(ArenaUI.PANEL,.88),Color("3a4a42"));card_style.set_corner_radius_all(10);card_style.content_margin_left=14;card_style.content_margin_right=14;card_style.content_margin_top=10;card_style.content_margin_bottom=10;save_card.add_theme_stylebox_override("panel",card_style);menu.add_child(save_card)
+	status=Label.new();status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;status.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;status.add_theme_font_size_override("font_size",12);status.add_theme_color_override("font_color",Color("c9d3d4"));save_card.add_child(status)
 	overwrite_dialog=ConfirmationDialog.new();overwrite_dialog.dialog_text="저장된 탐험을 새 게임으로 교체하겠습니까?";add_child(overwrite_dialog);overwrite_dialog.confirmed.connect(new_game)
 	get_window().size_changed.connect(_fit_menu);_fit_menu()
 	refresh()
@@ -32,7 +40,7 @@ func _fit_menu() -> void:
 	var logical: Vector2i=ArenaUI.fit_window(window)
 	if menu_margin!=null:
 		ArenaUI.safe_margin(menu_margin)
-		var inset: int=maxi(12,(logical.x-600)/2)
+		var inset: int=maxi(16,(logical.x-440)/2)
 		menu_margin.add_theme_constant_override("margin_left",inset);menu_margin.add_theme_constant_override("margin_right",inset)
 func refresh() -> void:
 	continue_button.disabled=true
@@ -65,13 +73,13 @@ func continue_run() -> void:
 	open_tower(loaded.controller)
 	if loaded.from_backup:tower_screen.show_notice("이전 정상 저장에서 복구했습니다.")
 func open_tower(controller: TowerController) -> void:
-	menu.get_parent().hide()
+	menu.get_parent().hide();backdrop.hide()
 	if is_instance_valid(tower_screen):remove_child(tower_screen);tower_screen.queue_free()
 	tower_screen=load("res://scenes/tower.tscn").instantiate();tower_screen.controller=controller;tower_screen.resume_saved=true;add_child(tower_screen)
 	tower_screen.main_menu_requested.connect(func():call_deferred("return_menu"))
 func return_menu() -> void:
 	if is_instance_valid(tower_screen):remove_child(tower_screen);tower_screen.queue_free();tower_screen=null
-	menu.get_parent().show();refresh()
+	menu.get_parent().show();backdrop.show();refresh()
 func _close() -> void:
 	# Flush already-built safe snapshots; a live battle leaves its checkpoint intact.
 	save_manager.flush_autosave();get_tree().quit()

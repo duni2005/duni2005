@@ -4,6 +4,11 @@ extends Label
 var battle: BattleManager
 var guild: GuildManager
 var caption: String="DUNI TOWER"
+## Single-row battle variant; frees arena height while the fight runs.
+var compact: bool=false:
+	set(value):
+		if compact==value:return
+		compact=value;custom_minimum_size.y=42 if compact else 70;queue_redraw()
 var previous_gold: int=-1
 var gold_pulse: float=0
 var gold_delta: int=0
@@ -17,7 +22,7 @@ var pulses: Dictionary={}
 var _paint_state: Array=[]
 var _panel_style: StyleBoxFlat
 func anchor(kind: String) -> Vector2:
-	var offset: Vector2=Vector2(18,16) if kind=="gold" else Vector2(size.x*.30+16,16)
+	var offset: Vector2=(Vector2(18,21) if kind=="gold" else Vector2(size.x*.30+16,21)) if compact else Vector2(18,16) if kind=="gold" else Vector2(size.x*.30+16,16)
 	return ArenaUI.control_center(self)-size*.5+offset
 func animate_resource(kind: String,from_value: int,to_value: int,delay: float) -> void:
 	if kind=="gold":shown_gold=from_value;previous_gold=to_value
@@ -54,6 +59,7 @@ func advance_view(dt: float) -> void:
 func _draw() -> void:
 	if guild==null:return
 	if _panel_style==null:_panel_style=ArenaUI.box(Color("222b24"),Color("5a6550"));_panel_style.set_corner_radius_all(9)
+	if compact:_draw_compact();return
 	draw_style_box(_panel_style,Rect2(0,0,size.x,68))
 	var font: Font=get_theme_default_font();var numbers: Font=ArenaUI.numbers_font();var w: float=size.x*.30
 	for kind in pulses:
@@ -72,3 +78,17 @@ func _draw() -> void:
 	draw_string(numbers,Vector2(w*2+8,48),health,HORIZONTAL_ALIGNMENT_LEFT,-1,30,ArenaUI.HP)
 	draw_string(numbers,Vector2(w*2+13+health_width,48),"/ %d"%ceili(guild.state.player_max_hp),HORIZONTAL_ALIGNMENT_LEFT,-1,14,ArenaUI.MUTED)
 	draw_rect(Rect2(w*2+8,61,size.x-w*2-20,3),Color("35452e"));draw_rect(Rect2(w*2+8,61,(size.x-w*2-20)*clampf(guild.state.player_hp/maxf(1,guild.state.player_max_hp),0,1),3),ArenaUI.HP)
+func _draw_compact() -> void:
+	draw_style_box(_panel_style,Rect2(0,0,size.x,40))
+	var numbers: Font=ArenaUI.numbers_font();var w: float=size.x*.30
+	for kind in pulses:
+		var c: Color=Color("ffdb75") if kind=="gold" else Color("92e6ff")
+		draw_style_box(ArenaUI.box(Color(c,float(pulses[kind])*.22),Color(c,float(pulses[kind])*1.4)),Rect2(2 if kind=="gold" else w,2,w-3,36))
+	ArenaIcon.draw(self,Vector2(18,21),"gold",16,Color.WHITE);ArenaIcon.draw(self,Vector2(w+16,21),"gem",16,Color.WHITE);ArenaIcon.draw(self,Vector2(w*2+14,21),"heart",16,Color.WHITE)
+	draw_string(numbers,Vector2(32,29),ArenaUI.grouped(int(round(shown_gold if shown_gold>=0 else guild.state.gold))),HORIZONTAL_ALIGNMENT_LEFT,w-36,22,ArenaUI.GOLD)
+	draw_string(numbers,Vector2(w+30,29),str(int(round(shown_tokens if shown_tokens>=0 else guild.state.tokens))),HORIZONTAL_ALIGNMENT_LEFT,-1,22,ArenaUI.GOLD)
+	var health: String="%d / %d"%[ceili(guild.state.player_hp),ceili(guild.state.player_max_hp)];var hw: float=numbers.get_string_size(health,HORIZONTAL_ALIGNMENT_LEFT,-1,22).x
+	draw_string(numbers,Vector2(w*2+28,29),health,HORIZONTAL_ALIGNMENT_LEFT,-1,22,ArenaUI.HP)
+	var bar_x: float=w*2+36+hw;var bar_w: float=size.x-bar_x-14
+	if bar_w>24:
+		draw_rect(Rect2(bar_x,18,bar_w,5),Color("35452e"));draw_rect(Rect2(bar_x,18,bar_w*clampf(guild.state.player_hp/maxf(1,guild.state.player_max_hp),0,1),5),ArenaUI.HP)

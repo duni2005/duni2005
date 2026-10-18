@@ -31,6 +31,8 @@ var navigation_row: HBoxContainer
 var navigation_title: Label
 var menu_button: Button
 var menu_dialog: AcceptDialog
+var header: Control
+var brand_bar: ArenaBrandBar
 func _ready() -> void:
 	guild=tower_controller.guild;room=tower_controller.current_room()
 	full_character_debug=true
@@ -38,7 +40,8 @@ func _ready() -> void:
 	_build_ui();_build_tower_result();begin_deployment()
 	retreat_scene=end_overlay
 	var title: Label=status.get_parent().get_child(0);title.text="";title.custom_minimum_size.y=85
-	var brand:=ArenaBrandBar.new();brand.section="전투";title.add_child(brand);brand.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE);brand.offset_bottom=35
+	header=title
+	var brand:=ArenaBrandBar.new();brand_bar=brand;title.add_child(brand);brand.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE);brand.offset_bottom=35
 	navigation_row=HBoxContainer.new();title.add_child(navigation_row);navigation_row.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE);navigation_row.offset_top=41;navigation_row.offset_bottom=85
 	navigation_title=Label.new();navigation_title.text=ArenaUI.room_title(room);navigation_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;navigation_title.add_theme_font_size_override("font_size",18);navigation_title.clip_text=true;navigation_row.add_child(navigation_title)
 	next_button.pressed.disconnect(next_button.get_meta("bound_action"))
@@ -115,7 +118,14 @@ func _process(delta: float) -> void:
 	if menu_button!=null:menu_button.visible=board.editing
 	if header_editing!=board.editing:
 		header_editing=board.editing
-		navigation_title.add_theme_font_size_override("font_size",18 if board.editing else 11);navigation_title.text=("" if board.editing else "두니 타워 · ")+ArenaUI.room_title(room)
+		navigation_title.add_theme_font_size_override("font_size",18 if board.editing else 14);navigation_title.text=("" if board.editing else "두니 타워 · ")+ArenaUI.room_title(room)
+	# A height-bound (landscape) arena grows when the fight drops the brand row
+	# and slims the wallet; tall phones are width-bound and keep the full header.
+	var viewport: Vector2=get_viewport_rect().size;var slim: bool=not board.editing and viewport.x>viewport.y*.8
+	if room_hud.compact!=slim:
+		brand_bar.visible=not slim;header.custom_minimum_size.y=44 if slim else 85
+		navigation_row.offset_top=0 if slim else 41;navigation_row.offset_bottom=44 if slim else 85
+		room_hud.compact=slim
 	if records_button!=null:records_button.visible=not board.editing and not end_presenting and is_instance_valid(battle) and not battle.finished
 func _update_room_hud() -> void:
 	super._update_room_hud()
