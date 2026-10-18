@@ -93,7 +93,7 @@ func display_contract():
 	await shot("battle")
 func run():
 	root.gui_embed_subwindows=true
-	verify(ArenaUI.PANEL==Color("19241f") and ArenaUI.ACCENT==Color("ffae70"),"original HTML forest and orange surfaces")
+	verify(ArenaUI.PANEL==Color("131a2b") and ArenaUI.ACCENT==Color("ffb15c"),"midnight panel and amber accent surfaces")
 	verify(ArenaUI.get_theme().get_color("font_disabled_color","Button")==ArenaUI.DANGER,"unavailable buttons are red")
 	for res in [Vector2i(390,844),Vector2i(1000,1100)]:
 		root.size=res;root.content_scale_size=res;tag="mobile" if res.x<500 else "desktop"
