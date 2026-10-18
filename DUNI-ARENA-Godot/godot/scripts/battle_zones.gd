@@ -6,6 +6,7 @@ var area_serial: int = 0
 func add(u,kind: String,point: Vector2,radius: float,life: float,extra: Dictionary={}) -> Dictionary:
 	area_serial+=1
 	var z: Dictionary={"area_id":area_serial,"source":u.actor_id(),"kind":kind,"point":CharacterPersistence.point(point),"radius":radius,"life":life,"tick":0.0,"contacts":{},"positions":{}}
+	if u.battle.ultimate_actor==u:z["ultimate"]=true
 	z.merge(extra,true);entries.append(z);return z
 func risk(u,point: Vector2) -> float:
 	var result: float=0

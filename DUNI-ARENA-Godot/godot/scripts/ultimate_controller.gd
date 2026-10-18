@@ -29,7 +29,9 @@ func advance_action(u,dt: float) -> void:
 		if u.stun_remaining>0:return
 		cast.t=float(cast.t)+dt
 		if u.data.type_id!=18:u.facing=float(cast.angle)
-		if float(cast.t)>=float(cast.duration) and u.ability.release_ultimate(u,cast,dt):
+		if float(cast.t)<float(cast.duration):return
+		u.battle.ultimate_actor=u;var done: bool=u.ability.release_ultimate(u,cast,dt);u.battle.ultimate_actor=null
+		if done:
 			cast.clear();u.combat.cooldown=maxf(u.combat.cooldown,.6);u.brain.disengage_until=u.battle.clock.elapsed+u.battle.rng.randf_range(.45,.95)
 		return
 	if not u.ability.can_cast(u) or (u.area_evaluator.offense_blocked(u) and not u.character_specific_state.get("strategyUltimateReady",false) and not u.ability.defensive_ultimate()):return

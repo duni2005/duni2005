@@ -4,9 +4,9 @@ extends RefCounted
 const CHAPTERS = 3
 const CHAPTER_FLOORS = 5
 const DEPTH = 15
-const FRONT = [0,3,4,7,8,9,10,11,12,14,16,17,19]
-const RANGED = [1,2,6,13,15,18,20,21,22,23,24,25]
-const SUPPORT = [4,5,15,16,17,19,24,25]
+const FRONT = [0,3,4,7,8,9,10,11,12,14,16,17,19,26]
+const RANGED = [1,2,6,13,15,18,20,21,22,23,24,25,28,30]
+const SUPPORT = [4,5,15,16,17,19,24,25,27,29]
 const BOSS_POOL = [0,2,4,7,9,10,11,12,13]
 const FORMATIONS = [&"전열", &"분산", &"쌍익", &"포위", &"밀집"]
 const ITEMS = [&"vital", &"fang", &"boots", &"reengrave", &"greenNecklace", &"goldToken", &"vigorTotem", &"chargeTotem", &"predatorFang", &"thickAwl"]
@@ -93,7 +93,7 @@ func enemy_position(enemy: EnemySpawnEntry,index: int,count: int,formation: Stri
 func encounter_for(room: RoomState) -> EncounterState:
 	var encounter:=EncounterState.new();encounter.room_kind=room.room_type;encounter.depth=room.floor_index
 	if not RoomType.is_combat(room.room_type):return encounter
-	var count: int=enemy_count(room.room_type,room.floor_index);var all: Array=range(26)
+	var count: int=enemy_count(room.room_type,room.floor_index);var all: Array=range(CharacterCatalog.NAMES.size())
 	encounter.formation=FORMATIONS[rng.randi_range(0,FORMATIONS.size()-1)]
 	if room.room_type==RoomType.BOSS:
 		var type: int=pick(BOSS_POOL,encounter.enemies,room.floor_index);add_enemy(encounter,type,&"boss")

@@ -19,7 +19,7 @@ func shuffle(values: Array) -> void:
 	for i in range(values.size()-1,0,-1):
 		var j: int=rng.randi_range(0,i);var v=values[i];values[i]=values[j];values[j]=v
 func create_offers(node: RoomState,revision: int) -> Array[RecruitOffer]:
-	var pool: Array=range(26);shuffle(pool);var offers: Array[RecruitOffer]=[]
+	var pool: Array=range(CharacterCatalog.NAMES.size());shuffle(pool);var offers: Array[RecruitOffer]=[]
 	for slot in range(3):
 		var offer:=RecruitOffer.new();offer.offer_id="%s:recruit:%d:%d"%[node.room_id,revision,slot];offer.unit_type_id=pool[slot];offer.token_price=guild.definition(offer.unit_type_id).recruit_tokens;offers.append(offer)
 	return offers

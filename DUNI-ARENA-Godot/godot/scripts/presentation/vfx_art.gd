@@ -132,7 +132,15 @@ static func effect(c: CanvasItem,e: Dictionary) -> bool:
 				var a: float=i*2.399;var at: Vector2=p+Vector2.from_angle(a)*r*(.5+sin(t*PI)*.3)
 				star(c,at,5+sin(t*PI)*5,Color("f2e3ff"),fade,a)
 			flare(c,p,angle,r*(1-t),Color("fff0e7"),fade*.9)
-			if e.kind=="ultimate":glow(c,p+Vector2(0,-r*.7),r*.45,Color("fff6e6"),fade*.55,2.6)
+			return true
+		"ult_hit":
+			glow(c,p,r*(.9-t*.4),color,fade*.7)
+			flare(c,p,angle,r*1.3*(1-t*.5),Color("fff6e6"),fade);flare(c,p,angle+PI/2,r*.7*(1-t),color,fade*.8)
+			pressure(c,p,angle,r*(.3+t*1.1),color,fade*.8)
+			for i in range(8):
+				var a: float=angle+(i-3.5)*.35;var d:=Vector2.from_angle(a)
+				c.draw_line(p+d*r*(.2+t*.9),p+d*r*(.45+t*1.2),Color(color,fade),3,true)
+			star(c,p,r*.4*(1-t),Color.WHITE,fade)
 			return true
 		"ult_release":
 			var spread: float=1-pow(1-t,3)

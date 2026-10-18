@@ -92,7 +92,7 @@ func encounters() -> void:
 			if room.room_type==RoomType.MINIBOSS:verify(room.encounter.enemies[0].rank==&"elite" and room.encounter.enemies[0].hp_multiplier==2.5,"miniboss actual rank")
 	print("PHASE9 MAP PERFORMANCE: three full maps elapsed_ms=",(Time.get_ticks_usec()-started_at)/1000.0," node_delta=",int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))-before_nodes)
 	verify(int(Performance.get_monitor(Performance.OBJECT_NODE_COUNT))==before_nodes,"pure maps do not create Scene Nodes")
-	verify(found.size()==26,"encounters can draw all26 via actual pools")
+	verify(found.size()==CharacterCatalog.NAMES.size(),"encounters can draw every type via actual pools")
 	for data in types.values():verify(base[data.type_id]==[data.max_hp,data.attack,data.move_speed,data.defense_power,data.body_scale],"UnitData remains immutable")
 func golden_web_rules() -> void:
 	groups+=1

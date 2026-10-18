@@ -2,7 +2,7 @@ class_name CombatGlowLayer
 extends Control
 ## One additive CanvasItem, bounded light sprites; no lights/shadows per particle.
 const LIMIT=112
-const PRIORITY=["ultimate","ult_release","ult_impact","transcendence","explosion","parry_success","warrior_parry","clash","shield_break","final_kill"]
+const PRIORITY=["ultimate","ult_release","ult_impact","ult_hit","transcendence","explosion","parry_success","warrior_parry","clash","shield_break","final_kill"]
 var host
 var drawn: int=0
 func _ready() -> void:

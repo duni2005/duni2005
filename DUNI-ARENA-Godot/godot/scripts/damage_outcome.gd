@@ -16,5 +16,7 @@ var avoided: bool = false
 var invulnerable: bool = false
 var parried: bool = false
 var damage_reduced: bool = false
+## Presentation only: the hit came from an ultimate.
+var ultimate: bool = false
 # Reserved stages for later mirror/share/rescue; no invented effects here.
 var reflected_damage: float = 0

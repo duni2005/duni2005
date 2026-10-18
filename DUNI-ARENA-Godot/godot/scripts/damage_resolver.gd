@@ -51,6 +51,7 @@ func complete(source, target, outcome: DamageOutcome) -> DamageOutcome:
 
 func resolve_common(source, target, raw_damage: float, options: Dictionary) -> DamageOutcome:
 	var out := DamageOutcome.new()
+	out.ultimate = options.get("ultimate", false) or (battle.ultimate_actor != null and battle.ultimate_actor == source)
 	var collision: bool = options.get("collision", false)
 	if not battle.started or battle.finished or battle.clock.is_turning_paused() or not is_instance_valid(target) or not target.alive or not is_finite(raw_damage) or raw_damage <= 0: return out
 	if not collision and (battle.run_end_requested or not is_instance_valid(source) or source.team == target.team): return out

@@ -15,6 +15,8 @@ const ARCHER: UnitData = preload("res://data/archer.tres")
 @export var common_combat_enabled: bool = true
 ## Custom battle: any number of teams/free-for-all units, every unit may use transcendence.
 var custom_mode: bool = false
+## The unit whose ultimate is releasing right now; attacks it spawns are tagged for presentation.
+var ultimate_actor = null
 @export var full_characters_enabled: bool = true
 @export var auto_start: bool = true
 @export var random_seed: int = -1

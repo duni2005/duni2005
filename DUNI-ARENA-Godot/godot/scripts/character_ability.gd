@@ -56,6 +56,7 @@ static func shoot(u,angle: float,damage: float,settings: Dictionary={}) -> Battl
 	p.lifetime=settings.get("life",2.4)
 	p.piercing=settings.get("piercing",false);p.bounces=settings.get("bounces",0)
 	p.metadata=settings.duplicate(true);p.metadata["scale"]=settings.get("visual_scale",scale)
+	if u.battle.ultimate_actor==u:p.metadata["ultimate"]=true
 	u.battle.physical_serial+=1;p.projectile_id=u.battle.physical_serial
 	var a:=AttackInstance.new();a.attack_id=p.projectile_id;a.source_battle_id=u.battle_id;a.team=u.team
 	a.attack_type=&"projectile";a.shape=&"circle";a.position=p.position;a.start_position=p.position;a.velocity=p.velocity;a.damage=damage;a.power=p.power
@@ -70,7 +71,9 @@ static func melee(u,damage: float,overrides: Dictionary={}) -> AttackInstance:
 	for key in overrides:
 		if key in ["reach","cone","active","impulse"]:profile.set(key,overrides[key])
 	var strike: AttackInstance=u.battle.spawn_melee_strike(u,profile,damage)
-	if strike!=null:strike.metadata=overrides.duplicate(true);strike.metadata.scale=u.combat_scale()
+	if strike!=null:
+		strike.metadata=overrides.duplicate(true);strike.metadata.scale=u.combat_scale()
+		if u.battle.ultimate_actor==u:strike.metadata["ultimate"]=true
 	return strike
 static func area_damage(u,point: Vector2,radius: float,damage: float,impulse: float,options: Dictionary={}) -> void:
 	for enemy in u.enemies(false):

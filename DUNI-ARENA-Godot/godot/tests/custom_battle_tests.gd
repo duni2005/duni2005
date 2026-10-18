@@ -131,6 +131,16 @@ func new_characters(tree: SceneTree) -> void:
 	b.units[0].ultimate_gauge=100;step(b,3)
 	verify(b.combat_event_counts.get(&"ult_impact",0)>=1,"stake ultimate emits a landing shockwave")
 	b.queue_free()
+	# Tower: new types are recruitable members and fight in ordinary (non-custom) battles.
+	var guild:=GuildManager.new(RunState.new())
+	verify(range(26,31).all(func(t):return guild.create_member(t)!=null),"new types can join the guild")
+	var setup:=CustomBattleSetup.new()
+	for row in [[26,0,Vector2(200,300)],[29,0,Vector2(200,420)],[27,0,Vector2(200,540)],[28,1,Vector2(600,300)],[30,1,Vector2(600,420)],[0,1,Vector2(600,540)]]:setup.add(row[0],row[1],row[2])
+	b=BattleManager.new();b.auto_start=false;tree.root.add_child(b)
+	verify(b.start_battle(setup.placements(),9),"tower-mode battle starts with new types");b.set_physics_process(false)
+	step(b,90)
+	verify(b.finished,"tower-mode battle with new types finishes")
+	b.queue_free()
 	# Each new character survives a full battle without errors.
 	for type in range(26,31):
 		b=duel(tree,[[type,0,Vector2(200,400)],[4,0,Vector2(200,500)],[0,1,Vector2(600,400)],[1,1,Vector2(600,500)]],type)

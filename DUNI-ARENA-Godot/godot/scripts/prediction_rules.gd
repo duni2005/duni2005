@@ -23,6 +23,6 @@ static func valid(state: PredictionState) -> bool:
 	var seen: Dictionary={}
 	for team in state.teams:
 		if not team is Dictionary or not team.get("team") is int or seen.has(team.team) or not team.get("types") is Array or team.types.size() not in [2,3]:return false
-		if not team.types.all(func(type):return type is int and type>=0 and type<26):return false
+		if not team.types.all(func(type):return type is int and type>=0 and type<CharacterCatalog.NAMES.size()):return false
 		seen[team.team]=true
 	return true

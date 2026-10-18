@@ -43,6 +43,8 @@ var glow_layer: CombatGlowLayer
 var field_layer: MagicFieldLayer
 var ult_released: Dictionary={}
 var ult_timers: Dictionary={}
+## Buff windows opened by an ultimate; the unit wears a rising aura in its ink colour meanwhile.
+const EMPOWERED_STATES=["guardianUltTime","paladinBlessingTime","mirrorReflectTime","sniperBurstReady","tankFlameReady"]
 func impact_pause(milliseconds: int) -> void:
 	if impact_cooldown>0:return
 	impact_remaining=milliseconds/1000.0;impact_cooldown=.16;freeze_positions=visual_positions.duplicate()
@@ -118,6 +120,12 @@ func _damage(source,target,out: DamageOutcome) -> void:
 		effects[-1]["angle"]=(target.position-source.position).angle() if is_instance_valid(source) else 0
 		number("critical" if out.critical else "damage",target.position,out.hp_damage,ArenaUI.GOLD if out.critical else Color.WHITE,target.battle_id)
 		camera.impact(5 if out.critical else 2,target.position)
+	if out.ultimate and (out.hp_damage>0 or out.shield_absorbed>0) and is_instance_valid(source) and real_age-float(ult_timers.get("hit%d"%target.battle_id,-1.0))>.12:
+		ult_timers["hit%d"%target.battle_id]=real_age
+		var ink: Color=AttackVisuals.ink(source.data.type_id);var angle: float=(target.position-source.position).angle()
+		add_effect("ult_hit",target.position,ink,110*target.combat_scale(),.4,angle)
+		particles.burst(target.position,ink,12,320,angle,"spark",true);particles.burst(target.position,Color("fff3d6"),5,220,angle,"shard",true)
+		impact_pause(50);camera.impact(5,target.position)
 	if out.shield_absorbed>0:
 		add_effect("shield_hit",target.position,Color("7bd9ff"),32);number("shield",target.position,out.shield_absorbed,Color("7bd9ff"),target.battle_id)
 		if target.shield_hp<=0:add_effect("shield_break",target.position,Color("7bd9ff"),48)
@@ -208,6 +216,7 @@ func advance(delta: float) -> void:
 				var trail: Array=projectile_trails.get(projectile.projectile_id,[])
 				if trail.is_empty() or Vector2(trail[-1]).distance_to(projectile.position)>1:trail.append(projectile.position)
 				if trail.size()>10:trail.pop_front()
+				if projectile.metadata.get("ultimate",false) and is_instance_valid(projectile.source):particles.burst(projectile.position,AttackVisuals.ink(projectile.source.data.type_id),1,90,projectile.velocity.angle()+PI,"spark")
 				projectile_trails[projectile.projectile_id]=trail
 			for id in projectile_trails.keys():
 				if not live_ids.has(id):projectile_trails.erase(id);projectile_origins.erase(id)
@@ -222,6 +231,7 @@ func advance(delta: float) -> void:
 					if type in [6,7,18,23]:particles.burst(muzzle,Color("fff0c7"),8,180,angle,"spark")
 			release_counts[fighter.battle_id]=releases
 			if fighter.alive:_ultimate_cues(fighter,delta)
+		_ultimate_zone_motes(delta)
 		var transcending: bool=battle.transcendence!=null and not battle.transcendence.cast.is_empty()
 		if transcending:
 			var caster: BattleUnit=battle.find_actor(battle.transcendence.cast.actor)
@@ -249,13 +259,13 @@ func advance(delta: float) -> void:
 				impact_pause(90);camera.impact(14,e.point)
 			if kind in ["clash","parry_success","warrior_parry","ultimate","hero_rescue","wave_stun","vigor_totem","charge_totem"]:
 				var tint: Color=Color("8edff7") if "parry" in kind else ArenaUI.GOLD if kind=="clash" else AttackVisuals.ink(int(e.metadata.get("type",0))) if kind=="ultimate" else Color("cb9aff")
-				add_effect(kind,e.point,tint,42 if kind=="clash" else 80 if kind=="ultimate" else 32)
+				add_effect(kind,e.point,tint,42 if kind=="clash" else 55 if kind=="ultimate" else 32)
 				if kind in ["parry_success","warrior_parry"]:
 					var defender: BattleUnit=battle.units.filter(func(u):return u.position.distance_to(e.point)<2).front() if battle.units.any(func(u):return u.position.distance_to(e.point)<2) else null
 					if defender!=null:effects[-1].angle=defender.facing;effects[-1].radius=135*defender.combat_scale()
 				if kind=="ultimate":
-					effects[-1]["actor"]=String(e.metadata.get("actor",""));effects[-1]["type"]=int(e.metadata.get("type",0));effects[-1].life=1.3
-					add_effect("ult_flash",e.point,tint,0,.45)
+					effects[-1]["actor"]=String(e.metadata.get("actor",""));effects[-1]["type"]=int(e.metadata.get("type",0));effects[-1].life=.9
+					add_effect("ult_flash",e.point,tint,0,.35)
 				if kind in ["clash","ultimate"]:camera.impact(5,e.point);camera.focus(e.point)
 		for u in battle.units:
 			var old: Dictionary=previous.get(u.battle_id,{"hp":u.current_hp,"shield":0,"stun":0,"inv":0})
@@ -298,14 +308,18 @@ func _draw() -> void:
 				for y in [-1,1]:draw_rect(Rect2(point+Vector2(x,y)*radius-Vector2.ONE*6,Vector2.ONE*12),Color("f2d1a0"))
 		else:
 			VfxArt.field(self,z,real_age,c)
+			if z.get("ultimate",false):_ult_zone(z,point,radius)
 			if z.kind=="discharge":
 				for i in range(8):VisualShapes.bolt(self,point,point+Vector2.from_angle(i*TAU/8+real_age)*radius,c,i,3)
 	for u in battle.units:
 		if u.alive:AttackVisuals.frog_action(self,u)
 	for attack in battle.melee_strikes:
 		var owner: BattleUnit=battle.find_unit(attack.source_battle_id)
-		if owner!=null and PhysicalAttackSystem.live(battle,attack):AttackVisuals.melee(self,owner,attack)
+		if owner!=null and PhysicalAttackSystem.live(battle,attack):
+			if attack.metadata.get("ultimate",false) and not attack.metadata.has("grapple"):_ult_melee(owner,attack)
+			AttackVisuals.melee(self,owner,attack)
 	for p in ([] if battle.finished else battle.projectiles):
+		if p.live and not p.hidden_launch and p.metadata.get("ultimate",false):_ult_projectile(p)
 		if p.live and not p.hidden_launch:AttackVisuals.projectile(self,p,projectile_trails.get(p.projectile_id,[]),battle.clock.elapsed,parent_transform,projectile_origins.get(p.projectile_id,p.previous_position))
 	for wave in ([] if battle.finished else battle.combat_waves):
 		var t: float=clampf(wave.age/maxf(.001,wave.duration),0,1)
@@ -328,11 +342,11 @@ func _draw() -> void:
 			CharacterPainter.draw_battle_portrait(self,Rect2(e.point-Vector2(32,33)*float(e.get("scale",1))+Vector2(0,t*12),Vector2(64,64)*float(e.get("scale",1))),int(e.get("type",0)),1-t)
 			for i in range(5):draw_line(e.point+Vector2(-25,-20+i*10),e.point+Vector2(25+t*30,-20+i*10),Color(e.color,.5*(1-t)),2)
 		elif e.kind=="ult_flash":
-			draw_rect(Rect2(0,0,800,800),Color(e.color,.16*pow(1-t,2)))
-			draw_arc(e.point,40+t*760,0,TAU,72,Color(Color(e.color).lightened(.4),.55*(1-t)),7*(1-t)+1,true)
+			draw_rect(Rect2(0,0,800,800),Color(e.color,.06*pow(1-t,2)))
+			draw_arc(e.point,40+t*520,0,TAU,72,Color(Color(e.color).lightened(.4),.3*(1-t)),3*(1-t)+1,true)
 		elif VfxArt.effect(self,e):pass
 		else:draw_arc(e.point,radius,0,TAU,32,c,2)
-		if e.kind not in ["hit","critical","projectile_hit","explosion","heal","parry_success","warrior_parry","clash","ultimate","transcendence","launch","reflect","shield_break","shield_hit","ult_flash","ult_release","ult_impact"]:
+		if e.kind not in ["hit","critical","projectile_hit","explosion","heal","parry_success","warrior_parry","clash","ultimate","transcendence","launch","reflect","shield_break","shield_hit","ult_flash","ult_release","ult_impact","ult_hit"]:
 			for i in range(4):
 				var v:=Vector2.from_angle(i*TAU/4+float(e.age)*.7);VfxArt.star(self,e.point+v*radius,5,e.color,1-t)
 		if e.kind in ["parry_success","warrior_parry","clash"]:draw_string(ThemeDB.fallback_font,e.point+Vector2(-26,-50-t*18),{"parry_success":"패링","warrior_parry":"반격","clash":"상쇄"}[e.kind],HORIZONTAL_ALIGNMENT_LEFT,-1,18,c)
@@ -469,6 +483,7 @@ func _ability_state(u: BattleUnit) -> void:
 	
 	if not u.hero_rescue.is_empty():VisualShapes.barrier(self,p,43*s,Color("ffd284"),real_age)
 	_new_character_state(u,p,s)
+	_ult_empowered(u,p,s)
 
 func _new_character_state(u: BattleUnit,p: Vector2,s: float) -> void:
 	# 말뚝 tether: rope to the stake and the allowed circle.
@@ -512,30 +527,25 @@ func _ultimate_cues(u: BattleUnit,delta: float) -> void:
 	var winding: bool=not cast.is_empty() and float(cast.t)<float(cast.duration)
 	if winding:
 		ult_timers[u.battle_id]=float(ult_timers.get(u.battle_id,0))+delta
-		if float(ult_timers[u.battle_id])>=.07:ult_timers[u.battle_id]=0;particles.burst(u.position+Vector2(0,12),ink,3,90,-PI/2,"mote")
+		if float(ult_timers[u.battle_id])>=.12:ult_timers[u.battle_id]=0;particles.burst(u.position+Vector2(0,12),ink,2,70,-PI/2,"mote")
 	elif int(ult_released[u.battle_id])<serial:
 		ult_released[u.battle_id]=serial
-		add_effect("ult_release",u.position,ink,150*u.combat_scale(),.6,u.facing)
-		particles.burst(u.position,Color("fff3d6"),20,360,u.facing,"spark",true);particles.burst(u.position,ink,14,130,0,"mote",true)
-		camera.impact(7,u.position)
+		add_effect("ult_release",u.position,ink,95*u.combat_scale(),.45,u.facing)
+		particles.burst(u.position,Color("fff3d6"),10,260,u.facing,"spark",true)
+		camera.impact(4,u.position)
 	if u.data.type_id==27 and u.state_value("trainFx")>0 and cast.has("track"):_train_exhaust(u,cast,delta)
 func _ultimate_charge(u: BattleUnit,at: Vector2,parent: Transform2D) -> void:
 	var cast: Dictionary=u.ultimate.cast;var k: float=clampf(float(cast.t)/maxf(.05,float(cast.duration)),0,1)
 	var ink: Color=AttackVisuals.ink(u.data.type_id);var r: float=58*u.combat_scale();var ground: Vector2=at+Vector2(0,14)*u.combat_scale()
 	if u.data.type_id==27 and not cast.has("track"):_train_warning(u,cast,parent)
-	# Rune circle on the ground, counter-rotating rings and rising pillar of light.
-	VfxArt.glow(self,ground,r*1.7,ink,.22+.25*k,.45)
-	VfxArt.ellipse(self,ground,r*(.75+.3*k),.42,Color(ink,.9),2.5)
-	VfxArt.ellipse(self,ground,r*(1.05+.3*k),.42,Color(ink,.5),1.5,real_age*2,real_age*2+PI*1.3)
-	VfxArt.ellipse(self,ground,r*(1.05+.3*k),.42,Color(ink,.5),1.5,-real_age*2+PI,-real_age*2+PI*2.3)
-	for i in range(12):
-		var a: float=i*TAU/12+real_age*1.3;var point: Vector2=ground+Vector2(cos(a)*r*(.9+.3*k),sin(a)*r*(.9+.3*k)*.42)
-		draw_line(point,point+Vector2(0,-5-9*k),Color(ink.lightened(.3),.8),2)
-	for i in range(10):
-		var f: float=fmod(real_age*1.7+i*.1,1.0);var a: float=i*2.399
-		VfxArt.star(self,at+Vector2.from_angle(a)*r*1.9*(1-f),3+5*f,ink.lightened(.35),f*.9,a)
-	VfxArt.glow(self,at+Vector2(0,-36)*u.combat_scale(),r*.55,ink.lightened(.45),.2+.4*k,2.6)
-	draw_arc(at,r*.78,-PI/2,-PI/2+TAU*k,48,Color(1,1,1,.9),3,true)
+	# Subdued rune circle on the ground and a few gathering motes.
+	VfxArt.glow(self,ground,r*1.3,ink,.1+.12*k,.45)
+	VfxArt.ellipse(self,ground,r*(.7+.25*k),.42,Color(ink,.55),2)
+	VfxArt.ellipse(self,ground,r*(.95+.25*k),.42,Color(ink,.3),1.2,real_age*2,real_age*2+PI*1.2)
+	for i in range(5):
+		var f: float=fmod(real_age*1.5+i*.2,1.0);var a: float=i*2.399
+		VfxArt.star(self,at+Vector2.from_angle(a)*r*1.5*(1-f),2+3*f,ink.lightened(.35),f*.6,a)
+	draw_arc(at,r*.72,-PI/2,-PI/2+TAU*k,48,Color(1,1,1,.55),2,true)
 
 ## 기관사: warning lane while the whistle blows, then the locomotive in track space (x along the rails).
 func _train_warning(u: BattleUnit,cast: Dictionary,parent: Transform2D) -> void:
@@ -611,6 +621,58 @@ func _draw_train(u: BattleUnit) -> void:
 	draw_set_transform_matrix(parent_transform)
 	var dir: Vector2=Vector2.from_angle(angle);var lamp: Vector2=center+dir*(h+4)
 	if h+4>lo and h+4<hi:VfxArt.flare(self,lamp+dir*70,angle,150,Color("fff1b0"),.6);VfxArt.glow(self,lamp,40,Color("ffe6a0"),.5)
+
+## Ultimate-tagged attacks: heavier trails, slashes, hits and fields in the caster's ink colour.
+func _ult_projectile(p: BattleProjectile) -> void:
+	if not is_instance_valid(p.source):return
+	var ink: Color=AttackVisuals.ink(p.source.data.type_id);var r: float=maxf(14,p.hit_radius)
+	var trail: Array=projectile_trails.get(p.projectile_id,[])
+	for i in range(1,trail.size()):
+		var k: float=float(i)/trail.size()
+		draw_line(trail[i-1],trail[i],Color(ink,.4*k),r*1.3*k,true)
+	VfxArt.glow(self,p.position,r*2.3,ink,.45);VfxArt.glow(self,p.position,r*.9,Color("fff6e6"),.35)
+	for i in range(3):
+		var a: float=real_age*6+i*TAU/3;VfxArt.star(self,p.position+Vector2.from_angle(a)*r*.9,5,ink.lightened(.4),.8,a)
+func _ult_melee(owner: BattleUnit,attack: AttackInstance) -> void:
+	var ink: Color=AttackVisuals.ink(owner.data.type_id);var t: float=clampf(attack.age/maxf(.001,attack.duration),0,1)
+	var reach: float=maxf(70,attack.reach);var half: float=clampf(attack.cone*.5,.35,1.6);var sweep: float=1-pow(1-t,3)
+	var start: float=attack.angle-half;var end: float=start+2*half*sweep
+	VfxArt.ribbon(self,owner.position,reach,start,end,reach*.5,ink,(1-t)*.8)
+	VfxArt.ribbon(self,owner.position,reach*.8,start,end,reach*.22,Color("fff3dc"),(1-t)*.75)
+	VfxArt.flare(self,owner.position+Vector2.from_angle(attack.angle)*reach*.6,attack.angle,reach*.55*(1-t),ink,(1-t)*.6)
+func _ult_zone(z: Dictionary,point: Vector2,radius: float) -> void:
+	var source=battle.find_actor(z.source)
+	if source==null or z.kind=="ring":return
+	var ink: Color=AttackVisuals.ink(source.data.type_id);var pulse: float=.5+.5*sin(real_age*4)
+	VfxArt.glow(self,point,radius*1.05,ink,.06+.05*pulse)
+	draw_arc(point,radius,0,TAU,72,Color(ink,.35+.25*pulse),3,true)
+	draw_arc(point,radius*(.9-.04*pulse),real_age,real_age+PI*1.3,48,Color(ink.lightened(.4),.4),2,true)
+	draw_arc(point,radius*(.9-.04*pulse),real_age+PI,real_age+PI*2.3,48,Color(ink.lightened(.4),.4),2,true)
+func _ultimate_zone_motes(delta: float) -> void:
+	ult_timers["zones"]=float(ult_timers.get("zones",0))+delta
+	if float(ult_timers["zones"])<.1:return
+	ult_timers["zones"]=0
+	for z in battle.zones.entries:
+		var source=battle.find_actor(z.source)
+		if source==null or not z.get("ultimate",false) or z.kind=="ring":continue
+		var seed: float=real_age*31+float(z.area_id)
+		var at: Vector2=CharacterPersistence.vector(z.point)+Vector2.from_angle(VisualParticles.noise(seed)*TAU)*float(z.radius)*sqrt(VisualParticles.noise(seed+1))
+		particles.burst(at,AttackVisuals.ink(source.data.type_id),2,60,-PI/2,"mote")
+func _ult_empowered(u: BattleUnit,p: Vector2,s: float) -> void:
+	var dashing: bool=u.ultimate.cast.get("dashing",false)
+	var active: bool=dashing
+	for key in EMPOWERED_STATES:
+		var v=u.character_specific_state.get(key,0)
+		if (v is bool and v) or (not v is bool and float(v)>0):active=true;break
+	if not active:return
+	var ink: Color=AttackVisuals.ink(u.data.type_id)
+	VfxArt.glow(self,p,36*s,ink,.16+.06*sin(real_age*5))
+	for i in range(6):
+		var phase: float=fmod(real_age*1.1+i/6.0,1.0)
+		VfxArt.star(self,p+Vector2(cos(i*1.7+real_age)*20,16-phase*46)*s,4+3*(1-phase),ink.lightened(.3),(1-phase)*.7)
+	if dashing:
+		var motion: Vector2=u.velocity+u.knockback_velocity
+		if motion.length()>60:VfxArt.flare(self,p-motion.normalized()*34*s,motion.angle(),80*s,ink,.6)
 
 func _draw_ending() -> void:
 	var time: float=BattleCinematicState.motion_seconds(cinematic.age)
