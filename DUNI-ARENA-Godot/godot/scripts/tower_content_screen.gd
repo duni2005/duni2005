@@ -75,7 +75,7 @@ func _ready() -> void:
 		controller.save_manager.status_changed.connect(_storage_status)
 	content_tabs=HBoxContainer.new();room_column.add_child(content_tabs)
 	for pair in [["equipment","장비 구매"],["card","전략카드"],["inventory","인벤토리"]]:
-		var tab:=Button.new();tab.text=pair[1];tab.toggle_mode=true;tab.custom_minimum_size.y=36;tab.size_flags_horizontal=Control.SIZE_EXPAND_FILL;tab.set_meta("tab",pair[0]);content_tabs.add_child(tab)
+		var tab:=Button.new();tab.text=pair[1];tab.toggle_mode=true;tab.custom_minimum_size.y=36;tab.size_flags_horizontal=Control.SIZE_EXPAND_FILL;tab.set_meta("tab",pair[0]);ArenaUI.tab(tab);content_tabs.add_child(tab)
 		tab.pressed.connect(func():content_tab=pair[0];render())
 	scroll=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;room_column.add_child(scroll)
 	content_box=VBoxContainer.new();content_box.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(content_box)
@@ -157,8 +157,9 @@ func render() -> void:
 	elif node.event_type==&"prediction":render_prediction(node)
 	else:render_event(node)
 func render_recruit(node: RoomState) -> void:
-	var reroll_row:=HBoxContainer.new();reroll_row.alignment=BoxContainer.ALIGNMENT_END;content_box.add_child(reroll_row)
 	var strip:=ScrollContainer.new();strip.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;strip.custom_minimum_size.y=216;content_box.add_child(strip)
+	# Reroll sits centred under the recruit cards.
+	var reroll_row:=HBoxContainer.new();reroll_row.alignment=BoxContainer.ALIGNMENT_CENTER;content_box.add_child(reroll_row)
 	var row:=HBoxContainer.new();strip.add_child(row)
 	for offer in node.recruit.offers:
 		var data: UnitData=controller.guild.definition(offer.unit_type_id)

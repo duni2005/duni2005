@@ -62,7 +62,7 @@ func flow(touch: bool) -> void:
 	await click(screen.room_buttons["0:0"],touch)
 	verify(screen.content_screen!=null and t.current_room().recruit.offers.size()==3,"recruit room UI")
 	var offer: RecruitOffer=t.current_room().recruit.offers[0];var tokens: int=run_state.tokens
-	await click(screen.content_screen.content_box.get_child(1).get_child(0).get_child(0),touch)
+	await click(screen.content_screen.content_box.get_child(0).get_child(0).get_child(0),touch)
 	verify(run_state.guild_members.size()==5 and offer.purchased and run_state.tokens==tokens-offer.token_price,"candidate purchase via input")
 	await finish_reveal(screen,touch)
 	var gold: int=run_state.gold;await click(screen.content_screen.content_box.find_child("Reroll",true,false),touch)

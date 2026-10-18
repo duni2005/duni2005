@@ -68,7 +68,7 @@ func _ready() -> void:
  var definitions: Array=[["inventory","인벤토리"],["upgrade","강화"]] if prebattle_room!=null else [["guild","유닛목록"],["inventory","인벤토리"],["upgrade","강화"]]
  for pair in definitions:
   var tab:=Button.new();tab.text=pair[1];tab.toggle_mode=true;tab.custom_minimum_size.y=36;tab.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ArenaUI.bind(tab,show_tab.bind(pair[0]));tab_row.add_child(tab);tabs[pair[0]]=tab
-  for state in ["normal","hover"]:tab.add_theme_stylebox_override(state,ArenaUI.box(Color("1b2338"),Color("36446a")))
+  ArenaUI.tab(tab)
  roster_scroll=ScrollContainer.new();roster_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.add_child(roster_scroll)
  roster=GridContainer.new();roster.columns=2;roster_scroll.add_child(roster)
  content.add_child(HSeparator.new())

@@ -21,7 +21,7 @@ func run():
 		ui.fx.advance(.35);w.advance_view(.35);await shot(tag+"-gold-gain-flight")
 		ui.fx.advance(.4);w.advance_view(.4);await shot(tag+"-gold-arrival")
 		ui.fx.advance(2);w.advance_view(2)
-		var card: Control=ui.content_screen.content_box.get_child(1).get_child(0).get_child(0)
+		var card: Control=ui.content_screen.content_box.get_child(0).get_child(0).get_child(0)
 		root.set_meta("action_point",ArenaUI.control_center(card));var offer: RecruitOffer=ui.controller.current_room().recruit.offers[0]
 		ui.content_screen._action(&"recruit",{"offer_id":offer.offer_id});await frames();ui.fx.advance(.35);w.advance_view(.35);await shot(tag+"-token-spend-flight")
 		await fresh();ui.select_room("0:3");await frames();ui.fx.advance(3)

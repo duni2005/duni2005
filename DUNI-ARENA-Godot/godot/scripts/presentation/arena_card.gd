@@ -29,6 +29,7 @@ var cached_style: StyleBoxFlat
 # Visual tiers: units read as information, choices as warm actions, inventory as slots.
 const UNIT_TYPES: Array=["member","deploy_member","mini_member","party","revival_member","promotion_member","ally"]
 const ACTION_TYPES: Array=["event_option","product","choice","recruit","stake","prediction_team","item"]
+const SHOP_TYPES: Array=["product","recruit"]
 func show_member(guild: GuildManager,member: GuildMemberState) -> void:
 	# Copy presentation values. Inventory ownership remains run data.
 	source_id=member.member_id;type_id=member.unit_type_id;title=guild.definition(type_id).display_name
@@ -54,13 +55,14 @@ func draw_price_chip(rect: Rect2,sold_label: String) -> void:
 	if sold or currency.is_empty():
 		draw_style_box(ArenaUI.box(Color("201f1d"),Color("3a3733")),rect)
 		write(Vector2(rect.position.x,rect.get_center().y+5),sold_label if sold else price,12,Color("8d8a85"),rect.size.x,true);return
-	var gold_chip: bool=currency=="gold";var dim: float=.55 if disabled else 1.0
+	var gold_chip: bool=currency=="gold";var dim: float=.35 if disabled else 1.0
 	var chip: StyleBoxFlat=ArenaUI.box(Color("3a2f18") if gold_chip else Color("1a2a45"),Color(Color("c9a24a") if gold_chip else Color("5f9bd8"),dim));chip.set_corner_radius_all(7)
 	draw_style_box(chip,rect)
 	var font: Font=ArenaUI.numbers_font();var amount: String=m.get_string(1);var fs: int=17
 	var width: float=18+5+font.get_string_size(amount,HORIZONTAL_ALIGNMENT_LEFT,-1,fs).x;var x: float=rect.get_center().x-width*.5
 	ArenaIcon.draw(self,Vector2(x+9,rect.get_center().y),currency,17,Color(1,1,1,dim))
-	draw_string(font,Vector2(x+23,rect.get_center().y+6),amount,HORIZONTAL_ALIGNMENT_LEFT,-1,fs,Color(ArenaUI.GOLD if gold_chip else Color("bfe0ff"),dim))
+	# Unavailable price: faded chip, amount in red.
+	draw_string(font,Vector2(x+23,rect.get_center().y+6),amount,HORIZONTAL_ALIGNMENT_LEFT,-1,fs,ArenaUI.DANGER if disabled else ArenaUI.GOLD if gold_chip else Color("bfe0ff"))
 func draw_badge(at: Vector2,radius: float,ring: Color) -> void:
 	draw_circle(at,radius,Color("1d1a17"));draw_arc(at,radius,0,TAU,40,Color(ring,.45),1.5,true)
 func draw_energy(y: float,width: float,height: float=4) -> void:
@@ -139,6 +141,10 @@ func _draw() -> void:
 		cached_style.set_corner_radius_all(12)
 		if plain:cached_style.bg_color=Color("34302b") if hovered else Color("2a2724");cached_style.border_color=Color("7a6a58") if hovered else Color("5b5045")
 		elif disabled and not active:cached_style.bg_color=Color("1a1917");cached_style.border_color=Color("34302c")
+		if card_type in SHOP_TYPES:
+			# Item and recruit cards: cool blue-grey; an unaffordable one fades instead of going dark.
+			if plain:cached_style.bg_color=Color("2f3542") if hovered else Color("262b36");cached_style.border_color=Color("6a7790") if hovered else Color("4f5a6e")
+			elif disabled and not active:cached_style.bg_color=Color(Color("262b36"),.4 if not sold else .7);cached_style.border_color=Color(Color("4f5a6e"),.4 if not sold else .7)
 	elif card_type=="slot":
 		cached_style.set_corner_radius_all(9)
 		if plain:cached_style.bg_color=Color("1b2440");cached_style.border_color=Color("5a6aa0")
@@ -150,6 +156,7 @@ func _draw() -> void:
 		draw_line(Vector2(r,2.5),Vector2(size.x-r,2.5),Color(1,1,1,.08),1)
 	var muted: Color=Color("9aa5c2");var gold: Color=ArenaUI.GOLD
 	if dead or (disabled and card_type not in ["room","nav","promotion_slot"]):muted=ArenaUI.DANGER;gold=ArenaUI.DANGER
+	if sold and card_type in SHOP_TYPES:muted=Color("8d8a85");gold=Color("8d8a85")
 	if card_type=="party":
 		# Source compact party: portrait, purple readiness meter, percentage.
 		# HP/energy/equipment remain in tooltip + selected details, not a text stack.

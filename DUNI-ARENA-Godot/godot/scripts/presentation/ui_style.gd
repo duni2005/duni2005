@@ -55,14 +55,26 @@ static func price_button(button: Button,label: String,currency: String,amount: i
 	for state in ["normal","hover","pressed","disabled","focus"]:
 		var style: StyleBoxFlat=box(Color("3a2f18") if gold else Color("1a2a45"),Color("c9a24a") if gold else Color("5f9bd8"))
 		if state in ["hover","pressed"]:style.bg_color=style.bg_color.lightened(.1)
-		if state=="disabled":style.border_color.a=.45;style.bg_color=style.bg_color.darkened(.3)
+		if state=="disabled":style.border_color.a=.3;style.bg_color.a=.35
 		if state=="focus":style.draw_center=false;style.border_color=Color.TRANSPARENT
 		style.set_corner_radius_all(8);button.add_theme_stylebox_override(state,style)
 	var row:=HBoxContainer.new();row.name="PriceRow";row.alignment=BoxContainer.ALIGNMENT_CENTER;row.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_theme_constant_override("separation",6);row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);button.add_child(row)
 	var text:=Label.new();text.text=label;text.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(text)
 	var icon:=TextureRect.new();icon.texture=ArenaIcon.texture(currency);icon.custom_minimum_size=Vector2(16,16);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;icon.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(icon)
 	var value:=Label.new();value.text=str(amount);value.add_theme_font_override("font",numbers_font());value.add_theme_font_size_override("font_size",17);value.add_theme_color_override("font_color",GOLD if gold else Color("bfe0ff"));value.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(value)
-	row.modulate.a=.5 if button.disabled else 1.0
+	# Unaffordable: faded chip with the amount in red.
+	row.modulate.a=.55 if button.disabled else 1.0
+	if button.disabled:value.add_theme_color_override("font_color",DANGER);text.add_theme_color_override("font_color",DANGER)
+static func tab(button: Button) -> void:
+	# Section tabs: bright outline on the page's dark fill; the selected tab (toggled on) lights up.
+	for state in ["normal","hover","pressed","hover_pressed","disabled","focus"]:
+		var on: bool=state in ["pressed","hover_pressed"]
+		var style: StyleBoxFlat=box(Color("33416b") if on else Color("111726"),Color("9fb1e0") if on else Color("5d6c96"))
+		style.set_corner_radius_all(8);style.set_border_width_all(2 if on else 1)
+		if state=="focus":style.draw_center=false;style.border_color=Color.TRANSPARENT
+		button.add_theme_stylebox_override(state,style)
+	for name in ["font_pressed_color","font_hover_pressed_color"]:button.add_theme_color_override(name,Color("ffffff"))
+	for name in ["font_color","font_hover_color","font_focus_color"]:button.add_theme_color_override(name,Color("b9c3dc"))
 static func quiet(button: Button,selected: bool=false) -> void:
 	# Low-priority battle controls: sky-blue outline on a near-background fill; selection brightens the fill.
 	for state in ["normal","hover","pressed","hover_pressed","disabled","focus"]:

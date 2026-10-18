@@ -36,7 +36,7 @@ func run():
   screen.guild_panel.show_tab("upgrade");await shot(tag+"-upgrade");screen.guild_dialog.hide()
   screen.select_room("0:0");await frames();await shot(tag+"-recruit")
   var cs=screen.content_screen
-  var row=cs.content_box.get_child(1).get_child(0)
+  var row=cs.content_box.get_child(0).get_child(0)
   verify(row.get_child(2).get_global_rect().end.x<=res.x,"three recruit candidates fit")
   await press(cs.map_button);screen.select_room("0:1");await shot(tag+"-shop")
   verify(screen.content_screen.content_tabs.visible,"shop has original category tabs")

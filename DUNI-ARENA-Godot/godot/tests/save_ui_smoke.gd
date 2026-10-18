@@ -43,7 +43,7 @@ func flow(touch: bool) -> void:
 	c.new_run(19,73);screen.show_map();await frames()
 	await click(screen.room_buttons["0:0"],touch)
 	var recruit: RoomState=c.current_room();var offer: RecruitOffer=recruit.recruit.offers[0]
-	await click(screen.content_screen.content_box.get_child(1).get_child(0).get_child(0),touch)
+	await click(screen.content_screen.content_box.get_child(0).get_child(0).get_child(0),touch)
 	verify(offer.purchased and c.guild.all_members().size()==5,"recruit input/autosave")
 	await finish_reveal(screen,touch)
 	await click(screen.content_screen.map_button,touch);await click(screen.room_buttons["0:1"],touch)

@@ -38,7 +38,7 @@ func run():
 	verify(int(w.shown_gold)==run_state.gold and ui.fx.flights.is_empty() and ui.fx.sparks.is_empty(),"currency count finishes and effects clean up")
 	verify(pure()==saved,"currency animations never apply rewards/save/RNG again")
 	var offer: RecruitOffer=ui.controller.current_room().recruit.offers[0];var old_tokens: int=run_state.tokens
-	await click(ui.content_screen.content_box.get_child(1).get_child(0).get_child(0))
+	await click(ui.content_screen.content_box.get_child(0).get_child(0).get_child(0))
 	verify(run_state.tokens==old_tokens-offer.token_price,"real recruit debit")
 	var spending: Array=ui.fx.flights.filter(func(f):return f.direction=="spend" and f.kind=="gem")
 	verify(not spending.is_empty() and spending[0].origin.distance_to(w.anchor("gem"))<12,"spend starts at wallet")
