@@ -39,7 +39,13 @@ static func enter(root: Control) -> void:
 	for i in range(mini(rows.size(), 10)):fade(rows[i], i * .04)
 	var view: Rect2 = root.get_viewport_rect();var cards: Array = []
 	_collect_cards(root, view, cards)
-	for i in range(mini(cards.size(), 18)):pop(cards[i], .12 + i * .035, .86, .32)
+	# Cards sharing a row pop together, rows follow one another down the page.
+	var rows_y: Array = []
+	for card in cards:
+		var y: int = roundi(card.get_global_rect().position.y)
+		if y not in rows_y:rows_y.append(y)
+	rows_y.sort()
+	for card in cards.slice(0, 24):pop(card, .12 + rows_y.find(roundi(card.get_global_rect().position.y)) * .06, .86, .32)
 
 static func _column(node: Node) -> BoxContainer:
 	var queue: Array = [node]
