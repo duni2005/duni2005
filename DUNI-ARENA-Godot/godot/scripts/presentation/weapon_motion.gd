@@ -68,6 +68,11 @@ static func _draw_prop(canvas: CanvasItem,type: int,index: float,alpha: float) -
 		28:
 			canvas.draw_colored_polygon(PackedVector2Array([Vector2(26,-9),Vector2(36,8),Vector2(16,8)]),Color(Color("bdf0ff"),alpha*.9))
 			canvas.draw_polyline(PackedVector2Array([Vector2(26,-9),Vector2(36,8),Vector2(16,8),Vector2(26,-9)]),Color(Color("ffffff"),alpha),1.5)
+		31:
+			# Staff topped with an ice crystal.
+			canvas.draw_line(Vector2(14,10),Vector2(34,-6),Color(Color("9fb7c9"),alpha),3)
+			canvas.draw_colored_polygon(PackedVector2Array([Vector2(36,-16),Vector2(42,-7),Vector2(36,2),Vector2(30,-7)]),Color(Color("bfeaff"),alpha*.95))
+			canvas.draw_polyline(PackedVector2Array([Vector2(36,-16),Vector2(42,-7),Vector2(36,2),Vector2(30,-7),Vector2(36,-16)]),Color(Color("ffffff"),alpha),1.2)
 		30:
 			canvas.draw_arc(Vector2(28,0),8,PI*.5,PI*1.5,12,Color(Color("e8434f"),alpha),5)
 			canvas.draw_line(Vector2(28,-8),Vector2(36,-8),Color(Color("e8434f"),alpha),5);canvas.draw_line(Vector2(28,8),Vector2(36,8),Color(Color("e8434f"),alpha),5)

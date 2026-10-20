@@ -64,7 +64,7 @@ func step(b: BattleManager,seconds: float) -> void:
 		if b.finished:return
 		b.simulate(1.0/60)
 func new_characters(tree: SceneTree) -> void:
-	verify(CharacterCatalog.all().size()==31,"31 characters in the catalog")
+	verify(CharacterCatalog.all().size()==32,"32 characters in the catalog")
 	# 말뚝: opening stake tethers the nearest enemy to a small circle.
 	var b:=duel(tree,[[26,0,Vector2(150,400)],[1,1,Vector2(450,400)],[1,1,Vector2(700,700)]])
 	step(b,.2)
@@ -132,9 +132,33 @@ func new_characters(tree: SceneTree) -> void:
 	b.units[0].ultimate_gauge=100;step(b,3)
 	verify(b.combat_event_counts.get(&"ult_impact",0)>=1,"stake ultimate emits a landing shockwave")
 	b.queue_free()
+	# 빙결술사: three crystals per attack, frost stacks, freeze at 10, drifting storm.
+	b=duel(tree,[[31,0,Vector2(200,400)],[4,1,Vector2(480,400)]])
+	var frost: BattleUnit=b.units[0];var foe: BattleUnit=b.units[1]
+	var before: int=b.projectiles.size();frost.ability.release_basic(frost)
+	verify(b.projectiles.size()-before==3 and b.projectiles.slice(before).all(func(p):return p.kind=="iceShard"),"frost fires three ice crystals")
+	frost.ability.dealt_damage(frost,foe,5,{"melee":false})
+	verify(foe.state_value("frostStacks")==1,"a crystal hit adds one frost stack")
+	for i in range(9):frost.ability.dealt_damage(frost,foe,5,{"melee":false})
+	verify(foe.state_value("frozenTime")>0 and foe.stun_remaining>=3.9 and foe.state_value("frostStacks")==0,"ten frost stacks freeze the enemy for 4 seconds")
+	step(b,4.2)
+	verify(foe.state_value("frozenTime")<=0,"the freeze thaws")
+	b.queue_free()
+	b=duel(tree,[[31,0,Vector2(150,400)],[6,1,Vector2(330,400)],[8,1,Vector2(400,460)]])
+	frost=b.units[0];frost.ultimate_gauge=100
+	for i in range(60*3):
+		step(b,1.0/60)
+		if frost.character_specific_state.has("storm"):break
+	verify(frost.character_specific_state.has("storm"),"frost ultimate summons an ice storm")
+	var storm_start: Vector2=CharacterPersistence.vector(frost.character_specific_state.storm)
+	step(b,1.5)
+	var drifted: bool=frost.character_specific_state.has("storm") and CharacterPersistence.vector(frost.character_specific_state.storm).distance_to(storm_start)>50
+	verify(drifted,"the storm drifts forward slowly")
+	verify(b.units.slice(1).any(func(e):return e.state_value("frostStacks")>0 or e.state_value("frozenTime")>0),"enemies in the storm gain frost")
+	b.queue_free()
 	# Tower: new types are recruitable members and fight in ordinary (non-custom) battles.
 	var guild:=GuildManager.new(RunState.new())
-	verify(range(26,31).all(func(t):return guild.create_member(t)!=null),"new types can join the guild")
+	verify(range(26,32).all(func(t):return guild.create_member(t)!=null),"new types can join the guild")
 	var setup:=CustomBattleSetup.new()
 	for row in [[26,0,Vector2(200,300)],[29,0,Vector2(200,420)],[27,0,Vector2(200,540)],[28,1,Vector2(600,300)],[30,1,Vector2(600,420)],[0,1,Vector2(600,540)]]:setup.add(row[0],row[1],row[2])
 	b=BattleManager.new();b.auto_start=false;tree.root.add_child(b)
@@ -143,7 +167,7 @@ func new_characters(tree: SceneTree) -> void:
 	verify(b.finished,"tower-mode battle with new types finishes")
 	b.queue_free()
 	# Each new character survives a full battle without errors.
-	for type in range(26,31):
+	for type in range(26,32):
 		b=duel(tree,[[type,0,Vector2(200,400)],[4,0,Vector2(200,500)],[0,1,Vector2(600,400)],[1,1,Vector2(600,500)]],type)
 		step(b,60)
 		verify(b.units.size()==4,"type %d battle runs" % type)

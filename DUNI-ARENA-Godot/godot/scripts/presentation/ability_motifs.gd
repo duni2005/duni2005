@@ -1,7 +1,7 @@
 class_name AbilityMotifs
 extends RefCounted
 ## One motif per real ability identity. Exact gameplay telegraphs are rendered separately.
-const MOTIFS=["blade","arrow","vortex","veil","aegis","lotus","reticle","pellets","duel","fists","greatsword","ripples","jaws","fuse","issen","orbit","cross","comet","tracks","halo","storm","shards","spiral","tracers","tongue","threads","stake","rails","prism","parcel","magnet"]
+const MOTIFS=["blade","arrow","vortex","veil","aegis","lotus","reticle","pellets","duel","fists","greatsword","ripples","jaws","fuse","issen","orbit","cross","comet","tracks","halo","storm","shards","spiral","tracers","tongue","threads","stake","rails","prism","parcel","magnet","frost"]
 static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: float=0) -> void:
 	var c: Color=CharacterVisuals.PROJECTILE_COLORS.get("star",Color("e8c78e"))
 	c=Color(AttackVisuals.ink(u.data.type_id),1-fade)
@@ -22,6 +22,10 @@ static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: f
 		"reticle":
 			canvas.draw_arc(p,r,0,TAU,40,c,2)
 			for i in range(4):canvas.draw_line(p+Vector2.from_angle(i*PI/2)*r*.7,p+Vector2.from_angle(i*PI/2)*r*1.3,c,2)
+		"frost":
+			for i in range(6):
+				var d: Vector2=Vector2.from_angle(time*.4+i*TAU/6)
+				canvas.draw_line(p+d*r*.3,p+d*r,c,3);canvas.draw_line(p+d*r*.7,p+d*r*.7+d.rotated(.7)*12,c,2);canvas.draw_line(p+d*r*.7,p+d*r*.7+d.rotated(-.7)*12,c,2)
 		"storm":
 			for i in range(5):VisualShapes.bolt(canvas,p,p+Vector2.from_angle(time+i*TAU/5)*r*1.6,c,i+floor(time*10),2)
 		"shards":

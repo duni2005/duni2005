@@ -25,13 +25,18 @@ static func advance(battle, dt: float) -> void:
 	for u in battle.units:
 		if not u.alive:continue
 		_advance_fx(u, dt)
+		if u.character_specific_state.has("storm"):u.ability.advance_storm(u, dt)
 		if u.state_value("tetherTime") > 0:_advance_tether(u, dt)
 		if u.state_value("magnetTime") > 0:_advance_magnet(battle, u, dt)
 
 static func _advance_fx(u, dt: float) -> void:
 	if u.state_value("deliveryFx") > 0:u.set_state("deliveryFx", maxf(0, u.state_value("deliveryFx") - dt))
-	for key in ["refractFx", "magnetShockFx", "magnetCastFx"]:
+	for key in ["refractFx", "magnetShockFx", "magnetCastFx", "frozenTime"]:
 		if u.state_value(key) > 0:u.set_state(key, maxf(0, u.state_value(key) - dt))
+	# Frost stacks melt away when no new frost lands for a while.
+	if u.state_value("frostDecay") > 0:
+		u.set_state("frostDecay", u.state_value("frostDecay") - dt)
+		if u.state_value("frostDecay") <= 0:u.set_state("frostStacks", 0)
 
 static func _advance_tether(u, dt: float) -> void:
 	u.set_state("tetherTime", maxf(0, u.state_value("tetherTime") - dt))

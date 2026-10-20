@@ -411,7 +411,7 @@ func _unit(u: BattleUnit,parent: Transform2D) -> void:
 		VfxArt.glow(self,at,radius*1.8,Color("ffe4ab"),.2);VfxArt.sigil(self,at,radius+10,real_age,Color("ffe4ab"),.65)
 	if u.parry_remaining>.8:VfxArt.glow(self,at+Vector2.from_angle(u.facing)*20,radius+12,Color("c2f5ff"),.28)
 	var badges: Array[String]=[]
-	if u.stun_remaining>0:badges.append("기절")
+	if u.stun_remaining>0:badges.append("빙결" if u.state_value("frozenTime")>0 else "기절")
 	if u.iron_defense_remaining>0:badges.append("철벽")
 	if u.hidden_from_enemies:badges.append("은신")
 	if not u.duel.is_empty():badges.append("승부")
@@ -514,6 +514,21 @@ func _new_character_state(u: BattleUnit,p: Vector2,s: float) -> void:
 			if not parcel.get("held",false):draw_circle(at,18+sin(real_age*5)*3,Color("ffe08a",.18))
 			draw_rect(Rect2(at-Vector2(10,8),Vector2(20,16)),Color("c08a4a"));draw_rect(Rect2(at-Vector2(2,8),Vector2(4,16)),Color("ffe08a"))
 			draw_rect(Rect2(at-Vector2(10,8),Vector2(20,16)),Color("5a3a1e"),false,1.5)
+	# 빙결: frost pips over the head; a block of ice while frozen.
+	var frost: int=int(u.state_value("frostStacks"))
+	if frost>0:
+		for i in range(10):
+			var a: float=-PI*.8+i*PI*.6/9
+			draw_arc(p,34*s,a,a+.05,2,Color("bfeaff") if i<frost else Color("2a3a48"),4,true)
+	if u.state_value("frozenTime")>0:
+		var k: float=clampf(u.state_value("frozenTime")/4.0,0,1)
+		var block:=Rect2(p-Vector2(27,30)*s,Vector2(54,56)*s)
+		draw_rect(block,Color("9fdcff",.38));draw_rect(block,Color("e6f8ff",.85),false,2)
+		draw_line(block.position+Vector2(6,6)*s,block.position+Vector2(20,22)*s,Color(1,1,1,.7),2)
+		draw_line(block.position+Vector2(36,10)*s,block.position+Vector2(46,4)*s,Color(1,1,1,.5),2)
+		VfxArt.glow(self,p,40*s,Color("9fdcff"),.15+.1*k)
+	# 빙결술사 storm drifting across the field.
+	if u.data.type_id==31 and u.alive and u.character_specific_state.has("storm"):_frost_storm(u)
 	# Delivered buff: the gift icon rising over the recipient.
 	if u.state_value("deliveryFx")>0:
 		var kind: String=str(u.character_specific_state.get("deliveryKind","heal"))
@@ -658,6 +673,11 @@ func _ultimate_zone_motes(delta: float) -> void:
 		var seed: float=real_age*31+float(z.area_id)
 		var at: Vector2=CharacterPersistence.vector(z.point)+Vector2.from_angle(VisualParticles.noise(seed)*TAU)*float(z.radius)*sqrt(VisualParticles.noise(seed+1))
 		particles.burst(at,AttackVisuals.ink(source.data.type_id),2,60,-PI/2,"mote")
+	for u in battle.units:
+		if u.data.type_id!=31 or not u.alive or not u.character_specific_state.has("storm"):continue
+		var storm: Dictionary=u.character_specific_state.storm;var seed: float=real_age*29+u.battle_id
+		var spot: Vector2=CharacterPersistence.vector(storm)+Vector2.from_angle(VisualParticles.noise(seed)*TAU)*115*sqrt(VisualParticles.noise(seed+1))
+		particles.burst(spot,Color("eaf8ff"),3,140,float(storm.angle)+PI*.5,"spark")
 func _ult_empowered(u: BattleUnit,p: Vector2,s: float) -> void:
 	var dashing: bool=u.ultimate.cast.get("dashing",false)
 	var active: bool=dashing
@@ -673,6 +693,18 @@ func _ult_empowered(u: BattleUnit,p: Vector2,s: float) -> void:
 	if dashing:
 		var motion: Vector2=u.velocity+u.knockback_velocity
 		if motion.length()>60:VfxArt.flare(self,p-motion.normalized()*34*s,motion.angle(),80*s,ink,.6)
+
+func _frost_storm(u: BattleUnit) -> void:
+	var storm: Dictionary=u.character_specific_state.storm;var at: Vector2=CharacterPersistence.vector(storm)
+	var r: float=115*u.combat_scale();var fade: float=clampf(float(storm.life)/.6,0,1)*clampf((7-float(storm.life))/.4,0,1)
+	VfxArt.glow(self,at,r*1.25,Color("8fd4ff"),.32*fade)
+	draw_circle(at,r,Color("cfeeff",.08*fade))
+	for i in range(3):
+		var spin: float=real_age*(2.2+i*.8)*(1 if i%2==0 else -1)
+		draw_arc(at,r*(.45+i*.25),spin,spin+PI*1.2,40,Color("e6f8ff",(.55-i*.12)*fade),3-i*.6,true)
+	for i in range(26):
+		var a: float=real_age*(1.6+VisualParticles.noise(i)*1.5)+i*2.399;var d: float=r*(.2+VisualParticles.noise(i+7)*.8)
+		VfxArt.star(self,at+Vector2.from_angle(a)*d,3+VisualParticles.noise(i+3)*4,Color("f2fbff"),.85*fade,a)
 
 func _draw_ending() -> void:
 	var time: float=BattleCinematicState.motion_seconds(cinematic.age)
