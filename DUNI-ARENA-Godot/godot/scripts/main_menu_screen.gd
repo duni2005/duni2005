@@ -78,18 +78,22 @@ func continue_run() -> void:
 	if loaded.from_backup:tower_screen.show_notice("이전 정상 저장에서 복구했습니다.")
 func open_custom() -> void:
 	if is_instance_valid(custom_screen) or is_instance_valid(tower_screen):return
+	UiTransition.play("forward")
 	menu.get_parent().hide();backdrop.hide()
 	custom_screen=CustomBattleScreen.new();add_child(custom_screen)
 	custom_screen.closed.connect(func():call_deferred("close_custom"))
 func close_custom() -> void:
+	UiTransition.play("back")
 	if is_instance_valid(custom_screen):remove_child(custom_screen);custom_screen.queue_free();custom_screen=null
 	menu.get_parent().show();backdrop.show()
 func open_tower(controller: TowerController) -> void:
+	UiTransition.play("forward")
 	menu.get_parent().hide();backdrop.hide()
 	if is_instance_valid(tower_screen):remove_child(tower_screen);tower_screen.queue_free()
 	tower_screen=load("res://scenes/tower.tscn").instantiate();tower_screen.controller=controller;tower_screen.resume_saved=true;add_child(tower_screen)
 	tower_screen.main_menu_requested.connect(func():call_deferred("return_menu"))
 func return_menu() -> void:
+	UiTransition.play("back")
 	if is_instance_valid(tower_screen):remove_child(tower_screen);tower_screen.queue_free();tower_screen=null
 	menu.get_parent().show();backdrop.show();refresh()
 func _close() -> void:

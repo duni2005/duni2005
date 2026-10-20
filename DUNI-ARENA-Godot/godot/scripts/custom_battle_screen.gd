@@ -235,6 +235,7 @@ func _render_unit() -> void:
 func start_battle() -> void:
 	var error: String=setup.validate()
 	if not error.is_empty():_say(error);refresh();return
+	UiTransition.play("battle")
 	_dispose_battle()
 	battle=BattleManager.new();battle.auto_start=false;battle.custom_mode=true;board.add_child(battle)
 	if not battle.start_battle(setup.placements(),int(Time.get_ticks_usec()&0x7fffffff)):
@@ -258,6 +259,7 @@ func _dispose_battle() -> void:
 		battle.queue_free()
 	battle=null;board.battle=null;winner_panel.hide()
 func return_setup() -> void:
+	UiTransition.play("back")
 	_dispose_battle();board.editing=true;trans_press.clear();_set_phase(false);refresh()
 func _set_phase(fighting: bool) -> void:
 	setup_header.visible=not fighting;cost_row.visible=not fighting;setup_controls.visible=not fighting

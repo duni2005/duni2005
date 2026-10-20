@@ -119,8 +119,11 @@ static func get_theme() -> Theme:
 	if shared_theme!=null:return shared_theme
 	shared_theme=Theme.new();shared_theme.default_font_size=14
 	body_font=load("res://assets/ui/fonts/korean.otf");shared_theme.default_font=body_font
-	shared_theme.set_stylebox("panel","PanelContainer",box(PANEL))
-	shared_theme.set_stylebox("panel","AcceptDialog",box(PANEL,BORDER))
+	# Soft drop shadows lift panels and dialogs off the animated backdrop.
+	var panel: StyleBoxFlat=box(PANEL);panel.shadow_color=Color(0,0,0,.35);panel.shadow_size=8;panel.shadow_offset=Vector2(0,3)
+	shared_theme.set_stylebox("panel","PanelContainer",panel)
+	var dialog: StyleBoxFlat=box(PANEL,BORDER);dialog.shadow_color=Color(0,0,0,.5);dialog.shadow_size=18;dialog.shadow_offset=Vector2(0,6)
+	shared_theme.set_stylebox("panel","AcceptDialog",dialog)
 	for state in ["normal","hover","pressed","hover_pressed","disabled","focus"]:
 		var color: Color=Color("232d4a") if state=="normal" else Color("2c385c") if state=="hover" else Color("51432d") if state in ["pressed","hover_pressed"] else Color("191c28")
 		shared_theme.set_stylebox(state,"Button",button_box(color,Color("ebc27a") if state in ["pressed","hover_pressed","focus"] else Color("4a3f58") if state=="disabled" else Color("56669c")))
@@ -144,7 +147,7 @@ static func install(root: Control) -> void:
 	if root.is_inside_tree():root.get_window().title="DUNI ARENA"
 	root.theme=get_theme()
 	if root.get_node_or_null("PresentationBackground")==null:
-		var bg:=ColorRect.new();bg.name="PresentationBackground";bg.color=BACKGROUND;bg.mouse_filter=Control.MOUSE_FILTER_IGNORE;bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.add_child(bg);root.move_child(bg,0)
+		var bg:=AmbientBackdrop.new();bg.name="PresentationBackground";bg.color=BACKGROUND;bg.mouse_filter=Control.MOUSE_FILTER_IGNORE;bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);root.add_child(bg);root.move_child(bg,0)
 static func safe_margin(margin: MarginContainer) -> void:
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,10 if side in ["top","bottom"] else 8)
 	if DisplayServer.get_name()!="headless":

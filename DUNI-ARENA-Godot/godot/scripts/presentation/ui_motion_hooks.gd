@@ -1,7 +1,9 @@
 extends Node
 ## Autoload: gives every button press feedback, every dialog a pop-in and every screen an entrance.
 func _ready() -> void:
-	if UiMotion.enabled:get_tree().node_added.connect(_added)
+	if not UiMotion.enabled:return
+	get_tree().node_added.connect(_added)
+	var layer := CanvasLayer.new();layer.layer = 1200;add_child(layer);UiTransition.layer = layer
 func _added(n: Node) -> void:
 	if n is BaseButton and not n.has_meta("motion_hooked"):
 		n.set_meta("motion_hooked", true)

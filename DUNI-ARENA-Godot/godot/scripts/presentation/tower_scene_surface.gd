@@ -23,6 +23,7 @@ func _draw() -> void:
 	var s: Dictionary=director.active;var t: float=s.age
 	if t<0:_draw_flights();return
 	var alpha: float=minf(clampf(t/.2,0,1),clampf((s.duration-t)/.8,0,1));var kind: String=s.kind
+	if kind=="entry":_draw_entry(s,t,screen);_draw_flights();return
 	var strong: bool=kind in ["recruit","promotion","chapterConquest"]
 	draw_rect(Rect2(Vector2.ZERO,screen),Color(.02,.025,.055,alpha*(.94 if strong else .72)))
 	var center: Vector2=screen*.5+Vector2(0,-18+(1-clampf(t/.3,0,1))*8)
@@ -46,6 +47,24 @@ func _draw() -> void:
 	if kind=="recruit":text(Vector2(x,center.y+151),"터치하여 계속",11,Color(.66,.73,.82,alpha*.8),width)
 
 	_draw_flights()
+## Room entry: a cinematic band slides in from the left, holds, then slides out to the right.
+func _draw_entry(s: Dictionary,t: float,screen: Vector2) -> void:
+	var duration: float=float(s.duration);var enter: float=1-pow(1-clampf(t/.35,0,1),3);var leave: float=pow(clampf((t-(duration-.45))/.45,0,1),3)
+	var alpha: float=clampf(t/.15,0,1)*(1-leave)
+	draw_rect(Rect2(Vector2.ZERO,screen),Color(.02,.025,.055,.42*alpha))
+	var band_h: float=104;var y: float=screen.y*.4-band_h*.5;var shift: float=(enter-1)*screen.x+leave*screen.x
+	var band:=Rect2(Vector2(shift,y),Vector2(screen.x,band_h))
+	draw_rect(band,Color(.03,.04,.08,.94))
+	var sheen: float=fposmod(t*.6,1.4)-.2
+	draw_colored_polygon(PackedVector2Array([band.position+Vector2(screen.x*sheen,0),band.position+Vector2(screen.x*sheen+60,0),band.position+Vector2(screen.x*sheen+20,band_h),band.position+Vector2(screen.x*sheen-40,band_h)]),Color(1,.95,.8,.05))
+	for edge in [y,y+band_h-2]:draw_rect(Rect2(shift,edge,screen.x,2),Color("f0d490"))
+	draw_rect(Rect2(shift,y+6,screen.x,1),Color("f0d490",.35));draw_rect(Rect2(shift,y+band_h-7,screen.x,1),Color("f0d490",.35))
+	var left: float=shift+maxf(20,(screen.x-420)*.5)
+	VfxArt.glow(self,Vector2(left+38,y+band_h*.5),60,Color("f0d490"),.22)
+	ArenaIcon.draw(self,Vector2(left+38,y+band_h*.5),s.get("icon","crown"),54,Color.WHITE)
+	var font: Font=ArenaUI.heading_font()
+	draw_string(font,Vector2(left+84,y+50),s.get("title",""),HORIZONTAL_ALIGNMENT_LEFT,screen.x-left-100,30 if screen.x<600 else 38,Color("fff2cf"))
+	draw_string(get_theme_default_font(),Vector2(left+86,y+78),s.get("detail",""),HORIZONTAL_ALIGNMENT_LEFT,screen.x-left-100,14 if screen.x<600 else 18,Color("c4cdbb"))
 func _draw_flights() -> void:
 	for flight in director.flights:
 		if flight.age<0:continue
