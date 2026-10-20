@@ -127,6 +127,8 @@ func show_map() -> void:
 	if placeholder != null: body.remove_child(placeholder);placeholder.queue_free()
 	var run: RunState=controller.guild.state;var state: TowerRunState=run.tower
 	wallet.guild=controller.guild
+	# Room transactions were already animated in the room's own wallet.
+	wallet.snap();UiMotion.enter.call_deferred(self)
 	if body.find_child("TowerHeading",true,false)!=null:body.find_child("TowerHeading",true,false).text="두니 타워 · 탐험 지도"
 	# Prior transactions were already shown in their room. Do not leak raw IDs
 	# or prediction enum strings as a permanent footer over the map.

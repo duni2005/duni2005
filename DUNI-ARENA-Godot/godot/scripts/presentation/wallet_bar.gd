@@ -29,6 +29,11 @@ func animate_resource(kind: String,from_value: int,to_value: int,delay: float) -
 	else:shown_tokens=from_value
 	tracks[kind]={"from":float(from_value),"to":float(to_value),"age":-delay,"duration":.32}
 	if to_value<from_value:pulses[kind]=.32
+## Show the current balance at once; used when a wallet comes back after changes were shown elsewhere.
+func snap() -> void:
+	tracks.clear();pulses.clear()
+	if guild!=null:shown_gold=guild.state.gold;shown_tokens=guild.state.tokens;previous_gold=guild.state.gold
+	queue_redraw()
 func animate_exchange(kind: String,from_value: int,spent: int,to_value: int) -> void:
 	animate_resource(kind,from_value,from_value-spent,0)
 	tracks[kind]["next"]={"from":float(from_value-spent),"to":float(to_value),"age":-.4,"duration":.32}

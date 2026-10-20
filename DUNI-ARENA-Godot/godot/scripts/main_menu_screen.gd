@@ -37,6 +37,7 @@ func _ready() -> void:
 	status=Label.new();status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;status.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;status.add_theme_font_size_override("font_size",12);status.add_theme_color_override("font_color",Color("c9d0e6"));save_card.add_child(status)
 	overwrite_dialog=ConfirmationDialog.new();overwrite_dialog.dialog_text="저장된 탐험을 새 게임으로 교체하겠습니까?";add_child(overwrite_dialog);overwrite_dialog.confirmed.connect(new_game)
 	get_window().size_changed.connect(_fit_menu);_fit_menu()
+	UiMotion.breathe.call_deferred(new_button)
 	refresh()
 func _fit_menu() -> void:
 	var window: Window=get_window()

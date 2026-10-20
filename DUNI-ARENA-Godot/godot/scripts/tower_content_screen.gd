@@ -26,6 +26,7 @@ var board: DeploymentBoard
 var battle: BattleManager
 var rendered_prediction_finished: bool = false
 var content_tab: String="equipment"
+var motion_tab: String=""
 var content_tabs: HBoxContainer
 var offers_grid: GridContainer
 var content_menu: AcceptDialog
@@ -148,6 +149,9 @@ func render() -> void:
 	else:map_button.text="지도로"
 	map_footer.visible=map_button.visible;footer_gap.visible=map_footer.visible
 	abandon_button.disabled=controller.guild.state.game_over or is_instance_valid(battle) and not battle.finished
+	if content_tabs.visible and motion_tab!=content_tab:
+		if not motion_tab.is_empty():UiMotion.pop.call_deferred(content_box,0,.97,.24)
+		motion_tab=content_tab
 	if phase==&"cleared":
 		var text:=Label.new();text.text="이미 완료한 방입니다.";content_box.add_child(text);return
 	if node.room_type==RoomType.RECRUIT:render_recruit(node)

@@ -99,6 +99,7 @@ static func pip_style(on: bool) -> StyleBoxFlat:
 	if pip_on==null:pip_on=box(GOLD,GOLD);pip_off=box(Color("26304a"),Color("26304a"));pip_on.set_corner_radius_all(1);pip_off.set_corner_radius_all(1)
 	return pip_on if on else pip_off
 static func primary(button: Button) -> void:
+	button.set_meta("primary_cta",true)
 	button.add_theme_stylebox_override("normal",button_box(ACCENT,Color("efbc8f")))
 	button.add_theme_stylebox_override("hover",button_box(Color("ffc49b"),Color("ffdab6")) if not touch_ui() else button.get_theme_stylebox("normal"))
 	button.add_theme_stylebox_override("pressed",button_box(Color("d98b53"),Color("ffce9f")))

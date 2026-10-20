@@ -9,6 +9,10 @@ run/main_scene="res://scenes/main_menu.tscn"
 config/icon="res://assets/ui/app_icon.png"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
+[autoload]
+
+UiMotionHooks="*res://scripts/presentation/ui_motion_hooks.gd"
+
 [display]
 window/size/viewport_width=900
 window/size/viewport_height=1000

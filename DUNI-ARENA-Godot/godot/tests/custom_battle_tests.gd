@@ -51,6 +51,7 @@ func run(tree: SceneTree) -> void:
 	verify(alive.size()<=1,"at most one faction survives")
 	b.queue_free()
 	await new_characters(tree)
+	await map_wallet_return(tree)
 	print("CUSTOM BATTLE RESULT: ",checks," checks; ",failures," failures")
 func duel(tree: SceneTree,rows: Array,seed: int=5) -> BattleManager:
 	var setup:=CustomBattleSetup.new()
@@ -147,3 +148,15 @@ func new_characters(tree: SceneTree) -> void:
 		step(b,60)
 		verify(b.units.size()==4,"type %d battle runs" % type)
 		b.queue_free()
+func map_wallet_return(tree: SceneTree) -> void:
+	# Gold changed inside a room must not replay on the map as a drop followed by a count-up.
+	var ui:=TowerScreen.new();tree.root.add_child(ui);ui.controller.new_run(19,73);ui.show_map()
+	for i in range(5):await tree.process_frame
+	ui.body.get_parent().hide();ui.map_scroll.hide();ui.controller.guild.state.gold+=150
+	for i in range(5):await tree.process_frame
+	ui.show_map()
+	var low: float=INF
+	for i in range(60):
+		await tree.process_frame;low=minf(low,ui.wallet.shown_gold)
+	verify(low==ui.controller.guild.state.gold,"map wallet shows the current gold on return")
+	ui.queue_free()
