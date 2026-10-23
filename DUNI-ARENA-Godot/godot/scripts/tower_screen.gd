@@ -277,6 +277,7 @@ func _process(_dt: float) -> void:
 		watched_run=run.run_id;known_floors.clear();known_chapters=state.chapter_progress.duplicate()
 		for floor in state.map.floors:known_floors[floor.floor_index]=floor.conquered
 		fx.rebase_wallet(run.gold,run.tokens)
+		if not run.game_over and state.phase==&"route":_chapter_intro(state.current_chapter)
 		return
 	if is_instance_valid(battle_screen) and battle_screen.end_presenting:return
 	if is_instance_valid(content_screen) and is_instance_valid(content_screen.battle) and content_screen.battle.finished and not content_screen.rendered_prediction_finished:return
@@ -288,7 +289,11 @@ func _process(_dt: float) -> void:
 			fx.enqueue({"kind":"conquest","key":"floor:%d"%floor.floor_index,"title":"%d층 정복"%(floor.floor_index+1),"detail":"플레이어 HP 회복 · 전체 기력 +1\n"+reward,"icon":"crown"})
 	for chapter in state.chapter_progress:
 		if state.chapter_progress[chapter] and not known_chapters.get(chapter,false):
-			known_chapters[chapter]=true;fx.enqueue({"kind":"chapterConquest","key":"chapter:%d"%int(chapter),"title":"%d챕터 정복"%int(chapter),"detail":"보스 격파","icon":"crown"})
+			known_chapters[chapter]=true;fx.enqueue({"kind":"chapterConquest","key":"chapter:%d"%int(chapter),"title":"%d챕터 정복"%int(chapter),"detail":"보스 격파","icon":"crown","chapter":int(chapter)})
+			if int(chapter)<TowerMapGenerator.CHAPTERS:_chapter_intro(int(chapter)+1)
+func _chapter_intro(chapter: int) -> void:
+	var first: int=(chapter-1)*TowerMapGenerator.CHAPTER_FLOORS+1
+	fx.enqueue({"kind":"chapter","key":"chapter_intro:%d"%chapter,"chapter":chapter,"title":TowerSceneDirector.CHAPTER_NAMES.get(chapter,""),"detail":"%d – %d층"%[first,first+TowerMapGenerator.CHAPTER_FLOORS-1]})
 func _present_content(event: Dictionary) -> void:
 	_update_fx_context()
 	var origin: Vector2=event.get("point",_resource_origin())

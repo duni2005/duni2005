@@ -28,6 +28,7 @@ var rendered_prediction_finished: bool = false
 var content_tab: String="equipment"
 var motion_tab: String=""
 var emblem: PanelEmblem
+var deal_cards: bool=false
 var content_tabs: HBoxContainer
 var offers_grid: GridContainer
 var content_menu: AcceptDialog
@@ -121,6 +122,8 @@ func _action(action: StringName,options: Dictionary={}) -> void:
 	if result.ok:
 		# Spending already shows in the wallet animation and the action's toast; no "GOLD -n" line.
 		status.text=""
+		# A reroll deals the new candidates face-down and flips them over.
+		if action==&"reroll":deal_cards=true
 		_present_action(action,result.get("outcome",{}))
 	if result.ok and controller.guild.state.tower.phase==&"route":map_requested.emit()
 	else:call_deferred("render")
@@ -175,6 +178,7 @@ func render_recruit(node: RoomState) -> void:
 		var b:=ArenaCard.new();b.text=data.display_name+" · 영입";b.card_type="recruit";b.type_id=offer.unit_type_id;b.title=data.display_name;b.description=" / ".join(data.tags);b.stats_summary="HP %d · ATK %s"%[int(data.max_hp),ArenaUI.number(data.attack)];b.price="토큰 %d · 영입"%offer.token_price;b.sold=offer.purchased;b.name=offer.offer_id
 		ArenaUI.bind(b,_action.bind(&"recruit",{"offer_id":offer.offer_id}));row.add_child(b);b.custom_minimum_size=Vector2(maxf(100,(minf(760,get_viewport_rect().size.x)-32)/3-4),210);b.disabled=offer.purchased or controller.guild.state.tokens<offer.token_price
 	var reroll: Button=button(reroll_row,"리롤 · %d G"%TowerContentService.REROLL_COST,_action.bind(&"reroll"),"Reroll");reroll.disabled=controller.guild.state.gold<TowerContentService.REROLL_COST;ArenaUI.price_button(reroll,"리롤","gold",TowerContentService.REROLL_COST)
+	if deal_cards:deal_cards=false;UiMotion.deal(row.get_children())
 func render_shop(node: RoomState) -> void:
 	if content_tab=="inventory":
 		var panel:=GuildManagementPanel.new();panel.controller=controller;panel.custom_minimum_size.y=420;content_box.add_child(panel);panel.show_tab("inventory");panel.modified.connect(refresh_wallet);return
@@ -194,7 +198,7 @@ func _event_choices() -> GridContainer:
 	var center:=CenterContainer.new();content_box.add_child(center)
 	event_grid=GridContainer.new();event_grid.columns=2;event_grid.add_theme_constant_override("h_separation",7);event_grid.add_theme_constant_override("v_separation",7);event_grid.custom_minimum_size.x=minf(580,get_viewport_rect().size.x-50);center.add_child(event_grid);return event_grid
 func _choice(parent: Node,id: String,title: String,detail: String,icon: String,callback: Callable,price: String="") -> ArenaCard:
-	var c:=ArenaCard.new();c.name=id;c.text=title+" · "+detail;c.card_type="event_option";c.kind=icon;c.title=title;c.description=detail;c.price=price;c.size_flags_horizontal=Control.SIZE_EXPAND_FILL;c.custom_minimum_size=Vector2(0,136 if not price.is_empty() else 112);ArenaUI.bind(c,callback);parent.add_child(c);return c
+	var c:=ArenaCard.new();c.name=id;c.text=title+" · "+detail;c.card_type="event_option";c.kind=icon;c.title=title;c.description=detail;c.price=price;c.size_flags_horizontal=Control.SIZE_EXPAND_FILL;c.custom_minimum_size=Vector2(0,146 if not price.is_empty() else 120);ArenaUI.bind(c,callback);parent.add_child(c);return c
 func render_rest() -> void:
 	var grid: GridContainer=_event_choices()
 	_choice(grid,"player","플레이어 회복","HP +15","heart",_action.bind(&"rest",{"choice":&"player"}))
@@ -254,7 +258,7 @@ func render_event(node: RoomState) -> void:
 	var options: Dictionary={&"bathe":["온천에 들어가기","생존 유닛 HP +10%\n기력 +2칸","hotSpring"],&"lottery":["온천 복권 구매","무작위 보상","gold"],&"heal":["플레이어 회복","HP +10","heart"],&"guild":["생존 유닛 회복","HP +10% · 기력 +1","rest"],&"gold":["자원 획득","골드 +300 · 토큰 +1","gold"],&"loot":["무작위 아이템" if node.event.treasure_kind==&"item" else "무작위 전략카드","아이템 1개" if node.event.treasure_kind==&"item" else "전략카드 1장","supply" if node.event.treasure_kind==&"item" else "prediction"]}
 	for choice in node.event.choices:
 		var data: Array=options[choice];var c:=_choice(grid,String(choice),data[0],data[1],data[2],_action.bind(&"event",{"choice":choice}),"200 G" if choice==&"lottery" else "")
-		if node.event_type==&"hotSpring":c.custom_minimum_size.y=136
+		if node.event_type==&"hotSpring":c.custom_minimum_size.y=146
 		c.disabled=choice==&"lottery" and controller.guild.state.gold<TowerContentService.HOT_SPRING_COST
 func _event_reward_text(outcome: Dictionary) -> String:
 	if outcome.has("member_id"):

@@ -43,6 +43,7 @@ func set_framing(rows: Array) -> void:
 	framing=framing_for(rows);body_bounds=bounds(rows,12)
 	if not framing.is_empty():framing.zoom=minf(VIEW_ZOOM_LIMIT,float(framing.zoom)*PRESENTATION_ZOOM)
 func impact(value: float,point: Vector2) -> void:
+	if not GameSettings.shake:return
 	strength=maxf(strength,minf(value,12));age=0;focus_point=point
 func focus(point: Vector2,duration: float=.7) -> void:
 	focus_point=point;focus_remaining=duration

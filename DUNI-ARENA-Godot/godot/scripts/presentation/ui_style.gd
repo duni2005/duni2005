@@ -195,7 +195,7 @@ static func bind(button: Button,callback: Callable) -> void:
 			return
 		if button.get_meta("drag_canceled",false) or (not button.get_meta("touch_dispatch",false) and button.get_meta("action_frame",-1)==Engine.get_process_frames()):return
 		button.set_meta("action_frame",Engine.get_process_frames());button.get_tree().root.set_meta("action_point",control_center(button))
-		if OS.has_feature("mobile"):Input.vibrate_handheld(12)
+		if OS.has_feature("mobile") and GameSettings.vibration:Input.vibrate_handheld(12)
 		callback.call()
 	button.set_meta("bound_action",action);button.pressed.connect(action)
 static func _scroll_position(button: Control,tune: bool=false) -> Vector2:

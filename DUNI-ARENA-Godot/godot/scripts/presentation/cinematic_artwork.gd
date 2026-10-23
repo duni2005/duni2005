@@ -20,10 +20,12 @@ static func paint(canvas: Control,arena: Rect2,kind: String,age: float) -> void:
 	# Cinematic letterbox bars slide in over the arena edges.
 	var bars: float=ramp(age,0.0 if kind=="turning" else BattleCinematicState.DIM_START,.35)*(1-ramp(age,4.2,.4) if kind=="turning" else 1)*arena.size.y*.085
 	if bars>0:
-		canvas.draw_rect(Rect2(arena.position,Vector2(arena.size.x,bars)),Color(0,0,0,.82))
-		canvas.draw_rect(Rect2(arena.position+Vector2(0,arena.size.y-bars),Vector2(arena.size.x,bars)),Color(0,0,0,.82))
-		canvas.draw_line(arena.position+Vector2(0,bars),arena.position+Vector2(arena.size.x,bars),Color(tint,.35*alpha),1)
-		canvas.draw_line(arena.position+Vector2(0,arena.size.y-bars),arena.position+Vector2(arena.size.x,arena.size.y-bars),Color(tint,.35*alpha),1)
+		# Bars span the whole screen width so they line up with the full-screen grade.
+		var top: float=arena.position.y;var bottom: float=arena.end.y;var w: float=canvas.size.x
+		canvas.draw_rect(Rect2(0,top,w,bars),Color(0,0,0,.82))
+		canvas.draw_rect(Rect2(0,bottom-bars,w,bars),Color(0,0,0,.82))
+		canvas.draw_line(Vector2(0,top+bars),Vector2(w,top+bars),Color(tint,.35*alpha),1)
+		canvas.draw_line(Vector2(0,bottom-bars),Vector2(w,bottom-bars),Color(tint,.35*alpha),1)
 	if alpha<=0:return
 	var center: Vector2=arena.get_center();var mobile: bool=arena.size.x<500
 	var start: float=0.0 if kind=="turning" else BattleCinematicState.TITLE_START

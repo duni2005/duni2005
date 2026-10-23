@@ -196,10 +196,11 @@ func _draw() -> void:
 		if active:draw_line(Vector2(10,size.y-5),Vector2(size.x-10,size.y-5),gold,2)
 		return
 	if card_type=="event_option":
-		draw_badge(Vector2(size.x*.5,29),23,gold)
-		ArenaIcon.draw(self,Vector2(size.x*.5,29),kind,28,Color.WHITE if not disabled else Color(1,1,1,.4))
-		draw_string(ArenaUI.heading_font(),Vector2(5,62),ArenaUI.plain(title),HORIZONTAL_ALIGNMENT_CENTER,size.x-10,15,muted if disabled else Color("fff3dc"))
-		draw_multiline_string(get_theme_default_font(),Vector2(8,84),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-16,12,3,muted)
+		# Badge, title and description each keep their own band so nothing overlaps.
+		draw_badge(Vector2(size.x*.5,31),21,gold)
+		ArenaIcon.draw(self,Vector2(size.x*.5,31),kind,26,Color.WHITE if not disabled else Color(1,1,1,.4))
+		draw_string(ArenaUI.heading_font(),Vector2(5,73),ArenaUI.plain(title),HORIZONTAL_ALIGNMENT_CENTER,size.x-10,15,muted if disabled else Color("fff3dc"))
+		draw_multiline_string(get_theme_default_font(),Vector2(8,93),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-16,12,2,muted)
 		if not price.is_empty():draw_price_chip(Rect2(size.x*.5-46,size.y-36,92,28),"완료")
 		return
 	if card_type=="revival_member":
@@ -240,10 +241,10 @@ func _draw() -> void:
 		write(Vector2(0,89 if compact_room else 114),status_text,10 if compact_room else 11,muted,size.x,true)
 		return
 	if card_type=="product":
-		draw_badge(Vector2(size.x*.5,28),22,gold)
-		ArenaIcon.draw(self,Vector2(size.x*.5,28),kind,27,gold)
-		draw_multiline_string(get_theme_default_font(),Vector2(4,59),title,HORIZONTAL_ALIGNMENT_CENTER,size.x-8,12,2,Color("eef1fa"))
-		draw_multiline_string(get_theme_default_font(),Vector2(6,91),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-12,11,3,muted)
+		draw_badge(Vector2(size.x*.5,28),20,gold)
+		ArenaIcon.draw(self,Vector2(size.x*.5,28),kind,25,gold)
+		write(Vector2(4,66),title,12,Color("eef1fa"),size.x-8,true)
+		draw_multiline_string(get_theme_default_font(),Vector2(6,86),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-12,11,3,muted)
 		draw_price_chip(Rect2(6,size.y-37,size.x-12,30),"구매 완료")
 		return
 	if card_type=="library":
@@ -254,10 +255,13 @@ func _draw() -> void:
 		draw_string(ArenaUI.numbers_font(),Vector2(size.x*.5-8,size.y-6),price,HORIZONTAL_ALIGNMENT_LEFT,-1,14,ArenaUI.GOLD)
 		return
 	if card_type=="slot":
-		ArenaIcon.draw(self,Vector2(size.x*.5,21),kind,23,gold)
-		write(Vector2(0,45),title,10,gold,size.x,true)
+		ArenaIcon.draw(self,Vector2(size.x*.5,24),kind,22,gold)
+		write(Vector2(0,47),title,10,gold,size.x,true)
 		write(Vector2(0,size.y-5),price if not price.is_empty() else "설명",9,muted,size.x,true)
-		if not status_text.is_empty():write(Vector2(size.x-26,11),status_text,8,muted)
+		if not status_text.is_empty():
+			# Small kind tag tucked into the corner, clear of the centred icon.
+			var tag_w: float=get_theme_default_font().get_string_size(status_text,HORIZONTAL_ALIGNMENT_LEFT,-1,8).x
+			write(Vector2(size.x-tag_w-5,10),status_text,8,Color(muted,.8))
 		return
 	if card_type=="mini_member":
 		UnitIcon.draw(self,Rect2(size.x*.5-16,4,32,32),type_id,.4 if dead else 1)

@@ -92,7 +92,53 @@ static func dialog_opened(w: Window) -> void:
 ## Slow glow on the main call-to-action.
 static func breathe(c: Control) -> void:
 	if not enabled or not is_instance_valid(c) or not c.is_inside_tree() or c.has_meta("breathing"):return
-	c.set_meta("breathing",true)
-	var t: Tween = c.create_tween().set_loops()
+	var t: Tween = c.create_tween().set_loops();c.set_meta("breathing", t)
 	t.tween_property(c, "self_modulate", Color(1.15, 1.13, 1.05), .9).set_trans(Tween.TRANS_SINE)
 	t.tween_property(c, "self_modulate", Color.WHITE, .9).set_trans(Tween.TRANS_SINE)
+
+## Recruit reroll: cards flip over one after another (scale.x 0 -> 1 with a springy settle).
+static func deal(cards: Array) -> void:
+	if not enabled or cards.is_empty():return
+	var tree: SceneTree = cards[0].get_tree()
+	if tree == null:return
+	for c in cards:
+		if c is Control:c.modulate.a = 0
+	# Containers reset child scale when they lay out, so start the flip after that frame.
+	await tree.process_frame
+	for i in range(cards.size()):
+		var c = cards[i]
+		if not is_instance_valid(c):continue
+		c.pivot_offset = c.size * .5;c.scale = Vector2(0, 1);c.modulate.a = 1
+		var t: Tween = _tween(c).set_parallel(true)
+		t.tween_property(c, "scale", Vector2.ONE, .34).set_delay(i * .09).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		t.tween_property(c, "modulate:a", 1.0, .2).from(0.3).set_delay(i * .09)
+
+## Selected cards and tabs give a small bounce.
+static func bump(c: Control) -> void:
+	if not enabled or not c.is_inside_tree():return
+	c.pivot_offset = c.size * .5;c.scale = Vector2.ONE * 1.06
+	_tween(c).tween_property(c, "scale", Vector2.ONE, .28).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+## Cards scrolled into view fade up from dim, once per pass; positions never change.
+static func scrolled(sc: ScrollContainer, vertical: bool) -> void:
+	if not enabled or not is_instance_valid(sc) or not sc.is_inside_tree():return
+	var key: String = "motion_v" if vertical else "motion_h"
+	var value: float = sc.scroll_vertical if vertical else sc.scroll_horizontal
+	var last: float = float(sc.get_meta(key, value));sc.set_meta(key, value)
+	var delta: float = value - last
+	if absf(delta) < 1:return
+	var view: Rect2 = sc.get_global_rect();var cards: Array = []
+	_collect_cards(sc, Rect2(-1e6, -1e6, 2e6, 2e6), cards)
+	for card in cards:
+		var now: Rect2 = card.get_global_rect()
+		var before: Rect2 = now;before.position += Vector2(0, delta) if vertical else Vector2(delta, 0)
+		if now.intersects(view) and not before.intersects(view):
+			var alpha: float = float(card.get_meta("motion_alpha", card.modulate.a));card.set_meta("motion_alpha", alpha);card.modulate.a = alpha * .25
+			var t: Tween = _tween(card);t.tween_property(card, "modulate:a", alpha, .22)
+			t.tween_callback(func():card.remove_meta("motion_alpha"))
+
+static func calm(c: Control) -> void:
+	if not is_instance_valid(c) or not c.has_meta("breathing"):return
+	var t = c.get_meta("breathing")
+	if t is Tween and t.is_valid():t.kill()
+	c.remove_meta("breathing");c.self_modulate = Color.WHITE

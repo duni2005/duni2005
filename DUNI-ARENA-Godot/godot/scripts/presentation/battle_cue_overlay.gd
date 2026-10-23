@@ -38,8 +38,21 @@ func _draw() -> void:
 	var alpha: float=minf(clampf(age/.12,0,1),clampf((life-age)/.35,0,1))
 	if cue in ["victory","defeat"]:
 		draw_rect(rect,Color(tint,alpha*.16));return
-	if cue in ["turning","hold"]:
+	if cue=="turning":
 		CinematicArtwork.paint(self,rect,"turning",turning_age)
+		return
+	if cue=="hold":
+		# Strategy phase: the board shrinks for the panel, so the big title gives way to a
+		# small tag at the board's top edge and a light cold tint.
+		var settle: float=clampf(age/.3,0,1)
+		draw_rect(rect,Color(.02,.05,.11,.18*settle))
+		var font: Font=ArenaUI.heading_font();var label: String="터닝포인트 · 전략 선택"
+		var w: float=font.get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,14).x+44
+		var chip:=Rect2(Vector2(rect.get_center().x-w*.5,rect.position.y+8-(1-settle)*10),Vector2(w,28))
+		draw_style_box(ArenaUI.box(Color(.03,.05,.09,.88*settle),Color(tint,.75*settle)),chip)
+		var clock: Vector2=chip.position+Vector2(16,14)
+		draw_arc(clock,7,0,TAU,24,Color(tint,settle),1.5,true);draw_line(clock,clock+Vector2.from_angle(-PI/2+turning_age*2)*5,Color(tint,settle),1.5,true)
+		draw_string(font,chip.position+Vector2(30,19),label,HORIZONTAL_ALIGNMENT_LEFT,-1,14,Color(tint,settle))
 		return
 	var center: Vector2=rect.get_center();var width: float=minf(420,rect.size.x-20);var band:=Rect2(center-Vector2(width*.5,38),Vector2(width,76))
 	if cue=="hold":band.position.y=rect.position.y+12
