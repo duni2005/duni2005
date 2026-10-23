@@ -31,7 +31,7 @@ func select_target(unit, candidates: Array):
 			if is_valid_enemy(unit,reply):return reply
 		var punish=unit.battle.find_actor(unit.brain.punish_actor)
 		if unit.brain.punish_until>unit.battle.clock.elapsed and is_valid_enemy(unit,punish):return punish
-		return unit.ability.choose_target(unit,unit.enemies())
+		return committed(unit,unit.ability.choose_target(unit,unit.enemies()))
 	var nearest = null
 	var nearest_distance: float = INF
 	for candidate in candidates:
@@ -42,3 +42,30 @@ func select_target(unit, candidates: Array):
 			nearest = candidate
 			nearest_distance = distance
 	return nearest
+
+## Target commitment (full characters): keep the current target for a while instead of
+## flicking between enemies at similar range. Switch early only when the target is gone,
+## another enemy is already in reach while this one is not, or another is far closer.
+## After the hold, a better-priority choice or a clearly closer one takes over.
+const HOLD: float = 1.6
+var hold_until: float = 0
+func committed(unit, best):
+	var current = unit.target
+	if best == null or current == best:
+		if best != null and hold_until <= unit.battle.clock.elapsed:hold_until = unit.battle.clock.elapsed + HOLD
+		return best
+	if current == null or not is_valid_enemy(unit, current) or current.unavailable() or not unit.enemies().has(current):
+		return _switch(unit, best)
+	var now: float = unit.battle.clock.elapsed
+	var dc: float = unit.position.distance_to(current.position);var db: float = unit.position.distance_to(best.position)
+	var reach: float = unit.data.attack_range + 30 * unit.combat_scale()
+	if (db < reach and dc > reach * 1.4) or db < dc * .5:return _switch(unit, best)
+	if now < hold_until:return current
+	var seen: Array = unit.enemies()
+	var pb: float = unit.ability.target_priority(unit, best, seen);var pc: float = unit.ability.target_priority(unit, current, seen)
+	if pb < pc or (is_equal_approx(pb, pc) and db < dc * .75):return _switch(unit, best)
+	hold_until = now + HOLD * .5
+	return current
+func _switch(unit, target):
+	hold_until = unit.battle.clock.elapsed + HOLD
+	return target

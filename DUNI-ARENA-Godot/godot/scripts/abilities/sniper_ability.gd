@@ -16,7 +16,8 @@ func corner(u) -> Vector2:
 func modify_movement(u,_t,dt: float) -> bool:
 	if u.combat_state!=CombatController.State.IDLE:u.velocity=Vector2.ZERO;u.brain.heading=Vector2.ZERO;return true
 	corner_clock-=dt
-	var goal: Vector2=corner(u);var direction: Vector2=(goal-u.position).normalized() if goal.distance_to(u.position)>22 else Vector2.ZERO
+	# In its corner the sniper keeps a slow sway rather than freezing between shots.
+	var goal: Vector2=corner(u);var direction: Vector2=(goal-u.position).normalized() if goal.distance_to(u.position)>22 else Vector2.from_angle(u.battle.clock.elapsed*.9+u.brain.phase)*.3
 	var close: bool=false
 	for e in u.enemies():
 		var d: float=u.position.distance_to(e.position)

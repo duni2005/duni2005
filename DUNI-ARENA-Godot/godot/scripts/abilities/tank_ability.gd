@@ -19,7 +19,7 @@ func modify_movement(u,t,dt: float) -> bool:
 		return steer_override(u,(u.brain.goal-u.position).normalized(),dt,.6)
 	var dir: Vector2=(t.position-u.position).normalized();var d: float=u.position.distance_to(t.position)
 	var desired: float=220 if u.stance==CombatStance.RUSH else 390 if u.battle.clock.elapsed<u.brain.disengage_until else 330
-	var move: Vector2=dir*clampf((d-desired)/110,-1,1)-dir.orthogonal()*u.brain.side*.18
+	var move: Vector2=dir*clampf((d-desired)/110,-1,1)-dir.orthogonal()*u.brain.side*.4
 	for other in u.enemies()+u.friends():
 		if u.position.distance_to(other.position)<80:move+=(u.position-other.position).normalized()*.5
 	if u.position.x<60:move.x+=1

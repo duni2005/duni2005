@@ -52,6 +52,7 @@ func run(tree: SceneTree) -> void:
 	b.queue_free()
 	await new_characters(tree)
 	await map_wallet_return(tree)
+	ai_health(tree)
 	print("CUSTOM BATTLE RESULT: ",checks," checks; ",failures," failures")
 func duel(tree: SceneTree,rows: Array,seed: int=5) -> BattleManager:
 	var setup:=CustomBattleSetup.new()
@@ -146,6 +147,8 @@ func new_characters(tree: SceneTree) -> void:
 	b.queue_free()
 	b=duel(tree,[[31,0,Vector2(150,400)],[6,1,Vector2(330,400)],[8,1,Vector2(400,460)]])
 	frost=b.units[0];frost.ultimate_gauge=100
+	# Pin the targets so this checks the storm itself, not how well the AI dodges it.
+	for e in b.units.slice(1):StatusController.stun(e,6)
 	for i in range(60*3):
 		step(b,1.0/60)
 		if frost.character_specific_state.has("storm"):break
@@ -184,3 +187,39 @@ func map_wallet_return(tree: SceneTree) -> void:
 		await tree.process_frame;low=minf(low,ui.wallet.shown_gold)
 	verify(low==ui.controller.guild.state.gold,"map wallet shows the current gold on return")
 	ui.queue_free()
+func ai_health(tree: SceneTree) -> void:
+	# Target hold: two enemies at nearly the same range must not make the unit flick between them.
+	var b:=duel(tree,[[0,0,Vector2(400,400)],[0,1,Vector2(560,330)],[0,1,Vector2(560,470)]],3)
+	var u: BattleUnit=b.units[0];var flips: int=0;var last=null
+	for i in range(60*3):
+		b.simulate(1.0/60)
+		if u.target!=null and last!=null and u.target!=last:flips+=1
+		last=u.target
+	verify(flips<=2,"target held between near-equal enemies (%d switches in 3s)"%flips)
+	b.queue_free()
+	# Idle and churn budget over a few mixed 6v6 battles.
+	var rng:=RandomNumberGenerator.new();rng.seed=11
+	var idle_time: float=0;var unit_time: float=0;var switches: int=0
+	for n in range(3):
+		var rows: Array=[]
+		for i in range(6):rows.append([rng.randi_range(0,31),0,Vector2(rng.randf_range(60,300),80+i*120)])
+		for i in range(6):rows.append([rng.randi_range(0,31),1,Vector2(rng.randf_range(500,740),80+i*120)])
+		b=duel(tree,rows,500+n);var still: Dictionary={};var pos: Dictionary={};var tgt: Dictionary={};var shots: Dictionary={}
+		for f in range(60*30):
+			if b.finished:break
+			b.simulate(1.0/60)
+			if b.clock.is_turning_paused():continue
+			for v in b.units:
+				if not v.alive or v.stun_remaining>0 or v.unavailable() or v.target==null or v.data.type_id==29:continue
+				unit_time+=1.0/60
+				var id: String=v.target.actor_id()
+				if tgt.has(v.battle_id) and tgt[v.battle_id]!=id:switches+=1
+				tgt[v.battle_id]=id
+				var moved: float=v.position.distance_to(pos.get(v.battle_id,v.position));pos[v.battle_id]=v.position
+				var acting: bool=v.combat_state!=CombatController.State.IDLE or not v.ultimate.cast.is_empty() or v.combat.attacks_released!=int(shots.get(v.battle_id,v.combat.attacks_released))
+				shots[v.battle_id]=v.combat.attacks_released
+				still[v.battle_id]=float(still.get(v.battle_id,0))+1.0/60 if moved<.25 and not acting else 0.0
+				if float(still[v.battle_id])>1.2:idle_time+=1.0/60
+		b.queue_free()
+	verify(idle_time/unit_time<.06,"units rarely stand idle (%.1f%%)"%(idle_time/unit_time*100))
+	verify(switches/(unit_time/60)<25,"target churn bounded (%.1f per unit-minute)"%(switches/(unit_time/60)))

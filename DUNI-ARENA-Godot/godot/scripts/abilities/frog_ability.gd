@@ -16,7 +16,7 @@ func modify_movement(u,t,dt: float) -> bool:
 		u.frog_hop={"dx":end.x-u.position.x,"dy":end.y-u.position.y,"duration":clampf(.5*105/u.move_speed,.28,.65),"t":0.0}
 	var h: Dictionary=u.frog_hop;var before: Vector2=u.position;var step: float=minf(dt,float(h.duration)-float(h.t));h.t=float(h.t)+step
 	u.position=MovementController.clamp_position(u.position+Vector2(h.dx,h.dy)*step/float(h.duration));u.velocity=(u.position-before)/dt
-	if float(h.t)>=float(h.duration)-1e-8:u.frog_hop.clear();u.frog_hop_wait=u.battle.rng.randf_range(.4,1.6);u.velocity=Vector2.ZERO
+	if float(h.t)>=float(h.duration)-1e-8:u.frog_hop.clear();u.frog_hop_wait=u.battle.rng.randf_range(.35,1.1);u.velocity=Vector2.ZERO
 	return true
 func release_basic(u) -> void:
 	u.frog_hop.clear();shoot(u,u.combat.aim_angle,CombatRules.attack(u),{"kind":"frogTongue","speed":900,"radius":21,"offset":30,"life":u.data.attack_profile.reach*u.combat_scale()/900})

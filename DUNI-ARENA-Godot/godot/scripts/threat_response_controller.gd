@@ -130,6 +130,8 @@ func movement(unit, delta: float) -> bool:
 		return true
 	if response.mode==&"dodge" and unit.battle.full_characters_enabled and (unit.state_value("shadowTime")>0 or unit.command_retreat_until>unit.battle.clock.elapsed or not unit.lost_sword.is_empty()):return false
 	if response.mode==&"parry" and not response.started:
+		# Keep moving normally until the blow is close; then plant and face it.
+		if unit.battle.full_characters_enabled and unit.battle.clock.elapsed<float(response.get("parry_at",0))-.3:return false
 		unit.facing=lerp_angle(unit.facing,(source.position-unit.position).angle(),minf(1,delta*8))
 		direction=(unit.position-source.position).normalized()*.15*.5
 	elif response.mode==&"dodge" and unit.combat_state==CombatController.State.IDLE:

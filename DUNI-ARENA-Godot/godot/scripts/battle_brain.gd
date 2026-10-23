@@ -152,11 +152,13 @@ func move_precommit(u,enemy,dt: float) -> bool:
 	var d: float=u.position.distance_to(enemy.position);var f: Vector2=(enemy.position-u.position).normalized();var l: Vector2=-f.orthogonal()*side
 	desired_distance=minf(u.data.attack_range*.9,310) if u.data.attack_range>100 else standoff
 	var close: bool=d<desired_distance
-	var radial: float=clampf((d-desired_distance)/90,-1,0) if close else sin(now*2.5+phase)*.14 if entry_plan=="feint" else 0
+	# Far from the fight, pre-engagement still closes in; it only lingers near its spacing ring.
+	var far: bool=d>desired_distance+140 and u.stance!=CombatStance.CAUTIOUS
+	var radial: float=clampf((d-desired_distance)/90,-1,0) if close else .85 if far else sin(now*2.5+phase)*.14 if entry_plan=="feint" else 0
 	var direction: Vector2=f*radial+l*(.15 if entry_plan=="observe" else .8 if entry_plan=="flank" else .5)
 	var incoming: Dictionary=u.threat_response.projectile_threat(u)
 	if not incoming.is_empty():direction+=-incoming.arrow.velocity.normalized().orthogonal()*side*.7
-	movement_override="precommit_"+entry_plan;steer(u,direction,dt,1 if close else .5 if entry_plan=="observe" else .8);return true
+	movement_override="precommit_"+entry_plan;steer(u,direction,dt,1 if close or far else .5 if entry_plan=="observe" else .8);return true
 func move_defensive(u,enemy,dt: float) -> bool:
 	if enemy==null or not defensive(u) or u.combat_state!=CombatController.State.IDLE or not u.ultimate.cast.is_empty() or spacing.is_empty() or not u.lost_sword.is_empty() or u.command_retreat_until>u.battle.clock.elapsed:return false
 	var f: Vector2=(enemy.position-u.position).normalized();var l: Vector2=-f.orthogonal()*side;var d: float=u.position.distance_to(enemy.position)
@@ -210,6 +212,8 @@ func move_rear(u,enemy,dt: float) -> bool:
 		rear_goal=rear_station(u,enemy);rear_target=target_id;rear_think_at=now+u.battle.rng.randf_range(.18,.4) if close else now+u.battle.rng.randf_range(.5,1)
 	var goal_point: Vector2=rear_goal.point;var d: float=u.position.distance_to(goal_point)
 	var direction: Vector2=(goal_point-u.position).normalized()*minf(1,d/35)
+	# Settled at the station: a slow side-to-side sway instead of standing frozen.
+	if d<30 and enemy!=null:direction+=(enemy.position-u.position).normalized().orthogonal()*sin(now*1.3+phase)*.35
 	if close:direction+=(u.position-nearest.position).normalized()*clampf((210-u.position.distance_to(nearest.position))/85,0,1.4)
 	var incoming: Dictionary=u.threat_response.projectile_threat(u)
 	if not incoming.is_empty() and incoming.time<reaction*(1.2 if u.stance==CombatStance.CAUTIOUS else 1) and u.combat_state==CombatController.State.IDLE:direction=direction*.4-incoming.arrow.velocity.normalized().orthogonal()*side
