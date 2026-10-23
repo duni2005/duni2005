@@ -12,6 +12,7 @@ var management_panel: GuildManagementPanel
 var management_button: Button
 var result_kicker: Label
 var result_wallet: WalletBar
+var result_emblem: PanelEmblem
 var result_losses: Label
 var result_rewards: Label
 var result_detail: VBoxContainer
@@ -108,6 +109,7 @@ func _process(delta: float) -> void:
 		result_overlay.hide();next_button.disabled=true
 	elif is_instance_valid(battle) and battle.finished and not result_revealed:
 		result_revealed=true;room_hud.updates_suspended=false;result_wallet.updates_suspended=false
+		if result_column!=null:UiMotion.pop(result_column,0,.9,.4)
 		if battle.result.end_reason==BattleEndReason.Value.RETREAT:
 			if not retreat_routed:retreat_routed=true;call_deferred("_finish_retreat_presentation")
 		else:
@@ -158,6 +160,7 @@ func _build_tower_result() -> void:
 	var heading:=Label.new();heading.text="%d층 · %d번 방 · %s"%[room.floor_index+1,room.lane+1,RoomType.LABELS[room.room_type]];heading.custom_minimum_size.y=44;heading.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;column.add_child(heading)
 	result_wallet=WalletBar.new();result_wallet.guild=guild;column.add_child(result_wallet)
 	result_panel=PanelContainer.new();result_panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;result_panel.add_theme_stylebox_override("panel",ArenaUI.box(ArenaUI.PANEL,Color("34406a")));column.add_child(result_panel)
+	result_emblem=PanelEmblem.new();result_emblem.mode="result";result_panel.add_child(result_emblem)
 	var center:=CenterContainer.new();result_panel.add_child(center)
 	result_column=VBoxContainer.new();result_column.add_theme_constant_override("separation",16);center.add_child(result_column)
 	result_banner.hide();result_column.add_child(result_banner)
@@ -172,6 +175,7 @@ func _build_tower_result() -> void:
 	next_button.custom_minimum_size.x=210;ArenaUI.with_icon(next_button,"play",14,true)
 func _format_result(result: BattleResult) -> void:
 	var victory: bool=room.cleared
+	if result_emblem!=null:result_emblem.tint=Color("f0d490") if victory else Color("8a96c8")
 	result_kicker.text="ROOM CLEAR" if victory else "RETREAT" if result.end_reason==BattleEndReason.Value.RETREAT else "EXPLORATION ENDED" if guild.state.game_over else "TRY AGAIN"
 	result_heading.text="방 클리어!" if victory else "안전하게 후퇴했습니다" if result.end_reason==BattleEndReason.Value.RETREAT else "탐험이 종료되었습니다" if guild.state.game_over else "길드원을 정비해 다시 도전하세요"
 	result_heading.add_theme_color_override("font_color",ArenaUI.GOLD if victory else Color("eef1fa"))

@@ -27,6 +27,7 @@ var battle: BattleManager
 var rendered_prediction_finished: bool = false
 var content_tab: String="equipment"
 var motion_tab: String=""
+var emblem: PanelEmblem
 var content_tabs: HBoxContainer
 var offers_grid: GridContainer
 var content_menu: AcceptDialog
@@ -59,9 +60,11 @@ func _ready() -> void:
 	wallet=WalletBar.new();wallet.guild=controller.guild;column.add_child(wallet)
 	room_frame=PanelContainer.new();room_frame.size_flags_vertical=Control.SIZE_EXPAND_FILL;column.add_child(room_frame)
 	room_frame.add_theme_stylebox_override("panel",ArenaUI.box(Color("131a2b"),Color("34406a")))
+	emblem=PanelEmblem.new();room_frame.add_child(emblem)
 	var room_column:=VBoxContainer.new();room_frame.add_child(room_column)
 	var actions:=HBoxContainer.new();room_column.add_child(actions)
 	room_title=Label.new();room_title.text=RoomType.LABELS[controller.current_room().room_type];room_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;room_title.add_theme_font_override("font",ArenaUI.heading_font());room_title.add_theme_font_size_override("font_size",20);room_title.add_theme_color_override("font_color",ArenaUI.GOLD);actions.add_child(room_title)
+	var rule:=StyleBoxFlat.new();rule.bg_color=Color.TRANSPARENT;rule.border_color=Color(ArenaUI.GOLD,.28);rule.border_width_bottom=1;rule.content_margin_bottom=5;room_title.add_theme_stylebox_override("normal",rule)
 	map_footer=CenterContainer.new();column.add_child(map_footer)
 	map_button=button(map_footer,"지도로",_return_map);map_button.custom_minimum_size.y=48;ArenaUI.primary(map_button);ArenaUI.with_icon(map_button,"play",12,true)
 	# Lift the footer to the deploy screen's "전투 시작" height.
@@ -116,8 +119,8 @@ func _action(action: StringName,options: Dictionary={}) -> void:
 	var result: Dictionary=controller.content_action(action,options)
 	status.text=outcome_text(result.get("outcome",{})) if result.ok else "사용 불가 · "+ArenaUI.reason(String(result.code).to_upper())
 	if result.ok:
-		# Purchases already show in the wallet animation and the sold card; no "GOLD -n" line.
-		if action in [&"event",&"rest",&"promotion_select",&"buy"]:status.text=""
+		# Spending already shows in the wallet animation and the action's toast; no "GOLD -n" line.
+		status.text=""
 		_present_action(action,result.get("outcome",{}))
 	if result.ok and controller.guild.state.tower.phase==&"route":map_requested.emit()
 	else:call_deferred("render")
@@ -136,6 +139,8 @@ func render() -> void:
 	event_grid=null
 	var current: RoomState=controller.current_room()
 	room_title.text={&"hotSpring":"온천",&"supply":"보물상자",&"promotion":"승급",&"prediction":"전투 예측"}.get(current.event_type,RoomType.LABELS[current.room_type])
+	emblem.icon=String(current.room_type) if current.room_type!=RoomType.EVENT else String(current.event_type)
+	emblem.caption="%d층 · %d번 방"%[current.floor_index+1,current.lane+1];emblem.visible=current.room_type!=RoomType.SHOP or content_tab!="inventory"
 	party_strip.visible=current.room_type==RoomType.REST or current.event_type in [&"hotSpring",&"supply"]
 	if party_strip.visible:_refresh_party()
 	status.visible=not status.text.is_empty()
@@ -319,7 +324,9 @@ func _present_action(action: StringName,outcome: Dictionary) -> void:
 		var member: GuildMemberState=controller.guild.get_member(outcome.member_id)
 		if member==null:return
 		event.merge({"kind":"recruit" if action==&"recruit" else "promotion","key":"%s:%s:%d"%[action,member.member_id,member.stars],"title":controller.guild.definition(member.unit_type_id).display_name,"type":member.unit_type_id,"stars":member.stars,"slots":GuildMemberCombatStats.equipment_limit(member)})
-	elif action==&"buy":event.merge({"title":"구매 완료","icon":"shop","detail":outcome_text(outcome)})
+	elif action==&"buy":
+		var gained: Dictionary=outcome.duplicate();gained.erase("gold_spent");gained.erase("tokens_spent")
+		event.merge({"title":"구매 완료","icon":"shop","detail":outcome_text(gained)})
 	elif action==&"reroll":event.merge({"title":"새로운 모집 후보","icon":"recruit","detail":"리롤 완료"})
 	elif action in [&"rest",&"event"]:event.merge({"title":"휴식 완료" if action==&"rest" else "이벤트 완료","icon":"rest" if action==&"rest" else "event","detail":outcome_text(outcome)})
 	presentation_requested.emit(event)

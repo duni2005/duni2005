@@ -16,7 +16,8 @@ func _draw() -> void:
 	var screen: Vector2=get_viewport_rect().size
 	for i in range(director.toasts.size()):
 		var item: Dictionary=director.toasts[i];var alpha: float=minf(clampf(item.age/.16,0,1),clampf((2.2-item.age)/.4,0,1));var width: float=minf(340,screen.x-32)
-		var box:=Rect2(Vector2((screen.x-width)*.5,screen.y-88-i*64),Vector2(width,56));draw_style_box(ArenaUI.box(Color(.055,.07,.13,alpha*.96),Color(.42,.48,.7,alpha)),box)
+		# Above the footer action, rising slightly as it appears.
+		var box:=Rect2(Vector2((screen.x-width)*.5,screen.y-178-i*64+(1-clampf(item.age/.2,0,1))*14),Vector2(width,56));draw_style_box(ArenaUI.box(Color(.055,.07,.13,alpha*.96),Color(.42,.48,.7,alpha)),box)
 		ArenaIcon.draw(self,box.position+Vector2(26,28),item.icon,30,Color(1,1,1,alpha));text(box.position+Vector2(52,24),item.title,14,Color(ArenaUI.GOLD,alpha),width-64)
 		if not item.detail.is_empty():text(box.position+Vector2(52,44),item.detail,11,Color(ArenaUI.MUTED,alpha),width-64)
 	if director.active.is_empty():_draw_flights();return
