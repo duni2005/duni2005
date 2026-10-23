@@ -78,7 +78,8 @@ static func hover(b: BaseButton, inside: bool) -> void:
 	var t: Tween = b.create_tween()
 	t.tween_property(b, "self_modulate", Color(1.12, 1.12, 1.12) if inside and not b.disabled else Color.WHITE, .12)
 
-## Dialog content pops in once the dialog has settled its size.
+## Dialog content fades in once the dialog has settled its size. No scale, so dialog headers
+## (close / menu buttons) sit exactly where the page header buttons are.
 static func dialog_opened(w: Window) -> void:
 	if not enabled or not w.is_inside_tree():return
 	var items: Array = w.get_children().filter(func(c):return c is Control and c.visible)
@@ -86,7 +87,7 @@ static func dialog_opened(w: Window) -> void:
 	await w.get_tree().process_frame
 	await w.get_tree().process_frame
 	for c in items:
-		if is_instance_valid(c):c.set_meta("motion_alpha", 1.0);pop(c, 0, .9, .26)
+		if is_instance_valid(c):c.set_meta("motion_alpha", 1.0);fade(c, 0, .2)
 
 ## Slow glow on the main call-to-action.
 static func breathe(c: Control) -> void:
