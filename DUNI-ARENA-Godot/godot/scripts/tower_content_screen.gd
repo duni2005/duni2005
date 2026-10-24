@@ -74,7 +74,9 @@ func _ready() -> void:
 	content_menu=AcceptDialog.new();content_menu.title="메뉴";content_menu.get_ok_button().text="닫기";add_child(content_menu);ArenaModalBackdrop.new().connect_window(content_menu,self)
 	var menu_actions:=VBoxContainer.new();content_menu.add_child(menu_actions);ArenaUI.dialog_header(content_menu,menu_actions,"메뉴")
 	abandon_button=button(menu_actions,"탐험 포기",func():content_menu.hide();abandon_requested.emit())
-	button(menu_actions,"메인화면",func():if not _watch_running():content_menu.hide();main_menu_requested.emit())
+	var home: Button=button(menu_actions,"메인화면",func():if not _watch_running():content_menu.hide();main_menu_requested.emit())
+	# Same icons as the map menu.
+	ArenaUI.with_icon(abandon_button,"flag",16);ArenaUI.with_icon(home,"home",16)
 	if controller.save_manager!=null:
 		storage_status=Label.new();storage_status.text="";storage_status.add_theme_font_size_override("font_size",11);storage_status.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;storage_status.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);storage_status.offset_left=-250;storage_status.offset_top=-20;add_child(storage_status)
 		controller.save_manager.status_changed.connect(_storage_status)
@@ -83,10 +85,10 @@ func _ready() -> void:
 		var tab:=Button.new();tab.text=pair[1];tab.toggle_mode=true;tab.custom_minimum_size.y=36;tab.size_flags_horizontal=Control.SIZE_EXPAND_FILL;tab.set_meta("tab",pair[0]);ArenaUI.tab(tab);content_tabs.add_child(tab)
 		tab.pressed.connect(func():content_tab=pair[0];render())
 	scroll=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;room_column.add_child(scroll)
-	content_box=VBoxContainer.new();content_box.size_flags_horizontal=Control.SIZE_EXPAND_FILL;scroll.add_child(content_box)
+	content_box=VBoxContainer.new();content_box.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content_box.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.add_child(content_box)
 	party_strip=ScrollContainer.new();party_strip.custom_minimum_size.y=82;party_strip.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;room_column.add_child(party_strip);room_column.move_child(party_strip,1)
 	party_members=HBoxContainer.new();party_strip.add_child(party_members)
-	revive_dialog=AcceptDialog.new();revive_dialog.title="사망 유닛 부활";revive_dialog.get_ok_button().text="부활";add_child(revive_dialog)
+	revive_dialog=AcceptDialog.new();revive_dialog.title="사망 유닛 부활";revive_dialog.get_ok_button().text="부활";add_child(revive_dialog);ArenaModalBackdrop.new().connect_window(revive_dialog,self)
 	var revival_column:=VBoxContainer.new();revive_dialog.add_child(revival_column);ArenaUI.dialog_header(revive_dialog,revival_column,"사망 유닛 부활")
 	var revival_scroll:=ScrollContainer.new();revival_scroll.custom_minimum_size=Vector2(270,180);revival_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;revival_column.add_child(revival_scroll)
 	revival_units=HBoxContainer.new();revival_scroll.add_child(revival_units)
@@ -161,7 +163,7 @@ func render() -> void:
 		if not motion_tab.is_empty():UiMotion.pop.call_deferred(content_box,0,.97,.24)
 		motion_tab=content_tab
 	if phase==&"cleared":
-		var text:=Label.new();text.text="이미 완료한 방입니다.";content_box.add_child(text);return
+		_result("star","완료한 방","이 방의 보상은 이미 받았습니다.\n지도에서 다음 방을 선택하세요.",ArenaUI.GOLD,[]);return
 	if node.room_type==RoomType.RECRUIT:render_recruit(node)
 	elif node.room_type==RoomType.SHOP:render_shop(node)
 	elif node.room_type==RoomType.REST:render_rest()
@@ -225,7 +227,8 @@ func _toggle_revive(id: String) -> void:
 	call_deferred("_refresh_revive")
 func render_promotion(node: RoomState) -> void:
 	var event: EventState=node.event
-	var info:=Label.new();info.text="남은 승급 %d회\n같은 종류·성급의 Lv.10 유닛 3명"%[event.promotion_limit-event.promotion_used];info.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;info.add_theme_font_size_override("font_size",12);content_box.add_child(info)
+	_section("남은 승급 %d회"%(event.promotion_limit-event.promotion_used))
+	var info:=Label.new();info.text="같은 종류·성급의 Lv.10 유닛 3명을 고르세요";info.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;info.add_theme_font_size_override("font_size",11);info.add_theme_color_override("font_color",ArenaUI.MUTED);content_box.add_child(info)
 	var slots:=HBoxContainer.new();slots.alignment=BoxContainer.ALIGNMENT_CENTER;content_box.add_child(slots)
 	var first: GuildMemberState=controller.guild.get_member(event.selected_members[0]) if not event.selected_members.is_empty() else null
 	for i in range(3):
@@ -249,11 +252,9 @@ func render_promotion(node: RoomState) -> void:
 		var detail:=Label.new();detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;detail.add_theme_font_size_override("font_size",11);detail.text="첫 길드원과 장비는 유지됩니다. 다른 두 길드원은 소비되며 장비는 인벤토리로 반환됩니다.";content_box.add_child(detail)
 func render_event(node: RoomState) -> void:
 	if node.event.resolved:
-		var box:=PanelContainer.new();box.custom_minimum_size.y=210;box.add_theme_stylebox_override("panel",ArenaUI.box(Color("1f2a44"),Color("4b5a86")));content_box.add_child(box)
-		var center:=CenterContainer.new();box.add_child(center);var result:=VBoxContainer.new();result.add_theme_constant_override("separation",16);center.add_child(result)
-		var icon:=TextureRect.new();icon.texture=ArenaIcon.texture("hotSpring" if node.event.selected_choice==&"bathe" else "gold");icon.custom_minimum_size=Vector2(60,60);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;result.add_child(icon)
-		var title:=Label.new();title.text="온천욕 완료" if node.event.selected_choice==&"bathe" else "복권 당첨";title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;title.add_theme_font_size_override("font_size",23);result.add_child(title)
-		var detail:=Label.new();detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;detail.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;detail.custom_minimum_size.x=minf(350,get_viewport_rect().size.x-70);detail.text="생존 유닛 HP +10% · 기력 +2칸" if node.event.selected_choice==&"bathe" else _event_reward_text(node.event.outcome);detail.add_theme_color_override("font_color",Color("c3cbe3"));result.add_child(detail);return
+		if node.event.selected_choice==&"bathe":_result("hotSpring","온천욕 완료","따뜻한 온천에서 생존 유닛들이 회복했습니다.",Color("7fd8e8"),["HP +10%","기력 +2칸"])
+		else:_result("gold","복권 당첨","온천 복권에서 보상을 얻었습니다.",ArenaUI.GOLD,[_event_reward_text(node.event.outcome)])
+		return
 	var grid: GridContainer=_event_choices()
 	var options: Dictionary={&"bathe":["온천에 들어가기","생존 유닛 HP +10%\n기력 +2칸","hotSpring"],&"lottery":["온천 복권 구매","무작위 보상","gold"],&"heal":["플레이어 회복","HP +10","heart"],&"guild":["생존 유닛 회복","HP +10% · 기력 +1","rest"],&"gold":["자원 획득","골드 +300 · 토큰 +1","gold"],&"loot":["무작위 아이템" if node.event.treasure_kind==&"item" else "무작위 전략카드","아이템 1개" if node.event.treasure_kind==&"item" else "전략카드 1장","supply" if node.event.treasure_kind==&"item" else "prediction"]}
 	for choice in node.event.choices:
@@ -275,18 +276,36 @@ func _event_reward_text(outcome: Dictionary) -> String:
 func render_prediction(node: RoomState) -> void:
 	var state: PredictionState=node.event.prediction
 	if state.status==&"resolved":
-		var result:=Label.new();result.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;result.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;result.add_theme_font_size_override("font_size",18)
-		result.text="예측 보상 +%d G · 토큰 +1"%state.payout if state.result==&"correct" else "무승부 · %d G 반환"%state.stake if state.result==&"draw" else "예측 실패 · %d G 소모"%state.stake
-		content_box.add_child(result);return
+		var picked: Array[int]=[]
+		for team in state.teams:
+			if team.team==state.picked_team:picked.assign(team.types)
+		var caption: String="예측한 팀 · %d팀"%(state.picked_team+1)
+		if state.result==&"correct":_result("crown","예측 성공!","%d팀의 승리를 맞혔습니다."%(state.picked_team+1),ArenaUI.GOLD,["+%d G"%state.payout,"토큰 +1"],picked,caption)
+		elif state.result==&"draw":_result("prediction","무승부","승부가 나지 않아 판돈을 돌려받았습니다.",Color("9fb4d8"),["%d G 반환"%state.stake],picked,caption)
+		else:_result("skull","예측 실패","%d팀이 승리하지 못했습니다."%(state.picked_team+1),Color("ff8a8a"),["-%d G"%state.stake],picked,caption)
+		return
+	_section("승리할 팀 예측")
 	for team in state.teams:
 		var choice: ArenaCard=button(content_box,"%d팀\n%s"%[team.team+1," / ".join(team.types.map(func(t):return controller.guild.definition(t).display_name))],_pick_prediction.bind(team.team),"team_%d"%team.team)
 		choice.card_type="prediction_team";choice.title="%d팀"%(team.team+1);choice.kind="battle";choice.portrait_types.assign(team.types);choice.custom_minimum_size.y=92;choice.toggle_mode=true;choice.set_pressed_no_signal(state.picked_team==team.team);choice.selected=state.picked_team==team.team
-	var text:=Label.new();text.text="몇 골드를 걸까?";content_box.add_child(text)
+	_section("판돈 선택")
 	var row:=HBoxContainer.new();content_box.add_child(row)
 	for stake in [50,100,200]:
 		var b:=ArenaCard.new();b.name="stake_%d"%stake;b.text="GOLD %d"%stake;b.card_type="stake";b.title="%d G"%stake;b.custom_minimum_size=Vector2(0,44);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.toggle_mode=true;b.selected=state.stake==stake;b.set_pressed_no_signal(b.selected);b.disabled=controller.guild.state.gold<stake;row.add_child(b);ArenaUI.bind(b,_stake_prediction.bind(stake))
-	var odds:=Label.new();odds.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;odds.add_theme_font_size_override("font_size",12);odds.text="성공 %d G + 토큰 1개 · 실패 참가 골드 소모 · 무승부 반환"%(state.stake*2);content_box.add_child(odds)
-	var start: Button=button(content_box,"걸고 관전 · GOLD %dG"%state.stake,_start_prediction,"Watch");start.disabled=state.picked_team<0 or controller.guild.state.gold<state.stake
+	# Payout rules as three small chips.
+	var odds:=HBoxContainer.new();odds.alignment=BoxContainer.ALIGNMENT_CENTER;odds.add_theme_constant_override("separation",6);content_box.add_child(odds)
+	for pair in [["성공 +%d G · 토큰 1"%(state.stake*2),ArenaUI.GOLD],["실패 -%d G"%state.stake,Color("ff8a8a")],["무승부 반환",Color("9fb4d8")]]:
+		var chip:=Label.new();chip.text=pair[0];chip.add_theme_font_size_override("font_size",11);chip.add_theme_color_override("font_color",pair[1])
+		var box: StyleBoxFlat=ArenaUI.box(Color(pair[1],.12),Color(pair[1],.5));box.set_corner_radius_all(10);box.content_margin_left=8;box.content_margin_right=8;box.content_margin_top=3;box.content_margin_bottom=3;chip.add_theme_stylebox_override("normal",box);odds.add_child(chip)
+	var start:=Button.new();start.name="Watch";start.text="%d G 걸고 관전하기"%state.stake;start.custom_minimum_size.y=52;ArenaUI.primary(start);ArenaUI.with_icon(start,"battle",14);ArenaUI.bind(start,_start_prediction);content_box.add_child(start)
+	start.disabled=state.picked_team<0 or controller.guild.state.gold<state.stake
+## Finished-room page: replaces the room content and the panel watermark.
+func _result(icon: String,title: String,detail: String,accent: Color,chips: Array,types: Array[int]=[],caption: String="") -> void:
+	emblem.visible=false
+	var card:=ResultCard.new();card.icon=icon;card.title=title;card.detail=detail;card.accent=accent;card.chips.assign(chips);card.types=types;card.types_caption=caption;content_box.add_child(card)
+func _section(text: String) -> void:
+	var label:=Label.new();label.text=text;label.add_theme_font_override("font",ArenaUI.heading_font());label.add_theme_font_size_override("font_size",15);label.add_theme_color_override("font_color",Color("e8d6a6"))
+	var rule:=StyleBoxFlat.new();rule.bg_color=Color.TRANSPARENT;rule.border_color=Color(ArenaUI.GOLD,.2);rule.border_width_bottom=1;rule.content_margin_top=6;rule.content_margin_bottom=3;label.add_theme_stylebox_override("normal",rule);content_box.add_child(label)
 func _pick_prediction(team: int) -> void:controller.choose_prediction_team(team);call_deferred("render")
 func _stake_prediction(stake: int) -> void:controller.choose_prediction_stake(stake);call_deferred("render")
 func _start_prediction() -> void:
