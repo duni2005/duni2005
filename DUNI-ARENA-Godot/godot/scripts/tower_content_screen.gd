@@ -299,6 +299,10 @@ func render_prediction(node: RoomState) -> void:
 		var box: StyleBoxFlat=ArenaUI.box(Color(pair[1],.12),Color(pair[1],.5));box.set_corner_radius_all(10);box.content_margin_left=8;box.content_margin_right=8;box.content_margin_top=3;box.content_margin_bottom=3;chip.add_theme_stylebox_override("normal",box);odds.add_child(chip)
 	var start:=Button.new();start.name="Watch";start.text="%d G 걸고 관전하기"%state.stake;start.custom_minimum_size.y=52;ArenaUI.primary(start);ArenaUI.with_icon(start,"battle",14);ArenaUI.bind(start,_start_prediction);content_box.add_child(start)
 	start.disabled=state.picked_team<0 or controller.guild.state.gold<state.stake
+	# Say why it is not ready instead of a red disabled label.
+	start.add_theme_color_override("font_disabled_color",ArenaUI.MUTED)
+	if state.picked_team<0:start.text="승리할 팀을 먼저 선택하세요"
+	elif controller.guild.state.gold<state.stake:start.text="골드가 부족합니다"
 ## Finished-room page: replaces the room content and the panel watermark.
 func _result(icon: String,title: String,detail: String,accent: Color,chips: Array,types: Array[int]=[],caption: String="") -> void:
 	emblem.visible=false
