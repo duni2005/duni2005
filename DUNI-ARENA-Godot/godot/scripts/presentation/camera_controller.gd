@@ -18,6 +18,22 @@ var body_bounds: Rect2
 var overview_age: float=-1
 var overview_zoom: float=1
 var overview_center:=Vector2(400,400)
+## Player zoom (pinch / wheel) during a turning point, applied on top of the framing camera.
+## focus is the board point that stays fixed while zoomed; both live in 800-unit board space.
+var user_zoom: float=1
+var user_focus:=Vector2(400,400)
+const USER_ZOOM_MAX: float=2.6
+func user_zoom_by(factor: float,screen_point: Vector2) -> void:
+	var before: float=user_zoom;user_zoom=clampf(user_zoom*factor,1,USER_ZOOM_MAX)
+	if user_zoom<=1.001:user_zoom=1;return
+	# Keep the board point under the fingers where it is while the scale changes.
+	var anchor: Vector2=user_focus+(screen_point-user_focus)/before if before>1.001 else screen_point
+	user_focus=((anchor*user_zoom-screen_point)/(user_zoom-1)).clamp(Vector2.ZERO,Vector2(800,800))
+func user_pan_by(screen_delta: Vector2) -> void:
+	if user_zoom<=1.001:return
+	user_focus=(user_focus-screen_delta/(user_zoom-1)).clamp(Vector2.ZERO,Vector2(800,800))
+func user_relax(real_delta: float) -> void:
+	if user_zoom>1:user_zoom=maxf(1,lerpf(user_zoom,1,1-exp(-real_delta*6))-.002)
 func advance_overview(real_delta: float,duration: float=2.0) -> void:
 	# TP's two real-second slowdown reveals the entire logical arena.
 	# Read-only camera interpolation; the simulation clock remains authoritative.
@@ -73,6 +89,8 @@ func advance(real_delta: float,paused: bool=false) -> void:
 		zoom=lerpf(zoom,1.028 if focus_remaining>0 else 1,clampf(dt*12,0,1))
 		pan=(Vector2(400,400)-focus_point)*(.025 if focus_remaining>0 else 0)
 func transform() -> Transform2D:
-	return Transform2D(0,Vector2.ONE*zoom,0,Vector2(400,400)*(1-zoom)+offset+pan)
+	var base:=Transform2D(0,Vector2.ONE*zoom,0,Vector2(400,400)*(1-zoom)+offset+pan)
+	if user_zoom<=1.001:return base
+	return Transform2D(0,Vector2.ONE*user_zoom,0,user_focus*(1-user_zoom))*base
 func reset() -> void:
-	overview_age=-1;zoom=1;pan=Vector2.ZERO;offset=Vector2.ZERO;strength=0;focus_remaining=0;finale_remaining=0;age=0;center=Vector2(400,400);focus_point=center;framing.clear();body_bounds=Rect2()
+	user_zoom=1;user_focus=Vector2(400,400);overview_age=-1;zoom=1;pan=Vector2.ZERO;offset=Vector2.ZERO;strength=0;focus_remaining=0;finale_remaining=0;age=0;center=Vector2(400,400);focus_point=center;framing.clear();body_bounds=Rect2()

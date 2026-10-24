@@ -43,6 +43,8 @@ func _process(_delta: float) -> void:
 		battle.position = rect.position
 		battle.scale = Vector2.ONE * rect.size.x / 800.0
 	elif presentation!=null and is_instance_valid(presentation.battle):presentation.cleanup()
+	# The pinch zoom belongs to the turning point; ease back once the battle runs again.
+	if presentation!=null and not _zoomable():presentation.camera.user_relax(_delta)
 	queue_redraw()
 
 func hit_member(point: Vector2) -> String:
@@ -96,7 +98,38 @@ func pointer_up(local: Vector2, id: int, canceled: bool = false) -> void:
 	edit_finished.emit()
 	queue_redraw()
 
+## Two-finger pinch (and mouse wheel / trackpad pinch) zooms the field during a turning point.
+var touches: Dictionary={}
+var pinch_span: float=0
+var pinch_mid:=Vector2.ZERO
+func _zoomable() -> bool:
+	return not editing and is_instance_valid(battle) and battle.clock.is_turning_paused() and presentation!=null
+func _board_space(local: Vector2) -> Vector2:
+	var rect: Rect2=board_rect();return (local-rect.position)*800/maxf(rect.size.x,1)
+func _pinch(event: InputEvent) -> bool:
+	if event is InputEventScreenTouch:
+		if event.pressed:touches[event.index]=event.position
+		else:touches.erase(event.index)
+		if touches.size()==2:
+			var points: Array=touches.values();pinch_span=points[0].distance_to(points[1]);pinch_mid=(points[0]+points[1])*.5
+		return touches.size()>=2
+	if event is InputEventScreenDrag and touches.has(event.index):
+		touches[event.index]=event.position
+		if touches.size()==2 and _zoomable():
+			var points: Array=touches.values();var span: float=points[0].distance_to(points[1]);var mid: Vector2=(points[0]+points[1])*.5
+			var cam: ArenaCameraController=presentation.camera
+			if pinch_span>8:cam.user_zoom_by(span/pinch_span,_board_space(mid))
+			cam.user_pan_by(_board_space(mid)-_board_space(pinch_mid))
+			pinch_span=span;pinch_mid=mid;return true
+		return touches.size()>=2
+	if _zoomable() and event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+		presentation.camera.user_zoom_by(1.12 if event.button_index==MOUSE_BUTTON_WHEEL_UP else 1/1.12,_board_space(event.position));return true
+	if _zoomable() and event is InputEventMagnifyGesture:
+		presentation.camera.user_zoom_by(event.factor,_board_space(event.position));return true
+	return false
+
 func _gui_input(event: InputEvent) -> void:
+	if _pinch(event):accept_event();return
 	if not editing and is_instance_valid(battle) and battle.full_characters_enabled:
 		var pressed: bool=(event is InputEventMouseButton and event.device!=-1 and event.button_index==MOUSE_BUTTON_LEFT and event.pressed) or (event is InputEventScreenTouch and event.pressed)
 		if pressed and board_rect().has_point(event.position):

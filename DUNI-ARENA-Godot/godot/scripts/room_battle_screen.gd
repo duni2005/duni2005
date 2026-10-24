@@ -58,7 +58,7 @@ func _build_ui() -> void:
 	deployment_hint=Label.new();deployment_hint.text="보유 길드원을 골라 배치하세요.";deployment_hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;deployment_hint.add_theme_font_size_override("font_size",11);deployment_hint.add_theme_color_override("font_color",ArenaUI.MUTED);actions_home.add_child(deployment_hint);actions_home.move_child(deployment_hint,0)
 	ai_debug_panel=PanelContainer.new();ai_debug_panel.z_index=10;ai_debug_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE;board.add_child(ai_debug_panel)
 	ai_debug_label=Label.new();ai_debug_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;ai_debug_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;ai_debug_label.add_theme_font_size_override("font_size",11);ai_debug_panel.add_child(ai_debug_label);ai_debug_panel.hide()
-	board.battle_unit_selected.connect(func(actor_id):ai_debug_actor=actor_id;_refresh_selected())
+	board.battle_unit_selected.connect(func(actor_id):ai_debug_actor=actor_id;_select_from_field(actor_id);_refresh_selected())
 
 	var column: VBoxContainer = status.get_parent()
 	column.get_child(0).text = "전투 준비 · 길드원 배치"
@@ -232,6 +232,10 @@ func _process(delta: float) -> void:
 		for button in [remove_button,clear_button,restore_button]:button.visible=debug_enabled
 	var turning: TurningPointManager = battle.turning if is_instance_valid(battle) else null
 	turning_panel.refresh(turning)
+	# During a turning point the field ring follows the ally chosen in the strip.
+	if turning!=null and turning.is_paused() and turning.current!=null:
+		var chosen: BattleUnit=EnemyPlanExecutor.find_member(battle,turning.current.selected_member_id)
+		board.selected_actor_id=chosen.actor_id() if chosen!=null else ""
 	character_debug_row.visible=board.editing and full_character_debug and debug_enabled
 	_refresh_transcendence(0 if watch_paused else delta)
 	turning_panel.debug_enabled=debug_enabled
@@ -424,3 +428,13 @@ func _toggle_watch_pause() -> void:
 		battle.set_physics_process(false);board.presentation.set_process(false);watch_paused=true
 	else:
 		battle.set_physics_process(watch_physics_before);board.presentation.set_process(watch_presentation_before);watch_paused=false
+
+## Tapping an ally on the field during a turning point selects it in the strip as well.
+func _select_from_field(actor_id: String) -> void:
+	if not is_instance_valid(battle) or battle.turning==null or not battle.turning.is_paused() or battle.turning.current==null:return
+	var unit=battle.find_actor(actor_id)
+	if unit==null:
+		var current: BattleUnit=EnemyPlanExecutor.find_member(battle,battle.turning.current.selected_member_id)
+		if current!=null:board.selected_actor_id=current.actor_id()
+		return
+	if unit.alive and not unit.source_member_id.is_empty() and unit.original_team==0:battle.turning.current.selected_member_id=unit.source_member_id

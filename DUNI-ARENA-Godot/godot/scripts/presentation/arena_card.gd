@@ -127,6 +127,13 @@ func write(at: Vector2,value: String,font_size: int=14,color: Color=Color("eef1f
 	draw_string(get_theme_default_font(),at,ArenaUI.plain(value),HORIZONTAL_ALIGNMENT_CENTER if center else HORIZONTAL_ALIGNMENT_LEFT,width,font_size,color)
 func _draw() -> void:
 	if cached_style==null:return
+	if card_type=="hand_card":
+		# Strategy card in the turning-point hand: drawn as a real card.
+		var state: String="selected" if button_pressed else ("waiting" if status_text!="사용함" else "used") if disabled else "ready"
+		StrategyCardArt.draw(self,Rect2(Vector2(3,3),size-Vector2(6,8)),kind,title,description,"",state,status_text)
+		return
+	if card_type=="tp_member":
+		_draw_tp_member();return
 	var active: bool=selected or button_pressed
 	# Touch screens have no hover, and a tap leaves focus behind; neither may stay lit.
 	var hovered: bool=is_hovered() and not ArenaUI.touch_ui();var focused: bool=has_focus() and not ArenaUI.touch_ui()
@@ -338,3 +345,14 @@ func _draw() -> void:
 			var points:=PackedVector2Array();var at:=Vector2(size.x-15-i*13,38)
 			for j in range(10):points.append(at+Vector2.from_angle(-PI/2+j*PI/5)*(6 if j%2==0 else 2.5))
 			draw_colored_polygon(points,gold)
+
+## Turning-point ally chip: unit icon in a ring (gold and glowing when selected), HP bar, stance.
+func _draw_tp_member() -> void:
+	var on: bool=button_pressed;var c:=Vector2(size.x*.5,28)
+	if on:VfxArt.glow(self,c,36,ArenaUI.GOLD,.35)
+	draw_circle(c,23,Color("0c1220"))
+	UnitIcon.draw(self,Rect2(c-Vector2(21,21),Vector2(42,42)),type_id)
+	draw_arc(c,23,0,TAU,40,ArenaUI.GOLD if on else Color("4a5680"),2.5 if on else 1.2,true)
+	var w: float=size.x-16
+	draw_rect(Rect2(8,56,w,4),Color("0e1424"));draw_rect(Rect2(8,56,w*clampf(hp/maxf(1,hp_max),0,1),4),ArenaUI.HP)
+	write(Vector2(0,size.y-3),status_text,9,ArenaUI.GOLD if on else Color("9aa5c2"),size.x,true)
