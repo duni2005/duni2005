@@ -85,7 +85,7 @@ func _ready() -> void:
 	validation=Label.new();validation.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;validation.add_theme_font_size_override("font_size",11);validation.add_theme_color_override("font_color",ArenaUI.MUTED);texts.add_child(validation)
 	start_button=_button(footer,"전투 시작",start_battle);start_button.custom_minimum_size=Vector2(140,52);ArenaUI.primary(start_button);ArenaUI.with_icon(start_button,"play",12,true)
 	# Battle controls: transcendence for every unit, pause / speed / rematch.
-	trans_scroll=ScrollContainer.new();trans_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;trans_scroll.custom_minimum_size.y=60;column.add_child(trans_scroll);trans_scroll.hide()
+	trans_scroll=ScrollContainer.new();trans_scroll.set_meta("hold_drag",true);trans_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;trans_scroll.custom_minimum_size.y=60;column.add_child(trans_scroll);trans_scroll.hide()
 	trans_row=HBoxContainer.new();trans_row.add_theme_constant_override("separation",6);trans_scroll.add_child(trans_row)
 	battle_toolbar=HBoxContainer.new();column.add_child(battle_toolbar);battle_toolbar.hide()
 	pause_button=_button(battle_toolbar,"Ⅱ 일시정지",_toggle_pause);pause_button.custom_minimum_size.x=104;pause_button.add_theme_font_size_override("font_size",11);ArenaUI.quiet(pause_button)

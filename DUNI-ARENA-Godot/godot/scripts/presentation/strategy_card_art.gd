@@ -17,7 +17,7 @@ static func theme_for(kind: String) -> Array:
 ## state: "ready", "selected", "used" or "waiting". note: small text for used/waiting cards.
 static func draw(c: CanvasItem, rect: Rect2, kind: String, title: String, rule: String, description: String, state: String = "ready", note: String = "") -> void:
 	var colors: Array = theme_for(kind);var body: Color = colors[0];var glow: Color = colors[1]
-	var big: bool = rect.size.x > 160;var dim: bool = state in ["used", "waiting"]
+	var big: bool = rect.size.x > 140;var dim: bool = state in ["used", "waiting"]
 	var radius: int = int(rect.size.x * .09)
 	# Drop shadow and body.
 	var shadow := StyleBoxFlat.new();shadow.bg_color = Color(0, 0, 0, .45);shadow.set_corner_radius_all(radius)
@@ -47,7 +47,7 @@ static func draw(c: CanvasItem, rect: Rect2, kind: String, title: String, rule: 
 	c.draw_style_box(ArenaUI.box(Color(glow, .18), Color(glow, .6)), chip)
 	c.draw_string(text_font, chip.position + Vector2(0, chip.size.y * .5 + chip_font * .36), rule, HORIZONTAL_ALIGNMENT_CENTER, chip.size.x, chip_font, glow.lightened(.4))
 	if big and not description.is_empty():
-		c.draw_multiline_string(text_font, Vector2(rect.position.x + inset, chip.end.y + 30), description, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - inset * 2, 17, 4, Color("eef1fa"))
+		c.draw_multiline_string(text_font, Vector2(rect.position.x + inset, chip.end.y + rect.size.y * .09), description, HORIZONTAL_ALIGNMENT_CENTER, rect.size.x - inset * 2, int(clampf(rect.size.x * .08, 13, 17)), 4, Color("eef1fa"))
 	if dim:
 		# Stamp across the card.
 		var stamp: String = note if not note.is_empty() else "사용함"

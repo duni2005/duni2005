@@ -74,7 +74,7 @@ func _build_ui() -> void:
 	character_debug_row.add_child(character_select)
 	_button(character_debug_row,"길드원 생성",_debug_create_member)
 	_button(character_debug_row,"테스트 적 추가",_debug_create_enemy)
-	trans_scroll=ScrollContainer.new();trans_scroll.custom_minimum_size.y=58
+	trans_scroll=ScrollContainer.new();trans_scroll.set_meta("hold_drag",true);trans_scroll.custom_minimum_size.y=58
 	trans_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED
 	column.add_child(trans_scroll);column.move_child(trans_scroll,board.get_index());trans_row=HBoxContainer.new();trans_row.add_theme_constant_override("separation",6);trans_scroll.add_child(trans_row)
 	trans_cutin=PanelContainer.new();add_child(trans_cutin)

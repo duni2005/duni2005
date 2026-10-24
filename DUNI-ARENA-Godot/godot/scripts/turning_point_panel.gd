@@ -1,9 +1,10 @@
 class_name TurningPointPanel
-extends PanelContainer
+extends VBoxContainer
 ## Tactical selection surface. Rules/time/plans belong to the manager, not Controls.
-## Layout: header (time · resume · retreat), ally strip, stance segments, then the strategy
-## card hand. Tapping a card (or flicking it up) lifts it to the screen centre, enlarged, with
-## a "use on the selected ally" button; touching anywhere else drops it back into the hand.
+## Layout: a compact frame (time · resume · retreat, ally strip, stance segments), then the
+## strategy card hand below it. Tapping a card (or flicking it up) lifts it out of the hand,
+## enlarged over the bottom UI rather than the field, with a "use on the selected ally" button;
+## touching anywhere else drops it back into the hand.
 var manager: TurningPointManager
 var heading: Label
 var resume_button: Button
@@ -30,16 +31,19 @@ var focus_target: Label
 var focus_card_id: int = 0
 var focus_from: Rect2
 var focus_t: float = 0
-const CARD_SIZE := Vector2(88, 124)
+const CARD_SIZE := Vector2(74, 104)
+const STANCE_ICONS := {&"normal":"normal",&"cautious":"defense",&"rush":"battle",&"cover":"recruit"}
 
 func _ready() -> void:
-	theme=ArenaUI.get_theme()
+	theme=ArenaUI.get_theme();add_theme_constant_override("separation",4)
+	# Compact frame: time/resume row, ally chips, stance segments. The card hand sits below it, unframed.
+	var box := PanelContainer.new();box.name="Frame"
 	var frame: StyleBoxFlat=ArenaUI.box(Color(.05,.07,.12,.94),Color("3c4a72"));frame.set_corner_radius_all(14)
-	for side in ["left","right"]:frame.set("content_margin_"+side,10)
-	frame.content_margin_top=8;frame.content_margin_bottom=6;frame.border_width_top=2;frame.border_color=Color("8fe3ff",.55)
-	add_theme_stylebox_override("panel",frame)
-	var column := VBoxContainer.new();column.add_theme_constant_override("separation",6)
-	add_child(column)
+	for side in ["left","right"]:frame.set("content_margin_"+side,8)
+	frame.content_margin_top=6;frame.content_margin_bottom=6;frame.border_width_top=2;frame.border_color=Color("8fe3ff",.55)
+	box.add_theme_stylebox_override("panel",frame);add_child(box)
+	var column := VBoxContainer.new();column.add_theme_constant_override("separation",4)
+	box.add_child(column)
 	var row := HBoxContainer.new();row.add_theme_constant_override("separation",8)
 	column.add_child(row)
 	heading = Label.new()
@@ -56,10 +60,11 @@ func _ready() -> void:
 		if manager != null: manager.resolve())
 	row.add_child(resume_button)
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size.y = 80
+	scroll.custom_minimum_size.y = 56
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	column.add_child(scroll)
-	allies = HBoxContainer.new();allies.add_theme_constant_override("separation",6)
+	allies = HBoxContainer.new();allies.add_theme_constant_override("separation",4)
 	scroll.add_child(allies)
 	# Stance segments for the selected ally.
 	stances = HBoxContainer.new();stances.add_theme_constant_override("separation",4)
@@ -70,8 +75,8 @@ func _ready() -> void:
 		var button := Button.new()
 		button.text = names[index]
 		button.tooltip_text=ArenaUI.STANCE_HELP.get(value,"")
-		ArenaUI.with_icon(button,{&"normal":"normal",&"cautious":"defense",&"rush":"battle",&"cover":"recruit"}[value],14)
-		button.custom_minimum_size = Vector2(0, 38);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		ArenaUI.with_icon(button,STANCE_ICONS[value],14)
+		button.custom_minimum_size = Vector2(0, 34);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		button.toggle_mode = true;ArenaUI.tab(button)
 		ArenaUI.bind(button,func():
 			if manager != null and manager.current != null:
@@ -87,22 +92,21 @@ func _ready() -> void:
 	plans.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	plans.add_theme_font_size_override("font_size", 12)
 	plan_scroll.add_child(plans)
-	# Strategy card hand: its own strip at the bottom.
-	var hand_label := Label.new();hand_label.text="전략카드";hand_label.add_theme_font_size_override("font_size",11);hand_label.add_theme_color_override("font_color",ArenaUI.MUTED)
-	column.add_child(hand_label)
+	# Strategy card hand: outside the frame, pushed to the bottom edge when there is room.
+	size_flags_vertical=Control.SIZE_EXPAND_FILL
+	var gap := Control.new();gap.size_flags_vertical=Control.SIZE_EXPAND_FILL;gap.mouse_filter=Control.MOUSE_FILTER_IGNORE;add_child(gap)
+	card_result = Label.new()
+	card_result.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;card_result.clip_text=true;card_result.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
+	card_result.add_theme_font_size_override("font_size", 11);card_result.add_theme_color_override("font_color",Color("9aa5c2"))
+	add_child(card_result)
 	card_scroll = ScrollContainer.new()
-	card_scroll.custom_minimum_size.y = CARD_SIZE.y + 10
+	card_scroll.custom_minimum_size.y = CARD_SIZE.y + 4
 	card_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	card_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
 	card_scroll.scroll_ended.connect(_snap_to_nearest)
-	column.add_child(card_scroll)
-	card_row = HBoxContainer.new();card_row.add_theme_constant_override("separation",2)
+	add_child(card_scroll)
+	card_row = HBoxContainer.new();card_row.add_theme_constant_override("separation",0)
 	card_scroll.add_child(card_row)
-	card_result = Label.new()
-	card_result.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card_result.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;card_result.max_lines_visible=2
-	card_result.add_theme_font_size_override("font_size", 11);card_result.add_theme_color_override("font_color",Color("9aa5c2"))
-	column.add_child(card_result)
 	_build_focus()
 	visible = false
 
@@ -117,28 +121,34 @@ func _build_focus() -> void:
 	focus_view=Control.new();focus_view.mouse_filter=Control.MOUSE_FILTER_IGNORE;focus_view.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);focus_root.add_child(focus_view)
 	focus_view.draw.connect(_draw_focus)
 	var dock:=VBoxContainer.new();dock.name="FocusDock";dock.add_theme_constant_override("separation",8);focus_root.add_child(dock)
-	var target_row:=HBoxContainer.new();target_row.alignment=BoxContainer.ALIGNMENT_CENTER;target_row.add_theme_constant_override("separation",8);dock.add_child(target_row)
-	focus_target_icon=TextureRect.new();focus_target_icon.custom_minimum_size=Vector2(30,30);focus_target_icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;focus_target_icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;target_row.add_child(focus_target_icon)
-	focus_target=Label.new();focus_target.add_theme_font_size_override("font_size",14);target_row.add_child(focus_target)
-	var buttons:=HBoxContainer.new();buttons.alignment=BoxContainer.ALIGNMENT_CENTER;buttons.add_theme_constant_override("separation",10);dock.add_child(buttons)
-	cancel_button = Button.new()
-	cancel_button.text = "취소"
-	cancel_button.custom_minimum_size = Vector2(88, 48)
-	ArenaUI.bind(cancel_button,func():
-		if manager != null: manager.cancel_card_selection())
-	buttons.add_child(cancel_button)
+	var target_row:=HBoxContainer.new();target_row.add_theme_constant_override("separation",6);dock.add_child(target_row)
+	focus_target_icon=TextureRect.new();focus_target_icon.custom_minimum_size=Vector2(34,34);focus_target_icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;focus_target_icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;target_row.add_child(focus_target_icon)
+	focus_target=Label.new();focus_target.add_theme_font_size_override("font_size",12);focus_target.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;focus_target.size_flags_horizontal=Control.SIZE_EXPAND_FILL;focus_target.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;target_row.add_child(focus_target)
 	use_button = Button.new()
 	use_button.text = "사용"
-	use_button.custom_minimum_size = Vector2(176, 48)
+	use_button.custom_minimum_size = Vector2(0, 52);use_button.clip_text=true;use_button.text_overrun_behavior=TextServer.OVERRUN_TRIM_ELLIPSIS
 	ArenaUI.primary(use_button);ArenaUI.with_icon(use_button,"play",12,true)
 	ArenaUI.bind(use_button,func():
 		if manager != null: manager.use_selected_card())
-	buttons.add_child(use_button)
+	dock.add_child(use_button)
+	cancel_button = Button.new()
+	cancel_button.text = "취소"
+	cancel_button.custom_minimum_size = Vector2(0, 40);cancel_button.clip_text=true;cancel_button.add_theme_font_size_override("font_size",12)
+	ArenaUI.bind(cancel_button,func():
+		if manager != null: manager.cancel_card_selection())
+	dock.add_child(cancel_button)
 	focus_root.visible=false
 
+## The lifted card stays over the bottom UI (frame and hand) so the field remains visible:
+## card on the left, target and use/cancel buttons beside it.
+func _focus_region() -> Rect2:
+	var view: Vector2=get_viewport_rect().size;var top: float=minf(get_child(0).get_global_rect().position.y-6,view.y-200)
+	return Rect2(0,top,view.x,view.y-top)
 func _focus_rect() -> Rect2:
-	var view: Vector2=get_viewport_rect().size;var w: float=minf(290,view.x-80);var h: float=w*1.3
-	return Rect2(Vector2((view.x-w)*.5,maxf(24,view.y*.44-h*.5-30)),Vector2(w,h))
+	var view: Vector2=get_viewport_rect().size;var region: Rect2=_focus_region()
+	var h: float=clampf(region.size.y-20,170,320);var w: float=minf(h/1.3,view.x*.56);h=w*1.3
+	var dock_w: float=clampf(view.x-w-42,120,240);var x: float=(view.x-w-14-dock_w)*.5
+	return Rect2(Vector2(x,region.position.y+(region.size.y-h)*.5),Vector2(w,h))
 
 func _draw_focus() -> void:
 	if focus_card_id==0 or manager==null:return
@@ -146,6 +156,9 @@ func _draw_focus() -> void:
 	if card==null:return
 	var data: StrategyCardData=StrategyCardCatalog.get_card(card.kind)
 	var e: float=1-pow(1-clampf(focus_t,0,1),3)
+	# Shade the bottom UI behind the card; the field above only gets the light backdrop.
+	var region: Rect2=_focus_region();focus_view.draw_rect(region,Color(.02,.03,.07,.78*e))
+	focus_view.draw_line(region.position,region.position+Vector2(region.size.x,0),Color(ArenaUI.GOLD,.5*e),2)
 	var target: Rect2=_focus_rect();var r:=Rect2(focus_from.position.lerp(target.position,e),focus_from.size.lerp(target.size,e))
 	StrategyCardArt.draw(focus_view,r,String(card.kind),data.display_name,_rule(data),data.description if e>.6 else "","ready")
 
@@ -157,9 +170,10 @@ func _process(delta: float) -> void:
 	_shape_hand()
 	if focus_root.visible:
 		focus_t=minf(1,focus_t+delta/.28)
-		focus_dim.color.a=.62*minf(1,focus_t*1.5)
+		focus_dim.color.a=.22*minf(1,focus_t*1.5)
 		var dock: Control=focus_root.get_node("FocusDock");var target: Rect2=_focus_rect()
-		dock.size=Vector2(target.size.x+40,0);dock.position=Vector2(target.position.x-20,target.end.y+14);dock.modulate.a=clampf((focus_t-.4)/.6,0,1)
+		dock.size=Vector2(clampf(get_viewport_rect().size.x-target.size.x-42,120,240),0)
+		dock.position=Vector2(target.end.x+14,target.get_center().y-dock.get_combined_minimum_size().y*.5);dock.modulate.a=clampf((focus_t-.4)/.6,0,1)
 		focus_view.queue_redraw()
 
 ## Fan the hand: cards near the strip centre are full size and raised, edges shrink and tilt.
@@ -199,7 +213,7 @@ func refresh(value: TurningPointManager) -> void:
 	allies.get_parent().visible = paused
 	stances.visible = paused
 	plans.get_parent().visible = paused and debug_enabled
-	card_scroll.visible = paused;card_scroll.get_parent().get_child(card_scroll.get_index()-1).visible=paused
+	card_scroll.visible = paused;card_result.visible=paused
 	if not paused:
 		focus_root.visible=false
 		return
@@ -214,7 +228,7 @@ func refresh(value: TurningPointManager) -> void:
 		call_deferred("_rebuild_allies")
 	for button in allies.get_children():
 		var ally: BattleUnit=EnemyPlanExecutor.find_member(manager.battle,String(button.name))
-		if ally!=null:button.hp=ally.current_hp;button.hp_max=ally.max_hp;button.status_text=ArenaUI.stance(ally.stance)
+		if ally!=null:button.hp=ally.current_hp;button.hp_max=ally.max_hp;button.status_text=ArenaUI.stance(ally.stance);button.kind=STANCE_ICONS.get(ally.stance,"normal")
 		button.set_pressed_no_signal(button.name==manager.current.selected_member_id);button.queue_redraw()
 	var selected: BattleUnit = EnemyPlanExecutor.find_member(manager.battle, manager.current.selected_member_id)
 	for stance in choices:
@@ -263,7 +277,7 @@ func _update_focus(selected: BattleUnit) -> void:
 		focus_root.visible=true
 	if selected!=null:
 		focus_target_icon.texture=UnitIcon.texture(selected.data.type_id);focus_target_icon.visible=true
-		focus_target.text="%s %s · HP %d / %d"%[selected.data.display_name,ArenaUI.member_label(selected.source_member_id),ceili(selected.current_hp),ceili(selected.max_hp)]
+		focus_target.text="%s %s\nHP %d / %d"%[selected.data.display_name,ArenaUI.member_label(selected.source_member_id),ceili(selected.current_hp),ceili(selected.max_hp)]
 		use_button.text="%s에게 사용"%selected.data.display_name
 	else:
 		focus_target_icon.visible=false;focus_target.text="먼저 아군을 선택하세요";use_button.text="사용"
@@ -280,11 +294,11 @@ func _rebuild_allies() -> void:
 		var id: String = unit.source_member_id
 		var button := ArenaCard.new()
 		button.show_member(manager.guild,manager.guild.get_member(id));button.card_type="tp_member";button.type_id=unit.data.type_id;button.title=unit.data.display_name
-		button.hp=unit.current_hp;button.hp_max=unit.max_hp;button.status_text=ArenaUI.stance(unit.stance)
+		button.hp=unit.current_hp;button.hp_max=unit.max_hp;button.status_text=ArenaUI.stance(unit.stance);button.kind=STANCE_ICONS.get(unit.stance,"normal")
 		button.description=ArenaUI.member_label(id)+" · "+ArenaUI.stance(unit.stance)
 		button.name = id
 		button.text = "%s %s\n%s" % [unit.data.display_name, ArenaUI.member_label(id), ArenaUI.stance(unit.stance)]
-		button.custom_minimum_size = Vector2(62, 76)
+		button.custom_minimum_size = Vector2(50, 54)
 		button.toggle_mode = true
 		button.button_pressed = id == manager.current.selected_member_id
 		ArenaUI.bind(button,func():

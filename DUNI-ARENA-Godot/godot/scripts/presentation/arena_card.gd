@@ -348,11 +348,14 @@ func _draw() -> void:
 
 ## Turning-point ally chip: unit icon in a ring (gold and glowing when selected), HP bar, stance.
 func _draw_tp_member() -> void:
-	var on: bool=button_pressed;var c:=Vector2(size.x*.5,28)
-	if on:VfxArt.glow(self,c,36,ArenaUI.GOLD,.35)
-	draw_circle(c,23,Color("0c1220"))
-	UnitIcon.draw(self,Rect2(c-Vector2(21,21),Vector2(42,42)),type_id)
-	draw_arc(c,23,0,TAU,40,ArenaUI.GOLD if on else Color("4a5680"),2.5 if on else 1.2,true)
-	var w: float=size.x-16
-	draw_rect(Rect2(8,56,w,4),Color("0e1424"));draw_rect(Rect2(8,56,w*clampf(hp/maxf(1,hp_max),0,1),4),ArenaUI.HP)
-	write(Vector2(0,size.y-3),status_text,9,ArenaUI.GOLD if on else Color("9aa5c2"),size.x,true)
+	# Compact chip: icon ring, HP bar, and a small stance badge on the ring.
+	var on: bool=button_pressed;var c:=Vector2(size.x*.5,22)
+	if on:VfxArt.glow(self,c,30,ArenaUI.GOLD,.35)
+	draw_circle(c,19,Color("0c1220"))
+	UnitIcon.draw(self,Rect2(c-Vector2(17,17),Vector2(34,34)),type_id)
+	draw_arc(c,19,0,TAU,40,ArenaUI.GOLD if on else Color("4a5680"),2.5 if on else 1.2,true)
+	var w: float=size.x-12
+	draw_rect(Rect2(6,46,w,4),Color("0e1424"));draw_rect(Rect2(6,46,w*clampf(hp/maxf(1,hp_max),0,1),4),ArenaUI.HP)
+	var badge:=c+Vector2(14,12)
+	draw_circle(badge,7,Color("10182b"));draw_arc(badge,7,0,TAU,20,ArenaUI.GOLD if on else Color("5a6890"),1,true)
+	ArenaIcon.draw(self,badge,kind,9,ArenaUI.GOLD if on else Color("c9d0e6"))
