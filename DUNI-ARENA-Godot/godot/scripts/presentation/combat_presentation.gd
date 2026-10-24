@@ -173,7 +173,8 @@ func _draw_multi_kill(rect: Rect2) -> void:
 	var age: float=float(multi_banner.age);var level: int=int(multi_banner.count)
 	var enter: float=clampf(age/.18,0,1);var alpha: float=minf(enter,clampf((BANNER_LIFE-age)/.55,0,1))
 	var color: Color=MULTI_KILL_COLORS[level];var team: Color=multi_banner.color
-	var center:=Vector2(rect.get_center().x,rect.position.y+minf(76,rect.size.y*.14))
+	# Below the kill log in the top-right corner.
+	var center:=Vector2(rect.get_center().x,rect.position.y+clampf(rect.size.y*.34,120,220))
 	var size: float=clampf(rect.size.x*.085,22,40);var pop: float=1+(1-enter)*.35+(.08*sin(clampf(age/.5,0,1)*PI) if level>=4 else 0)
 	VfxArt.glow(self,center+Vector2(0,size*.1),size*4,color,.22*alpha)
 	draw_set_transform(center,0,Vector2.ONE*pop)
@@ -354,6 +355,12 @@ func _draw() -> void:
 	draw_set_transform_matrix(parent_transform)
 	if is_instance_valid(field_layer):field_layer.align(parent_transform)
 	VisualShapes.arena(self)
+	if battle.clock.state in [BattleClock.State.TURNING_SLOWDOWN,BattleClock.State.TURNING_PAUSED]:
+		# Turning point tint lies on the ground only; units stay at full brightness.
+		var t: float=clampf(battle.clock.slowdown_elapsed/2,0,1)
+		draw_rect(Rect2(0,0,800,800),Color(.09,.15,.12,.19*t))
+		for edge in range(10):draw_rect(Rect2(edge*8,edge*8,800-edge*16,800-edge*16),Color(0,.03,.025,.025*t),false,8)
+		for x in range(80,800,80):draw_line(Vector2(x,20),Vector2(x,780),Color(.7,.8,.6,.07*t),1)
 	if cinematic.started and battle.finished:
 		_draw_ending();draw_set_transform(Vector2.ZERO);return
 	for z in ([] if battle.finished else battle.zones.entries):
@@ -426,11 +433,6 @@ func _draw() -> void:
 				VisualShapes.streak(self,caster.position+direction*170,action.angle,340,18,Color("e5b9ff"),.6)
 				draw_line(caster.position,caster.position+direction*310*caster.combat_scale(),Color("d6a6ff"),5)
 				draw_arc(caster.position,40,0,TAU,32,Color("d6a6ff"),3)
-	if battle.clock.state in [BattleClock.State.TURNING_SLOWDOWN,BattleClock.State.TURNING_PAUSED]:
-		var t: float=clampf(battle.clock.slowdown_elapsed/2,0,1)
-		draw_rect(Rect2(0,0,800,800),Color(.09,.15,.12,.19*t))
-		for edge in range(10):draw_rect(Rect2(edge*8,edge*8,800-edge*16,800-edge*16),Color(0,.03,.025,.025*t),false,8)
-		for x in range(80,800,80):draw_line(Vector2(x,20),Vector2(x,780),Color(.7,.8,.6,.07*t),1)
 	draw_set_transform(Vector2.ZERO)
 	if not external_kill_feed:_draw_kill_notices(rect)
 	_draw_multi_kill(rect)
@@ -455,16 +457,22 @@ func _unit(u: BattleUnit,parent: Transform2D) -> void:
 		pose_override={"key":"0:basic","index":13+roundi(swing*11),"angle":row.angle,"weapon_scale":1.4,"swing":swing}
 	CharacterPainter.draw_unit(self,u,parent,float(flashes.get(u.battle_id,0))/.15,pose_override)
 	_ability_state(u)
-	draw_rect(Rect2(at+Vector2(-25,-radius-13),Vector2(50,5)),Color("32455c"))
-	draw_rect(Rect2(at+Vector2(-25,-radius-13),Vector2(50*clampf(u.current_hp/u.max_hp,0,1),5)),color)
+	# HP bar: dark outlined well and bright team-colour fill, never smaller than ~34x5 screen px
+	# however far the board is scaled down on a phone.
+	var px: float=1/maxf(.05,parent.get_scale().x)
+	var bar_w: float=maxf(58,34*px);var hp_h: float=maxf(7,5*px);var ult_h: float=maxf(4,3*px)
+	var hp_rect:=Rect2(at+Vector2(-bar_w*.5,-radius-6-hp_h-ult_h),Vector2(bar_w,hp_h));var hp_frac: float=clampf(u.current_hp/u.max_hp,0,1)
+	draw_rect(hp_rect.grow(px),Color(0,0,0,.85));draw_rect(hp_rect,Color("1a2232"))
+	draw_rect(Rect2(hp_rect.position,Vector2(hp_rect.size.x*hp_frac,hp_rect.size.y)),color.lightened(.15))
+	draw_rect(Rect2(hp_rect.position,Vector2(hp_rect.size.x*hp_frac,hp_h*.3)),Color(1,1,1,.3))
 	if u.data.ultimate_windup>=0:
 		# Ultimate gauge under the HP bar; glows when ready.
-		var gauge: float=clampf(u.ultimate_gauge/100,0,1)
-		draw_rect(Rect2(at+Vector2(-25,-radius-7),Vector2(50,4)),Color("1c2433"))
-		draw_rect(Rect2(at+Vector2(-25,-radius-7),Vector2(50*gauge,4)),Color("ffe28a") if gauge>=1 else Color("b98cff"))
+		var gauge: float=clampf(u.ultimate_gauge/100,0,1);var ult_rect:=Rect2(Vector2(hp_rect.position.x,hp_rect.end.y+px),Vector2(bar_w,ult_h))
+		draw_rect(ult_rect.grow(px*.8),Color(0,0,0,.8));draw_rect(ult_rect,Color("1c2433"))
+		draw_rect(Rect2(ult_rect.position,Vector2(ult_rect.size.x*gauge,ult_rect.size.y)),Color("ffe28a") if gauge>=1 else Color("c49dff"))
 		if gauge>=1:VfxArt.glow(self,at+Vector2(0,-radius-6),30,Color("ffe28a"),.25+.15*sin(real_age*6),.2)
 	if u.shield_hp>0:
-		VfxArt.shield(self,at,radius+9,Color("7ddfff"),real_age);draw_rect(Rect2(at+Vector2(-25,-radius-20),Vector2(50*minf(1,u.shield_hp/100),3)),Color("7ddfff"))
+		VfxArt.shield(self,at,radius+9,Color("7ddfff"),real_age);draw_rect(Rect2(hp_rect.position-Vector2(0,ult_h+px),Vector2(bar_w*minf(1,u.shield_hp/100),ult_h)),Color("7ddfff"))
 	if u.invincible_remaining>0:
 		VfxArt.glow(self,at,radius*1.8,Color("ffe4ab"),.2);VfxArt.sigil(self,at,radius+10,real_age,Color("ffe4ab"),.65)
 	if u.parry_remaining>.8:VfxArt.glow(self,at+Vector2.from_angle(u.facing)*20,radius+12,Color("c2f5ff"),.28)
@@ -478,7 +486,7 @@ func _unit(u: BattleUnit,parent: Transform2D) -> void:
 	if not u.puppet_control.is_empty():badges.append("조종")
 	var unique: String=CharacterVisuals.active_badge(u)
 	if not unique.is_empty() and unique not in badges:badges.append(unique)
-	if not badges.is_empty():draw_string(ThemeDB.fallback_font,at+Vector2(-22,-radius-25)," · ".join(badges),HORIZONTAL_ALIGNMENT_LEFT,-1,13,ArenaUI.GOLD)
+	if not badges.is_empty():draw_string(ThemeDB.fallback_font,Vector2(at.x-22,hp_rect.position.y-ult_h-3*px)," · ".join(badges),HORIZONTAL_ALIGNMENT_LEFT,-1,13,ArenaUI.GOLD)
 	if u.knockback_velocity.length()>80:
 		var angle: float=u.knockback_velocity.angle()
 		VfxArt.flare(self,at-Vector2.from_angle(angle)*25,angle,minf(50,u.knockback_velocity.length()*.12),color,.35)

@@ -128,8 +128,23 @@ func _pinch(event: InputEvent) -> bool:
 		presentation.camera.user_zoom_by(event.factor,_board_space(event.position));return true
 	return false
 
+## One-finger (or mouse) drag pans the zoomed field during a turning point.
+var pan_down: bool=false
+var pan_moved: bool=false
+var pan_from:=Vector2.ZERO
+var pan_last:=Vector2.ZERO
+func _pan(event: InputEvent) -> bool:
+	var button: bool=event is InputEventScreenTouch or (event is InputEventMouseButton and event.device!=-1 and event.button_index==MOUSE_BUTTON_LEFT)
+	if button:
+		pan_down=event.pressed and touches.size()<2;pan_from=event.position;pan_last=event.position;pan_moved=false;return false
+	var motion: bool=event is InputEventScreenDrag or (event is InputEventMouseMotion and event.device!=-1)
+	if not motion or not pan_down or touches.size()>=2:return false
+	if not pan_moved and event.position.distance_to(pan_from)>8:pan_moved=true
+	if pan_moved:presentation.camera.user_pan_by(_board_space(event.position)-_board_space(pan_last))
+	pan_last=event.position;return true
 func _gui_input(event: InputEvent) -> void:
-	if _pinch(event):accept_event();return
+	if _pinch(event):pan_down=false;accept_event();return
+	if _zoomable() and _pan(event):accept_event();return
 	if not editing and is_instance_valid(battle) and battle.full_characters_enabled:
 		var pressed: bool=(event is InputEventMouseButton and event.device!=-1 and event.button_index==MOUSE_BUTTON_LEFT and event.pressed) or (event is InputEventScreenTouch and event.pressed)
 		if pressed and board_rect().has_point(event.position):

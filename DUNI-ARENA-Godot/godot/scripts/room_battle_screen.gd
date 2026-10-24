@@ -116,7 +116,7 @@ func _build_ui() -> void:
 	column.add_child(turning_panel)
 	column.move_child(turning_panel, deployment_legend.get_index())
 	battle_cue=BattleCueOverlay.new();battle_cue.board=board;add_child(battle_cue)
-	var kill_feed:=KillFeed.new();kill_feed.board=board;kill_feed.below=battle_toolbar;add_child(kill_feed)
+	var kill_feed:=KillFeed.new();kill_feed.board=board;add_child(kill_feed)
 	end_overlay=RetreatPresentation.new();add_child(end_overlay)
 
 func _ensure_room() -> void:

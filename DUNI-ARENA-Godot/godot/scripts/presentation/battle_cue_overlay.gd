@@ -43,9 +43,8 @@ func _draw() -> void:
 		return
 	if cue=="hold":
 		# Strategy phase: the board shrinks for the panel, so the big title gives way to a
-		# small tag at the board's top edge and a light cold tint.
+		# small tag at the board's top edge. No tint over the units.
 		var settle: float=clampf(age/.3,0,1)
-		draw_rect(rect,Color(.02,.05,.11,.18*settle))
 		var font: Font=ArenaUI.heading_font();var label: String="터닝포인트 · 전략 선택"
 		var w: float=font.get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,14).x+44
 		var chip:=Rect2(Vector2(rect.get_center().x-w*.5,rect.position.y+8-(1-settle)*10),Vector2(w,28))
