@@ -138,17 +138,33 @@ func render() -> void:
   details.text+="\n다음 강화 · Lv. %d → %d\nHP %s → %s · 공격 %s → %s\n방어 %s → %s · 이동 %s → %s"%[selected.level,selected.level+1,ArenaUI.number(stats.max_hp),ArenaUI.number(next.max_hp),ArenaUI.number(stats.attack),ArenaUI.number(next.attack),ArenaUI.number(stats.defense),ArenaUI.number(next.defense),ArenaUI.number(stats.speed),ArenaUI.number(next.speed)]
  if active_tab=="inventory":details.text="선택한 유닛에게 아이템을 장착하세요.\n장착한 아이템은 재각인으로 회수할 수 있습니다."
  inventory_name.text="%s · %d/%d"%[guild.definition(selected.unit_type_id).display_name,items.size(),GuildMemberCombatStats.equipment_limit(selected)]
- inventory_count.text="아이템 %d개 · 전략카드 %d장"%[controller.content.inventory.available().size(),guild.state.strategy_cards.filter(func(c):return not c.consumed).size()]
+ var owned_cards: Array=guild.state.strategy_cards.filter(func(c):return not c.consumed)
+ inventory_count.text="장비 %d · 소모품 %d · 장착 %d · 전략카드 %d"%[controller.content.inventory.available().filter(func(i):return not ItemCatalog.get_item(i.kind).consumable).size(),controller.content.inventory.available().filter(func(i):return ItemCatalog.get_item(i.kind).consumable).size(),guild.state.inventory.filter(func(i):return not i.consumed and not i.equipped_to_member_id.is_empty()).size(),owned_cards.size()]
  upgrade_summary.member_name=guild.definition(selected.unit_type_id).display_name;upgrade_summary.level=selected.level;upgrade_summary.hp=selected.current_hp;upgrade_summary.max_hp=stats.max_hp;upgrade_summary.energy=selected.energy;upgrade_summary.maxed=selected.level>=10;upgrade_summary.queue_redraw()
  upgrade_button.text="Lv.10 · 최대 레벨" if selected.level>=10 else "강화 · %dG"%GuildMemberCombatStats.upgrade_cost(selected)
- upgrade_button.disabled=selected.level>=10 or guild.state.gold<GuildMemberCombatStats.upgrade_cost(selected) or guild.state.tower.phase not in [&"route",&"deploy"]
- for instance in controller.content.inventory.available():
-  var data: ItemData=ItemCatalog.get_item(instance.kind);var button:=ArenaCard.new();button.card_type="item";button.kind=String(instance.kind);button.title=data.display_name;button.description=data.description;button.name="item_%d"%instance.item_id;button.text="%s %s · 설명 / %s"%[data.emoji,data.display_name,"사용" if data.consumable else "장착"]
-  button.status_text="아이템";button.price="소모" if data.consumable else "장비";button.card_type="slot";button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description;ArenaUI.bind(button,_inspect.bind(instance.item_id));inventory_grid.add_child(button)
- for card in guild.state.strategy_cards:
-  if card.consumed:continue
-  var button:=ArenaCard.new();var data: StrategyCardData=StrategyCardCatalog.get_card(card.kind);button.card_type="strategy";button.kind=String(card.kind);button.title=data.display_name;button.description=data.description;button.text="🃏 %s · 전략카드"%data.display_name;button.status_text="전략";button.price="일회성" if data.usage_rule==StrategyCardData.Usage.ONCE else "층당 1회" if data.usage_rule==StrategyCardData.Usage.FLOOR else "두 층 쿨타임";button.card_type="slot";button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description
-  ArenaUI.bind(button,_inspect_card.bind(data));inventory_grid.add_child(button)
+ upgrade_button.disabled=selected.level>=10 or guild.state.gold<GuildMemberCombatStats.upgrade_cost(selected) or not controller.content.can_manage()
+ # Slots in reading order: spare equipment, consumables, equipped gear, ready cards, waiting cards.
+ var spare: Array=controller.content.inventory.available().filter(func(i):return not ItemCatalog.get_item(i.kind).consumable)
+ var consumables: Array=controller.content.inventory.available().filter(func(i):return ItemCatalog.get_item(i.kind).consumable)
+ var worn: Array=guild.state.inventory.filter(func(i):return not i.consumed and not i.equipped_to_member_id.is_empty())
+ for group in [[spare,"equipment"],[consumables,"consumable"],[worn,"equipped"]]:
+  for instance in group[0]:
+   var data: ItemData=ItemCatalog.get_item(instance.kind);var button:=ArenaCard.new();button.kind=String(instance.kind);button.title=data.display_name;button.description=data.description;button.name="item_%d"%instance.item_id;button.text="%s %s · 설명 / %s"%[data.emoji,data.display_name,"사용" if data.consumable else "장착"]
+   button.status_text="아이템";button.card_type="slot";button.slot_kind=group[1];button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description
+   if group[1]=="equipped":
+    var owner: GuildMemberState=guild.get_member(instance.equipped_to_member_id)
+    button.owner_type=owner.unit_type_id if owner!=null else -1;button.price=ArenaUI.member_label(instance.equipped_to_member_id)+" 장착" if owner!=null else "장착 중"
+   else:button.price="소모" if data.consumable else "장비"
+   ArenaUI.bind(button,_inspect.bind(instance.item_id));inventory_grid.add_child(button)
+ var cards: Array=guild.state.strategy_cards.filter(func(c):return not c.consumed)
+ var ready: Array=cards.filter(func(c):return StrategyCardExecutor.availability(c,guild.state.strategy_progress))
+ var waiting: Array=cards.filter(func(c):return not StrategyCardExecutor.availability(c,guild.state.strategy_progress))
+ for card in ready+waiting:
+  var button:=ArenaCard.new();var data: StrategyCardData=StrategyCardCatalog.get_card(card.kind);var on_hold: bool=card in waiting
+  button.kind=String(card.kind);button.title=data.display_name;button.description=data.description;button.text="🃏 %s · 전략카드"%data.display_name;button.status_text="전략"
+  button.price=("%d층부터"%(card.ready_floor+1) if data.usage_rule==StrategyCardData.Usage.COOLDOWN else "다음 층") if on_hold else "일회성" if data.usage_rule==StrategyCardData.Usage.ONCE else "층당 1회" if data.usage_rule==StrategyCardData.Usage.FLOOR else "두 층 쿨타임"
+  button.card_type="slot";button.slot_kind="cooldown" if on_hold else "strategy";button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description
+  ArenaUI.bind(button,_inspect_card.bind(data,on_hold));inventory_grid.add_child(button)
  while inventory_grid.get_child_count()<24:
   var empty:=PanelContainer.new();empty.custom_minimum_size=Vector2(60,64);empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.mouse_filter=Control.MOUSE_FILTER_IGNORE;empty.add_theme_stylebox_override("panel",ArenaUI.box(Color("0b0f1a"),Color("1b2236")));inventory_grid.add_child(empty)
 func _select(id: String) -> void:selected_member_id=id;call_deferred("render")
@@ -193,13 +209,22 @@ func _settle_item_sheet(width: int) -> void:
  item_dialog.size=Vector2i(width,ceili(item_dialog.get_contents_minimum_size().y));item_dialog.move_to_center()
 func _inspect(id: int) -> void:
  var item: ItemInstance=controller.content.inventory.get_item(id);var data: ItemData=ItemCatalog.get_item(item.kind)
+ if not item.equipped_to_member_id.is_empty():
+  # Already worn: show who wears it; it cannot be equipped again from here.
+  var owner: GuildMemberState=controller.guild.get_member(item.equipped_to_member_id);pending_item_id=0;item_target.visible=owner!=null
+  if owner!=null:
+   item_portrait.texture=UnitIcon.texture(owner.unit_type_id);item_member.text="%s %s · Lv. %d"%[controller.guild.definition(owner.unit_type_id).display_name,ArenaUI.member_label(owner.member_id),owner.level]
+   item_slots.text="장착 중";item_slots.add_theme_color_override("font_color",Color("4fc6c0"))
+  item_note.text="이 장비는 장착 중입니다. 회수하려면 재각인을 사용하세요.";item_note.add_theme_color_override("font_color",ArenaUI.MUTED)
+  item_dialog.get_ok_button().text="장착 중";item_dialog.get_ok_button().disabled=true
+  _show_item_sheet(String(item.kind),data.display_name,"장비 · 장착 중",data.description);return
  pending_item_id=id;pending_member_id=selected_member_id
  var member: GuildMemberState=controller.guild.get_member(selected_member_id)
  var used: int=controller.content.inventory.equipped(selected_member_id).size();var limit: int=GuildMemberCombatStats.equipment_limit(member) if member!=null else 0
  var full: bool=not data.consumable and used>=limit
  item_target.visible=member!=null
  if member!=null:
-  item_portrait.texture=CharacterPainter.portrait(member.unit_type_id)
+  item_portrait.texture=UnitIcon.texture(member.unit_type_id)
   item_member.text="%s %s · Lv. %d"%[controller.guild.definition(member.unit_type_id).display_name,ArenaUI.member_label(member.member_id),member.level]
   item_slots.text="%d/%d"%[used,limit] if data.consumable else "%d → %d / %d"%[used,mini(used+1,limit),limit]
   item_slots.add_theme_color_override("font_color",ArenaUI.DANGER if full else ArenaUI.HP)
@@ -207,9 +232,9 @@ func _inspect(id: int) -> void:
  item_note.add_theme_color_override("font_color",ArenaUI.DANGER if full else ArenaUI.MUTED)
  item_dialog.get_ok_button().text="사용" if data.consumable else "장착";item_dialog.get_ok_button().disabled=not controller.content.can_manage() or full or member==null
  _show_item_sheet(String(item.kind),data.display_name,"소모품" if data.consumable else "장비",data.description)
-func _inspect_card(data: StrategyCardData) -> void:
+func _inspect_card(data: StrategyCardData,on_hold: bool=false) -> void:
  pending_item_id=0;item_target.visible=false
- item_note.text="전투 중 터닝포인트에서 아군을 골라 사용합니다.";item_note.add_theme_color_override("font_color",ArenaUI.MUTED)
+ item_note.text="재사용 대기 중입니다. 표시된 층에 도달하면 다시 쓸 수 있습니다." if on_hold else "전투 중 터닝포인트에서 아군을 골라 사용합니다.";item_note.add_theme_color_override("font_color",ArenaUI.MUTED)
  item_dialog.get_ok_button().text="터닝포인트에서 사용";item_dialog.get_ok_button().disabled=true
  var usage: String="일회성" if data.usage_rule==StrategyCardData.Usage.ONCE else "층당 1회" if data.usage_rule==StrategyCardData.Usage.FLOOR else "두 층 쿨타임"
  _show_item_sheet(String(data.kind),data.display_name,"전략카드 · "+usage,data.description)

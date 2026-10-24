@@ -38,8 +38,9 @@ func _draw() -> void:
 	if kind in ["recruit","promotion"]:
 		var type: int=s.get("type",0);var spread: float=84*(1-clampf(t/1.1,0,1)) if kind=="promotion" else 0
 		if kind=="promotion":
-			for side in [-1,1]:CharacterPainter.draw_portrait(self,Rect2(center+Vector2(side*spread-42,-94),Vector2(84,84)),type,alpha*(1-clampf(t/1.4,0,1)))
-		CharacterPainter.draw_portrait(self,Rect2(center+Vector2(-60,-115),Vector2(120,120)),type,alpha)
+			for side in [-1,1]:UnitIcon.draw(self,Rect2(center+Vector2(side*spread-42,-94),Vector2(84,84)),type,alpha*(1-clampf(t/1.4,0,1)))
+		VfxArt.glow(self,center+Vector2(0,-55),95,Color("f0d490"),.3*alpha)
+		UnitIcon.draw(self,Rect2(center+Vector2(-60,-115),Vector2(120,120)),type,alpha)
 		if kind=="promotion":
 			for i in range(int(s.get("stars",1))):ArenaIcon.draw(self,center+Vector2(-12+i*26,-127),"star",24,Color(1,1,1,alpha))
 	else:ArenaIcon.draw(self,center+Vector2(0,-54),s.get("icon","crown"),96 if kind=="chapterConquest" else 76,Color(1,1,1,alpha))

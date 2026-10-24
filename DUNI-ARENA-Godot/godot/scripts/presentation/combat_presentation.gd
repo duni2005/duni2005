@@ -339,7 +339,7 @@ func _draw() -> void:
 		var t: float=float(e.age)/float(e.life);var c: Color=Color(e.color,1-t);var radius: float=float(e.radius)*(.25+t)
 		if e.kind=="death":
 			VfxArt.effect(self,e)
-			CharacterPainter.draw_battle_portrait(self,Rect2(e.point-Vector2(32,33)*float(e.get("scale",1))+Vector2(0,t*12),Vector2(64,64)*float(e.get("scale",1))),int(e.get("type",0)),1-t)
+			UnitIcon.draw(self,Rect2(e.point-Vector2(26,26)*float(e.get("scale",1))+Vector2(0,t*12),Vector2(52,52)*float(e.get("scale",1))),int(e.get("type",0)),1-t)
 			for i in range(5):draw_line(e.point+Vector2(-25,-20+i*10),e.point+Vector2(25+t*30,-20+i*10),Color(e.color,.5*(1-t)),2)
 		elif e.kind=="ult_flash":
 			draw_rect(Rect2(0,0,800,800),Color(e.color,.06*pow(1-t,2)))
@@ -717,5 +717,5 @@ func _draw_ending() -> void:
 		if e.kind=="death":
 			VfxArt.effect(self,e)
 			var t: float=clampf(float(e.age)/float(e.life),0,1)
-			CharacterPainter.draw_battle_portrait(self,Rect2(e.point-Vector2(32,33)*float(e.get("scale",1))+Vector2(0,t*12),Vector2.ONE*64*float(e.get("scale",1))),int(e.get("type",0)),1-t)
+			UnitIcon.draw(self,Rect2(e.point-Vector2(26,26)*float(e.get("scale",1))+Vector2(0,t*12),Vector2.ONE*52*float(e.get("scale",1))),int(e.get("type",0)),1-t)
 	particles.draw(self)

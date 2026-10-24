@@ -195,7 +195,7 @@ func _render_unit() -> void:
 	if entry.is_empty():unit_dialog.hide();return
 	var data: UnitData=CharacterCatalog.all()[int(entry.type)]
 	var head:=HBoxContainer.new();head.add_theme_constant_override("separation",10);unit_body.add_child(head)
-	var portrait:=TextureRect.new();portrait.texture=CharacterPainter.portrait(int(entry.type));portrait.custom_minimum_size=Vector2(48,48);portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;head.add_child(portrait)
+	var portrait:=TextureRect.new();portrait.texture=UnitIcon.texture(int(entry.type));portrait.custom_minimum_size=Vector2(48,48);portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;head.add_child(portrait)
 	var names:=VBoxContainer.new();names.size_flags_horizontal=Control.SIZE_EXPAND_FILL;names.add_theme_constant_override("separation",0);head.add_child(names)
 	var name_label:=Label.new();name_label.text="%s #%d"%[data.display_name,int(entry.id)];name_label.add_theme_font_override("font",ArenaUI.heading_font());name_label.add_theme_font_size_override("font_size",17);names.add_child(name_label)
 	var team_label:=Label.new();team_label.text="개인" if int(entry.team)<0 else CustomBattleSetup.TEAM_NAMES[int(entry.team)]+" 팀";team_label.add_theme_font_size_override("font_size",12);team_label.add_theme_color_override("font_color",CustomBattleSetup.faction_color(CustomBattleSetup.faction_of(entry),int(entry.type)));names.add_child(team_label)

@@ -133,7 +133,7 @@ func _rebuild_roster() -> void:
 		var button: ArenaCard=roster.get_node_or_null(member.member_id)
 		if button==null:
 			button=ArenaCard.new();button.name=member.member_id;ArenaUI.bind(button,board.select.bind(member.member_id));roster.add_child(button)
-		button.text=label;button.card_type="deploy_member";button.show_member(guild,member);button.subtitle="%s · Lv.%d"%[ArenaUI.member_label(member.member_id),member.level];button.status_text=ArenaUI.stance(member.stance)+(" · 배치됨" if placed else " · 대기")
+		button.text=label;button.card_type="deploy_member";button.show_member(guild,member);button.deployed=placed;button.subtitle="%s · Lv.%d"%[ArenaUI.member_label(member.member_id),member.level];button.status_text=ArenaUI.stance(member.stance)+(" · 배치됨" if placed else " · 대기")
 		button.name = member.member_id
 		button.custom_minimum_size = Vector2(88, 122)
 		button.toggle_mode = true

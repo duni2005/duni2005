@@ -91,7 +91,10 @@ func buy(offer_id: String) -> Dictionary:
 	ResourceTransaction.spend(guild.state,offer.gold_price,0,offer.offer_id);offer.purchased=true
 	if offer.category==&"equipment":return success({"item_id":inventory.give(offer.kind,"shop:"+offer.offer_id).item_id,"gold_spent":offer.gold_price})
 	return success({"card_id":guild.state.give_strategy_card(offer.kind).card_id,"gold_spent":offer.gold_price})
-func can_manage() -> bool:return live() and guild.state.tower.phase in [&"route",&"deploy",&"shop"]
+## Equipment and upgrades are open whenever no battle is running: on the map, while deploying
+## and inside any content room (shop, recruit, rest, events).
+const MANAGE_PHASES = [&"route",&"deploy",&"shop",&"recruit",&"rest",&"event_active",&"content_result",&"cleared"]
+func can_manage() -> bool:return live() and guild.state.tower.phase in MANAGE_PHASES
 func equip(item_id: int,member_id: String) -> Dictionary:
 	if not can_manage():return failure(&"management_locked")
 	if not inventory.valid():return failure(&"invalid_inventory")
@@ -114,7 +117,7 @@ func equip(item_id: int,member_id: String) -> Dictionary:
 	return success({"item_id":item_id,"member_id":member_id})
 func upgrade(member_id: String) -> Dictionary:
 	if not inventory.valid():return failure(&"invalid_inventory")
-	if not live() or guild.state.tower.phase not in [&"route",&"deploy"]:return failure(&"management_locked")
+	if not can_manage():return failure(&"management_locked")
 	var member: GuildMemberState=guild.get_member(member_id)
 	if member==null:return failure(&"invalid_member")
 	if member.level>=10:return failure(&"max_level")

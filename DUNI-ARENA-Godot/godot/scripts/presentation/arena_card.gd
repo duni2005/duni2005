@@ -25,6 +25,13 @@ var source_id: String=""
 var equipment_kinds: Array[String]=[]
 var equipment_slots: int=2
 var strip_style: bool=false
+## Deploy roster: already placed on the board.
+var deployed: bool=false
+## Inventory slot kind: "equipment", "consumable", "equipped", "strategy" or "cooldown".
+var slot_kind: String=""
+## Owner unit type for an equipped item (-1 when none).
+var owner_type: int=-1
+const SLOT_COLORS={"equipment":["1b2440","5a7ad0","장비"],"consumable":["1a2e2a","5fb592","소모품"],"equipped":["1c3438","4fc6c0","장착"],"strategy":["2a2142","a07ad8","전략"],"cooldown":["1a1826","5a4f72","대기"]}
 var cached_style: StyleBoxFlat
 # Visual tiers: units read as information, choices as warm actions, inventory as slots.
 const UNIT_TYPES: Array=["member","deploy_member","mini_member","party","revival_member","promotion_member","ally","library"]
@@ -103,6 +110,11 @@ func draw_member_summary(compact: bool=false) -> void:
 	draw_equipment(hp_y+24,13 if small else 15)
 	if not small:write(Vector2(0,size.y-7),"사망 · 배치 불가" if dead else status_text,10,ArenaUI.DANGER if dead else ArenaUI.MUTED,size.x,true)
 	for i in range(stars):ArenaIcon.draw(self,Vector2(size.x-11-i*12,33),"star",11,ArenaUI.GOLD)
+	if small and not dead:
+		# Deploy state chip in the corner: green "배치" once placed, muted "대기" otherwise.
+		var label: String="배치" if deployed else "대기";var c: Color=Color("5fc9a0") if deployed else Color("6d7aa0")
+		var w: float=get_theme_default_font().get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,8).x+8
+		draw_style_box(ArenaUI.box(Color(c,.3),Color(c,.85)),Rect2(4,22,w,13));write(Vector2(8,32),label,8,c.lightened(.35))
 func _init() -> void:
 	# Set variation before text/parenting: six late font overrides reshaped every card.
 	clip_text=true;theme=ArenaUI.get_theme();theme_type_variation=&"ArenaCard"
@@ -148,6 +160,11 @@ func _draw() -> void:
 	elif card_type=="slot":
 		cached_style.set_corner_radius_all(9)
 		if plain:cached_style.bg_color=Color("1b2440");cached_style.border_color=Color("5a6aa0")
+		if plain and SLOT_COLORS.has(slot_kind):cached_style.bg_color=Color(SLOT_COLORS[slot_kind][0]);cached_style.border_color=Color(SLOT_COLORS[slot_kind][1])
+	if card_type=="deploy_member" and plain:
+		# Placed members read teal with a green rim; the rest stay dark and quiet.
+		cached_style.bg_color=Color("1c3a3a") if deployed else Color("161d30");cached_style.border_color=Color("5fc9a0") if deployed else Color("37425f")
+		if deployed:cached_style.set_border_width_all(2)
 	if held:cached_style.bg_color=cached_style.bg_color.lightened(.12);cached_style.border_color=ArenaUI.ACCENT
 	draw_style_box(cached_style,Rect2(Vector2.ONE,size-Vector2.ONE*2))
 	if card_type in UNIT_TYPES or card_type in ACTION_TYPES:
@@ -255,13 +272,19 @@ func _draw() -> void:
 		draw_string(ArenaUI.numbers_font(),Vector2(size.x*.5-8,size.y-6),price,HORIZONTAL_ALIGNMENT_LEFT,-1,14,ArenaUI.GOLD)
 		return
 	if card_type=="slot":
-		ArenaIcon.draw(self,Vector2(size.x*.5,24),kind,22,gold)
-		write(Vector2(0,47),title,10,gold,size.x,true)
-		write(Vector2(0,size.y-5),price if not price.is_empty() else "설명",9,muted,size.x,true)
-		if not status_text.is_empty():
-			# Small kind tag tucked into the corner, clear of the centred icon.
-			var tag_w: float=get_theme_default_font().get_string_size(status_text,HORIZONTAL_ALIGNMENT_LEFT,-1,8).x
-			write(Vector2(size.x-tag_w-5,10),status_text,8,Color(muted,.8))
+		var waiting: bool=slot_kind=="cooldown";var rim: Color=Color(SLOT_COLORS[slot_kind][1]) if SLOT_COLORS.has(slot_kind) else muted
+		ArenaIcon.draw(self,Vector2(size.x*.5,24),kind,22,Color(gold,.45) if waiting else gold)
+		write(Vector2(0,47),title,10,Color(muted,.8) if waiting else gold,size.x,true)
+		write(Vector2(0,size.y-5),price if not price.is_empty() else "설명",9,Color(rim.lightened(.3),.9) if waiting else muted,size.x,true)
+		var tag: String=SLOT_COLORS[slot_kind][2] if SLOT_COLORS.has(slot_kind) else status_text
+		if not tag.is_empty():
+			# Kind tag: a small coloured chip in the top-left corner, clear of the centred icon.
+			var tag_w: float=get_theme_default_font().get_string_size(tag,HORIZONTAL_ALIGNMENT_LEFT,-1,8).x+8
+			draw_style_box(ArenaUI.box(Color(rim,.28),Color(rim,.8)),Rect2(4,4,tag_w,13))
+			write(Vector2(8,14),tag,8,rim.lightened(.45))
+		if waiting:
+			var clock:=Vector2(size.x-12,12);draw_arc(clock,6,0,TAU,20,rim.lightened(.3),1.5,true);draw_line(clock,clock+Vector2(0,-4),rim.lightened(.3),1.5);draw_line(clock,clock+Vector2(3,0),rim.lightened(.3),1.5)
+		if owner_type>=0:UnitIcon.draw(self,Rect2(size.x-21,3,18,18),owner_type)
 		return
 	if card_type=="mini_member":
 		UnitIcon.draw(self,Rect2(size.x*.5-16,4,32,32),type_id,.4 if dead else 1)

@@ -1,6 +1,6 @@
 class_name TitleLogo
 extends Control
-## Main menu wordmark with a fanned line-up of starting guild portraits.
+## Main menu wordmark with a fanned line-up of starting guild unit icons.
 const LINEUP: Array=[2,1,0,5,4]
 var time: float=0
 func _ready() -> void:
@@ -14,9 +14,9 @@ func _draw() -> void:
 		var offset: int=i-LINEUP.size()/2;var big: bool=offset==0
 		var s: float=78.0 if big else 58.0
 		var at: Vector2=Vector2(cx+offset*62,70-(10 if big else absi(offset)*-4)+sin(time*1.4+i)*2.5)
-		draw_circle(at,s*.5+4,Color("0c1416"))
-		draw_arc(at,s*.5+4,0,TAU,48,ArenaUI.GOLD if big else Color("4a5680"),2.0 if big else 1.5,true)
-		CharacterPainter.draw_portrait(self,Rect2(at-Vector2(s,s)*.5,Vector2(s,s)),LINEUP[i])
+		# Same unit icons as everywhere else; the centre one gets a gold halo.
+		UnitIcon.draw(self,Rect2(at-Vector2(s+6,s+6)*.5,Vector2(s+6,s+6)),LINEUP[i])
+		if big:draw_arc(at,(s+6)*.5+3,0,TAU,48,ArenaUI.GOLD,2.0,true)
 	# Wordmark.
 	var duni: String="DUNI";var arena: String="ARENA";var fs: int=int(clampf(size.x*.14,44,64))
 	var dw: float=font.get_string_size(duni,HORIZONTAL_ALIGNMENT_LEFT,-1,fs).x;var aw: float=font.get_string_size(arena,HORIZONTAL_ALIGNMENT_LEFT,-1,fs).x
