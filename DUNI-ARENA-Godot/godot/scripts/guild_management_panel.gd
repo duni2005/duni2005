@@ -121,9 +121,9 @@ func render() -> void:
  if active_tab=="inventory":inventory_scroll.custom_minimum_size.y=0
  for member in guild.all_members():
   var data: UnitData=guild.definition(member.unit_type_id);var stats: UnitCombatStats=guild.member_stats(member)
-  var button:=ArenaCard.new();button.name=member.member_id;button.text="%s %s%s\nLv.%d · %s\n❤️ %d/%d · ⚡ %d/5"%[data.emoji,data.display_name,"⭐".repeat(member.stars),member.level,ArenaUI.member_label(member.member_id),ceili(member.current_hp),int(stats.max_hp),member.energy]
+  var button:=ArenaCard.new();button.name=member.member_id;button.text="%s %s%s\nLv.%d · %s\n❤️ %d/%d"%[data.emoji,data.display_name,"⭐".repeat(member.stars),member.level,ArenaUI.member_label(member.member_id),ceili(member.current_hp),int(stats.max_hp)]
   button.text+="\n"+("사망 · 배치 불가" if not member.is_alive() else ArenaUI.stance(member.stance))
-  button.card_type="member";button.type_id=member.unit_type_id;button.title=data.display_name;button.subtitle="%s · Lv. %d"%[ArenaUI.member_label(member.member_id),member.level];button.hp=member.current_hp;button.hp_max=stats.max_hp;button.energy=member.energy;button.stars=member.stars;button.dead=not member.is_alive();button.status_text=ArenaUI.stance(member.stance)+" · 장비 %d/%d"%[controller.content.inventory.equipped(member.member_id).size(),GuildMemberCombatStats.equipment_limit(member)]
+  button.card_type="member";button.type_id=member.unit_type_id;button.title=data.display_name;button.subtitle="%s · Lv. %d"%[ArenaUI.member_label(member.member_id),member.level];button.hp=member.current_hp;button.hp_max=stats.max_hp;button.stars=member.stars;button.dead=not member.is_alive();button.status_text=ArenaUI.stance(member.stance)+" · 장비 %d/%d"%[controller.content.inventory.equipped(member.member_id).size(),GuildMemberCombatStats.equipment_limit(member)]
   button.show_member(guild,member);button.strip_style=not main_list
   button.card_type="member" if active_tab=="guild" else "mini_member"
   button.custom_minimum_size=Vector2(0 if main_list else 70,152 if main_list else 88);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL if main_list else Control.SIZE_FILL;button.toggle_mode=true;button.button_pressed=member.member_id==selected_member_id
@@ -131,7 +131,7 @@ func render() -> void:
  var selected: GuildMemberState=guild.get_member(selected_member_id)
  if selected==null:return
  var stats: UnitCombatStats=guild.member_stats(selected);var items: Array[ItemInstance]=controller.content.inventory.equipped(selected_member_id)
- details.text="%s%s · Lv.%d · %s 피해\nHP %d/%d · 기력 %d/5 · 장비 %d/%d\n공격 %.1f · 방어 %.1f · 이동 %.1f\n%s"%[guild.definition(selected.unit_type_id).display_name,"★".repeat(selected.stars),selected.level,CharacterCatalog.damage_label(selected.unit_type_id),ceili(selected.current_hp),int(stats.max_hp),selected.energy,items.size(),GuildMemberCombatStats.equipment_limit(selected),stats.attack,stats.defense,stats.speed," / ".join(items.map(func(i):return ItemCatalog.get_item(i.kind).display_name))]
+ details.text="%s%s · Lv.%d · %s 피해\nHP %d/%d · 장비 %d/%d\n공격 %.1f · 방어 %.1f · 이동 %.1f\n%s"%[guild.definition(selected.unit_type_id).display_name,"★".repeat(selected.stars),selected.level,CharacterCatalog.damage_label(selected.unit_type_id),ceili(selected.current_hp),int(stats.max_hp),items.size(),GuildMemberCombatStats.equipment_limit(selected),stats.attack,stats.defense,stats.speed," / ".join(items.map(func(i):return ItemCatalog.get_item(i.kind).display_name))]
  if selected.level<10 and active_tab=="upgrade":
   var preview: GuildMemberState=GuildMemberState.new();preview.unit_type_id=selected.unit_type_id;preview.level=selected.level+1;preview.stars=selected.stars;preview.member_id=selected.member_id;preview.fang_kills=selected.fang_kills
   var next: UnitCombatStats=GuildMemberCombatStats.assemble(guild.definition(selected.unit_type_id),preview,controller.content.inventory)
@@ -140,7 +140,7 @@ func render() -> void:
  inventory_name.text="%s · %d/%d"%[guild.definition(selected.unit_type_id).display_name,items.size(),GuildMemberCombatStats.equipment_limit(selected)]
  var owned_cards: Array=guild.state.strategy_cards.filter(func(c):return not c.consumed)
  inventory_count.text="장비 %d · 소모품 %d · 장착 %d · 전략카드 %d"%[controller.content.inventory.available().filter(func(i):return not ItemCatalog.get_item(i.kind).consumable).size(),controller.content.inventory.available().filter(func(i):return ItemCatalog.get_item(i.kind).consumable).size(),guild.state.inventory.filter(func(i):return not i.consumed and not i.equipped_to_member_id.is_empty()).size(),owned_cards.size()]
- upgrade_summary.member_name=guild.definition(selected.unit_type_id).display_name;upgrade_summary.level=selected.level;upgrade_summary.hp=selected.current_hp;upgrade_summary.max_hp=stats.max_hp;upgrade_summary.energy=selected.energy;upgrade_summary.maxed=selected.level>=10;upgrade_summary.queue_redraw()
+ upgrade_summary.member_name=guild.definition(selected.unit_type_id).display_name;upgrade_summary.level=selected.level;upgrade_summary.hp=selected.current_hp;upgrade_summary.max_hp=stats.max_hp;upgrade_summary.maxed=selected.level>=10;upgrade_summary.queue_redraw()
  upgrade_button.text="Lv.10 · 최대 레벨" if selected.level>=10 else "강화 · %dG"%GuildMemberCombatStats.upgrade_cost(selected)
  upgrade_button.disabled=selected.level>=10 or guild.state.gold<GuildMemberCombatStats.upgrade_cost(selected) or not controller.content.can_manage()
  # Slots in reading order: spare equipment, consumables, equipped gear, ready cards, waiting cards.

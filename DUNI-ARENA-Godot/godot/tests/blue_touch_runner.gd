@@ -43,10 +43,10 @@ func display_contract():
 	var item: ItemInstance=ui.controller.content.inventory.give(&"fang");item.equipped_to_member_id=member.member_id
 	ui.guild_panel.selected_member_id=member.member_id;ui.guild_panel.show_tab("guild");ui.open_guild();await frames()
 	var card: ArenaCard=ui.guild_panel.roster.get_node(member.member_id)
-	verify(card.hp==83 and card.energy==3 and card.equipment_kinds==["fang"],"guild card copies individual HP/energy/equipment")
+	verify(card.hp==83 and card.equipment_kinds==["fang"],"guild card copies individual HP/equipment")
 	verify(fits(card) and fits(ui.guild_panel.close_button),"guild card/close fit")
 	await shot("guild");await tap(ui.guild_panel.tabs.inventory);await frames();card=ui.guild_panel.roster.get_node(member.member_id)
-	verify(card.card_type=="mini_member" and card.hp==83 and card.energy==3 and card.equipment_kinds==["fang"],"inventory selector preserves all member information")
+	verify(card.card_type=="mini_member" and card.hp==83 and card.equipment_kinds==["fang"],"inventory selector preserves all member information")
 	verify(card.custom_minimum_size.y>=88 and fits(card),"inventory summary has space for gear row")
 	await shot("inventory");ui.guild_dialog.hide();ui.select_room("0:3");await frames();ui.fx.advance(3)
 	var screen: TowerBattleScreen=ui.battle_screen

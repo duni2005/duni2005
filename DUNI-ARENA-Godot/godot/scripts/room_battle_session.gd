@@ -28,11 +28,9 @@ func start(plan: DeploymentPlan, manager: BattleManager, seed_value: int = -1) -
 	battle.room_id = room.room_id
 	battle.unit_died.connect(_on_death)
 	battle.battle_finished.connect(_on_finished)
-	battle.battle_finalizing.connect(_on_finalizing)
 	if not plan.launch(battle, enemies, seed_value):
 		battle.unit_died.disconnect(_on_death)
 		battle.battle_finished.disconnect(_on_finished)
-		battle.battle_finalizing.disconnect(_on_finalizing)
 		battle.room_id = ""
 		battle = null
 		return false
@@ -55,15 +53,6 @@ func _on_death(unit: BattleUnit, _source) -> void:
 			guild.state.gold += reward.gold; guild.state.tokens += reward.tokens
 	if guild.state.player_hp <= 0:
 		battle.run_end_requested = true
-
-func _on_finalizing(reason: BattleEndReason.Value) -> void:
-	# Web settleTowerBattle heals surviving tower allies before snapshotTowerMember.
-	# Standalone Phase4 rooms intentionally keep their previous settlement contract.
-	if room.floor_index < 0 or room.cleared or guild.state.player_hp <= 0 or reason != BattleEndReason.Value.VICTORY:
-		return
-	for unit in battle.units:
-		if unit.alive and not unit.source_member_id.is_empty():
-			StrategyEffects.heal(unit, unit.max_hp * .3)
 
 func _on_finished(result: BattleResult) -> void:
 	settlement_status = settlement.apply_room(result, guild, room)

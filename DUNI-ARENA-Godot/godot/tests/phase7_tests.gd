@@ -334,7 +334,7 @@ func clock_and_persistence() -> void:
 	enemy.character_specific_state={"test_counter":7}
 	verify(f.session.request_retreat(),"20seconds retreat with common states")
 	var member:GuildMemberState=f.guild.all_members()[0]
-	verify(member.current_hp==91 and member.energy==4,"retreat memberHP/energy preserve")
+	verify(member.current_hp==91,"retreat memberHP preserve")
 	verify(member.character_specific_state.stun==.6 and member.character_specific_state.invincible==1.5,"ally whitelist state stored")
 	var saved:EnemyRoomState=f.room.enemy_state["persist_w"]
 	verify(saved.current_hp==73 and saved.position==Vector2(580,270),"enemyHP position stored")
@@ -483,9 +483,8 @@ func advanced_physical_and_cards() -> void:
 	battle.clock.elapsed=130
 	verify(battle.damage_resolver.resolve(battle.units[0],battle.units[1],10,{"impulse":0}).resolved_damage==20,"post60seconds escalation130 doublesdamage")
 	battle.clock.elapsed=0
-	battle.units[0].source_member_id="fatigued_source";battle.units[0].energy=0
-	battle.units[1].source_member_id="fatigued_target";battle.units[1].energy=0
-	verify(battle.damage_resolver.resolve(battle.units[0],battle.units[1],20,{"impulse":0}).resolved_damage==17,"energy0 damage .75 and taken1.15")
+	battle.units[0].source_member_id="member_source";battle.units[1].source_member_id="member_target"
+	verify(battle.damage_resolver.resolve(battle.units[0],battle.units[1],20,{"impulse":0}).resolved_damage==20,"no energy fatigue on member damage")
 	battle.free()
 	var f:=persistence_fixture()
 	f.battle.clock.elapsed=12;f.battle.simulate(2)

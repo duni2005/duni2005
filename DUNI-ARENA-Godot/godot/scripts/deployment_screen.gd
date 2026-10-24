@@ -34,7 +34,6 @@ func _ready() -> void:
 	for index in range(6):
 		var member: GuildMemberState = guild.create_member(0 if index < 3 else 1)
 		member.current_hp -= index * 5
-		member.energy = 0 if index == 1 else 5 - index % 3
 		member.ultimate_gauge = index * 7
 		member.transcendence_gauge = index * 3
 	enemies = [
@@ -129,7 +128,7 @@ func _rebuild_roster() -> void:
 		ids.append(member.member_id)
 		var data: UnitData = guild.definition(member.unit_type_id)
 		var placed: bool = plan.get_entry(member.member_id) != null
-		var label: String = "%s %s %s\nHP %s · 기력 %d / 5\n%s · %s" % [data.emoji,data.display_name,ArenaUI.member_label(member.member_id),ArenaUI.hp(member.current_hp,guild.member_max_hp(member)),member.energy,ArenaUI.stance(member.stance),"사망 · 배치 불가" if not member.is_alive() else "배치됨" if placed else "대기"]
+		var label: String = "%s %s %s\nHP %s\n%s · %s" % [data.emoji,data.display_name,ArenaUI.member_label(member.member_id),ArenaUI.hp(member.current_hp,guild.member_max_hp(member)),ArenaUI.stance(member.stance),"사망 · 배치 불가" if not member.is_alive() else "배치됨" if placed else "대기"]
 		var button: ArenaCard=roster.get_node_or_null(member.member_id)
 		if button==null:
 			button=ArenaCard.new();button.name=member.member_id;ArenaUI.bind(button,board.select.bind(member.member_id));roster.add_child(button)
@@ -163,7 +162,7 @@ func begin_deployment() -> void:
 	board.selected_id = ""
 	var restored: int = plan.restore(guild.state.last_formation)
 	undo_history.clear();redo_history.clear();board.erase_mode=false;erase_button.set_pressed_no_signal(false)
-	status.text = "아군 영역에 배치하세요. 이전 진형 %d명 복원 · 기력 0도 출전 가능" % restored
+	status.text = "아군 영역에 배치하세요. 이전 진형 %d명 복원" % restored
 	for button in [start_button, clear_button, remove_button, restore_button]:
 		button.disabled = false
 	next_button.disabled = true

@@ -10,7 +10,6 @@ var kind: String=""
 var status_text: String=""
 var hp: float=1
 var hp_max: float=1
-var energy: int=5
 var level: int=0
 var stars: int=0
 var gauge: float=0
@@ -42,11 +41,11 @@ const SHOP_TYPES: Array=["product","recruit"]
 func show_member(guild: GuildManager,member: GuildMemberState) -> void:
 	# Copy presentation values. Inventory ownership remains run data.
 	source_id=member.member_id;type_id=member.unit_type_id;title=guild.definition(type_id).display_name
-	hp=member.current_hp;hp_max=guild.member_max_hp(member);energy=member.energy;level=member.level;stars=member.stars;dead=not member.is_alive()
+	hp=member.current_hp;hp_max=guild.member_max_hp(member);level=member.level;stars=member.stars;dead=not member.is_alive()
 	equipment_slots=GuildMemberCombatStats.equipment_limit(member);equipment_kinds.clear()
 	for item in guild.state.inventory:
 		if not item.consumed and item.equipped_to_member_id==member.member_id:equipment_kinds.append(String(item.kind))
-	tooltip_text="%s · %s\nHP %s · 기력 %d / 5\n장비: %s"%[title,ArenaUI.member_label(member.member_id),ArenaUI.hp(hp,hp_max),energy,"없음" if equipment_kinds.is_empty() else " / ".join(equipment_kinds.map(func(k):return ItemCatalog.get_item(k).display_name))]
+	tooltip_text="%s · %s\nHP %s\n장비: %s"%[title,ArenaUI.member_label(member.member_id),ArenaUI.hp(hp,hp_max),"없음" if equipment_kinds.is_empty() else " / ".join(equipment_kinds.map(func(k):return ItemCatalog.get_item(k).display_name))]
 	queue_redraw()
 func draw_equipment(y: float,slot_size: float=15) -> void:
 	var spacing: float=slot_size+3;var start: float=(size.x-(equipment_slots*spacing-3))*.5
@@ -74,10 +73,6 @@ func draw_price_chip(rect: Rect2,sold_label: String) -> void:
 	draw_string(font,Vector2(x+23,rect.get_center().y+6),amount,HORIZONTAL_ALIGNMENT_LEFT,-1,fs,ArenaUI.DANGER if disabled else ArenaUI.GOLD if gold_chip else Color("bfe0ff"))
 func draw_badge(at: Vector2,radius: float,ring: Color) -> void:
 	draw_circle(at,radius,Color("1d1a17"));draw_arc(at,radius,0,TAU,40,Color(ring,.45),1.5,true)
-func draw_energy(y: float,width: float,height: float=4) -> void:
-	# Five-segment energy meter, the same pips the unit strip uses, centred on the card.
-	var gap: float=2;var cell: float=(width-gap*4)/5;var x: float=(size.x-width)*.5
-	for i in range(5):draw_style_box(ArenaUI.pip_style(i<energy),Rect2(x+i*(cell+gap),y,cell,height))
 func draw_member_summary(compact: bool=false) -> void:
 	var tint: Color=ArenaUI.DANGER if dead else ArenaUI.HP
 	if compact and strip_style:
@@ -88,7 +83,6 @@ func draw_member_summary(compact: bool=false) -> void:
 		else:write(Vector2(0,57),"·",10,ArenaUI.MUTED,size.x,true)
 		write(Vector2(0,69),"사망" if dead else "%d / %d"%[ceili(hp),ceili(hp_max)],9,tint,size.x,true)
 		draw_rect(Rect2(5,73,size.x-10,3),Color("0e1424"));draw_rect(Rect2(5,73,(size.x-10)*clampf(hp/maxf(1,hp_max),0,1),3),tint)
-		for i in range(5):draw_style_box(ArenaUI.pip_style(i<energy),Rect2(5+i*(size.x-10)/5,80,(size.x-10)/5-2,3))
 		return
 	if compact:
 		var tiny: bool=size.y<84;var p: float=24 if tiny else 28
@@ -97,8 +91,7 @@ func draw_member_summary(compact: bool=false) -> void:
 		var hp_y: float=37 if tiny else 54
 		write(Vector2(0,hp_y),"사망" if dead else "HP %d/%d"%[ceili(hp),ceili(hp_max)],9,tint,size.x,true)
 		draw_rect(Rect2(6,hp_y+3,size.x-12,2),Color("0e1424"));draw_rect(Rect2(6,hp_y+3,(size.x-12)*clampf(hp/maxf(1,hp_max),0,1),2),tint)
-		draw_energy(hp_y+9,size.x-12)
-		draw_equipment(hp_y+20,12)
+		draw_equipment(hp_y+12,12)
 		return
 	var small: bool=card_type=="deploy_member"
 	write(Vector2(0,17),title,12 if small else 13,Color("eef1fa"),size.x,true)
@@ -108,8 +101,7 @@ func draw_member_summary(compact: bool=false) -> void:
 	var hp_y: float=80 if small else 91
 	write(Vector2(0,hp_y),"사망" if dead else "HP "+ArenaUI.hp(hp,hp_max),10,tint,size.x,true)
 	draw_rect(Rect2(10,hp_y+4,size.x-20,3),Color("0e1424"));draw_rect(Rect2(10,hp_y+4,(size.x-20)*clampf(hp/maxf(1,hp_max),0,1),3),tint)
-	draw_energy(hp_y+12,size.x-20,5)
-	draw_equipment(hp_y+24,13 if small else 15)
+	draw_equipment(hp_y+16,13 if small else 15)
 	if not small:write(Vector2(0,size.y-7),"사망 · 배치 불가" if dead else status_text,10,ArenaUI.DANGER if dead else ArenaUI.MUTED,size.x,true)
 	for i in range(stars):ArenaIcon.draw(self,Vector2(size.x-11-i*12,33),"star",11,ArenaUI.GOLD)
 	if small and not dead:
@@ -185,10 +177,9 @@ func _draw() -> void:
 	if sold and card_type in SHOP_TYPES:muted=Color("8d8a85");gold=Color("8d8a85")
 	if card_type=="party":
 		# Source compact party: portrait, purple readiness meter, percentage.
-		# HP/energy/equipment remain in tooltip + selected details, not a text stack.
+		# HP/equipment remain in tooltip + selected details, not a text stack.
 		UnitIcon.draw(self,Rect2(size.x*.5-16,3,32,32),type_id,.28 if dead else 1)
 		draw_rect(Rect2(6,34,size.x-12,2),Color("0c1220"));draw_rect(Rect2(6,34,(size.x-12)*clampf(hp/maxf(1,hp_max),0,1),2),ArenaUI.HP)
-		for i in range(5):draw_rect(Rect2(7+i*3,30,2,2),ArenaUI.GOLD if i<energy else Color("26304a"))
 		for i in range(mini(2,equipment_kinds.size())):ArenaIcon.draw(self,Vector2(size.x-8-i*9,30),equipment_kinds[i],8,Color.WHITE)
 		draw_rect(Rect2(5,38,size.x-10,3),Color("0c1220"));draw_rect(Rect2(5,38,(size.x-10)*clampf(gauge/100,0,1),3),Color("b28bdf"))
 		write(Vector2(0,51),"사망" if dead else "%d%%"%int(gauge),9,ArenaUI.DANGER if dead else Color("bdcad2"),size.x,true)
@@ -234,8 +225,7 @@ func _draw() -> void:
 		write(Vector2(0,67),title,12,Color("eef1fa"),size.x,true)
 		write(Vector2(0,82),stats_summary+" · 사망",10,ArenaUI.DANGER,size.x,true)
 		write(Vector2(0,97),"HP 0 / %d"%ceili(hp_max),10,ArenaUI.DANGER,size.x,true)
-		draw_energy(105,size.x-20)
-		draw_equipment(116,12)
+		draw_equipment(108,12)
 		write(Vector2(0,145),"부활 "+description,9,ArenaUI.HP,size.x,true)
 		return
 	if card_type=="promotion_member":
@@ -244,8 +234,7 @@ func _draw() -> void:
 		write(Vector2(0,81),subtitle,10,muted,size.x,true)
 		draw_rect(Rect2(10,88,size.x-20,3),Color("0e1424"));draw_rect(Rect2(10,88,(size.x-20)*clampf(hp/maxf(1,hp_max),0,1),3),ArenaUI.HP)
 		write(Vector2(0,107),"HP %d/%d"%[ceili(hp),ceili(hp_max)],9,ArenaUI.DANGER if dead else ArenaUI.HP,size.x,true)
-		draw_energy(113,size.x-20)
-		draw_equipment(125,12)
+		draw_equipment(116,12)
 		write(Vector2(0,153),status_text,9,gold if active else muted,size.x,true)
 		return
 	if card_type=="promotion_slot":
@@ -303,7 +292,6 @@ func _draw() -> void:
 		UnitIcon.draw(self,Rect2(size.x*.5-16,4,32,32),type_id,.4 if dead else 1)
 		write(Vector2(0,49),subtitle,10,muted,size.x,true)
 		draw_rect(Rect2(6,56,size.x-12,3),Color("0e1424"));draw_rect(Rect2(6,56,(size.x-12)*clampf(hp/maxf(1,hp_max),0,1),3),Color("86e3a4"))
-		draw_rect(Rect2(6,62,size.x-12,3),Color("0e1424"));draw_rect(Rect2(6,62,(size.x-12)*clampf(energy/5.0,0,1),3),gold)
 		return
 	if card_type=="recruit":
 		write(Vector2(0,23),title,13,Color("eef1fa"),size.x,true)
@@ -343,8 +331,6 @@ func _draw() -> void:
 	write(Vector2(0,104 if compact else 131),"HP "+ArenaUI.hp(hp,hp_max),10 if compact else 11,muted,size.x,true)
 	var bar_y: float=109 if compact else 137
 	draw_rect(Rect2(12,bar_y,size.x-24,4),Color("0e1424"));draw_rect(Rect2(12,bar_y,(size.x-24)*clampf(hp/maxf(1,hp_max),0,1),4),Color("86e3a4"))
-	var start: float=(size.x-66)*.5
-	for i in range(5):draw_style_box(ArenaUI.pip_style(i<energy),Rect2(start+i*14,120 if compact else 148,12,5))
 	write(Vector2(0,138 if compact else 174),"사망 · 배치 불가" if dead else status_text,10 if compact else 11,Color("e3a0a5") if dead else gold,size.x,true)
 	if stars>0:
 		for i in range(stars):

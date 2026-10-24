@@ -154,7 +154,7 @@ func progression() -> void:
 	t.refresh_progress(0)
 	verify(floor.conquered and state.floor_conquest.has(0),"full floor conquest once")
 	verify(t.guild.state.player_hp==50 and t.guild.state.player_max_hp==100,"ACTUAL player HP recovery10% no maxHP increase")
-	verify(t.guild.all_members().all(func(m):return m.energy==3),"all energy+1")
+	verify(t.guild.all_members().all(func(m):return m.energy==2),"conquest no longer grants energy")
 	var tokens: int=t.guild.state.tokens;t.refresh_progress(0)
 	verify(t.guild.state.player_hp==50 and t.guild.state.tokens==tokens,"no duplicate conquest")
 	floor=state.map.floors[1];floor.bonus=&"item";floor.bonus_item_kind=&"greenNecklace"
@@ -164,7 +164,7 @@ func progression() -> void:
 	floor=state.map.floors[2];floor.bonus=&"heal";var dead: GuildMemberState=t.guild.all_members()[0];dead.current_hp=0;dead.energy=0
 	for id in floor.room_ids:state.map.get_room(id).cleared=true
 	t.refresh_progress(2)
-	verify(dead.current_hp==t.guild.definition(dead.unit_type_id).max_hp*.2 and dead.energy==1,"actual conquest heal includes dead members")
+	verify(dead.current_hp==t.guild.definition(dead.unit_type_id).max_hp*.2,"actual conquest heal includes dead members")
 	for depth in range(3,15):
 		for id in state.map.floors[depth].room_ids:state.map.get_room(id).cleared=true
 		t.refresh_progress(depth)
@@ -179,7 +179,7 @@ func integration() -> void:
 	var reserve_hp: float=t.guild.get_member(ids[2]).current_hp
 	var max_hp: float=ally.max_hp;kill_enemies(b)
 	verify(room.cleared and room.reward_claimed and room.consumed,"victory clears real room /reward receipt")
-	verify(is_equal_approx(t.guild.get_member(ids[0]).current_hp,30+max_hp*.3*1.1),"first victory30% incoming healing power")
+	verify(is_equal_approx(t.guild.get_member(ids[0]).current_hp,30),"victory no longer heals survivors")
 	verify(ally.current_hp==t.guild.get_member(ids[0]).current_hp and b.result.final_hp_by_member_id[ids[0]]==ally.current_hp,"victory heal before result snapshot /runtime HP matches guild")
 	verify(t.guild.get_member(ids[2]).current_hp==reserve_hp,"reserve no victory heal")
 	var gold: int=t.guild.state.gold;var hp: float=t.guild.get_member(ids[0]).current_hp
@@ -198,7 +198,7 @@ func integration() -> void:
 	verify(t.session.request_retreat(),"real tower retreat")
 	verify(not room.cleared and not room.enemy_state[dead_id].alive,"retreat does not clear or resurrect enemy")
 	verify(room.enemy_state[damaged_id].current_hp==17 and room.enemy_state[damaged_id].position==Vector2(410,500),"retreat enemy HP/position saved")
-	verify(t.guild.get_member(ally_id).current_hp==40 and t.guild.get_member(ally_id).energy==4,"retreat participant hp/energy no victory heal")
+	verify(t.guild.get_member(ally_id).current_hp==40,"retreat participant hp, no heal")
 	verify(t.guild.state.player_hp==100,"retreat no defeat penalty")
 	var signature_before: Array=signature(t.guild.state.tower.map);t.return_map();t.select_room("0:5");b.free()
 	var plan:=DeploymentPlan.new(t.guild);verify(plan.restore(t.guild.state.last_formation)==1,"formation restore")

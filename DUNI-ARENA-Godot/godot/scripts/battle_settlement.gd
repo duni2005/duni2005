@@ -38,9 +38,6 @@ func _apply_members(result: BattleResult, guild: GuildManager) -> Status:
 	for member in guild.all_members():
 		if participating.has(member.member_id):
 			UnitStateCodec.restore(member, result.member_states[member.member_id])
-		# Death does not erase participation. Even non-participating dead members
-		# regain energy in web settleTowerBattle; HP remains zero and no revival occurs.
-		member.energy += -1 if participating.has(member.member_id) else 1
 	return Status.APPLIED
 
 const DEATH_HP_RATE: float = 0.05

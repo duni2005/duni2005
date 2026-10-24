@@ -46,7 +46,10 @@ static func draw_unit(canvas: CanvasItem,u: BattleUnit,parent: Transform2D,flash
 	canvas.draw_set_transform_matrix(parent*Transform2D(0,Vector2(scale,scale*.35),0,at+Vector2(0,24*scale)))
 	canvas.draw_circle(Vector2.ZERO,25,Color(0,0,0,.3))
 	canvas.draw_set_transform_matrix(parent)
-	draw_battle_portrait(canvas,Rect2(body-Vector2(25*sx,25*sy)*scale,Vector2(50*sx,50*sy)*scale),u.data.type_id,alpha)
+	var portrait:=Rect2(body-Vector2(25*sx,25*sy)*scale,Vector2(50*sx,50*sy)*scale)
+	draw_battle_portrait(canvas,portrait,u.data.type_id,alpha)
+	# The rim shows the team, not the character's own colour.
+	UnitIcon.draw_ring(canvas,portrait,u.team_color(),alpha)
 	if flash>0:
 		# Small bright bands follow the actual body rather than covering it with a circle.
 		for i in range(4):canvas.draw_rect(Rect2(body+Vector2(-18,-20+i*10)*scale,Vector2(36,2)*scale),Color(1,1,.93,flash*.55))

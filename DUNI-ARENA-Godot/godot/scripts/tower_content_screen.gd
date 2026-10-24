@@ -195,7 +195,7 @@ func render_shop(node: RoomState) -> void:
 func _refresh_party() -> void:
 	clear(party_members)
 	for member in controller.guild.all_members():
-		var c:=ArenaCard.new();c.card_type="mini_member";c.type_id=member.unit_type_id;c.subtitle="%s · Lv.%d"%[ArenaUI.member_label(member.member_id),member.level];c.hp=member.current_hp;c.hp_max=controller.guild.member_max_hp(member);c.energy=member.energy;c.dead=not member.is_alive();c.custom_minimum_size=Vector2(76,90);c.show_member(controller.guild,member);party_members.add_child(c)
+		var c:=ArenaCard.new();c.card_type="mini_member";c.type_id=member.unit_type_id;c.subtitle="%s · Lv.%d"%[ArenaUI.member_label(member.member_id),member.level];c.hp=member.current_hp;c.hp_max=controller.guild.member_max_hp(member);c.dead=not member.is_alive();c.custom_minimum_size=Vector2(76,90);c.show_member(controller.guild,member);party_members.add_child(c)
 func _event_choices() -> GridContainer:
 	var center:=CenterContainer.new();content_box.add_child(center)
 	event_grid=GridContainer.new();event_grid.columns=2;event_grid.add_theme_constant_override("h_separation",7);event_grid.add_theme_constant_override("v_separation",7);event_grid.custom_minimum_size.x=minf(580,get_viewport_rect().size.x-50);center.add_child(event_grid);return event_grid
@@ -244,7 +244,7 @@ func render_promotion(node: RoomState) -> void:
 		var selected: bool=member.member_id in event.selected_members
 		var matching: bool=first==null or first.unit_type_id==member.unit_type_id and first.stars==member.stars
 		var eligible: bool=controller.content.promotion_eligible(member) and matching
-		var c:=ArenaCard.new();c.name=member.member_id;c.card_type="promotion_member";c.type_id=member.unit_type_id;c.title=controller.guild.definition(member.unit_type_id).display_name;c.subtitle="%s · Lv.%d"%[ArenaUI.member_label(member.member_id),member.level];c.hp=member.current_hp;c.hp_max=controller.guild.member_max_hp(member);c.energy=member.energy;c.dead=not member.is_alive();c.status_text="선택됨" if selected else "사망" if c.dead else "최고 성급" if member.stars>=2 else "Lv.10 필요" if member.level<10 else "승급 가능" if matching else "종류·성급 다름";c.selected=selected;c.custom_minimum_size=Vector2(0,158);c.show_member(controller.guild,member);c.size_flags_horizontal=Control.SIZE_EXPAND_FILL;c.disabled=not selected and (not eligible or event.selected_members.size()>=3 or event.promotion_used>=event.promotion_limit);ArenaUI.bind(c,_action.bind(&"promotion_select",{"member_id":member.member_id}));grid.add_child(c)
+		var c:=ArenaCard.new();c.name=member.member_id;c.card_type="promotion_member";c.type_id=member.unit_type_id;c.title=controller.guild.definition(member.unit_type_id).display_name;c.subtitle="%s · Lv.%d"%[ArenaUI.member_label(member.member_id),member.level];c.hp=member.current_hp;c.hp_max=controller.guild.member_max_hp(member);c.dead=not member.is_alive();c.status_text="선택됨" if selected else "사망" if c.dead else "최고 성급" if member.stars>=2 else "Lv.10 필요" if member.level<10 else "승급 가능" if matching else "종류·성급 다름";c.selected=selected;c.custom_minimum_size=Vector2(0,158);c.show_member(controller.guild,member);c.size_flags_horizontal=Control.SIZE_EXPAND_FILL;c.disabled=not selected and (not eligible or event.selected_members.size()>=3 or event.promotion_used>=event.promotion_limit);ArenaUI.bind(c,_action.bind(&"promotion_select",{"member_id":member.member_id}));grid.add_child(c)
 	var footer:=HBoxContainer.new();content_box.add_child(footer)
 	var count:=Label.new();count.size_flags_horizontal=Control.SIZE_EXPAND_FILL;count.text="%d / 3명 선택"%event.selected_members.size();count.add_theme_font_size_override("font_size",12);footer.add_child(count)
 	var promote: Button=button(footer,"승급",_action.bind(&"promote"),"Promote");ArenaUI.primary(promote);promote.custom_minimum_size.x=112;promote.disabled=event.selected_members.size()!=3 or event.promotion_used>=event.promotion_limit
@@ -252,11 +252,11 @@ func render_promotion(node: RoomState) -> void:
 		var detail:=Label.new();detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;detail.add_theme_font_size_override("font_size",11);detail.text="첫 길드원과 장비는 유지됩니다. 다른 두 길드원은 소비되며 장비는 인벤토리로 반환됩니다.";content_box.add_child(detail)
 func render_event(node: RoomState) -> void:
 	if node.event.resolved:
-		if node.event.selected_choice==&"bathe":_result("hotSpring","온천욕 완료","따뜻한 온천에서 생존 유닛들이 회복했습니다.",Color("7fd8e8"),["HP +10%","기력 +2칸"])
+		if node.event.selected_choice==&"bathe":_result("hotSpring","온천욕 완료","따뜻한 온천에서 생존 유닛들이 회복했습니다.",Color("7fd8e8"),["HP +10%"])
 		else:_result("gold","복권 당첨","온천 복권에서 보상을 얻었습니다.",ArenaUI.GOLD,[_event_reward_text(node.event.outcome)])
 		return
 	var grid: GridContainer=_event_choices()
-	var options: Dictionary={&"bathe":["온천에 들어가기","생존 유닛 HP +10%\n기력 +2칸","hotSpring"],&"lottery":["온천 복권 구매","무작위 보상","gold"],&"heal":["플레이어 회복","HP +10","heart"],&"guild":["생존 유닛 회복","HP +10% · 기력 +1","rest"],&"gold":["자원 획득","골드 +300 · 토큰 +1","gold"],&"loot":["무작위 아이템" if node.event.treasure_kind==&"item" else "무작위 전략카드","아이템 1개" if node.event.treasure_kind==&"item" else "전략카드 1장","supply" if node.event.treasure_kind==&"item" else "prediction"]}
+	var options: Dictionary={&"bathe":["온천에 들어가기","생존 유닛 HP +10%","hotSpring"],&"lottery":["온천 복권 구매","무작위 보상","gold"],&"heal":["플레이어 회복","HP +10","heart"],&"guild":["생존 유닛 회복","HP +10%","rest"],&"gold":["자원 획득","골드 +300 · 토큰 +1","gold"],&"loot":["무작위 아이템" if node.event.treasure_kind==&"item" else "무작위 전략카드","아이템 1개" if node.event.treasure_kind==&"item" else "전략카드 1장","supply" if node.event.treasure_kind==&"item" else "prediction"]}
 	for choice in node.event.choices:
 		var data: Array=options[choice];var c:=_choice(grid,String(choice),data[0],data[1],data[2],_action.bind(&"event",{"choice":choice}),"200 G" if choice==&"lottery" else "")
 		if node.event_type==&"hotSpring":c.custom_minimum_size.y=146

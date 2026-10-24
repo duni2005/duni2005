@@ -22,7 +22,6 @@ func set_floor(floor: FloorState) -> void:
 	progress.value=100.0*floor.cleared_count/maxi(1,floor.room_ids.size());percent_label.text="%d%%"%roundi(progress.value)
 	for child in rewards.get_children():rewards.remove_child(child);child.queue_free()
 	_reward("heart","플레이어 HP +10%")
-	_reward("energy","모든 유닛 기력 +1")
 	var bonus: String={&"heal":"모든 유닛 HP +20%",&"tokens":"토큰 +2",&"item":"무작위 아이템 1개"}.get(floor.bonus,"추가 보상")
 	_reward("supply" if floor.bonus==&"item" else "gem" if floor.bonus==&"tokens" else "heal",bonus,true)
 	status_label.text="✓ 보상 지급 완료" if floor.conquered else "모든 방 정복 시 자동 지급";status_label.add_theme_color_override("font_color",ArenaUI.HP if floor.conquered else Color("c3ceba"))

@@ -286,7 +286,7 @@ func _process(_dt: float) -> void:
 		if floor.conquered and not known_floors.get(floor.floor_index,false):
 			known_floors[floor.floor_index]=true
 			var reward: String={&"heal":"전체 길드 HP +20%",&"tokens":"토큰 +2",&"item":"아이템 획득"}.get(floor.bonus,"")
-			fx.enqueue({"kind":"conquest","key":"floor:%d"%floor.floor_index,"title":"%d층 정복"%(floor.floor_index+1),"detail":"플레이어 HP 회복 · 전체 기력 +1\n"+reward,"icon":"crown"})
+			fx.enqueue({"kind":"conquest","key":"floor:%d"%floor.floor_index,"title":"%d층 정복"%(floor.floor_index+1),"detail":"플레이어 HP 회복\n"+reward,"icon":"crown"})
 	for chapter in state.chapter_progress:
 		if state.chapter_progress[chapter] and not known_chapters.get(chapter,false):
 			known_chapters[chapter]=true;fx.enqueue({"kind":"chapterConquest","key":"chapter:%d"%int(chapter),"title":"%d챕터 정복"%int(chapter),"detail":"보스 격파","icon":"crown","chapter":int(chapter)})

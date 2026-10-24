@@ -116,6 +116,7 @@ func _build_ui() -> void:
 	column.add_child(turning_panel)
 	column.move_child(turning_panel, deployment_legend.get_index())
 	battle_cue=BattleCueOverlay.new();battle_cue.board=board;add_child(battle_cue)
+	var kill_feed:=KillFeed.new();kill_feed.board=board;kill_feed.below=battle_toolbar;add_child(kill_feed)
 	end_overlay=RetreatPresentation.new();add_child(end_overlay)
 
 func _ensure_room() -> void:
@@ -318,7 +319,7 @@ func _refresh_transcendence(dt: float) -> void:
 		button.text="%s · 초월 %d%% / 궁극기 %d%%
 %s" % [u.data.display_name,int(u.transcendence_gauge),int(u.ultimate_gauge),"사망" if not u.alive else "준비 · 길게 눌러 방향 선택" if battle.transcendence.ready(u) else "충전 중"]
 		button.description="초월 %d%% · %s"%[int(u.transcendence_gauge),"길게 눌러 시전" if battle.transcendence.ready(u) else "충전 중"];button.queue_redraw()
-		button.hp=u.current_hp;button.hp_max=u.max_hp;button.gauge=u.transcendence_gauge;button.dead=not u.alive;button.status_text="초월 준비" if battle.transcendence.ready(u) else "";button.tooltip_text=button.text+"\nHP "+ArenaUI.hp(u.current_hp,u.max_hp)+" · 기력 %d/5"%button.energy
+		button.hp=u.current_hp;button.hp_max=u.max_hp;button.gauge=u.transcendence_gauge;button.dead=not u.alive;button.status_text="초월 준비" if battle.transcendence.ready(u) else "";button.tooltip_text=button.text+"\nHP "+ArenaUI.hp(u.current_hp,u.max_hp)
 		button.modulate=Color("cd9aff") if u.transcendence_gauge>=100 else Color.WHITE
 	if not trans_press.is_empty():
 		trans_press.held=float(trans_press.held)+dt

@@ -36,6 +36,16 @@ var weapon_releases: Dictionary={}
 var afterimages: Array[Dictionary]=[]
 const MAX_AFTERIMAGES=48
 var kill_notices: Array[Dictionary]=[]
+## Multi-kill (original spectator): kills within KILL_CHAIN_WINDOW battle seconds chain per killer.
+const MULTI_KILL_NAMES=["","","더블 킬","트리플 킬","쿼드라 킬","펜타 킬","헥사 킬"]
+const MULTI_KILL_COLORS=[Color.WHITE,Color.WHITE,Color("ffe28a"),Color("ffb45e"),Color("ff7a5a"),Color("ff5fa8"),Color("c58bff")]
+const KILL_CHAIN_WINDOW: float=6
+const BANNER_LIFE: float=2.6
+var kill_streaks: Dictionary={}
+var multi_banner: Dictionary={}
+var multi_queue: Array[Dictionary]=[]
+## Set when a KillFeed control shows the log outside the arena.
+var external_kill_feed: bool=false
 var cinematic:=BattleCinematicState.new()
 var trans_active: bool=false
 var trans_point:=Vector2.ZERO
@@ -69,7 +79,7 @@ func cleanup() -> void:
 		if battle.unit_died.is_connected(_death):battle.unit_died.disconnect(_death)
 		if battle.battle_finalizing.is_connected(_prepare_ending):battle.battle_finalizing.disconnect(_prepare_ending)
 	cinematic=BattleCinematicState.new()
-	kill_notices.clear()
+	kill_notices.clear();kill_streaks.clear();multi_banner.clear();multi_queue.clear()
 	connected=false;battle=null;effects.clear();numbers.clear();previous.clear();feed.clear();event_total=0;end_age=0;camera.reset();particles.clear();flashes.clear();visual_positions.clear();freeze_positions.clear();impact_remaining=0;trans_active=false;explosive_seen.clear();tracked_projectiles.clear();projectile_trails.clear();projectile_origins.clear();release_counts.clear();weapon_releases.clear();ult_released.clear();ult_timers.clear();afterimages.clear();trail_tick=-1;queue_redraw()
 	if is_instance_valid(glow_layer):glow_layer.queue_redraw()
 	if is_instance_valid(field_layer):field_layer.clear()
@@ -138,11 +148,49 @@ func _death(u,source) -> void:
 	particles.burst(u.position,u.team_color(),52,380,0,"shard",true)
 	feed.push_front("%s %s 사망"%["아군" if u.original_team==0 else "적",u.data.display_name])
 	if feed.size()>3:feed.pop_back()
-	kill_notices.push_front({"age":0.0,"target":u.data.type_id,"target_name":u.data.display_name,"source":source.data.type_id if is_instance_valid(source) else -1,"source_name":source.data.display_name if is_instance_valid(source) else "","team":u.original_team})
-	if kill_notices.size()>2:kill_notices.pop_back()
+	var killer: bool=is_instance_valid(source) and source!=u
+	kill_notices.push_front({"age":0.0,"target":u.data.type_id,"target_name":u.data.display_name,"target_color":u.team_color(),"source":source.data.type_id if killer else -1,"source_name":source.data.display_name if killer else "","source_color":source.team_color() if killer else Color("a9c9f0"),"team":u.original_team})
+	if kill_notices.size()>3:kill_notices.pop_back()
+	_count_kill(u,source if killer else null)
 	if u.original_team==1:
 		camera.focus(u.position,.5)
 		if battle.units.all(func(v):return v.original_team!=1 or not v.alive):add_effect("final_kill",u.position,ArenaUI.GOLD,150,1);camera.impact(9,u.position);impact_pause(80);camera.finish(u.position)
+func _count_kill(victim,source) -> void:
+	kill_streaks.erase(victim.actor_id())
+	if source==null or not source.alive:return
+	var previous: Dictionary=kill_streaks.get(source.actor_id(),{})
+	var count: int=int(previous.count)+1 if not previous.is_empty() and battle.clock.elapsed-float(previous.last)<=KILL_CHAIN_WINDOW else 1
+	kill_streaks[source.actor_id()]={"count":count,"last":battle.clock.elapsed}
+	if count<2:return
+	var item: Dictionary={"actor":source.actor_id(),"type":source.data.type_id,"name":source.data.display_name,"color":source.team_color(),"count":mini(6,count),"age":0.0}
+	# A killer's own banner upgrades in place; another killer waits its turn.
+	if multi_banner.is_empty() or multi_banner.actor==item.actor:multi_banner=item;return
+	for waiting in multi_queue:
+		if waiting.actor==item.actor:waiting.count=item.count;return
+	multi_queue.append(item)
+func _draw_multi_kill(rect: Rect2) -> void:
+	if multi_banner.is_empty():return
+	var age: float=float(multi_banner.age);var level: int=int(multi_banner.count)
+	var enter: float=clampf(age/.18,0,1);var alpha: float=minf(enter,clampf((BANNER_LIFE-age)/.55,0,1))
+	var color: Color=MULTI_KILL_COLORS[level];var team: Color=multi_banner.color
+	var center:=Vector2(rect.get_center().x,rect.position.y+minf(76,rect.size.y*.14))
+	var size: float=clampf(rect.size.x*.085,22,40);var pop: float=1+(1-enter)*.35+(.08*sin(clampf(age/.5,0,1)*PI) if level>=4 else 0)
+	VfxArt.glow(self,center+Vector2(0,size*.1),size*4,color,.22*alpha)
+	draw_set_transform(center,0,Vector2.ONE*pop)
+	var font: Font=ArenaUI.heading_font();var text: String=MULTI_KILL_NAMES[level]
+	draw_string_outline(font,Vector2(-rect.size.x*.5,size*.36),text,HORIZONTAL_ALIGNMENT_CENTER,rect.size.x,int(size),6,Color(.12,.05,.02,.85*alpha))
+	draw_string(font,Vector2(-rect.size.x*.5,size*.36),text,HORIZONTAL_ALIGNMENT_CENTER,rect.size.x,int(size),Color(color.lightened(.35),alpha))
+	draw_set_transform(Vector2.ZERO)
+	# Killer chip above, one tick per kill below.
+	var icon: float=22;var name_w: float=ArenaUI.heading_font().get_string_size(String(multi_banner.name),HORIZONTAL_ALIGNMENT_LEFT,-1,12).x
+	var chip_x: float=center.x-(icon+6+name_w)*.5;var chip_y: float=center.y-size*.7-icon
+	UnitIcon.draw_team(self,Rect2(chip_x,chip_y,icon,icon),int(multi_banner.type),team,alpha)
+	draw_string_outline(font,Vector2(chip_x+icon+6,chip_y+icon*.7),String(multi_banner.name),HORIZONTAL_ALIGNMENT_LEFT,-1,12,4,Color(0,0,0,.7*alpha))
+	draw_string(font,Vector2(chip_x+icon+6,chip_y+icon*.7),String(multi_banner.name),HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(team.lightened(.4),alpha))
+	var tick_w: float=14;var start: float=center.x-(level*(tick_w+4)-4)*.5
+	for i in range(level):
+		var x: float=start+i*(tick_w+4);var y: float=center.y+size*.62
+		draw_colored_polygon(PackedVector2Array([Vector2(x+3,y),Vector2(x+tick_w+3,y),Vector2(x+tick_w,y+4),Vector2(x,y+4)]),Color(team.lightened(.2),alpha))
 func _prepare_ending(reason: BattleEndReason.Value) -> void:
 	if cinematic.started or not is_instance_valid(battle):return
 	var rows: Array[Dictionary]=[];var arrows: Array[Dictionary]=[]
@@ -184,6 +232,9 @@ func advance(delta: float) -> void:
 	for i in range(kill_notices.size()-1,-1,-1):
 		kill_notices[i].age+=maxf(0,ui_delta)
 		if kill_notices[i].age>3.2:kill_notices.remove_at(i)
+	if not multi_banner.is_empty():
+		multi_banner.age=float(multi_banner.age)+maxf(0,ui_delta)
+		if multi_banner.age>=BANNER_LIFE:multi_banner=multi_queue.pop_front() if not multi_queue.is_empty() else {}
 	impact_cooldown=maxf(0,impact_cooldown-delta);impact_remaining=maxf(0,impact_remaining-delta)
 	if impact_remaining<=0:particles.advance(delta)
 	for id in flashes:flashes[id]=maxf(0,float(flashes[id])-delta)
@@ -381,7 +432,8 @@ func _draw() -> void:
 		for edge in range(10):draw_rect(Rect2(edge*8,edge*8,800-edge*16,800-edge*16),Color(0,.03,.025,.025*t),false,8)
 		for x in range(80,800,80):draw_line(Vector2(x,20),Vector2(x,780),Color(.7,.8,.6,.07*t),1)
 	draw_set_transform(Vector2.ZERO)
-	_draw_kill_notices(rect)
+	if not external_kill_feed:_draw_kill_notices(rect)
+	_draw_multi_kill(rect)
 func _draw_kill_notices(rect: Rect2) -> void:
 	if battle.clock.state!=BattleClock.State.NORMAL:return
 	var width: float=minf(252,rect.size.x-16)

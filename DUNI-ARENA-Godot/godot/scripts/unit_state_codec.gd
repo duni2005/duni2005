@@ -36,7 +36,6 @@ static func inject(unit: BattleUnit, member: GuildMemberState, run_id: String) -
 	unit.source_run_id = run_id
 	unit.current_hp = clampf(member.current_hp, 0.0, unit.max_hp)
 	unit.alive = unit.current_hp > 0.0
-	unit.energy = member.energy
 	unit.equipment_fang_kills=member.fang_kills
 	unit.ultimate_gauge = member.ultimate_gauge
 	unit.transcendence_gauge = member.transcendence_gauge

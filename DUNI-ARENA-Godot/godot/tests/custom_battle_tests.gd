@@ -52,6 +52,7 @@ func run(tree: SceneTree) -> void:
 	b.queue_free()
 	await new_characters(tree)
 	items(tree)
+	multikill(tree)
 	await map_wallet_return(tree)
 	ai_health(tree)
 	print("CUSTOM BATTLE RESULT: ",checks," checks; ",failures," failures")
@@ -259,3 +260,15 @@ func items(tree: SceneTree) -> void:
 	mage.combat_stats.hourglass_count=1;mage.ultimate_gauge=0;EquipmentCombatEffects.after_ultimate(mage)
 	verify(is_equal_approx(mage.ultimate_gauge,35),"hourglass refills 35%")
 	b.queue_free()
+func multikill(tree: SceneTree) -> void:
+	# Original spectator rule: kills by one living unit within 6 battle seconds chain 2..6.
+	var b:=duel(tree,[[0,0,Vector2(100,100)],[1,1,Vector2(700,100)],[1,1,Vector2(700,300)],[1,1,Vector2(700,500)],[2,2,Vector2(400,700)]])
+	var p:=CombatPresentation.new();p.battle=b
+	var killer: BattleUnit=b.units[0]
+	p._count_kill(b.units[1],killer);verify(p.multi_banner.is_empty(),"first kill is not a multi-kill")
+	b.clock.elapsed+=3;p._count_kill(b.units[2],killer);verify(p.multi_banner.get("count")==2,"second kill within 6s is a double kill")
+	b.clock.elapsed+=5;p._count_kill(b.units[3],killer);verify(p.multi_banner.get("count")==3,"chain keeps going inside the window")
+	b.clock.elapsed+=7;p._count_kill(b.units[4],killer);verify(p.multi_banner.get("count")==3,"a kill after 6s starts a new chain")
+	p._count_kill(killer,b.units[4]);verify(not p.kill_streaks.has(killer.actor_id()),"a dead killer's streak ends")
+	verify(CombatPresentation.MULTI_KILL_NAMES[6]=="헥사 킬","names run up to hexa kill")
+	p.free();b.queue_free()

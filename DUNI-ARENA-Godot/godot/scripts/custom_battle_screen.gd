@@ -28,6 +28,8 @@ var start_button: Button
 var battle_header: HBoxContainer
 var setup_header: HBoxContainer
 var status_line: BattleStatusLine
+## Room for the kill log between the status line and the field, so it never covers the field.
+var feed_gap: Control
 var trans_scroll: ScrollContainer
 var trans_row: HBoxContainer
 var battle_toolbar: HBoxContainer
@@ -62,6 +64,7 @@ func _ready() -> void:
 	# Team spending (temporary card costs, unlimited funds).
 	cost_row=HBoxContainer.new();cost_row.add_theme_constant_override("separation",4);column.add_child(cost_row)
 	status_line=BattleStatusLine.new();column.add_child(status_line);status_line.hide()
+	feed_gap=Control.new();feed_gap.custom_minimum_size.y=(KillFeed.ROW_H+KillFeed.GAP)*2+8;feed_gap.mouse_filter=Control.MOUSE_FILTER_IGNORE;column.add_child(feed_gap);feed_gap.hide()
 	board=CustomBattleBoard.new();board.setup=setup;board.size_flags_vertical=Control.SIZE_EXPAND_FILL;board.custom_minimum_size=Vector2(0,260);board.clip_contents=true;column.add_child(board)
 	board.empty_tapped.connect(_place);board.unit_tapped.connect(_unit_tapped);board.unit_moved.connect(_move)
 	# Setup controls: teams, tools, character library, footer.
@@ -88,6 +91,7 @@ func _ready() -> void:
 	trans_scroll=ScrollContainer.new();trans_scroll.set_meta("hold_drag",true);trans_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;trans_scroll.custom_minimum_size.y=60;column.add_child(trans_scroll);trans_scroll.hide()
 	trans_row=HBoxContainer.new();trans_row.add_theme_constant_override("separation",6);trans_scroll.add_child(trans_row)
 	battle_toolbar=HBoxContainer.new();column.add_child(battle_toolbar);battle_toolbar.hide()
+	var kill_feed:=KillFeed.new();kill_feed.board=board;kill_feed.above=status_line;kill_feed.below=battle_toolbar;add_child(kill_feed)
 	pause_button=_button(battle_toolbar,"Ⅱ 일시정지",_toggle_pause);pause_button.custom_minimum_size.x=104;pause_button.add_theme_font_size_override("font_size",11);ArenaUI.quiet(pause_button)
 	var lead:=Control.new();lead.size_flags_horizontal=Control.SIZE_EXPAND_FILL;battle_toolbar.add_child(lead)
 	var speeds:=HBoxContainer.new();speeds.add_theme_constant_override("separation",4);battle_toolbar.add_child(speeds)
@@ -270,7 +274,7 @@ func return_setup() -> void:
 	_dispose_battle();board.editing=true;trans_press.clear();_set_phase(false);refresh()
 func _set_phase(fighting: bool) -> void:
 	setup_header.visible=not fighting;cost_row.visible=not fighting;setup_controls.visible=not fighting
-	battle_header.visible=fighting;status_line.visible=fighting;trans_scroll.visible=fighting;battle_toolbar.visible=fighting
+	battle_header.visible=fighting;status_line.visible=fighting;feed_gap.visible=fighting;trans_scroll.visible=fighting;battle_toolbar.visible=fighting
 	if not fighting:unit_dialog.hide()
 func _set_speed(speed: int) -> void:
 	if is_instance_valid(battle):battle.clock.set_speed(float(speed))

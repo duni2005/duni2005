@@ -189,10 +189,10 @@ func targets_and_charging() -> void:
 	verify(u.ultimate.gain(u,50)==0 and u.ultimate.request(u,b.units[1]),"taunt blocks charge, not existing ultimate use")
 	b.free()
 	b=fixture([0,1]);u=b.units[0]
-	u.source_member_id="test_member";u.energy=3;u.ultimate_gauge=0;u.transcendence_gauge=0
+	u.source_member_id="test_member";u.ultimate_gauge=0;u.transcendence_gauge=0
 	u.ultimate.charge(u,15,true)
-	verify(is_equal_approx(u.ultimate_gauge,15.0/150*65*1.2*.86),"warrior damage65*1.2 fatigue86%")
-	verify(is_equal_approx(u.transcendence_gauge,15.0/150*12*.86),"trans only damage12 fatigue")
+	verify(is_equal_approx(u.ultimate_gauge,15.0/150*65*1.2),"warrior damage65*1.2, no fatigue")
+	verify(is_equal_approx(u.transcendence_gauge,15.0/150*12),"trans only damage12")
 	var old: float=u.transcendence_gauge;u.ultimate.advance(u,1)
 	verify(u.transcendence_gauge==old,"no automatic transcendence charge")
 	b.free()

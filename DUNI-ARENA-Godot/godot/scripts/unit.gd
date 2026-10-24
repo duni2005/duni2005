@@ -9,7 +9,6 @@ var source_member_id: String = "" # Empty for Phase 1/test enemies; never a type
 var source_enemy_id: String = "" # Separate room actor identity; never a member ID.
 var source_room_id: String = ""
 var source_run_id: String = ""
-var energy: int = GuildMemberState.MAX_ENERGY
 var ultimate_gauge: float = 0.0
 var transcendence_gauge: float = 0.0
 var stance: StringName = CombatStance.NORMAL

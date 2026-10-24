@@ -170,7 +170,7 @@ func rest_events() -> void:
 	var m: GuildMemberState=t.guild.all_members()[0];t.return_map();m.current_hp=40;m.energy=0;give(t,&"greenNecklace",m)
 	enter_event(t,&"hotSpring")
 	verify(not t.return_map() and not t.new_run(9,1),"active event locks map/newrun")
-	verify(t.content_action(&"event",{"choice":&"bathe"}).ok and is_equal_approx(m.current_hp,56.5) and m.energy==2,"hotSpring living10%/energy2 with incoming healing")
+	verify(t.content_action(&"event",{"choice":&"bathe"}).ok and is_equal_approx(m.current_hp,56.5) and m.energy==0,"hotSpring living10% with incoming healing, no energy")
 	verify(t.guild.all_members()[1].current_hp==0 and t.guild.all_members()[1].energy==5,"bathe dead unaffected")
 	verify(t.return_map(),"resolved event allows map")
 	var rewards: Dictionary={}
@@ -196,7 +196,7 @@ func rest_events() -> void:
 		verify(result.ok and t.current_room().cleared and t.current_room().consumed,"supply single choice")
 		match choice:
 			&"heal":verify(t.guild.state.player_hp==50,"supply player10")
-			&"guild":verify(m.current_hp==45 and m.energy==1,"supply living10%/energy1")
+			&"guild":verify(m.current_hp==45 and m.energy==0,"supply living10%, no energy")
 			&"gold":verify(t.guild.state.gold==1550 and t.guild.state.tokens==6,"supply300/1 + discovery50")
 			&"loot":verify(t.content.inventory.available().any(func(i):return i.kind==selected) if kind==&"item" else t.guild.state.strategy_cards.any(func(c):return c.kind==selected),"preselected loot actual pool")
 	t=tower();enter_event(t,&"supply");verify(t.abandon(true) and t.guild.state.game_over,"web allows abandon from active event before prediction battle")
@@ -205,7 +205,7 @@ func rewards_transactions() -> void:
 	var t:=tower();var member: GuildMemberState=t.guild.all_members()[0];give(t,&"greenNecklace",member);member.current_hp=0;member.energy=0
 	var floor: FloorState=t.guild.state.tower.map.floors[0];floor.bonus=&"heal"
 	for id in floor.room_ids:t.guild.state.tower.map.get_room(id).cleared=true
-	t.refresh_progress(0);verify(member.current_hp==33 and member.energy==1,"conquest20% revives with incoming1.1 and energy1")
+	t.refresh_progress(0);verify(member.current_hp==33 and member.energy==0,"conquest20% revives with incoming1.1, no energy")
 	t=tower();floor=t.guild.state.tower.map.floors[0];floor.bonus=&"item";floor.bonus_item_kind=&"vigorTotem"
 	for id in floor.room_ids:t.guild.state.tower.map.get_room(id).cleared=true
 	t.refresh_progress(0);verify(t.content.inventory.available().size()==1 and t.guild.state.tower.reward_requests[0].fulfilled,"conquest item given immediately once")
@@ -262,7 +262,7 @@ func combat() -> void:
 	for enemy in b.units:
 		if enemy.original_team==1:enemy.receive_damage(10000,u)
 	b.check_outcome()
-	verify(is_equal_approx(m.current_hp,minf(u.max_hp,100+u.max_hp*.3*1.1)) and b.result.final_hp_by_member_id[m.member_id]==m.current_hp,"victory30% gear incoming and snapshot")
+	verify(is_equal_approx(m.current_hp,100) and b.result.final_hp_by_member_id[m.member_id]==m.current_hp,"no victory heal; snapshot keeps battle HP")
 	b.free()
 	# Charge totem + CC blocks, first battle awl, permanent fangs and retry.
 	t=tower();m=t.guild.all_members()[0];friend=t.guild.all_members()[1];give(t,&"chargeTotem",m);give(t,&"thickAwl",m);give(t,&"predatorFang",friend);give(t,&"predatorFang",friend)

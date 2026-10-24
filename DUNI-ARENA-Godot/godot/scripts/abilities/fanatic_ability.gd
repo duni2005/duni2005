@@ -25,7 +25,7 @@ func ultimate_target(u):return saint(u)
 func can_ultimate(_u,t) -> bool:return t!=null and t.data.ultimate_windup>=0 and t.ultimate_gauge<100 and t.ultimate.cast.is_empty()
 func release_ultimate(u,a,_dt: float) -> bool:
 	var t=saint(u)
-	if t!=null and t.actor_id()==a.target:t.ultimate.gain(t,20*(1-clampi(5-t.energy,0,5)*.07 if not t.source_member_id.is_empty() else 1))
+	if t!=null and t.actor_id()==a.target:t.ultimate.gain(t,20)
 	return true
 func ultimate_danger(_u,_observer,_a: Dictionary) -> bool:return false
 func defensive_ultimate() -> bool:return true

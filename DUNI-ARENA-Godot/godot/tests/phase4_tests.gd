@@ -102,7 +102,7 @@ func test_retreat_and_retry() -> void:
 	verify(result.result_id == battle.battle_result_id and result.winning_team == -1, "new result aliases preserve original API")
 	verify(session.settlement_status == BattleSettlement.Status.APPLIED and not room.cleared, "retreat settles but does not clear room")
 	verify(members[0].current_hp == 43 and members[1].current_hp == 0, "retreat preserves survivor HP and dead ally remains dead")
-	verify(members[0].energy == 4 and members[1].energy == 4 and members[2].energy == 3 and members[3].energy == 3, "retreat participants including dead lose energy; reserves regain")
+	verify(members[0].energy == 5 and members[1].energy == 5 and members[2].energy == 2 and members[3].energy == 2, "retreat no longer changes energy")
 	verify(guild.state.player_hp == 95 and not guild.state.game_over, "retreat has no extra defeat loss, prior death loss remains")
 	verify(room.enemy_state[e0.source_enemy_id].current_hp == 0 and not room.enemy_state[e0.source_enemy_id].alive, "dead enemy remains in room as dead")
 	verify(room.enemy_state[e1.source_enemy_id].current_hp == 50 and room.enemy_state[e2.source_enemy_id].current_hp == 100, "remaining enemy HP snapshot exact")
@@ -113,7 +113,7 @@ func test_retreat_and_retry() -> void:
 	verify(battle.projectiles.is_empty() and a.target == null and e1.combat_state == CombatController.State.IDLE, "runtime attacks/target/projectiles discarded")
 	verify(not session.request_retreat(), "repeated retreat rejected")
 	var hp_after: float = guild.state.player_hp
-	verify(BattleSettlement.new().apply_room(result, guild, room) == BattleSettlement.Status.ALREADY_SETTLED and guild.state.player_hp == hp_after and members[0].energy == 4, "room re-settlement has no duplicated death/energy loss")
+	verify(BattleSettlement.new().apply_room(result, guild, room) == BattleSettlement.Status.ALREADY_SETTLED and guild.state.player_hp == hp_after and members[0].energy == 5, "room re-settlement has no duplicated death loss")
 	battle.simulate(1)
 	verify(a.current_hp == 43 and battle.clock.elapsed == 20, "no mutation after retreat")
 	var retry_plan := DeploymentPlan.new(guild, [Vector2(280, 400), Vector2(700, 600)])

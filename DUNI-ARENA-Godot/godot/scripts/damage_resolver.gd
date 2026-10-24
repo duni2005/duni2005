@@ -1,7 +1,7 @@
 class_name DamageResolver
 extends RefCounted
 ## Phase 7 common pipeline and explicit Phase 1–6 golden-comparison pipeline.
-## General: crit/fatigue -> parry -> invincible/evade -> armor/reduction ->
+## General: crit -> parry -> invincible/evade -> armor/reduction ->
 ## unique defense -> shield -> HP -> impact -> death/counter. Collision is separate.
 ## Rules emit outcomes/events; drawing belongs to the debug presentation.
 ## MIGRATION_NOTE: only additional armor reduces general damage; base defense
@@ -64,7 +64,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	var duel_result: bool=options.get("duel_result",false)
 	if not collision:
 		out.critical = options.get("critical", true) and rng.randf() < clampf(source.data.critical_chance+EquipmentCombatEffects.crit(source)+(source.ability.critical_bonus(source,target) if battle.full_characters_enabled else 0),0,1)
-		damage *= (CRITICAL_MULTIPLIER if out.critical else 1.0)*CombatRules.fatigue(source, &"damage")*EquipmentCombatEffects.damage_factor(source,options)
+		damage *= (CRITICAL_MULTIPLIER if out.critical else 1.0)*EquipmentCombatEffects.damage_factor(source,options)
 	if battle.full_characters_enabled:
 		if not collision and options.get("critical",true):damage*=CharacterCombat.champion_factor(source)
 		if source!=null and not collision:
@@ -86,7 +86,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 		return complete(source, target, out)
 	var amount: float = CombatRules.js_round(damage * CombatRules.taken(target)*100/(100+CombatRules.armor(target))*(1 if collision else 1+maxf(0,battle.clock.elapsed-60)/70))
 	if battle.full_characters_enabled:
-		if options.get("mirror_shard",false):amount=CombatRules.js_round(damage*CombatRules.fatigue(target,&"taken"))
+		if options.get("mirror_shard",false):amount=CombatRules.js_round(damage)
 		elif duel_result:amount=CombatRules.js_round(damage*CombatRules.taken(target))
 		else:
 			amount=CombatRules.js_round(damage*CombatRules.taken(target)*target.ability.incoming_reduction(target)*100/(100+CombatRules.armor(target))*(1 if collision else 1+maxf(0,battle.clock.elapsed-60)/70))

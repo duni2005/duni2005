@@ -173,7 +173,7 @@ func event(choice: StringName) -> Dictionary:
 	if not choice in e.choices:return failure(&"invalid_choice")
 	if e.event_type==&"hotSpring":
 		if choice==&"bathe":
-			for member in guild.living_members():GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*.1);member.energy+=2
+			for member in guild.living_members():GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*.1)
 		else:
 			if not inventory.valid():return failure(&"invalid_inventory")
 			var receipt: String=room().room_id+":lottery"
@@ -195,7 +195,7 @@ func event(choice: StringName) -> Dictionary:
 		match choice:
 			&"heal":guild.state.player_hp+=10
 			&"guild":
-				for member in guild.living_members():GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*.1);member.energy+=1
+				for member in guild.living_members():GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*.1)
 			&"gold":guild.state.gold+=300;guild.state.tokens+=1;outcome["gold"]=300;outcome["tokens"]=1
 			&"loot":
 				if not inventory.valid():return failure(&"invalid_inventory")

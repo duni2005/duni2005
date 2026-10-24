@@ -61,7 +61,7 @@ func battle_checkpoint_retry() -> void:
 	member.current_hp=43;enemies[0].receive_damage(100000,member);enemies[1].current_hp=40;enemies[1].position=Vector2(470,330);enemies[1].ultimate_gauge=58;enemies[1].shield_hp=19;enemies[1].shield_remaining=2.4;enemies[1].parry_cooldown=3.2
 	replay.clock.elapsed=20;verify(retry.session.request_retreat(),"actual retreat settlement")
 	await frames();loaded=s.load_controller();verify(loaded.ok() and loaded.run.tower.phase==&"result" and loaded.document.recovery.is_empty(),"settled autosave supersedes checkpoint")
-	verify(loaded.run.guild_members.values()[0].current_hp==43 and loaded.run.guild_members.values()[0].energy==4,"participant HP/energy after settlement")
+	verify(loaded.run.guild_members.values()[0].current_hp==43,"participant HP after settlement")
 	var room: RoomState=loaded.run.tower.map.get_room("0:3");var saved_enemies: Array=room.enemy_state.values()
 	verify(not saved_enemies[0].alive and saved_enemies[1].current_hp==40 and saved_enemies[1].position==Vector2(470,330) and saved_enemies[1].ultimate_gauge==58,"damaged/dead enemies saved")
 	verify(saved_enemies[1].persistent_state.shieldHp==19 and saved_enemies[1].persistent_state.parryCooldown==3.2,"common persistent runtime state")

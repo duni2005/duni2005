@@ -5,8 +5,7 @@ extends RefCounted
 
 const MAX_ENERGY: int = 5
 const MAX_GAUGE: float = 100.0
-## MIGRATION_NOTE: per missing energy, web damage -5%, taken damage +3%,
-## charge efficiency -7%. These effects are not implemented in Phase 2.
+## The energy (기력) system was removed; the field only keeps old saves loading.
 
 var member_id: String = "":
 	set(value):

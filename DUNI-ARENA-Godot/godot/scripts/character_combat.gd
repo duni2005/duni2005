@@ -25,7 +25,7 @@ static func apply_shares(owner,shares: Array[Dictionary]) -> void:
 	for s in shares:
 		var target=s.unit
 		if not target.alive or target.invincible_remaining>0 or CharacterLifecycle.protected(target):continue
-		var amount: float=CombatRules.js_round(float(s.damage)*CombatRules.fatigue(target,&"taken"))
+		var amount: float=CombatRules.js_round(float(s.damage))
 		if CharacterLifecycle.intercept_lethal(target,maxf(0,amount-target.shield_hp)):continue
 		var absorbed: float=StrategyEffects.absorb(target,amount)
 		var actual: float=target.receive_damage(amount-absorbed,s.source,true)

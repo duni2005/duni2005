@@ -107,7 +107,7 @@ func test_injection_snapshot_and_settlement() -> void:
 	verify(ua.source_member_id == a.member_id and str(ua.battle_id) != a.member_id, "member identity is separate from per-battle identity")
 	verify(ua.current_hp == 43 and ub.current_hp == 129, "distinct HP injected, never reset to max")
 	verify(ua.ultimate_gauge == 37 and ua.transcendence_gauge == 26 and ub.ultimate_gauge == 82 and ub.transcendence_gauge == 9, "distinct gauges injected")
-	verify(ua.energy == 5 and ua.stance == CombatStance.CAUTIOUS and ub.stance == CombatStance.RUSH, "energy and stance injected as data only")
+	verify(ua.stance == CombatStance.CAUTIOUS and ub.stance == CombatStance.RUSH, "stance injected as data only")
 	verify(ua.character_specific_state.test_counter == 3, "character state injected")
 	ua.character_specific_state.nested.numbers[0] = 99
 	ua.current_hp = 21
@@ -136,12 +136,12 @@ func test_injection_snapshot_and_settlement() -> void:
 	verify(a.stance == CombatStance.COVER and b.stance == CombatStance.RUSH, "stance restored per member")
 	verify(a.character_specific_state.test_counter == 3 and a.character_specific_state.nested.numbers[0] == 99, "deep character state round trip")
 	verify(a.level == 3 and a.stars == 1, "growth metadata remains untouched")
-	verify(a.energy == 4 and b.energy == 4 and reserve.energy == 3, "participants -1, reserve +1")
+	verify(a.energy == 5 and b.energy == 5 and reserve.energy == 2, "energy system removed: settlement leaves the stored field alone")
 	result.member_states[a.member_id].character_specific_state.nested.numbers[0] = 77
 	verify(a.character_specific_state.nested.numbers[0] == 99, "member dictionary detached from result dictionary")
 	a.current_hp = 19
 	verify(BattleSettlement.new().apply(result, GuildManager.new(guild.state)) == BattleSettlement.Status.ALREADY_SETTLED, "new manager/settler cannot repeat settlement")
-	verify(a.energy == 4 and reserve.energy == 3 and a.current_hp == 19, "duplicate result changes neither energy nor later HP")
+	verify(a.energy == 5 and reserve.energy == 2 and a.current_hp == 19, "duplicate result changes neither energy nor later HP")
 	print("PASS Phase 2 injection, whitelist/deep snapshots, HP/gauge/stance recovery and idempotency")
 
 func test_two_battles() -> void:
@@ -169,7 +169,7 @@ func test_two_battles() -> void:
 	var first_wa_hp: float = wa.current_hp
 	var first_aa_hp: float = aa.current_hp
 	verify(wb.current_hp == 91 and ab.current_hp == 67, "round-one reserves retain their separate HP")
-	verify(wa.energy == 4 and aa.energy == 0 and wb.energy == 2 and ab.energy == 4, "round-one energy uses actual participant IDs")
+	verify(wa.energy == 5 and aa.energy == 1 and wb.energy == 1 and ab.energy == 3, "round one leaves energy untouched")
 	var first_id: String = first.battle_result_id
 	first.free()
 	var second := battle_node()
@@ -177,13 +177,13 @@ func test_two_battles() -> void:
 	verify(second.battle_result_id != first_id, "each battle has a distinct settlement ID")
 	verify(unit_for(second, wa).current_hp == first_wa_hp and unit_for(second, aa).current_hp == first_aa_hp, "previous final HP is exactly the next starting HP")
 	verify(unit_for(second, wb).current_hp == 91 and ab.current_hp == 67, "same-type reserve HP never mixes with returning member")
-	verify(unit_for(second, aa).energy == 0 and unit_for(second, aa).alive, "energy zero does not block participation")
+	verify(unit_for(second, aa).alive, "low stored energy does not block participation")
 	verify(unit_for(second, wa).source_member_id == wa.member_id and unit_for(second, aa).source_member_id == aa.member_id, "member IDs remain stable across battles")
 	verify(unit_for(second, wa).ultimate_gauge == 37 and unit_for(second, aa).transcendence_gauge == 42, "gauges never reset between battles")
 	finish_naturally(second)
 	verify(BattleSettlement.new().apply(second.result, guild) == BattleSettlement.Status.APPLIED, "second battle settlement")
 	verify(wa.current_hp == second.result.final_hp_by_member_id[wa.member_id] and wb.current_hp == second.result.final_hp_by_member_id[wb.member_id] and aa.current_hp == second.result.final_hp_by_member_id[aa.member_id], "round-two HP belongs to the right members")
-	verify(wa.energy == 3 and wb.energy == 1 and aa.energy == 0 and ab.energy == 5, "second participation and energy floor/ceiling")
+	verify(wa.energy == 5 and wb.energy == 1 and aa.energy == 1 and ab.energy == 3, "second participation leaves energy untouched")
 	verify(ab.current_hp == 67 and guild.all_members().size() == 4, "unselected reserve HP and roster remain unchanged")
 	var hp_after_second: float = wa.current_hp
 	verify(BattleSettlement.new().apply(first_result, guild) == BattleSettlement.Status.ALREADY_SETTLED and wa.current_hp == hp_after_second, "late round-one result cannot overwrite round-two HP")
@@ -213,8 +213,8 @@ func test_death_energy_and_refusals() -> void:
 	verify(BattleSettlement.new().apply(battle.result, guild) == BattleSettlement.Status.APPLIED, "settle member death")
 	verify(killed.current_hp == 0 and not killed.is_alive() and guild.get_member(killed.member_id) == killed, "death stores HP zero without deleting member")
 	verify(guild.all_members().size() == 4 and not guild.living_members().has(killed) and not guild.living_members().has(dead_reserve), "roster retains dead members but living list excludes them")
-	verify(killed.energy == 4 and survivor.energy == 2 and reserve.energy == 5, "death still consumes participation; energy stays within 0..5")
-	verify(dead_reserve.energy == 2 and dead_reserve.current_hp == 0, "web nonparticipating dead member regains energy, not HP")
+	verify(killed.energy == 5 and survivor.energy == 3 and reserve.energy == 5, "death settlement leaves energy untouched")
+	verify(dead_reserve.energy == 1 and dead_reserve.current_hp == 0, "nonparticipating dead member is not revived")
 	verify(BattleUnitFactory.guild_placement(guild, killed.member_id, Vector2(100, 100)).is_empty(), "factory refuses dead members")
 	var rejected := battle_node()
 	verify(not rejected.start_guild_battle(guild, [deploy(killed, Vector2(100, 100))], [enemy(BattleManager.WARRIOR, Vector2(600, 600))]) and rejected.units.is_empty() and not rejected.started, "dead-member start rejected without partial creation")
@@ -268,7 +268,7 @@ func test_policy_and_atomic_validation() -> void:
 	replay.battle_result_id = result.battle_result_id
 	replay.source_run_id = result.source_run_id
 	replay.participating_member_ids = result.participating_member_ids.duplicate()
-	verify(BattleSettlement.new().apply(replay, guild) == BattleSettlement.Status.ALREADY_SETTLED and a.energy == 4, "dedup uses stable result ID, not result object identity")
+	verify(BattleSettlement.new().apply(replay, guild) == BattleSettlement.Status.ALREADY_SETTLED and a.energy == 5, "dedup uses stable result ID, not result object identity")
 	print("PASS Phase 2 gauge/stance policy, pure data, atomic validation and cross-run/replayed result protection")
 	battle.free()
 

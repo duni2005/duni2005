@@ -35,11 +35,11 @@ func source_flow(res: Vector2i):
 	ui.controller.floor_reward(12) # Source determines/stores a floor bonus once.
 	saved=pure();ui.show_reward(12);await frames()
 	verify(ui.reward_dialog.borderless and not ui.reward_dialog.get_ok_button().visible,"conquest uses game header, no system Alert/OK")
-	verify(ui.reward_title.text=="13층 정복 보상" and ui.reward_panel.rewards.get_child_count()==3,"conquest shows progress plus three actual rewards")
+	verify(ui.reward_title.text=="13층 정복 보상" and ui.reward_panel.rewards.get_child_count()==2,"conquest shows progress plus two actual rewards")
 	verify(ui.reward_dialog.size.x<=res.x-28 and fits(ui.reward_panel),"conquest modal fits mobile and desktop")
 	verify(ui.reward_dialog.size.y<=440 and ui.reward_dialog.position.y>0,"conquest remains a compact centered modal")
 	verify(not ui.reward_panel.status_label.text.is_empty() and not ui.reward_panel.unlock_label.text.is_empty(),"received and unlock rules are visible")
-	verify(not "vigorTotem" in ui.reward_panel.rewards.get_child(2).get_child(0).get_child(1).text,"reward item is a localized catalog name")
+	verify(not "vigorTotem" in ui.reward_panel.rewards.get_child(1).get_child(0).get_child(1).text,"reward item is a localized catalog name")
 	await shot("conquest");ui.reward_dialog.hide();verify(pure()==saved,"viewing reward changes no wallet/receipt/RNG")
 	await battle_fixture();s=ui.battle_screen;b=s.battle
 	for u in b.units:

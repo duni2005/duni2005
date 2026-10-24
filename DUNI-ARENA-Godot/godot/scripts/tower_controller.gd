@@ -160,7 +160,6 @@ func refresh_progress(changed_depth: int) -> void:
 		changed_floor.conquered=true;state.floor_conquest[changed_depth]=true
 		# Actual web: restore PLAYER HP, do not increase guild maxHP.
 		guild.state.player_hp+=guild.state.player_max_hp*.1
-		for member in guild.all_members():member.energy+=1
 		var reward: FloorState=floor_reward(changed_depth)
 		if reward.bonus==&"tokens":guild.state.tokens+=2
 		elif reward.bonus==&"item":
