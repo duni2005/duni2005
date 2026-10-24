@@ -355,40 +355,74 @@ func _draw_tp_member() -> void:
 	var badge:=c+Vector2(14,12)
 	draw_circle(badge,7,Color("10182b"));draw_arc(badge,7,0,TAU,20,ArenaUI.GOLD if on else Color("5a6890"),1,true)
 	ArenaIcon.draw(self,badge,kind,9,ArenaUI.GOLD if on else Color("c9d0e6"))
-## A room on the dark dungeon chart: stone floor, coloured walls, icon, label, cleared stamp.
+## A room on the dark dungeon chart: a stone chamber with block walls, a tiled floor, fog while
+## unexplored, an icon, a name plaque on the south wall and a cleared stamp.
 func _draw_dungeon_room() -> void:
 	var r:=Rect2(Vector2(3,3),size-Vector2(7,8))
-	var boss: bool=kind in ["boss","miniboss"];var active: bool=button_pressed or ArenaUI.is_held(self)
-	draw_rect(Rect2(r.position+Vector2(2,4),r.size),Color(0,0,0,.45))
-	var floor_color:=Color("161f33") if spent else Color("1f2a44")
-	draw_rect(r,floor_color)
-	# Flagstone texture.
-	for y in range(int(r.position.y)+10,int(r.end.y),12):draw_line(Vector2(r.position.x+2,y),Vector2(r.end.x-2,y),Color("2a3654",.6),1)
-	if kind=="hidden":
-		for x in range(int(-r.size.y),int(r.size.x),8):
-			var a:=Vector2(maxf(0,x),maxf(0,-x));var b:=Vector2(minf(r.size.x,x+r.size.y),minf(r.size.y,r.size.x-x))
-			draw_line(r.position+a,r.position+b,Color("0c1220",.6),1)
-	var wall: Color=ArenaUI.GOLD if active else Color("c4493d") if kind=="boss" else Color("d08a3a") if kind=="miniboss" else Color("8fe3ff",.55) if kind!="hidden" and not spent else Color("4b5a86")
-	draw_rect(r,wall,false,3.0 if boss or active else 2.0);draw_rect(r.grow(-4),Color(wall,.25),false,1)
-	if active:VfxArt.glow(self,r.get_center(),maxf(r.size.x,r.size.y)*.7,ArenaUI.GOLD,.2)
-	elif boss:VfxArt.glow(self,r.get_center(),maxf(r.size.x,r.size.y)*.6,wall,.12)
-	var icon: float=clampf(minf(r.size.x,r.size.y)*.38,16,34);var center:=r.get_center()+Vector2(0,-6)
-	if kind=="hidden":write(center+Vector2(-r.size.x*.5,icon*.36),"?",int(icon*1.1),Color("6f7ea8"),r.size.x,true)
+	var boss: bool=kind in ["boss","miniboss"];var active: bool=button_pressed or ArenaUI.is_held(self);var hidden: bool=kind=="hidden"
+	var accent: Color=ArenaUI.GOLD if active else Color("e0574a") if kind=="boss" else Color("e09a46") if kind=="miniboss" else Color("6f7ea8") if hidden or spent else Color("7fd3f0")
+	var floor:=_chamber(r,spent)
+	if hidden:
+		# Unexplored: fog drifts over the floor.
+		draw_rect(floor,Color("0b1020",.5))
+		for i in range(4):VfxArt.glow(self,floor.position+floor.size*Vector2(.18+i*.22,.4+.18*sin(i*1.9)),floor.size.x*.32,Color("3a4a72"),.4)
+	draw_rect(floor.grow(-3),Color(accent,.4 if boss or active else .25),false,1)
+	for c in [floor.position+Vector2(3,3),Vector2(floor.end.x-3,floor.position.y+3),floor.end-Vector2(3,3),Vector2(floor.position.x+3,floor.end.y-3)]:draw_rect(Rect2(c-Vector2(2,2),Vector2(4,4)),Color(accent,.85))
+	if active:VfxArt.glow(self,r.get_center(),maxf(r.size.x,r.size.y)*.7,ArenaUI.GOLD,.22)
+	elif boss:VfxArt.glow(self,r.get_center(),maxf(r.size.x,r.size.y)*.6,accent,.16)
+	if active or boss:draw_rect(r,Color(accent,.9),false,2)
+	var icon: float=clampf(minf(r.size.x,r.size.y)*.36,16,32);var center:=floor.get_center()+Vector2(0,-5)
+	if hidden:write(center+Vector2(-r.size.x*.5,icon*.36),"?",int(icon*1.1),Color("7d8cb6"),r.size.x,true)
 	else:ArenaIcon.draw(self,center,kind,icon,Color(1,1,1,.45 if spent else 1))
-	write(Vector2(r.position.x,r.end.y-5),title,10 if r.size.x<70 else 11,ArenaUI.MUTED if spent else Color("dfe6f7"),r.size.x,true)
-	write(r.position+Vector2(5,13),subtitle,9,Color("7d8bb0"))
+	_plaque(r,title,accent,spent)
+	write(floor.position+Vector2(4,12),subtitle,9,Color("8a98bf"))
 	if sold:
-		var stamp:=r.position+Vector2(r.size.x-14,14);draw_circle(stamp,10,Color("0f1a16",.8));draw_arc(stamp,10,0,TAU,24,ArenaUI.HP,2,true)
+		var stamp:=Vector2(floor.end.x-10,floor.position.y+11);draw_circle(stamp,10,Color("0f1a16",.85));draw_arc(stamp,10,0,TAU,24,ArenaUI.HP,2,true)
 		draw_polyline(PackedVector2Array([stamp+Vector2(-5,0),stamp+Vector2(-1,4),stamp+Vector2(6,-5)]),ArenaUI.HP,2.5,true)
-## The stairway to the next floor: glowing stone steps.
+## Stone walls with block joints and a checkered tile floor; returns the floor rect.
+func _chamber(r: Rect2,dim: bool) -> Rect2:
+	draw_rect(Rect2(r.position+Vector2(3,5),r.size),Color(0,0,0,.5))
+	var wall: float=clampf(minf(r.size.x,r.size.y)*.08,4,7);var joint:=Color("1b2340")
+	draw_rect(r,Color("2e3a5c") if dim else Color("3c4a72"))
+	for x in range(int(r.position.x)+6,int(r.end.x)-2,10):
+		draw_line(Vector2(x,r.position.y),Vector2(x,r.position.y+wall),joint,1);draw_line(Vector2(x+5,r.end.y-wall),Vector2(x+5,r.end.y),joint,1)
+	for y in range(int(r.position.y)+6,int(r.end.y)-2,10):
+		draw_line(Vector2(r.position.x,y),Vector2(r.position.x+wall,y),joint,1);draw_line(Vector2(r.end.x-wall,y+5),Vector2(r.end.x,y+5),joint,1)
+	draw_line(r.position,Vector2(r.end.x,r.position.y),Color(1,1,1,.2),1);draw_rect(r,Color(0,0,0,.6),false,1)
+	var floor:=r.grow(-wall);var tile: float=11
+	draw_rect(floor,Color("141b30") if dim else Color("1a2340"))
+	for gx in range(int(floor.size.x/tile)+1):
+		for gy in range(int(floor.size.y/tile)+1):
+			if (gx+gy)%2==0:draw_rect(Rect2(floor.position+Vector2(gx,gy)*tile,Vector2(tile,tile)).intersection(floor),Color(1,1,1,.03))
+	draw_rect(Rect2(floor.position,Vector2(floor.size.x,4)),Color(0,0,0,.35));draw_rect(Rect2(floor.position,Vector2(3,floor.size.y)),Color(0,0,0,.25))
+	return floor
+## Name plate set into the south wall.
+func _plaque(r: Rect2,text: String,accent: Color,dim: bool) -> void:
+	var font_size: int=10 if r.size.x<70 else 11
+	var w: float=minf(r.size.x-6,get_theme_default_font().get_string_size(ArenaUI.plain(text),HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x+16)
+	var plate:=Rect2(Vector2(r.get_center().x-w*.5,r.end.y-17),Vector2(w,16))
+	var style: StyleBoxFlat=ArenaUI.box(Color("0c1222"),Color(accent,.65));style.set_corner_radius_all(4);style.set_border_width_all(1);draw_style_box(style,plate)
+	write(Vector2(plate.position.x,plate.end.y-4),text,font_size,ArenaUI.MUTED if dim else Color("e6ebf8"),plate.size.x,true)
+## The stairway to the next floor: stone steps climbing to a lit archway.
 func _draw_stairs() -> void:
-	var r:=Rect2(Vector2(3,3),size-Vector2(7,8));var pulse: float=.5+.5*sin(Time.get_ticks_msec()*.004)
-	draw_rect(Rect2(r.position+Vector2(2,4),r.size),Color(0,0,0,.45))
-	draw_rect(r,Color("2a2a3a"));draw_rect(r,Color("b8862b").lerp(Color("ffd27a"),pulse),false,3)
-	var steps: int=4;var base:=Vector2(r.get_center().x,r.position.y+r.size.y*.66);var w: float=r.size.x*.62;var h: float=r.size.y*.1
-	VfxArt.glow(self,Vector2(base.x,base.y-steps*h),w*.6,Color("ffd27a"),.3+.2*pulse)
+	var r:=Rect2(Vector2(3,3),size-Vector2(7,8));var floor:=_chamber(r,false);var pulse: float=.5+.5*sin(Time.get_ticks_msec()*.004)
+	var cx: float=floor.get_center().x;var arch_w: float=floor.size.x*.38;var arch_h: float=floor.size.y*.4;var arch_top: float=floor.position.y+floor.size.y*.1
+	var bottom: float=arch_top+arch_h
+	VfxArt.glow(self,Vector2(cx,arch_top+arch_h*.55),arch_w*1.4,Color("ffd27a"),.3+.2*pulse)
+	# The archway: a stone frame around warm light.
+	var frame:=PackedVector2Array();var light:=PackedVector2Array();var colors:=PackedColorArray()
+	for k in range(9):
+		var ang: float=PI+k*PI/8
+		frame.append(Vector2(cx,arch_top+arch_w*.6)+Vector2(cos(ang),sin(ang))*arch_w*.6);light.append(Vector2(cx,arch_top+arch_w*.6)+Vector2(cos(ang),sin(ang))*arch_w*.44);colors.append(Color("fff3cf"))
+	frame.append(Vector2(cx+arch_w*.6,bottom));frame.append(Vector2(cx-arch_w*.6,bottom))
+	light.append(Vector2(cx+arch_w*.44,bottom));colors.append(Color("ffb35a"));light.append(Vector2(cx-arch_w*.44,bottom));colors.append(Color("ffb35a"))
+	draw_colored_polygon(frame,Color("8a849e"));draw_polygon(light,colors)
+	# Steps widening towards the viewer: a lit tread over a shaded riser.
+	var steps: int=4;var run: float=(floor.end.y-20-bottom)/steps
 	for i in range(steps):
-		var y: float=base.y-i*h;var half: float=w*.5*(1-i*.17)
-		draw_rect(Rect2(Vector2(base.x-half,y-h),Vector2(half*2,h)),Color("6d6680").lightened(i*.1));draw_rect(Rect2(Vector2(base.x-half,y-h),Vector2(half*2,h)),Color(0,0,0,.5),false,1)
-	write(Vector2(r.position.x,r.end.y-6),"다음 층  ▲",12,ArenaUI.GOLD,r.size.x,true)
+		var y: float=bottom+i*run;var top_half: float=arch_w*(.44+i*.12);var low_half: float=arch_w*(.44+(i+1)*.12)
+		draw_colored_polygon(PackedVector2Array([Vector2(cx-top_half,y),Vector2(cx+top_half,y),Vector2(cx+low_half,y+run*.55),Vector2(cx-low_half,y+run*.55)]),Color("b9b0c8").lerp(Color("ffe3a0"),.5-i*.12))
+		draw_rect(Rect2(Vector2(cx-low_half,y+run*.55),Vector2(low_half*2,run*.45)),Color("4a4660"))
+	draw_rect(r,Color("b8862b").lerp(Color("ffd27a"),pulse),false,2)
+	_plaque(r,"다음 층  ▲",ArenaUI.GOLD,false)
 	queue_redraw()
