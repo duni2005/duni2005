@@ -30,6 +30,7 @@ static func protected(u) -> bool:
 	return u.frog_rescue_guard or (not u.frog_carrier.is_empty() and u.battle.find_actor(u.frog_carrier)!=null and u.battle.find_actor(u.frog_carrier).frog_action.get("phase","")=="hold") or (hero!=null and hero.alive and hero.hero_rescue.get("target","")==u.actor_id() and hero.team==u.team)
 static func intercept_lethal(u,hp_damage: float,executed: bool=false) -> bool:
 	if not u.alive or u.unavailable() or (not executed and hp_damage<u.current_hp):return false
+	if EquipmentCombatEffects.phoenix(u):return true
 	var heroes: Array=u.battle.units.filter(func(v):return v!=u and v.alive and v.team==u.team and v.data.type_id==17 and not v.hero_rescue_used)
 	heroes.sort_custom(func(a,b):return u.position.distance_to(a.position)<u.position.distance_to(b.position))
 	if not heroes.is_empty():

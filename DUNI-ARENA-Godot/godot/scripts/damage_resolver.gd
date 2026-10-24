@@ -35,8 +35,8 @@ func resolve_minimal(source, target, raw_damage: float) -> DamageOutcome:
 	# Released arrows may hit after the shooter dies (same behavior as the web).
 	outcome.accepted = true
 	outcome.attempted_damage = raw_damage
-	outcome.critical = rng.randf() < clampf(source.data.critical_chance+(source.ability.critical_bonus(source,target) if battle.full_characters_enabled else 0),0,1)
-	outcome.resolved_damage = roundf(raw_damage * (CRITICAL_MULTIPLIER if outcome.critical else 1.0))
+	outcome.critical = rng.randf() < clampf(source.data.critical_chance+EquipmentCombatEffects.crit(source)+(source.ability.critical_bonus(source,target) if battle.full_characters_enabled else 0),0,1)
+	outcome.resolved_damage = roundf(raw_damage * (CRITICAL_MULTIPLIER if outcome.critical else 1.0)*EquipmentCombatEffects.damage_factor(source,{}))
 	outcome.shield_absorbed = StrategyEffects.absorb(target, outcome.resolved_damage)
 	outcome.hp_damage = target.receive_damage(outcome.resolved_damage - outcome.shield_absorbed, source)
 	if outcome.hp_damage > 0.0:
@@ -63,8 +63,8 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	var transcend: bool=options.get("transcendent",false)
 	var duel_result: bool=options.get("duel_result",false)
 	if not collision:
-		out.critical = options.get("critical", true) and rng.randf() < clampf(source.data.critical_chance+(source.ability.critical_bonus(source,target) if battle.full_characters_enabled else 0),0,1)
-		damage *= (CRITICAL_MULTIPLIER if out.critical else 1.0)*CombatRules.fatigue(source, &"damage")
+		out.critical = options.get("critical", true) and rng.randf() < clampf(source.data.critical_chance+EquipmentCombatEffects.crit(source)+(source.ability.critical_bonus(source,target) if battle.full_characters_enabled else 0),0,1)
+		damage *= (CRITICAL_MULTIPLIER if out.critical else 1.0)*CombatRules.fatigue(source, &"damage")*EquipmentCombatEffects.damage_factor(source,options)
 	if battle.full_characters_enabled:
 		if not collision and options.get("critical",true):damage*=CharacterCombat.champion_factor(source)
 		if source!=null and not collision:

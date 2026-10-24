@@ -216,18 +216,25 @@ func _render_unit() -> void:
 				var s:=_button(slots,item.display_name+"  ×",func():setup.unequip(unit_id,i);_render_unit();board.queue_redraw());s.size_flags_horizontal=Control.SIZE_EXPAND_FILL;s.add_theme_font_size_override("font_size",12);ArenaUI.with_icon(s,String(entry.items[i]),18)
 			else:
 				var empty:=Label.new();empty.text="＋ 빈 슬롯";empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;empty.custom_minimum_size.y=44;empty.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;empty.add_theme_color_override("font_color",ArenaUI.MUTED);slots.add_child(empty)
-		var stat_line:=Label.new();stat_line.text="HP %d · 공격력 %s · 이동 %s%s"%[int(stats.max_hp),ArenaUI.number(stats.attack),ArenaUI.number(stats.speed)," · 치유 +%d%%"%int(round((stats.healing_power-1)*100)) if stats.healing_power>1 else ""];stat_line.add_theme_font_size_override("font_size",12);stat_line.add_theme_color_override("font_color",ArenaUI.HP);unit_body.add_child(stat_line)
+		var stat_line:=Label.new();stat_line.text="%s 피해 · HP %d · 공격력 %s · 이동 %s%s"%[CharacterCatalog.damage_label(int(entry.type)),int(stats.max_hp),ArenaUI.number(stats.attack),ArenaUI.number(stats.speed)," · 치유 +%d%%"%int(round((stats.healing_power-1)*100)) if stats.healing_power>1 else ""];stat_line.add_theme_font_size_override("font_size",12);stat_line.add_theme_color_override("font_color",ArenaUI.HP);unit_body.add_child(stat_line)
 		var grid:=GridContainer.new();grid.columns=4;unit_body.add_child(grid)
 		for kind in CustomBattleSetup.equippable_items():
 			var item: ItemData=ItemCatalog.get_item(kind)
 			var c:=_button(grid,"",func():item_choice=kind;_render_unit());c.toggle_mode=true;c.custom_minimum_size=Vector2(60,44);c.tooltip_text=item.display_name;ArenaUI.with_icon(c,String(kind),24);c.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER;ArenaUI.tab(c);c.set_pressed_no_signal(item_choice==kind)
+			if item.grade==&"ancient":c.add_theme_stylebox_override("normal",ArenaUI.box(Color("2e2414"),ItemCatalog.GRADE_COLORS[&"ancient"]))
 		var detail:=Label.new();detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;detail.add_theme_font_size_override("font_size",12);unit_body.add_child(detail)
 		if item_choice==&"":detail.text="아이템을 선택하세요."
 		else:
 			var picked: ItemData=ItemCatalog.get_item(item_choice)
-			detail.text="%s · %s"%[picked.display_name,"타워 전용 · 생존 승리 시 40골드" if picked.victory_gold>0 else picked.description]
-			var full: bool=entry.items.size()>=CustomBattleSetup.MAX_ITEMS
-			var equip:=_button(unit_body,"슬롯 가득 참" if full else "장착",func():setup.equip(unit_id,item_choice);_render_unit();board.queue_redraw());equip.disabled=full;ArenaUI.primary(equip)
+			detail.text="[%s] %s · %s"%[ItemCatalog.grade_name(item_choice),picked.display_name,picked.description]
+			# A basic item fuses with a basic already on the unit instead of taking a slot.
+			var partner: StringName=&""
+			if picked.grade==&"common":
+				for kind in entry.items:
+					if ItemCatalog.get_item(kind).grade==&"common":partner=kind;break
+			if partner!=&"":detail.text+="\n조합 → %s · %s"%[ItemCatalog.get_item(ItemCatalog.combined_kind(partner,item_choice)).display_name,ItemCatalog.get_item(ItemCatalog.combined_kind(partner,item_choice)).description]
+			var full: bool=entry.items.size()>=CustomBattleSetup.MAX_ITEMS and partner==&""
+			var equip:=_button(unit_body,"슬롯 가득 참" if full else "조합" if partner!=&"" else "장착",func():setup.equip(unit_id,item_choice);_render_unit();board.queue_redraw());equip.disabled=full;ArenaUI.primary(equip)
 	var info:=_button(unit_body,"캐릭터 정보 보기 ⓘ",func():_show_info(int(entry.type)));ArenaUI.quiet(info)
 	if unit_dialog.visible:call_deferred("_fit",unit_dialog)
 

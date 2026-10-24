@@ -31,8 +31,8 @@ static func faction_of(entry: Dictionary) -> int:
 	return int(entry.team) if int(entry.team) >= 0 else SOLO_FACTION_BASE + int(entry.id)
 static func equippable_items() -> Array[StringName]:
 	var kinds: Array[StringName] = []
-	for kind in ItemCatalog.KINDS:
-		if not ItemCatalog.get_item(kind).consumable:kinds.append(kind)
+	# Basics (two of them fuse into a rare item) and ancient items.
+	kinds.assign(ItemCatalog.BASIC+ItemCatalog.ANCIENT)
 	return kinds
 
 func get_entry(id: int) -> Dictionary:
@@ -82,6 +82,10 @@ func set_stance(id: int, stance: StringName) -> void:
 func equip(id: int, kind: StringName) -> String:
 	var entry: Dictionary = get_entry(id)
 	if entry.is_empty() or not kind in equippable_items():return "장착할 수 없는 아이템입니다."
+	if ItemCatalog.get_item(kind).grade == &"common":
+		for i in range(entry.items.size()):
+			if ItemCatalog.get_item(entry.items[i]).grade == &"common":
+				entry.items[i] = ItemCatalog.combined_kind(entry.items[i], kind);return ""
 	if entry.items.size() >= MAX_ITEMS:return "아이템 슬롯이 가득 찼습니다."
 	entry.items.append(kind)
 	return ""
@@ -111,10 +115,7 @@ func stats_for(entry: Dictionary) -> UnitCombatStats:
 	for kind in entry.items:
 		var item: ItemData = ItemCatalog.get_item(kind)
 		if item == null:continue
-		stats.max_hp *= item.max_hp_multiplier;stats.attack *= item.attack_multiplier;stats.speed *= item.speed_multiplier
-		stats.healing_power *= item.healing_multiplier;stats.victory_gold += item.victory_gold
-		stats.vigor_totem_count += int(item.vigor_totem);stats.charge_totem_count += int(item.charge_totem)
-		stats.fang_count += int(item.kill_growth);stats.opening_awl_count += int(item.opening_awl)
+		stats.apply_item(item)
 	stats.max_hp = floorf(stats.max_hp + .5)
 	stats.equipment_attack_without_growth = stats.attack
 	return stats

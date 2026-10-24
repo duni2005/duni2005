@@ -14,7 +14,7 @@ static func defense(unit) -> float:
 	if unit.battle.full_characters_enabled:
 		for friend in unit.battle.units:
 			if friend.alive:aura=maxf(aura,friend.ability.defense_aura(friend,unit))
-	return maxf(1, (unit.defense_power + unit.additional_defense+aura) * (1.15 if unit.stance == CombatStance.COVER else 1)*(unit.ability.defense_factor(unit) if unit.battle.full_characters_enabled else 1))
+	return maxf(1, (unit.defense_power + unit.additional_defense+EquipmentCombatEffects.armor(unit)+aura) * (1.15 if unit.stance == CombatStance.COVER else 1)*(unit.ability.defense_factor(unit) if unit.battle.full_characters_enabled else 1))
 static func armor(unit) -> float:
 	return maxf(0, defense(unit) - unit.defense_power)
 static func taken(unit) -> float:

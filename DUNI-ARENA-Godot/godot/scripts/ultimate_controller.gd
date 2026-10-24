@@ -7,7 +7,7 @@ var think: float = .5
 func blocked(u) -> bool:
 	return StatusController.skill_charge_blocked(u) or not cast.is_empty()
 func efficiency(u) -> float:
-	return (.2 if (u.data.type_id==3 and u.state_value("shadowTime")>0 or u.data.type_id==4 and u.state_value("guardianUltTime")>0) else 1)*(1-clampi(5-u.energy,0,5)*.07 if not u.source_member_id.is_empty() else 1)
+	return EquipmentCombatEffects.ultimate_power(u)*(.2 if (u.data.type_id==3 and u.state_value("shadowTime")>0 or u.data.type_id==4 and u.state_value("guardianUltTime")>0) else 1)*(1-clampi(5-u.energy,0,5)*.07 if not u.source_member_id.is_empty() else 1)
 func gain(u,amount: float) -> float:
 	if blocked(u) or u.data.ultimate_windup<0 or amount<=0:return 0
 	var before: float=u.ultimate_gauge;u.ultimate_gauge=clampf(before+amount,0,100);return u.ultimate_gauge-before
@@ -32,7 +32,7 @@ func advance_action(u,dt: float) -> void:
 		if float(cast.t)<float(cast.duration):return
 		u.battle.ultimate_actor=u;var done: bool=u.ability.release_ultimate(u,cast,dt);u.battle.ultimate_actor=null
 		if done:
-			cast.clear();u.combat.cooldown=maxf(u.combat.cooldown,.6);u.brain.disengage_until=u.battle.clock.elapsed+u.battle.rng.randf_range(.45,.95)
+			cast.clear();EquipmentCombatEffects.after_ultimate(u);u.combat.cooldown=maxf(u.combat.cooldown,.6);u.brain.disengage_until=u.battle.clock.elapsed+u.battle.rng.randf_range(.45,.95)
 		return
 	if not u.ability.can_cast(u) or (u.area_evaluator.offense_blocked(u) and not u.character_specific_state.get("strategyUltimateReady",false) and not u.ability.defensive_ultimate()):return
 	if u.ultimate_gauge<100 or think>0 or u.combat_state!=CombatController.State.IDLE or u.ability.locked(u) or u.stun_remaining>0 or u.evade_remaining>0 or ParryController.perfect(u) or u.command_retreat_until>u.battle.clock.elapsed:return

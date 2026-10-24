@@ -108,12 +108,24 @@ func equip(item_id: int,member_id: String) -> Dictionary:
 		for gear in equipment:gear.equipped_to_member_id=""
 		instance.consumed=true;member.current_hp=minf(member.current_hp,guild.member_stats(member).max_hp)
 		return success({"returned_items":equipment.map(func(i):return i.item_id)})
-	if equipment.size()>=GuildMemberCombatStats.equipment_limit(member):return failure(&"slots_full")
+	# Like auto-chess: a basic item meeting another basic on the same unit fuses into one rare item.
+	var partner: ItemInstance=null
+	if item.grade==&"common":
+		for gear in equipment:
+			if ItemCatalog.get_item(gear.kind).grade==&"common":partner=gear;break
+	if partner==null and equipment.size()>=GuildMemberCombatStats.equipment_limit(member):return failure(&"slots_full")
 	var state: Dictionary=member.character_specific_state
 	var stats: UnitCombatStats=guild.member_stats(member)
+	if partner!=null:
+		var receipt: String="combine:%d:%d"%[partner.item_id,instance.item_id]
+		partner.equipped_to_member_id="";partner.consumed=true;instance.consumed=true
+		var made: ItemInstance=inventory.give(ItemCatalog.combined_kind(partner.kind,instance.kind),receipt)
+		item=ItemCatalog.get_item(made.kind);instance=made
+		stats=guild.member_stats(member)
 	if item.vigor_totem and stats.vigor_totem_count==0:state["totemClock"]=5
 	if item.charge_totem and stats.charge_totem_count==0:state["chargeTotemClock"]=4
 	member.character_specific_state=state;instance.equipped_to_member_id=member_id
+	if partner!=null:return success({"item_id":instance.item_id,"member_id":member_id,"combined":instance.kind,"components":[partner.item_id,item_id]})
 	return success({"item_id":item_id,"member_id":member_id})
 func upgrade(member_id: String) -> Dictionary:
 	if not inventory.valid():return failure(&"invalid_inventory")

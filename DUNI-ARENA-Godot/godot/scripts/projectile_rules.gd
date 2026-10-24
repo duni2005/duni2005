@@ -49,7 +49,7 @@ static func hit(p,target) -> DamageOutcome:
 		var intercept: Dictionary=target.ability.pre_damage(target,p.source,p.power,{"angle":0,"attack_token":p.projectile_id,"impulse":0})
 		if not intercept.is_empty():return out
 		if target.parry.try_block(target,p.source,p.power,p.projectile_id):out.parried=true;return out
-		StatusController.stun(target,4);return out
+		StatusController.stun(target,4*EquipmentCombatEffects.awl_strength(p.source));return out
 	if p.source.ability.projectile_hit(p.source,p,target):
 		if not p.live:p.attack_instance.life=0
 		return out

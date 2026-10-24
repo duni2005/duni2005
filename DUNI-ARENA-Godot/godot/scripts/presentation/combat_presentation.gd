@@ -257,6 +257,12 @@ func advance(delta: float) -> void:
 				add_effect("ult_impact",e.point,AttackVisuals.ink(int(e.metadata.get("type",0))),float(e.metadata.get("radius",110)),1.1)
 				particles.burst(e.point,Color("c8a77c"),20,340,0,"shard",true);particles.burst(e.point,Color("6b5a4a"),12,90,0,"smoke",true)
 				impact_pause(90);camera.impact(14,e.point)
+			if kind=="dragon_heart":
+				add_effect("dragon_heart",e.point,Color("ff8a4a"),float(e.metadata.get("radius",130)),.6)
+				particles.burst(e.point,Color("ffbf72"),12,170,0,"ember",false)
+			elif kind=="phoenix":
+				add_effect("hero_rescue",e.point,Color("ffb347"),48,.9)
+				particles.burst(e.point,Color("ffbf72"),22,260,-PI*.5,"ember",true);camera.impact(6,e.point)
 			if kind in ["clash","parry_success","warrior_parry","ultimate","hero_rescue","wave_stun","vigor_totem","charge_totem"]:
 				var tint: Color=Color("8edff7") if "parry" in kind else ArenaUI.GOLD if kind=="clash" else AttackVisuals.ink(int(e.metadata.get("type",0))) if kind=="ultimate" else Color("cb9aff")
 				add_effect(kind,e.point,tint,42 if kind=="clash" else 55 if kind=="ultimate" else 32)

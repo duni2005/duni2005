@@ -19,10 +19,10 @@ func run(tree: SceneTree) -> void:
 	verify(setup.move(int(setup.entries[0].id),setup.entries[1].position)!="","move respects spacing")
 	verify(setup.team_spending(0)==int(CharacterCatalog.all()[0].base_gold_cost+CharacterCatalog.all()[1].base_gold_cost),"team cost sums base cost")
 	var id: int=int(setup.entries[0].id)
-	verify(setup.equip(id,&"fang")=="" and setup.equip(id,&"vital")=="","two free items")
-	verify(setup.equip(id,&"boots")!="","item slots capped at two")
+	verify(setup.equip(id,&"woodSword")=="" and setup.equip(id,&"staff")=="" and setup.get_entry(id).items==[&"woodSword+staff"],"two basics fuse into one rare item")
+	verify(setup.equip(id,&"dragonHeart")=="" and setup.equip(id,&"verdantStone")!="","item slots capped at two")
 	verify(setup.equip(id,&"reengrave")!="","consumables are not equippable")
-	verify(setup.stats_for(setup.get_entry(id)).attack>CharacterCatalog.all()[0].attack,"items change stats")
+	verify(is_equal_approx(setup.stats_for(setup.get_entry(id)).physical_power,1.15) and setup.stats_for(setup.get_entry(id)).dragon_heart_count==1,"items change stats")
 	verify(setup.unequip(id,0) and setup.get_entry(id).items.size()==1,"items removable")
 	setup.set_stance(id,CombatStance.RUSH);verify(setup.get_entry(id).stance==CombatStance.RUSH,"per-unit stance")
 	verify(setup.remove(id) and setup.entries.size()==2,"eraser removes one")
@@ -51,6 +51,7 @@ func run(tree: SceneTree) -> void:
 	verify(alive.size()<=1,"at most one faction survives")
 	b.queue_free()
 	await new_characters(tree)
+	items(tree)
 	await map_wallet_return(tree)
 	ai_health(tree)
 	print("CUSTOM BATTLE RESULT: ",checks," checks; ",failures," failures")
@@ -223,3 +224,38 @@ func ai_health(tree: SceneTree) -> void:
 		b.queue_free()
 	verify(idle_time/unit_time<.06,"units rarely stand idle (%.1f%%)"%(idle_time/unit_time*100))
 	verify(switches/(unit_time/60)<25,"target churn bounded (%.1f per unit-minute)"%(switches/(unit_time/60)))
+func items(tree: SceneTree) -> void:
+	# Grades: 9 basics, 45 combinations (same pair included), 3 ancients; the shop pool is basics + reengrave.
+	var all: Dictionary=ItemCatalog.all();var count: Dictionary={}
+	for k in all:count[all[k].grade]=int(count.get(all[k].grade,0))+1
+	verify(count.get(&"common")==9 and count.get(&"rare")==45 and count.get(&"ancient")==3,"item grades 9 / 45 / 3")
+	verify(ItemCatalog.KINDS.all(func(k):return ItemCatalog.get_item(k).grade==&"common" or ItemCatalog.get_item(k).consumable),"only basics are handed out")
+	verify(ItemCatalog.combined_kind(&"staff",&"woodSword")==ItemCatalog.combined_kind(&"woodSword",&"staff"),"combination is order free")
+	var rare: ItemData=ItemCatalog.get_item(&"woodSword+woodSword")
+	verify(is_equal_approx(rare.physical_bonus,.3) and rare.components==[&"woodSword",&"woodSword"],"same-pair rare doubles and boosts the stat")
+	verify(ItemCatalog.get_item(&"warmNecklace+verdantStone").vigor_totem and ItemCatalog.get_item(&"woodSword+redThorn").kill_growth,"old abilities live on combined items")
+	# Tower: a basic meets a basic on the same unit and fuses; rare items keep their slot.
+	var t:=TowerController.new();t.new_run(19,73);var m: GuildMemberState=t.guild.all_members()[0]
+	var ids: Array=[]
+	for kind in [&"woodSword",&"redThorn",&"staff",&"staff",&"verdantStone"]:ids.append(t.content.inventory.give(kind).item_id)
+	var results: Array=ids.map(func(id):return t.content_action(&"equip",{"item_id":id,"member_id":m.member_id}))
+	verify(results[1].ok and results[1].outcome.combined==&"woodSword+redThorn","second basic fuses into 포식자의 엄니")
+	verify(t.content.inventory.get_item(ids[0]).consumed and t.content.inventory.get_item(ids[1]).consumed,"components are used up")
+	verify(results[3].ok and not results[4].ok and t.content.inventory.equipped(m.member_id).size()==2,"two rare items fill two slots")
+	var stats: UnitCombatStats=t.guild.member_stats(m)
+	verify(is_equal_approx(stats.magic_power,1.3) and is_equal_approx(stats.fang_rate(),.015*1.34),"rare stats and stronger kill growth reach the member")
+	# Damage types: 목검 only boosts physical hitters, 에테르 only elemental hits.
+	var b:=duel(tree,[[0,0,Vector2(150,400)],[2,1,Vector2(650,400)]])
+	var warrior: BattleUnit=b.units[0];var mage: BattleUnit=b.units[1]
+	for u in [warrior,mage]:u.combat_stats.physical_power=1.3;u.combat_stats.element_power=2
+	verify(is_equal_approx(EquipmentCombatEffects.damage_factor(warrior,{}),1.3) and is_equal_approx(EquipmentCombatEffects.damage_factor(mage,{}),1),"physical bonus skips a magic hitter")
+	verify(is_equal_approx(EquipmentCombatEffects.damage_factor(mage,{"element":&"fire"}),2),"elemental bonus applies to elemental hits")
+	verify(CharacterCatalog.damage_label(31)=="마법 · 얼음" and CharacterCatalog.damage_label(0)=="물리","damage labels")
+	# 불사조의 깃털: one lethal blow per battle is survived.
+	warrior.combat_stats.phoenix_count=1
+	verify(CharacterLifecycle.intercept_lethal(warrior,warrior.current_hp+50) and warrior.invincible_remaining>=2 and warrior.alive,"phoenix revives once")
+	verify(not EquipmentCombatEffects.phoenix(warrior),"phoenix is spent for this battle")
+	# 시간의 모래시계: the gauge refills after an ultimate.
+	mage.combat_stats.hourglass_count=1;mage.ultimate_gauge=0;EquipmentCombatEffects.after_ultimate(mage)
+	verify(is_equal_approx(mage.ultimate_gauge,35),"hourglass refills 35%")
+	b.queue_free()

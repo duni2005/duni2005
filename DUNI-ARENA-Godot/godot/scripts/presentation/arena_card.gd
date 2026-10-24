@@ -31,6 +31,8 @@ var deployed: bool=false
 var slot_kind: String=""
 ## Owner unit type for an equipped item (-1 when none).
 var owner_type: int=-1
+## Item grade colour (ItemCatalog.GRADE_COLORS); transparent for non-items.
+var rarity: Color=Color(0,0,0,0)
 const SLOT_COLORS={"equipment":["1b2440","5a7ad0","장비"],"consumable":["1a2e2a","5fb592","소모품"],"equipped":["1c3438","4fc6c0","장착"],"strategy":["2a2142","a07ad8","전략"],"cooldown":["1a1826","5a4f72","대기"]}
 var cached_style: StyleBoxFlat
 # Visual tiers: units read as information, choices as warm actions, inventory as slots.
@@ -265,9 +267,10 @@ func _draw() -> void:
 		write(Vector2(0,89 if compact_room else 114),status_text,10 if compact_room else 11,muted,size.x,true)
 		return
 	if card_type=="product":
+		if rarity.a>0:VfxArt.glow(self,Vector2(size.x*.5,28),30,rarity,.25)
 		draw_badge(Vector2(size.x*.5,28),20,gold)
 		ArenaIcon.draw(self,Vector2(size.x*.5,28),kind,25,gold)
-		write(Vector2(4,66),title,12,Color("eef1fa"),size.x-8,true)
+		write(Vector2(4,66),title,12,rarity.lightened(.3) if rarity.a>0 else Color("eef1fa"),size.x-8,true)
 		draw_multiline_string(get_theme_default_font(),Vector2(6,86),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-12,11,3,muted)
 		draw_price_chip(Rect2(6,size.y-37,size.x-12,30),"구매 완료")
 		return
@@ -280,8 +283,11 @@ func _draw() -> void:
 		return
 	if card_type=="slot":
 		var waiting: bool=slot_kind=="cooldown";var rim: Color=Color(SLOT_COLORS[slot_kind][1]) if SLOT_COLORS.has(slot_kind) else muted
+		if rarity.a>0:
+			# Grade: soft glow behind the icon and a coloured base line.
+			VfxArt.glow(self,Vector2(size.x*.5,24),22,rarity,.22);draw_rect(Rect2(6,size.y-2,size.x-12,2),Color(rarity,.85))
 		ArenaIcon.draw(self,Vector2(size.x*.5,24),kind,22,Color(gold,.45) if waiting else gold)
-		write(Vector2(0,47),title,10,Color(muted,.8) if waiting else gold,size.x,true)
+		write(Vector2(0,47),title,10,Color(muted,.8) if waiting else rarity.lightened(.25) if rarity.a>0 else gold,size.x,true)
 		write(Vector2(0,size.y-5),price if not price.is_empty() else "설명",9,Color(rim.lightened(.3),.9) if waiting else muted,size.x,true)
 		var tag: String=SLOT_COLORS[slot_kind][2] if SLOT_COLORS.has(slot_kind) else status_text
 		if not tag.is_empty():

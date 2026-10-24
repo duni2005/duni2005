@@ -9,13 +9,10 @@ static func assemble(data: UnitData,member: GuildMemberState,inventory: Inventor
 	for instance in inventory.equipped(member.member_id):
 		var item: ItemData=ItemCatalog.get_item(instance.kind)
 		if item==null:continue
-		stats.max_hp*=item.max_hp_multiplier;stats.attack*=item.attack_multiplier;stats.speed*=item.speed_multiplier
-		stats.healing_power*=item.healing_multiplier;stats.victory_gold+=item.victory_gold
-		stats.vigor_totem_count+=int(item.vigor_totem);stats.charge_totem_count+=int(item.charge_totem)
-		stats.fang_count+=int(item.kill_growth);stats.opening_awl_count+=int(item.opening_awl)
+		stats.apply_item(item)
 	stats.max_hp=floorf(stats.max_hp+.5)
 	stats.equipment_attack_without_growth=stats.attack
-	stats.attack*=1+member.fang_kills*.015
+	stats.attack*=1+member.fang_kills*stats.fang_rate()
 	return stats
 static func equipment_limit(member: GuildMemberState) -> int:return 2+clampi(member.stars,0,2)
 static func heal(guild: GuildManager,member: GuildMemberState,base: float,revive: bool=false) -> float:

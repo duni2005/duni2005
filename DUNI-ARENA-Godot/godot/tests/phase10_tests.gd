@@ -27,7 +27,7 @@ func create_battle(t: TowerController,ids: Array=[]) -> BattleManager:
 func golden() -> void:
 	groups+=1
 	var web: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://migration/phase10-web-rules.json"))
-	verify(ItemCatalog.all().size()==10,"ten actual items")
+	verify(ItemCatalog.LEGACY.size()==10 and ItemCatalog.LEGACY.all(func(k):return ItemCatalog.get_item(k)!=null),"ten web items still load (legacy grade)")
 	for row in web.items:
 		var item: ItemData=ItemCatalog.get_item(StringName(row.id))
 		verify(item.display_name==row.name and item.gold_price==row.cost and item.description==row.help,"executed JS item "+row.id)

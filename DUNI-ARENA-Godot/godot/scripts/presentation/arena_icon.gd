@@ -5,9 +5,19 @@ static var textures: Dictionary={}
 static func texture(kind: String) -> Texture2D:
 	var key: String={"boss":"crown","miniboss":"skull","heal":"heart","vital":"heart","conquest":"crown","chapterConquest":"crown","promotion":"star","ironDefense":"iron","lightning":"charge","tokens":"gem","token":"gem"}.get(kind,kind)
 	if not textures.has(key):
+		if "+" in key:textures[key]=_combined(key.get_slice("+",0),key.get_slice("+",1));return textures[key]
 		var path: String="res://assets/ui/symbols/"+key+".svg"
 		textures[key]=load(path) if ResourceLoader.exists(path) else null
 	return textures[key]
+## Combined item icon: its two basic components overlapped on a diagonal.
+static func _combined(a: String,b: String) -> Texture2D:
+	var first: Texture2D=texture(a);var second: Texture2D=texture(b)
+	if first==null or second==null:return first
+	var out: Image=Image.create(128,128,false,Image.FORMAT_RGBA8)
+	for pair in [[first,Vector2i(0,0)],[second,Vector2i(42,42)]]:
+		var part: Image=pair[0].get_image();part.decompress();part.convert(Image.FORMAT_RGBA8);part.resize(86,86,Image.INTERPOLATE_BILINEAR)
+		out.blend_rect(part,Rect2i(0,0,86,86),pair[1])
+	return ImageTexture.create_from_image(out)
 static func draw(canvas: CanvasItem,at: Vector2,kind: String,size: float,color: Color) -> void:
 	var image: Texture2D=texture(kind)
 	if image!=null:

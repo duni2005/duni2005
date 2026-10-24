@@ -42,7 +42,7 @@ func start_counter(unit, enemy) -> bool:
 	attacks_started += 1
 	fired = false
 	unit.combat_state = State.WINDUP
-	cooldown = .19+.16+.25+unit.data.attack_interval*unit.battle.rng.randf_range(.3,.55)
+	cooldown = (.19+.16+.25+unit.data.attack_interval*unit.battle.rng.randf_range(.3,.55))/EquipmentCombatEffects.attack_speed(unit)
 	return true
 
 func can_start(unit, enemy) -> bool:
@@ -70,7 +70,7 @@ func start(unit, enemy, rng: RandomNumberGenerator) -> bool:
 		attack_metadata.clear();active_profile=unit.ability.profile(unit);unit.ability.on_attack_start(unit);unit.set_state("revealTime",3);unit.brain.attack_decision.clear();unit.brain.was_attacking=true
 	var profile: AttackData = profile(unit)
 	# TYPES.cd is an interval input, NOT the whole time between releases.
-	cooldown = unit.ability.attack_cooldown(unit,rng) if unit.battle.full_characters_enabled else profile.windup + profile.active + profile.recovery + unit.data.attack_interval * rng.randf_range(0.3, 0.55)
+	cooldown = (unit.ability.attack_cooldown(unit,rng) if unit.battle.full_characters_enabled else profile.windup + profile.active + profile.recovery + unit.data.attack_interval * rng.randf_range(0.3, 0.55))/EquipmentCombatEffects.attack_speed(unit)
 	attacks_started += 1
 	return true
 

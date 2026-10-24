@@ -110,6 +110,14 @@ static func effect(c: CanvasItem,e: Dictionary) -> bool:
 				if not shatter:c.draw_line(at, p+Vector2.from_angle(a+TAU/6)*radius,Color("e8ffff",fade*.65),1.5,true)
 			star(c,p,r*.4,Color("e4ffff"),fade*.7)
 			return true
+		"dragon_heart":
+			# 용의 심장: a ring of fire rolling out to the burst radius.
+			glow(c,p,r*1.1,Color("ff8a4a"),fade*.35)
+			c.draw_arc(p,r*(.35+.65*t),0,TAU,48,Color("ffbf72",fade*.85),4,true);c.draw_arc(p,r*(.25+.6*t),0,TAU,48,Color("ff6a3a",fade*.5),2,true)
+			for i in range(10):
+				var a: float=i*TAU/10+t;var at: Vector2=p+Vector2.from_angle(a)*r*(.35+.65*t)
+				c.draw_colored_polygon(PackedVector2Array([at+Vector2(0,-12*fade),at+Vector2(5,0),at+Vector2(-5,0)]),Color("ffd27a",fade*.8))
+			return true
 		"heal","vigor_totem","charge_totem":
 			var color_heal:=Color("83efc4") if e.kind!="charge_totem" else Color("a4baff")
 			glow(c,p,r*2,color_heal,fade*.35);ellipse(c,p+Vector2(0,20),r*(.5+t*.6),.28,Color(color_heal,fade*.75),2)

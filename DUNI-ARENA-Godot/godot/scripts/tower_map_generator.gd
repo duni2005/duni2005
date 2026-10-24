@@ -9,7 +9,7 @@ const RANGED = [1,2,6,13,15,18,20,21,22,23,24,25,28,30,31]
 const SUPPORT = [4,5,15,16,17,19,24,25,27,29]
 const BOSS_POOL = [0,2,4,7,9,10,11,12,13]
 const FORMATIONS = [&"전열", &"분산", &"쌍익", &"포위", &"밀집"]
-const ITEMS = [&"vital", &"fang", &"boots", &"reengrave", &"greenNecklace", &"goldToken", &"vigorTotem", &"chargeTotem", &"predatorFang", &"thickAwl"]
+const ITEMS = ItemCatalog.KINDS
 var rng := RandomNumberGenerator.new()
 var catalog: Dictionary = CharacterCatalog.all()
 static func room_count(depth: int) -> int: return 6 + floori(maxi(0,depth)/3.0)

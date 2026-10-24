@@ -216,3 +216,4 @@ var equipment_fang_kills: int = 0
 var fang_count: int = 0
 var opening_awl_count: int = 0
 var victory_gold: int = 0
+var phoenix_used: bool = false # 불사조의 깃털, once per battle (never saved)
