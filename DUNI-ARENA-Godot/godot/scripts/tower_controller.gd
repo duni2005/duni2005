@@ -66,6 +66,17 @@ func select_room(id: String) -> TowerNavigationPolicy.Code:
 		if room.event_type==&"promotion":room.event.selected_members.clear();room.event.resolved=false
 	guild.state.strategy_progress.current_depth=room.floor_index
 	_autosave();changed.emit();return code
+## The floor the party stands on (the map shows only this floor's rooms).
+func current_floor() -> int:return guild.state.strategy_progress.current_depth
+## The stairs appear once this floor's clear requirement has unlocked the next floor.
+func can_ascend() -> bool:
+	var state: TowerRunState=guild.state.tower
+	return not guild.state.game_over and state.phase==&"route" and current_floor()<state.map.floors.size()-1 and state.unlocked_floor>current_floor()
+func ascend() -> bool:
+	if not can_ascend():return false
+	guild.state.strategy_progress.current_depth+=1
+	guild.state.tower.current_chapter=guild.state.tower.map.floors[current_floor()].chapter_index
+	_autosave();changed.emit();return true
 func start_battle(plan: DeploymentPlan,manager: BattleManager) -> bool:
 	if battle_preparing:return false
 	var prepared: Dictionary=_prepare_battle(plan,manager)

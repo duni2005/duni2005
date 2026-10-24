@@ -73,7 +73,7 @@ func run() -> void:
 	var object_id: int=room_button.get_instance_id()
 	start=Time.get_ticks_usec();screen.show_map();metrics.map_return_ms=(Time.get_ticks_usec()-start)/1000.0
 	verify(screen.room_buttons["0:3"].get_instance_id()==object_id,"map return reuses room controls")
-	verify(screen.room_buttons.size()==120 and screen.floor_widgets.size()==15,"all map controls retained")
+	verify(screen.room_buttons.size()==120,"all map controls retained")
 	screen.select_room("0:3");await frames();screen.fx.advance(3)
 	var ui: TowerBattleScreen=screen.battle_screen
 	verify(ui!=null and ui.management_panel==null,"room entry defers hidden management page")

@@ -128,6 +128,10 @@ func _draw() -> void:
 		return
 	if card_type=="tp_member":
 		_draw_tp_member();return
+	if card_type=="dungeon_room":
+		_draw_dungeon_room();return
+	if card_type=="stairs":
+		_draw_stairs();return
 	var active: bool=selected or button_pressed
 	# Touch screens have no hover, and a tap leaves focus behind; neither may stay lit.
 	var hovered: bool=is_hovered() and not ArenaUI.touch_ui();var focused: bool=has_focus() and not ArenaUI.touch_ui()
@@ -351,3 +355,40 @@ func _draw_tp_member() -> void:
 	var badge:=c+Vector2(14,12)
 	draw_circle(badge,7,Color("10182b"));draw_arc(badge,7,0,TAU,20,ArenaUI.GOLD if on else Color("5a6890"),1,true)
 	ArenaIcon.draw(self,badge,kind,9,ArenaUI.GOLD if on else Color("c9d0e6"))
+## A room on the dark dungeon chart: stone floor, coloured walls, icon, label, cleared stamp.
+func _draw_dungeon_room() -> void:
+	var r:=Rect2(Vector2(3,3),size-Vector2(7,8))
+	var boss: bool=kind in ["boss","miniboss"];var active: bool=button_pressed or ArenaUI.is_held(self)
+	draw_rect(Rect2(r.position+Vector2(2,4),r.size),Color(0,0,0,.45))
+	var floor_color:=Color("161f33") if spent else Color("1f2a44")
+	draw_rect(r,floor_color)
+	# Flagstone texture.
+	for y in range(int(r.position.y)+10,int(r.end.y),12):draw_line(Vector2(r.position.x+2,y),Vector2(r.end.x-2,y),Color("2a3654",.6),1)
+	if kind=="hidden":
+		for x in range(int(-r.size.y),int(r.size.x),8):
+			var a:=Vector2(maxf(0,x),maxf(0,-x));var b:=Vector2(minf(r.size.x,x+r.size.y),minf(r.size.y,r.size.x-x))
+			draw_line(r.position+a,r.position+b,Color("0c1220",.6),1)
+	var wall: Color=ArenaUI.GOLD if active else Color("c4493d") if kind=="boss" else Color("d08a3a") if kind=="miniboss" else Color("8fe3ff",.55) if kind!="hidden" and not spent else Color("4b5a86")
+	draw_rect(r,wall,false,3.0 if boss or active else 2.0);draw_rect(r.grow(-4),Color(wall,.25),false,1)
+	if active:VfxArt.glow(self,r.get_center(),maxf(r.size.x,r.size.y)*.7,ArenaUI.GOLD,.2)
+	elif boss:VfxArt.glow(self,r.get_center(),maxf(r.size.x,r.size.y)*.6,wall,.12)
+	var icon: float=clampf(minf(r.size.x,r.size.y)*.38,16,34);var center:=r.get_center()+Vector2(0,-6)
+	if kind=="hidden":write(center+Vector2(-r.size.x*.5,icon*.36),"?",int(icon*1.1),Color("6f7ea8"),r.size.x,true)
+	else:ArenaIcon.draw(self,center,kind,icon,Color(1,1,1,.45 if spent else 1))
+	write(Vector2(r.position.x,r.end.y-5),title,10 if r.size.x<70 else 11,ArenaUI.MUTED if spent else Color("dfe6f7"),r.size.x,true)
+	write(r.position+Vector2(5,13),subtitle,9,Color("7d8bb0"))
+	if sold:
+		var stamp:=r.position+Vector2(r.size.x-14,14);draw_circle(stamp,10,Color("0f1a16",.8));draw_arc(stamp,10,0,TAU,24,ArenaUI.HP,2,true)
+		draw_polyline(PackedVector2Array([stamp+Vector2(-5,0),stamp+Vector2(-1,4),stamp+Vector2(6,-5)]),ArenaUI.HP,2.5,true)
+## The stairway to the next floor: glowing stone steps.
+func _draw_stairs() -> void:
+	var r:=Rect2(Vector2(3,3),size-Vector2(7,8));var pulse: float=.5+.5*sin(Time.get_ticks_msec()*.004)
+	draw_rect(Rect2(r.position+Vector2(2,4),r.size),Color(0,0,0,.45))
+	draw_rect(r,Color("2a2a3a"));draw_rect(r,Color("b8862b").lerp(Color("ffd27a"),pulse),false,3)
+	var steps: int=4;var base:=Vector2(r.get_center().x,r.position.y+r.size.y*.66);var w: float=r.size.x*.62;var h: float=r.size.y*.1
+	VfxArt.glow(self,Vector2(base.x,base.y-steps*h),w*.6,Color("ffd27a"),.3+.2*pulse)
+	for i in range(steps):
+		var y: float=base.y-i*h;var half: float=w*.5*(1-i*.17)
+		draw_rect(Rect2(Vector2(base.x-half,y-h),Vector2(half*2,h)),Color("6d6680").lightened(i*.1));draw_rect(Rect2(Vector2(base.x-half,y-h),Vector2(half*2,h)),Color(0,0,0,.5),false,1)
+	write(Vector2(r.position.x,r.end.y-6),"다음 층  ▲",12,ArenaUI.GOLD,r.size.x,true)
+	queue_redraw()

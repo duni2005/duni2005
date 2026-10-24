@@ -53,6 +53,7 @@ func run(tree: SceneTree) -> void:
 	await new_characters(tree)
 	items(tree)
 	multikill(tree)
+	stairs()
 	await map_wallet_return(tree)
 	ai_health(tree)
 	print("CUSTOM BATTLE RESULT: ",checks," checks; ",failures," failures")
@@ -272,3 +273,13 @@ func multikill(tree: SceneTree) -> void:
 	p._count_kill(killer,b.units[4]);verify(not p.kill_streaks.has(killer.actor_id()),"a dead killer's streak ends")
 	verify(CombatPresentation.MULTI_KILL_NAMES[6]=="헥사 킬","names run up to hexa kill")
 	p.free();b.queue_free()
+func stairs() -> void:
+	# The map shows one floor; meeting its clear requirement opens stairs, and climbing leaves it behind.
+	var t:=TowerController.new();t.new_run(19,73)
+	verify(t.current_floor()==0 and not t.can_ascend() and not t.ascend(),"no stairs before the clear requirement")
+	var f: FloorState=t.guild.state.tower.map.floors[0]
+	for id in f.room_ids.slice(0,f.required_clear_count):t.guild.state.tower.map.get_room(id).cleared=true
+	f.cleared_count=f.required_clear_count;t.refresh_progress(0)
+	verify(t.can_ascend() and t.ascend() and t.current_floor()==1,"stairs open and climb one floor")
+	verify(t.select_room(f.room_ids[-1])==TowerNavigationPolicy.Code.LOCKED_FLOOR,"rooms of a passed floor stay closed")
+	verify(t.select_room(t.guild.state.tower.map.floors[1].room_ids[0])==TowerNavigationPolicy.Code.OK,"rooms of the new floor open")

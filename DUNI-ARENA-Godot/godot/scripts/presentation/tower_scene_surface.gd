@@ -25,8 +25,7 @@ func _draw() -> void:
 	if t<0:_draw_flights();return
 	var alpha: float=minf(clampf(t/.2,0,1),clampf((s.duration-t)/.8,0,1));var kind: String=s.kind
 	if kind=="entry":_draw_entry(s,t,screen);_draw_flights();return
-	if kind in ["chapter","chapterConquest"]:_draw_chapter(s,t,screen);_draw_flights();return
-	var strong: bool=kind in ["recruit","promotion","chapterConquest"]
+	var strong: bool=kind in ["recruit","promotion"]
 	draw_rect(Rect2(Vector2.ZERO,screen),Color(.02,.025,.055,alpha*(.94 if strong else .72)))
 	var center: Vector2=screen*.5+Vector2(0,-18+(1-clampf(t/.3,0,1))*8)
 	var accent:=Color("f0d490") if kind!="entry" else Color("c4cdbb")
@@ -43,43 +42,13 @@ func _draw() -> void:
 		UnitIcon.draw(self,Rect2(center+Vector2(-60,-115),Vector2(120,120)),type,alpha)
 		if kind=="promotion":
 			for i in range(int(s.get("stars",1))):ArenaIcon.draw(self,center+Vector2(-12+i*26,-127),"star",24,Color(1,1,1,alpha))
-	else:ArenaIcon.draw(self,center+Vector2(0,-54),s.get("icon","crown"),96 if kind=="chapterConquest" else 76,Color(1,1,1,alpha))
+	else:ArenaIcon.draw(self,center+Vector2(0,-54),s.get("icon","crown"),76,Color(1,1,1,alpha))
 	var width: float=minf(660,screen.x-40);var x: float=(screen.x-width)*.5
 	text(Vector2(x,center.y+50),s.get("title",""),28 if screen.x<600 else 42,Color("fff2cf",alpha),width)
 	text(Vector2(x,center.y+99),s.get("detail",""),15 if screen.x<600 else 21,Color("c4cdbb",alpha),width)
 	if kind=="recruit":text(Vector2(x,center.y+151),"터치하여 계속",11,Color(.66,.73,.82,alpha*.8),width)
 
 	_draw_flights()
-## Chapter title card: start of a chapter, or its conquest. Lines open out from the centre,
-## the chapter number settles in, then the name and floor range follow.
-func _draw_chapter(s: Dictionary,t: float,screen: Vector2) -> void:
-	var duration: float=float(s.duration);var conquest: bool=s.kind=="chapterConquest"
-	var alpha: float=clampf(t/.25,0,1)*clampf((duration-t)/.6,0,1)
-	var gold:=Color("f0d490");var center:=Vector2(screen.x*.5,screen.y*.44)
-	draw_rect(Rect2(Vector2.ZERO,screen),Color(.015,.02,.045,.9*alpha))
-	VfxArt.glow(self,center,minf(screen.x,screen.y)*.6,gold if conquest else Color("6f86d6"),.16*alpha)
-	for i in range(12 if conquest else 0):
-		var a: float=i*TAU/12+t*.08;var reach: float=maxf(screen.x,screen.y)
-		draw_colored_polygon(PackedVector2Array([center,center+Vector2.from_angle(a)*reach,center+Vector2.from_angle(a+.06)*reach]),Color(gold,.03*alpha))
-	var open: float=1-pow(1-clampf(t/.6,0,1),3);var span: float=minf(320,screen.x*.42)*open
-	for y in [center.y-54,center.y+44]:
-		draw_line(Vector2(center.x-span,y),Vector2(center.x+span,y),Color(gold,.7*alpha),1.5)
-		for side in [-1,1]:
-			var tip:=Vector2(center.x+side*span,y)
-			draw_colored_polygon(PackedVector2Array([tip+Vector2(0,-4),tip+Vector2(4*side,0),tip+Vector2(0,4),tip-Vector2(4*side,0)]),Color(gold,alpha))
-	if conquest:
-		VfxArt.glow(self,center+Vector2(0,-112),70,gold,.35*alpha)
-		ArenaIcon.draw(self,center+Vector2(0,-112),"crown",72,Color(1,1,1,alpha))
-	var numbers: Font=ArenaUI.numbers_font();var kicker: String=("CHAPTER %d CLEAR" if conquest else "CHAPTER %d")%int(s.get("chapter",1))
-	var settle: float=1+.18*(1-clampf(t/.45,0,1));var ks: int=36 if screen.x<600 else 48
-	var kw: float=numbers.get_string_size(kicker,HORIZONTAL_ALIGNMENT_LEFT,-1,ks).x
-	draw_set_transform(center*(1-settle),0,Vector2.ONE*settle)
-	draw_string(numbers,center+Vector2(-kw*.5,-12),kicker,HORIZONTAL_ALIGNMENT_LEFT,-1,ks,Color(gold,alpha))
-	draw_set_transform(Vector2.ZERO)
-	var late: float=alpha*clampf((t-.3)/.4,0,1);var later: float=alpha*clampf((t-.55)/.4,0,1)
-	var font: Font=ArenaUI.heading_font()
-	draw_string(font,Vector2(0,center.y+28),s.get("title",""),HORIZONTAL_ALIGNMENT_CENTER,screen.x,24 if screen.x<600 else 32,Color(1,.97,.9,late))
-	draw_string(get_theme_default_font(),Vector2(0,center.y+76),s.get("detail",""),HORIZONTAL_ALIGNMENT_CENTER,screen.x,14,Color("c4cdbb",later))
 ## Room entry: a cinematic band slides in from the left, holds, then slides out to the right.
 func _draw_entry(s: Dictionary,t: float,screen: Vector2) -> void:
 	var duration: float=float(s.duration);var enter: float=1-pow(1-clampf(t/.35,0,1),3);var leave: float=pow(clampf((t-(duration-.45))/.45,0,1),3)

@@ -58,7 +58,8 @@ static func _column(node: Node) -> BoxContainer:
 
 static func _collect_cards(node: Node, view: Rect2, out: Array) -> void:
 	for child in node.get_children():
-		if not (child is Control) or not child.visible:continue
+		# The dungeon map unrolls its own rooms.
+		if not (child is Control) or not child.visible or child is DungeonMap:continue
 		if child is ArenaCard:
 			# Header nav buttons stay fixed with the rest of the shared header.
 			if child.card_type!="nav" and view.intersects(child.get_global_rect()):out.append(child)

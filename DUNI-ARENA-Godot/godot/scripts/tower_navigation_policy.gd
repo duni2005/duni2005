@@ -9,6 +9,8 @@ static func check(run: RunState, id: String) -> Code:
 	if run.tower.phase == &"event_active": return Code.EVENT_IN_PROGRESS
 	if run.tower.phase != &"route": return Code.UNFINISHED_BATTLE
 	if run.tower.map.get_room(id).floor_index > run.tower.unlocked_floor: return Code.LOCKED_FLOOR
+	# Floors the party has climbed past stay behind for good.
+	if run.tower.map.get_room(id).floor_index < run.strategy_progress.current_depth: return Code.LOCKED_FLOOR
 	return Code.OK
 static func can_return(run: RunState) -> bool:
 	return run.tower != null and run.tower.phase not in [&"deploy", &"battle", &"event_active"]

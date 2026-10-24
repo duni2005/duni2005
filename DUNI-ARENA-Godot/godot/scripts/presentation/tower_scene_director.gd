@@ -1,7 +1,7 @@
 class_name TowerSceneDirector
 extends CanvasLayer
 ## Transient real-time presentation queue. Never applies a reward/transaction.
-const DURATIONS={"entry":2.1,"recruit":2.5,"promotion":3.0,"conquest":2.8,"chapterConquest":3.6,"chapter":3.0}
+const DURATIONS={"entry":2.1,"recruit":2.5,"promotion":3.0,"conquest":2.8}
 const CHAPTER_NAMES={1:"무너진 회랑",2:"붉은 첨탑",3:"망고의 정상"}
 const LIMIT=8
 var active: Dictionary={}
@@ -61,8 +61,7 @@ func enqueue(scene: Dictionary) -> bool:
 	if not _valid(item):return false
 	if item.kind in ["entry","promotion"]:
 		queue=queue.filter(func(s):return s.kind!="entry")
-		# Entering a room moves on from a chapter title card as well.
-		if active.get("kind","") in ["entry","chapter"]:active.clear()
+		if active.get("kind","")=="entry":active.clear()
 	if queue.size()>=LIMIT:return false
 	if not key.is_empty():played[key]=true
 	item["duration"]=DURATIONS.get(item.kind,2.1);item["age"]=-float(item.get("delay",0))

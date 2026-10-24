@@ -60,7 +60,7 @@ func run() -> void:
 	# Phase10 noncombat completion is intentionally absent: explicit domain fixture.
 	for id in ["0:0","0:1"]:screen.controller.guild.state.tower.map.get_room(id).cleared=true
 	screen.controller.refresh_progress(0);screen.show_map();await frames()
-	verify(not screen.room_buttons["1:0"].disabled,"progression unlock visible after actual clear threshold")
+	verify(screen.controller.guild.state.tower.unlocked_floor>=1 and screen.room_buttons["1:0"].disabled,"clear threshold unlocks the next floor; its rooms wait for the stairs")
 	await button(screen.room_buttons["0:5"]);room_screen=screen.battle_screen
 	verify(room_screen.plan.entries().size()==1,"last started formation automatically restored")
 	await button(room_screen.start_button);b=room_screen.battle;b.set_physics_process(false)
@@ -77,11 +77,8 @@ func run() -> void:
 	screen.free();root.size=Vector2i(390,844);root.content_scale_size=Vector2i(390,844)
 	screen=load("res://scenes/tower.tscn").instantiate();root.add_child(screen);screen.controller.new_run(19,73);screen.show_map();await frames()
 	await capture("mobile-map")
-	verify(screen.map_scroll.size.x<=390 and screen.map_scroll.size.y>500,"mobile map readable vertical scroll")
-	var map_rows=screen.map_scroll.get_child(0)
-	var horizontal: ScrollContainer=map_rows.get_child(14).get_children().filter(func(n):return n is ScrollContainer)[0]
-	horizontal.scroll_horizontal=390;await frames()
-	verify(horizontal.scroll_horizontal>0,"later ten-room floors retain horizontal room scroll")
+	verify(screen.map_scroll.size.x<=390 and screen.map_scroll.size.y>500,"mobile map readable")
+	verify(screen.room_buttons["0:0"].visible and not screen.room_buttons["1:0"].visible,"the map shows only the current floor")
 	await button(screen.room_buttons["0:3"],true);room_screen=screen.battle_screen
 	verify(room_screen!=null and room_screen.board.size.x<=390,"mobile room touch /board")
 	await button(room_screen.roster.get_child(0),true);await click(point(room_screen.board,Vector2(120,400)),true)
@@ -112,7 +109,7 @@ func run() -> void:
 	verify(not b.turning.is_paused(),"mobile TP manual resume")
 	outcome_fixture(b);await frames();await button(room_screen.next_button,true)
 	verify(screen.battle_screen==null,"mobile result→map")
-	screen.map_scroll.scroll_vertical=10000;await frames();verify(screen.map_scroll.scroll_vertical>0,"15-floor map vertical scroll")
+	verify(screen.room_buttons.values().filter(func(b):return b.visible).all(func(b):return Rect2(Vector2.ZERO,Vector2(390,844)).encloses(b.get_global_rect())),"every room of the floor is on screen")
 	screen.free();await frames()
 	print("TOWER UI RESULT: ",checks," checks; ",failures," failures")
 	quit(1 if failures else 0)

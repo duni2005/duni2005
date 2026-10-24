@@ -103,7 +103,7 @@ func flow(touch: bool) -> void:
 		if u.original_team==1:u.receive_damage(10000,b.units[0])
 	b.check_outcome();room_screen.board.presentation.advance(BattleCinematicState.DURATION);await frames();await click(room_screen.next_button,touch)
 	verify(t.guild.state.tower.phase==&"route" and t.guild.state.tower.map.get_room("0:3").cleared,"battle clear returns map")
-	verify(not screen.room_buttons["1:0"].disabled,"real noncombat+combat completion unlocks next floor")
+	verify(screen.map_scroll.stairs.visible,"real noncombat+combat completion opens the stairs")
 	await click(screen.room_buttons["0:2"],touch);gold=run_state.gold
 	await click(screen.content_screen.content_box.find_child("resources",true,false),touch)
 	verify(run_state.gold==gold+350 and t.guild.state.tower.map.get_room("0:2").consumed,"rest choice+consume via input")
@@ -119,6 +119,8 @@ func flow(touch: bool) -> void:
 	var ids: Array[String]=[]
 	for i in range(3):
 		var m: GuildMemberState=t.guild.create_member(0);m.level=10;ids.append(m.member_id)
+	await click(screen.map_scroll.stairs,touch)
+	verify(t.current_floor()==1 and screen.room_buttons["0:2"].disabled and not screen.room_buttons["1:0"].disabled,"stairs climb; the floor below stays behind")
 	await click(screen.room_buttons["1:0"],touch)
 	for id in ids:await click(screen.content_screen.content_box.find_child(id,true,false),touch)
 	await click(screen.content_screen.content_box.find_child("Promote",true,false),touch)
