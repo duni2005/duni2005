@@ -3,8 +3,10 @@ render_mode unshaded, blend_disabled;
 // Arena floor as a clean vector-style meadow, rendered once into textures (see ArenaFloor).
 // Coordinates are arena units: the 800-unit arena sits inside `margin` units of scenery.
 // layer 0: the floor — flat grass tones, a winding worn path with a few stepping stones and
-//          puddles, sparse flowers and tufts, the static shade of the bush fringe, pillars and
-//          towers; outside, a bush fringe, rocks, rune pillars, round stone towers and trees.
+//          puddles, sparse flowers and tufts, the static shade of the bush fringe and pillars;
+//          outside (the arena sits inside the tower), a bush fringe, rune pillars, boulders,
+//          standing and broken columns, statues, fallen columns and a few trees, with larger
+//          rocks further out.
 // layer 1, 2: two sets of canopy shadows as an alpha mask; drawn every frame with a little
 //          sway so the shade moves like leaves in the wind.
 uniform float margin = 320.0;
@@ -75,77 +77,129 @@ float path(vec2 p) {
 	return d;
 }
 
-// Round stone towers around the arena on a coarse grid: x, y = top centre, z = radius,
-// w = body height (0 when the cell has none).
-vec4 tower_in(vec2 cell) {
-	vec2 c = (cell + .25 + hash2(cell + 70.0) * .5) * 210.0;
-	float r = 26.0 + hash(cell + 71.0) * 14.0;
-	float h = 70.0 + hash(cell + 73.0) * 60.0;
-	// The body hangs below the top centre, so keep the whole tower clear of the arena.
-	if (min(outside(c), outside(c + vec2(0.0, h + r))) < r + 26.0 || hash(cell + 72.0) > .7) return vec4(0.0);
-	return vec4(c, r, h);
+// Irregular stone: radius sampled at seven corners round the centre and joined in straight
+// runs, so the outline is angular like a broken rock. Positive inside.
+float rock(vec2 v, float r, float seed) {
+	float a = (atan(v.y, v.x) + 3.14159) / 6.28318 * 7.0;
+	float k = floor(a);
+	float r0 = r * (.72 + .4 * hash(vec2(seed, mod(k, 7.0))));
+	float r1 = r * (.72 + .4 * hash(vec2(seed, mod(k + 1.0, 7.0))));
+	return mix(r0, r1, fract(a)) - length(v);
 }
-// Distance to a tower's long shadow falling down-right from its foot.
-float tower_shadow(vec2 p, vec4 t) {
-	vec2 foot = t.xy + vec2(0.0, t.w);
-	vec2 dir = vec2(.85, .42) * t.w * 1.1;
-	float h = clamp(dot(p - foot, dir) / dot(dir, dir), 0.0, 1.0);
-	return t.z * (1.0 - h * .25) - length(p - foot - dir * h);
-}
-void draw_tower(vec2 p, vec4 t, float seed, inout vec3 col) {
-	float r = t.z;
-	vec2 q = p - t.xy;
-	float ry = r * .45;
-	// Body: a cylinder seen from above and in front, lit from the left.
-	float body = min(r - abs(q.x), min(q.y, t.w - q.y + ry * sqrt(max(0.0, 1.0 - q.x * q.x / (r * r)))));
-	if (body > -1.0) {
-		float u = clamp(q.x / r, -1.0, 1.0);
-		vec3 lit = vec3(.82, .79, .72);
-		vec3 dark = vec3(.47, .50, .55);
-		vec3 stone = mix(lit, dark, smoothstep(-.5, .95, u));
-		float curve = ry * sqrt(max(0.0, 1.0 - u * u));
-		float course = fract((q.y - curve) / 11.0);
-		stone *= 1.0 - .12 * (1.0 - fill(min(course, 1.0 - course) * 11.0 - .6));
-		float joint = fract(asin(u) * 2.2 + floor((q.y - curve) / 11.0) * .5);
-		stone *= 1.0 - .08 * (1.0 - fill(min(joint, 1.0 - joint) * 14.0 - .5));
-		// Arrow slits, an arched door at the foot, some ivy.
-		for (int k = 0; k < 2; k++) {
-			vec2 slit = vec2(q.x + r * (.1 - float(k) * .35), q.y - t.w * (.3 + float(k) * .28));
-			stone = mix(stone, vec3(.2, .22, .26), fill(min(2.5 - abs(slit.x), 6.0 - abs(slit.y))));
-		}
-		vec2 door = vec2(q.x + r * .05, q.y - t.w - curve);
-		float arch = min(7.0 - abs(door.x), -door.y) ;
-		arch = max(arch, 7.0 - length(door + vec2(0.0, 14.0)));
-		stone = mix(stone, vec3(.24, .2, .18), fill(min(arch, 20.0 + door.y)) * step(.5, hash(t.xy)));
-		stone = mix(stone, vec3(.33, .52, .28), fill((fbm(p * .08 + seed) - .62) * 60.0) * step(.0, q.y - t.w * .4));
-		col = mix(col, stone, fill(body));
+const vec3 ROCK_TOP = vec3(.76, .74, .69);
+const vec3 ROCK_LIT = vec3(.83, .81, .76);
+const vec3 ROCK_SIDE = vec3(.50, .49, .50);
+const vec3 ROCK_DARK = vec3(.36, .36, .39);
+const vec3 MOSS = vec3(.47, .63, .29);
+
+// A boulder seen from above and in front: angular top face split into two lit facets, a shaded
+// front face h units tall, a crack and a little moss.
+void boulder(vec2 p, vec2 c, float r, float h, float seed, inout vec3 col) {
+	vec2 top_c = c - vec2(0.0, h);
+	float side = -1.0;
+	for (int k = 0; k <= 8; k++) side = max(side, rock(p - c + vec2(0.0, h * float(k) / 8.0), r, seed));
+	if (side > -1.5) {
+		vec3 face = mix(ROCK_SIDE, ROCK_DARK, smoothstep(-.6, .9, (p.x - c.x) / r));
+		face *= 1.0 - .1 * step(.5, fract((p.y - top_c.y) / 9.0 + hash(vec2(seed, 3.0))));
+		col = mix(col, face, fill(side));
 	}
-	vec2 e = q / vec2(r, ry);
-	float top = (1.0 - length(e)) * ry;
-	if (seed > .55) {
-		// A slate cone roof, lit on the left.
-		float rise = r * 1.5;
-		float k = clamp((q.y + rise) / rise, 0.0, 1.0);
-		float cone = min(min(r * k - abs(q.x), q.y + rise), -q.y);
-		cone = max(cone, top);
-		vec3 slate = mix(vec3(.42, .55, .66), vec3(.24, .33, .44), smoothstep(-.4, .9, q.x / max(1.0, r * k)));
-		slate *= 1.0 - .1 * step(.5, fract((q.y + rise) / 9.0));
-		col = mix(col, slate, fill(cone));
-		col = mix(col, vec3(.86, .74, .4), fill(2.5 - length(q + vec2(0.0, rise + 2.0))));
-	} else if (top > -8.0) {
-		// Battlements: a walkway ring with merlons round a darker inner floor.
-		vec3 ring = vec3(.84, .81, .74);
-		vec3 face = mix(ring, vec3(.55, .54, .51), fill((.7 - length(e)) * ry));
+	float top = rock(p - top_c, r, seed);
+	if (top > -1.5) {
+		vec2 cut = vec2(cos(seed * 7.0), sin(seed * 7.0));
+		vec3 face = dot(p - top_c, cut) < 0.0 ? ROCK_LIT : ROCK_TOP;
+		face = mix(face, ROCK_SIDE, (1.0 - fill(top - 3.0)) * .35);
+		vec2 q = p - top_c;
+		float crack = abs(dot(q, vec2(-cut.y, cut.x)) - r * .15 * sin(dot(q, cut) * .08 + seed));
+		face = mix(face, ROCK_DARK, (1.0 - fill(crack - 1.0)) * step(abs(dot(q, cut)), r * .5) * step(.4, hash(vec2(seed, 9.0))));
+		face = mix(face, MOSS, fill((fbm(p * .06 + seed) - .6) * 40.0) * step(q.y, r * .1));
 		col = mix(col, face, fill(top));
-		for (int m = 0; m < 8; m++) {
-			float a = float(m) * .785 + seed * 3.0;
-			vec2 mc = vec2(cos(a) * r * .86, sin(a) * ry * .86 - 4.0);
-			vec2 mq = q - mc;
-			float block = min(4.0 - abs(mq.x), 4.0 - abs(mq.y));
-			col = mix(col, vec3(.6, .61, .63), fill(min(4.0 - abs(mq.x), 2.5 - abs(mq.y - 4.5))));
-			col = mix(col, vec3(.92, .9, .84), fill(block));
-		}
 	}
+}
+float boulder_shadow(vec2 p, vec2 c, float r, float h, float seed) {
+	return rock(p - c - vec2(h * .55 + 6.0, h * .3 + 6.0), r * 1.04, seed);
+}
+
+// A column standing on a plinth, lit from the left with fluting; topped by a capital and, on
+// some, a weathered statue; broken ones end in a jagged stump.
+void column(vec2 p, vec2 base, float r, float h, float kind, float seed, inout vec3 col) {
+	vec2 q = p - base;
+	float ry = r * .4;
+	// Plinth.
+	if (abs(q.x) < r * 1.45 && q.y < 4.0 && q.y > -12.0) col = q.y < -7.0 ? ROCK_LIT : ROCK_SIDE;
+	float broken = kind < .35 ? 1.0 : 0.0;
+	float top_y = -h + broken * (6.0 * sin(q.x * .5 + seed * 9.0) + 4.0 * sin(q.x * 1.3 + seed));
+	if (abs(q.x) < r && q.y <= -10.0 && q.y > top_y) {
+		float u = q.x / r;
+		vec3 stone = mix(ROCK_LIT, ROCK_DARK, smoothstep(-.55, .95, u));
+		float flute = fract(asin(clamp(u, -1.0, 1.0)) * 2.4 + .5);
+		stone *= 1.0 - .1 * (1.0 - fill(min(flute, 1.0 - flute) * 10.0 - .6));
+		stone = mix(stone, MOSS, fill((fbm(p * .07 + seed) - .64) * 40.0) * step(-h * .45, q.y));
+		col = stone;
+	}
+	if (broken > .5) {
+		if (abs(q.x) < r && abs(q.y - top_y) < 3.0) col = ROCK_TOP;
+		return;
+	}
+	// Capital slab.
+	if (abs(q.x) < r * 1.35 && q.y <= -h + 2.0 && q.y > -h - 10.0) col = q.y < -h - 5.0 ? ROCK_LIT : ROCK_SIDE;
+	if (kind > .7) {
+		// A statue on top: shoulders and a head, lit from the left.
+		vec2 sq = q - vec2(0.0, -h - 10.0);
+		float shoulders = min(r * 1.05 - abs(sq.x), min(-sq.y, sq.y + r * 1.3));
+		float head = r * .55 - length(sq - vec2(0.0, -r * 1.75));
+		float figure = max(shoulders, head);
+		if (figure > -1.0) col = mix(col, mix(ROCK_TOP, ROCK_SIDE, smoothstep(-.4, 1.0, sq.x / r)), fill(figure));
+	}
+}
+float column_shadow(vec2 p, vec2 base, float r, float h) {
+	vec2 dir = vec2(.85, .42) * h;
+	float t = clamp(dot(p - base, dir) / dot(dir, dir), 0.0, 1.0);
+	return r * 1.1 - length(p - base - dir * t);
+}
+
+// A toppled column lying in pieces, rounded along its length.
+void fallen(vec2 p, vec2 c, float r, float len, float ang, float seed, inout vec3 col) {
+	vec2 q = turn(-ang) * (p - c);
+	float gap = fract(q.x / len * 2.6 + seed);
+	if (abs(q.x) < len * .5 && abs(q.y) < r && gap > .06) {
+		float v = q.y / r;
+		vec3 stone = mix(ROCK_LIT, ROCK_DARK, smoothstep(-.7, .95, v));
+		stone *= 1.0 - .08 * step(.5, fract(q.x / 11.0));
+		col = stone;
+	}
+	vec2 cap = vec2(abs(q.x) - len * .5, q.y);
+	if (abs(cap.x) < r * .35 && abs(q.y) < r) col = mix(col, ROCK_TOP, fill(r * .35 - length(cap / vec2(1.0, 2.8))));
+}
+
+// One scenery object per cell: x = kind (0 none, 1 boulders, 2 column, 3 fallen column, 4 tree),
+// y = size, z = height or length, w = variant. Objects gather in clumps near the arena, grow
+// with distance, and far out every cell holds a big boulder pile so the edge is all stone.
+vec4 object_in(vec2 cell, out vec2 at) {
+	at = (cell + .25 + hash2(cell + 3.0) * .5) * 190.0;
+	float d = outside(at);
+	float far = smoothstep(260.0, 680.0, d);
+	if (fbm(cell * .55 + 3.1) + far * .9 < .6) return vec4(0.0);
+	float t = hash(cell + 11.0);
+	float grow = 1.0 + far * 1.2;
+	if (t < .42 + far * .5) {
+		float r = (24.0 + hash(cell + 4.0) * 22.0) * grow;
+		if (d < r + 34.0) return vec4(0.0);
+		return vec4(1.0, r, r * (.3 + hash(cell + 5.0) * .25), hash(cell + 6.0));
+	}
+	if (t < .64 + far * .3) {
+		float r = (15.0 + hash(cell + 4.0) * 7.0) * (1.0 + far * .6);
+		float h = (100.0 + hash(cell + 5.0) * 70.0) * (1.0 + far * .5);
+		if (min(d, outside(at - vec2(0.0, h))) < r * 1.5 + 30.0) return vec4(0.0);
+		return vec4(2.0, r, h, hash(cell + 6.0));
+	}
+	if (t < .82) {
+		float len = (100.0 + hash(cell + 4.0) * 60.0) * (1.0 + far * .4);
+		if (d < len * .5 + 30.0) return vec4(0.0);
+		return vec4(3.0, (14.0 + hash(cell + 5.0) * 6.0) * (1.0 + far * .4), len, hash(cell + 6.0));
+	}
+	float r = 44.0 + hash(cell + 4.0) * 20.0;
+	if (d < r + 34.0) return vec4(0.0);
+	return vec4(4.0, r, 0.0, hash(cell + 6.0));
 }
 
 vec3 meadow(vec2 p) {
@@ -254,62 +308,46 @@ vec3 bush(vec2 v, float r, float seed, vec3 col) {
 void scenery(vec2 p, float out_d, inout vec3 col) {
 	// Ground beyond the arena: darker grass.
 	col = mix(GRASS_DARK * .92, GRASS_DARK, fill((fbm(p * .004) - .5) * 200.0));
-	// Rocks scattered about.
-	vec2 g = floor(p / 90.0);
-	vec2 c = (g + .25 + hash2(g + 30.0) * .5) * 90.0;
-	if (hash(g + 31.0) > .8 && outside(c) > 50.0) {
-		vec2 v = (p - c) * vec2(1.0, 1.3);
-		float r = 9.0 + hash(g + 32.0) * 9.0;
-		col = mix(col, col * .7, fill(lobed(v - vec2(4.0, 6.0), r, 3.0, .1, 1.0)));
-		col = mix(col, vec3(.58, .62, .64), fill(lobed(v, r, 3.0, .1, 1.0)));
-		col = mix(col, vec3(.74, .77, .77), fill(lobed(v + vec2(2.0, 3.0), r * .7, 3.0, .1, 1.0)));
-	}
-	// Shadows first (trees, towers), then trees, then towers on top.
-	vec2 tcell = floor(p / 210.0);
-	for (int j = -1; j <= 1; j++) {
-		for (int i = -1; i <= 1; i++) {
-			vec4 t = tower_in(tcell + vec2(float(i), float(j)));
-			if (t.z > 0.0) col = mix(col, col * SHADE * .85, fill(tower_shadow(p, t)));
-		}
-	}
-	vec2 cell = floor(p / 120.0);
+	// Far out, the ground itself turns to rubble under the boulder piles.
+	col = mix(col, vec3(.40, .40, .41) * (.9 + .15 * fbm(p * .02)), fill((out_d - 600.0 + (fbm(p * .006) - .5) * 160.0) * .2));
+	// Scenery objects: all shadows first, then the objects row by row (lower ones in front).
+	vec2 cell = floor(p / 190.0);
 	for (int pass = 0; pass < 2; pass++) {
 		for (int j = -1; j <= 1; j++) {
 			for (int i = -1; i <= 1; i++) {
-				vec2 t = cell + vec2(float(i), float(j));
-				vec2 tc = (t + .2 + hash2(t + 3.0) * .6) * 120.0;
-				float r = 48.0 + hash(t + 4.0) * 28.0;
-				if (outside(tc) < r + 42.0 || hash(t + 11.0) > .42 + smoothstep(120.0, 260.0, outside(tc)) * .5) continue;
-				// Leave room around the towers.
-				bool clear = true;
-				vec2 near = floor(tc / 210.0);
-				for (int b = -1; b <= 1; b++) {
-					for (int a = -1; a <= 1; a++) {
-						vec4 tw = tower_in(near + vec2(float(a), float(b)));
-						if (tw.z > 0.0 && length(tc - tw.xy - vec2(0.0, tw.w * .5)) < r + tw.z + tw.w * .5) clear = false;
+				vec2 g = cell + vec2(float(i), float(j));
+				vec2 at;
+				vec4 o = object_in(g, at);
+				if (o.x < .5) continue;
+				float seed = hash(g + 17.0) * 10.0;
+				if (o.x < 1.5) {
+					// A cluster of one to three boulders.
+					for (int k = 0; k < 3; k++) {
+						if (k > 0 && hash(g + float(k) * 13.0) < .45) continue;
+						float r = o.y * (k == 0 ? 1.0 : .45 + hash(g + float(k) * 7.0) * .3);
+						vec2 c = at + (k == 0 ? vec2(0.0) : (hash2(g + float(k) * 5.0) - .5) * o.y * 1.7);
+						if (pass == 0) col = mix(col, col * .62, fill(boulder_shadow(p, c, r, o.z * r / o.y, seed + float(k))));
+						else boulder(p, c, r, o.z * r / o.y, seed + float(k), col);
+					}
+				} else if (o.x < 2.5) {
+					if (pass == 0) col = mix(col, col * .62, fill(column_shadow(p, at, o.y, o.z)));
+					else column(p, at, o.y, o.z, o.w, seed, col);
+				} else if (o.x < 3.5) {
+					float ang = (hash(g + 8.0) - .5) * .7;
+					if (pass == 0) col = mix(col, col * .62, fill(min(o.y + 4.0 - abs((turn(-ang) * (p - at - vec2(7.0, 12.0))).y), o.z * .5 - abs((turn(-ang) * (p - at - vec2(7.0, 12.0))).x))));
+					else fallen(p, at, o.y, o.z, ang, seed, col);
+				} else {
+					vec2 v = p - at;
+					float r = o.y;
+					if (pass == 0) {
+						col = mix(col, col * .62, fill(lobed(v - vec2(24.0, 32.0), r * 1.02, 7.0, .06, seed)));
+					} else {
+						col = mix(col, vec3(.15, .35, .25), fill(lobed(v, r, 7.0, .06, seed)));
+						col = mix(col, vec3(.22, .47, .30), fill(lobed(v + vec2(r * .12, r * .16), r * .78, 6.0, .08, seed)));
+						col = mix(col, vec3(.36, .60, .34), fill(lobed(v + vec2(r * .3, r * .34), r * .42, 5.0, .1, seed)));
 					}
 				}
-				if (!clear) continue;
-				vec2 v = p - tc;
-				if (pass == 0) {
-					col = mix(col, col * SHADE * .85, fill(lobed(v - vec2(26.0, 34.0), r * 1.02, 7.0, .06, hash(t) * 9.0)));
-				} else {
-					float body = lobed(v, r, 7.0, .06, hash(t) * 9.0);
-					float mid = lobed(v + vec2(r * .12, r * .16), r * .78, 6.0, .08, hash(t) * 7.0);
-					float top = lobed(v + vec2(r * .3, r * .34), r * .42, 5.0, .1, hash(t) * 5.0);
-					bool golden = hash(t + 21.0) > .86;
-					col = mix(col, golden ? vec3(.62, .46, .18) : vec3(.15, .35, .25), fill(body));
-					col = mix(col, golden ? vec3(.82, .63, .24) : vec3(.22, .47, .30), fill(mid));
-					col = mix(col, golden ? vec3(.93, .80, .42) : vec3(.36, .60, .34), fill(top));
-				}
 			}
-		}
-	}
-	for (int j = -1; j <= 1; j++) {
-		for (int i = -1; i <= 1; i++) {
-			vec2 tc = tcell + vec2(float(i), float(j));
-			vec4 t = tower_in(tc);
-			if (t.z > 0.0) draw_tower(p, t, hash(tc), col);
 		}
 	}
 	// Bush fringe hugging the arena edge.

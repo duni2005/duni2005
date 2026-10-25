@@ -393,13 +393,16 @@ func _layout_arena() -> void:
 			if child!=board:occupied+=child.get_combined_minimum_size().y
 	occupied+=maxi(0,visible_count-1)*arena_home.get_theme_constant("separation")
 	board.size_flags_vertical=Control.SIZE_FILL
-	board.custom_minimum_size.y=minf(viewport.x-(24 if board.editing else 16),maxf(80 if turning_panel.visible else 120,viewport.y-occupied))
+	# On tall screens the square leaves spare height: give part of it to the board (scenery shows
+	# around the square) so the controls below sit lower.
+	var square: float=viewport.x-(24 if board.editing else 16);var room: float=maxf(80 if turning_panel.visible else 120,viewport.y-occupied)
+	board.custom_minimum_size.y=room if room<=square else square+(room-square)*.45
 	if end_presenting and end_board_height>0:board.custom_minimum_size.y=end_board_height
 	var arena_rect: Rect2=board.board_rect()
 	feedback.position=arena_rect.position+Vector2(10,maxf(0,arena_rect.size.y-42));feedback.size=Vector2(maxf(1,arena_rect.size.x-20),38)
 	for strip in [trans_scroll,actions_home]:
 		strip.size_flags_horizontal=Control.SIZE_FILL if board.editing else Control.SIZE_SHRINK_CENTER
-		strip.custom_minimum_size.x=0 if board.editing else (viewport.x-16 if strip==actions_home else board.custom_minimum_size.y)
+		strip.custom_minimum_size.x=0 if board.editing else (viewport.x-16 if strip==actions_home else minf(board.custom_minimum_size.y,square))
 	actions_home.alignment=FlowContainer.ALIGNMENT_END if board.editing else FlowContainer.ALIGNMENT_CENTER
 	deployment_hint.custom_minimum_size.x=maxf(80,viewport.x-164) if viewport.x<720 else maxf(100,viewport.x-360)
 	battle_toolbar.custom_minimum_size.x=viewport.x-16 if viewport.x<720 else minf(800,viewport.x-24)

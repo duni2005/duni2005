@@ -7,6 +7,10 @@ signal selection_changed(member_id: String)
 signal placement_changed(error: DeploymentRules.Code)
 signal edit_started
 signal edit_finished
+## A unit on the field was tapped for its description: an already selected ally, an enemy
+## preview, or the selected unit again in battle. member_id is empty for enemies.
+signal unit_info_requested(unit_type: int, member_id: String, stats: UnitCombatStats)
+var tapped_selected: bool = false
 var plan: DeploymentPlan
 var enemies: Array[Dictionary] = []
 var selected_id: String = ""
@@ -64,6 +68,7 @@ func pointer_down(local: Vector2, id: int) -> void:
 	dragged = false
 	var point: Vector2 = logical_point(local)
 	dragging_id = hit_member(point)
+	tapped_selected = not dragging_id.is_empty() and dragging_id == selected_id
 	if not dragging_id.is_empty():
 		drag_offset = point - plan.get_entry(dragging_id).position
 		select(dragging_id)
@@ -88,10 +93,17 @@ func pointer_up(local: Vector2, id: int, canceled: bool = false) -> void:
 			if not erased.is_empty():plan.remove(erased);placement_changed.emit(DeploymentRules.Code.OK)
 		elif dragged and not dragging_id.is_empty():
 			placement_changed.emit(plan.move(dragging_id, logical_point(local) - drag_offset))
-		elif dragging_id.is_empty() and not selected_id.is_empty() and board_rect().has_point(local):
-			var point: Vector2 = logical_point(local)
-			var error: DeploymentRules.Code = plan.move(selected_id, point) if plan.get_entry(selected_id) != null else plan.place(selected_id, point)
-			placement_changed.emit(error)
+		elif tapped_selected:
+			var member: GuildMemberState = plan.guild.get_member(dragging_id)
+			if member != null:unit_info_requested.emit(member.unit_type_id, dragging_id, null)
+		elif dragging_id.is_empty() and board_rect().has_point(local):
+			var point: Vector2 = logical_point(local);var foe: Dictionary = {}
+			for enemy in enemies:
+				if enemy.position.distance_to(point) <= 28.0:foe = enemy
+			if not foe.is_empty():unit_info_requested.emit(foe.data.type_id, "", foe.get("combat_stats"))
+			elif not selected_id.is_empty():
+				var error: DeploymentRules.Code = plan.move(selected_id, point) if plan.get_entry(selected_id) != null else plan.place(selected_id, point)
+				placement_changed.emit(error)
 	pointer_id = -2
 	dragging_id = ""
 	dragged = false
@@ -150,7 +162,10 @@ func _gui_input(event: InputEvent) -> void:
 		if pressed and board_rect().has_point(event.position):
 			var point: Vector2=logical_point(event.position)
 			for u in battle.units:
-				if u.alive and u.position.distance_to(point)<=28*u.combat_scale():selected_actor_id="" if selected_actor_id==u.actor_id() else u.actor_id();battle_unit_selected.emit(selected_actor_id);accept_event();return
+				if not u.alive or u.position.distance_to(point)>28*u.combat_scale():continue
+				# Tapping the selected unit again opens its description.
+				if selected_actor_id==u.actor_id():unit_info_requested.emit(u.data.type_id,u.source_member_id if u.original_team==0 else "",null);accept_event();return
+				selected_actor_id=u.actor_id();battle_unit_selected.emit(selected_actor_id);accept_event();return
 	if not editing:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:

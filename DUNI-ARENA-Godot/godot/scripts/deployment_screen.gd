@@ -90,6 +90,8 @@ func _build_ui() -> void:
 	board.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	board.custom_minimum_size = Vector2(0, 240)
 	board.selection_changed.connect(_selection_changed)
+	board.unit_info_requested.connect(_open_unit_info)
+	var field:=ArenaFieldBackdrop.new();field.board=board;add_child(field)
 	board.placement_changed.connect(_placement_changed)
 	board.edit_started.connect(_begin_edit)
 	board.edit_finished.connect(_commit_edit)
@@ -143,6 +145,10 @@ func _rebuild_roster() -> void:
 		if child.name not in ids:roster.remove_child(child);child.queue_free()
 	_update_tools()
 
+## Field taps: an ally shows its own numbers, an enemy its preview numbers or base stats.
+func _open_unit_info(unit_type: int, member_id: String, stats: UnitCombatStats) -> void:
+	var member: GuildMemberState=guild.get_member(member_id) if not member_id.is_empty() else null
+	UnitInfoSheet.open(self,unit_type,stats if stats!=null else guild.member_stats(member) if member!=null else null,member)
 ## Tapping the selected roster unit again opens its description sheet.
 func _roster_pressed(member_id: String) -> void:
 	var member: GuildMemberState=guild.get_member(member_id)
