@@ -161,7 +161,7 @@ func _say(text: String) -> void:
 func _select_team(team: int) -> void:
 	selected_team=team;erasing=false;refresh()
 func _select_type(type: int) -> void:
-	if selected_type==type and not erasing:_show_info(type);refresh();return
+	if selected_type==type and not erasing:UnitInfoSheet.open(self,type);refresh();return
 	selected_type=type;erasing=false;refresh()
 func _toggle_eraser() -> void:
 	erasing=not erasing;refresh()
@@ -183,11 +183,6 @@ func _unit_tapped(id: int) -> void:
 func _show_settings() -> void:
 	info_dialog.get_child(0).get_child(0).get_child(0).text="맵 · 모드"
 	info_label.text="전투 맵 · 스퀘어 아레나\n장애물 없는 정사각형 경기장\n\n전투 모드 · 최후의 생존자\n마지막까지 남은 개인 또는 팀이 승리합니다.\n\n커스텀 전투 자금은 무제한입니다. 카드 가격은 임시 비용이며 팀별 합계만 기록합니다."
-	_popup(info_dialog)
-func _show_info(type: int) -> void:
-	var data: UnitData=CharacterCatalog.all()[type]
-	info_dialog.get_child(0).get_child(0).get_child(0).text=data.display_name
-	info_label.text="%d G · HP %d · ATK %s · 방어력 %d\n이동 %d · 사거리 %d · 치명타 %d%%\n\n행동 유형 · %s"%[int(data.base_gold_cost),int(data.max_hp),ArenaUI.number(data.attack),int(data.defense_power),int(data.move_speed),int(data.attack_range),int(round(data.critical_chance*100)),", ".join(data.tags)]
 	_popup(info_dialog)
 func _render_unit() -> void:
 	for child in unit_body.get_children():unit_body.remove_child(child);child.queue_free()
@@ -235,7 +230,7 @@ func _render_unit() -> void:
 			if partner!=&"":detail.text+="\n조합 → %s · %s"%[ItemCatalog.get_item(ItemCatalog.combined_kind(partner,item_choice)).display_name,ItemCatalog.get_item(ItemCatalog.combined_kind(partner,item_choice)).description]
 			var full: bool=entry.items.size()>=CustomBattleSetup.MAX_ITEMS and partner==&""
 			var equip:=_button(unit_body,"슬롯 가득 참" if full else "조합" if partner!=&"" else "장착",func():setup.equip(unit_id,item_choice);_render_unit();board.queue_redraw());equip.disabled=full;ArenaUI.primary(equip)
-	var info:=_button(unit_body,"캐릭터 정보 보기 ⓘ",func():_show_info(int(entry.type)));ArenaUI.quiet(info)
+	var info:=_button(unit_body,"캐릭터 정보 보기 ⓘ",func():unit_dialog.hide();UnitInfoSheet.open(self,int(entry.type),setup.stats_for(entry)));ArenaUI.quiet(info)
 	if unit_dialog.visible:call_deferred("_fit",unit_dialog)
 
 # ---- Battle ----

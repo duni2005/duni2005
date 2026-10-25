@@ -54,6 +54,7 @@ func run(tree: SceneTree) -> void:
 	items(tree)
 	multikill(tree)
 	stairs()
+	await unit_sheet(tree)
 	await map_wallet_return(tree)
 	ai_health(tree)
 	print("CUSTOM BATTLE RESULT: ",checks," checks; ",failures," failures")
@@ -283,3 +284,15 @@ func stairs() -> void:
 	verify(t.can_ascend() and t.ascend() and t.current_floor()==1,"stairs open and climb one floor")
 	verify(t.select_room(f.room_ids[-1])==TowerNavigationPolicy.Code.LOCKED_FLOOR,"rooms of a passed floor stay closed")
 	verify(t.select_room(t.guild.state.tower.map.floors[1].room_ids[0])==TowerNavigationPolicy.Code.OK,"rooms of the new floor open")
+func unit_sheet(tree: SceneTree) -> void:
+	# Every unit has its description text, and the sheet opens with every section for a guild member.
+	var complete: bool=true
+	for id in range(CharacterCatalog.NAMES.size()):
+		if UnitLore.story(id).is_empty() or UnitLore.attack(id).is_empty() or UnitLore.passive(id).is_empty() or UnitLore.ultimate(id).is_empty():complete=false
+	verify(complete and UnitLore.STORY.size()==CharacterCatalog.NAMES.size(),"unit description text for every unit")
+	var t:=TowerController.new();t.new_run(5,9);var m: GuildMemberState=t.guild.all_members()[0]
+	var host:=Control.new();tree.root.add_child(host)
+	var sheet:=UnitInfoSheet.open(host,m.unit_type_id,t.guild.member_stats(m),m);await tree.process_frame
+	var titles: Array=sheet.find_children("*","Label",true,false).map(func(l):return l.text)
+	verify(["행동성향","기본공격","패시브","궁극기","초월 스킬"].all(func(x):return x in titles),"unit sheet shows every section")
+	sheet.queue_free();host.queue_free()

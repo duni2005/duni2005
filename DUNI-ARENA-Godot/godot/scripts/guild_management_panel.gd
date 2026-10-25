@@ -166,7 +166,11 @@ func render() -> void:
   ArenaUI.bind(button,_inspect_card.bind(data,on_hold));inventory_grid.add_child(button)
  while inventory_grid.get_child_count()<24:
   var empty:=PanelContainer.new();empty.custom_minimum_size=Vector2(60,64);empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.mouse_filter=Control.MOUSE_FILTER_IGNORE;empty.add_theme_stylebox_override("panel",ArenaUI.box(Color("0b0f1a"),Color("1b2236")));inventory_grid.add_child(empty)
-func _select(id: String) -> void:selected_member_id=id;call_deferred("render")
+func _select(id: String) -> void:
+ # Tapping the unit that is already selected opens its description sheet.
+ var member: GuildMemberState=controller.guild.get_member(id)
+ if id==selected_member_id and member!=null:UnitInfoSheet.open(self,member.unit_type_id,controller.guild.member_stats(member),member);call_deferred("render");return
+ selected_member_id=id;call_deferred("render")
 func _upgrade() -> void:
  get_tree().root.set_meta("action_point",ArenaUI.control_center(upgrade_button))
  var result: Dictionary=controller.content_action(&"upgrade",{"member_id":selected_member_id});status.text="강화 완료" if result.ok else "강화 불가 · "+String(result.code)

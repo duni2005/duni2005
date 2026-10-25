@@ -131,7 +131,7 @@ func _rebuild_roster() -> void:
 		var label: String = "%s %s %s\nHP %s\n%s · %s" % [data.emoji,data.display_name,ArenaUI.member_label(member.member_id),ArenaUI.hp(member.current_hp,guild.member_max_hp(member)),ArenaUI.stance(member.stance),"사망 · 배치 불가" if not member.is_alive() else "배치됨" if placed else "대기"]
 		var button: ArenaCard=roster.get_node_or_null(member.member_id)
 		if button==null:
-			button=ArenaCard.new();button.name=member.member_id;ArenaUI.bind(button,board.select.bind(member.member_id));roster.add_child(button)
+			button=ArenaCard.new();button.name=member.member_id;ArenaUI.bind(button,_roster_pressed.bind(member.member_id));roster.add_child(button)
 		button.text=label;button.card_type="deploy_member";button.show_member(guild,member);button.deployed=placed;button.subtitle="%s · Lv.%d"%[ArenaUI.member_label(member.member_id),member.level];button.status_text=ArenaUI.stance(member.stance)+(" · 배치됨" if placed else " · 대기")
 		button.name = member.member_id
 		button.custom_minimum_size = Vector2(88, 122)
@@ -142,6 +142,12 @@ func _rebuild_roster() -> void:
 	for child in roster.get_children():
 		if child.name not in ids:roster.remove_child(child);child.queue_free()
 	_update_tools()
+
+## Tapping the selected roster unit again opens its description sheet.
+func _roster_pressed(member_id: String) -> void:
+	var member: GuildMemberState=guild.get_member(member_id)
+	if member_id==board.selected_id and member!=null:UnitInfoSheet.open(self,member.unit_type_id,guild.member_stats(member),member);_refresh_roster();return
+	board.select(member_id)
 
 func begin_deployment() -> void:
 	# No leaving active battles; this is next completed battle, not retreat/retry.
