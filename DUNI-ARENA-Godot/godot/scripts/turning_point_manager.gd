@@ -53,33 +53,17 @@ func advance(real_delta: float) -> void:
 
 func build_plans() -> Array[EnemyTurningPlan]:
 	var plans: Array[EnemyTurningPlan] = []
-	var allies: Array = battle.units.filter(func(u): return u.alive and u.team == 0 and not u.source_member_id.is_empty())
-	var target: BattleUnit = focus_target(allies)
+	var p: float = EnemyStrategyPlanner.progress(guild.state.strategy_progress.current_depth)
 	for enemy in battle.units:
 		if not enemy.alive or enemy.team != 1 or enemy.source_enemy_id.is_empty():
 			continue
-		var plan := EnemyTurningPlan.new()
+		var plan: EnemyTurningPlan = EnemyStrategyPlanner.plan(enemy, p, battle.rng)
+		if plan == null:
+			continue
 		plan.plan_id = current.turning_point_id + "_" + enemy.source_enemy_id
 		plan.source_enemy_id = enemy.source_enemy_id
-		plan.plan_type = [EnemyTurningPlan.SPECIAL, EnemyTurningPlan.FOCUS, EnemyTurningPlan.RETREAT][battle.rng.randi_range(0, 2)]
-		plan.target_member_id = target.source_member_id if target != null else ""
-		if plan.plan_type == EnemyTurningPlan.FOCUS and target == null:
-			plan.plan_type = EnemyTurningPlan.RETREAT
-		if plan.plan_type == EnemyTurningPlan.SPECIAL:
-			plan.metadata = EnemyTurningPlan.special_metadata(enemy.data.type_id)
 		plans.append(plan)
 	return plans
-
-static func focus_target(allies: Array) -> BattleUnit:
-	var target: BattleUnit = null
-	for unit in allies:
-		if not unit.alive:
-			continue
-		if unit.data.type_id == 5:
-			return unit # First living healer in unit order, exactly as web find().
-		if target == null or unit.current_hp / unit.max_hp < target.current_hp / target.max_hp:
-			target = unit
-	return target
 
 func is_paused() -> bool:
 	return enabled and not battle.finished and current != null and not current.resolved and current.phase == TurningPointState.Phase.PAUSED and battle.clock.is_turning_paused()

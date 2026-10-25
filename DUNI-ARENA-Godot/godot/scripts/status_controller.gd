@@ -17,6 +17,7 @@ static func interrupt(unit) -> void:
 	unit.dodge_state.clear()
 	unit.evade_remaining = 0
 	unit.strategy_dash.clear()
+	unit.strategy_cast.clear()
 	unit.strategy_heading = Vector2.ZERO
 	unit.velocity = Vector2.ZERO
 	if unit.battle.full_characters_enabled:

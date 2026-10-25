@@ -269,10 +269,7 @@ func perception() -> void:
 	verify(u.position!=pos,"response dodge steers")
 	u.taunted_member_id="target3";u.taunted_until=10
 	battle.units[2].source_member_id="target3"
-	u.focus_member_id="target2";u.focus_until=10;v.source_member_id="target2"
-	verify(u.target_selector.select_target(u,battle.units)==battle.units[2],"taunt abovefocus")
-	u.taunted_until=0
-	verify(u.target_selector.select_target(u,battle.units)==v,"focus abovenearest")
+	verify(u.target_selector.select_target(u,battle.units)==battle.units[2],"taunt above nearest")
 	battle.free()
 func persistence_fixture() -> Dictionary:
 	var guild:=GuildManager.new()
@@ -505,7 +502,7 @@ func advanced_physical_and_cards() -> void:
 	var stunned_enemy:BattleUnit=f.battle.units[2]
 	stunned_enemy.stun_remaining=.6;stunned_enemy.ultimate_gauge=37
 	var special:=EnemyTurningPlan.new()
-	special.plan_id="stunned_special";special.source_enemy_id=stunned_enemy.source_enemy_id;special.plan_type=EnemyTurningPlan.SPECIAL
+	special.plan_id="stunned_special";special.source_enemy_id=stunned_enemy.source_enemy_id;special.plan_type=EnemyTurningPlan.OVERCHARGE
 	special.metadata=EnemyTurningPlan.special_metadata(stunned_enemy.data.type_id)
 	var readiness:Dictionary=EnemyPlanExecutor.execute(special,f.battle)
 	verify(stunned_enemy.ultimate_gauge==37 and stunned_enemy.character_specific_state.strategyUltimateReady,"stun denies forecastcharge but keeps webreadiness")

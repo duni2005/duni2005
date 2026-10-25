@@ -137,22 +137,19 @@ func pending_and_order() -> void:
 	verify(StrategyCardExecutor.apply(f.tp, extra.card_id, u.source_member_id, "pendingdup").code == StrategyCardExecutor.Code.NO_EFFECT, "secondcopy same pending rejected")
 	verify(extra.used_depth == -1, "pending failure leaves copy unused")
 	var p := EnemyTurningPlan.new()
-	p.plan_type = EnemyTurningPlan.RETREAT
+	p.plan_type = EnemyTurningPlan.MOVE
 	p.source_enemy_id = enemy.source_enemy_id
+	p.metadata = {"to": CharacterPersistence.point(enemy.position + Vector2(-150, 0))}
 	f.tp.current.enemy_plans.append(p)
 	var time: float = f.battle.clock.elapsed
 	verify(f.tp.resolve(), "manual shared resolve")
-	verify(p.executed and enemy.command_retreat_until == 0 and enemy.strategy_dash.is_empty(), "enemy retreat first overridden by later ally taunt")
+	verify(p.executed and enemy.strategy_dash.is_empty(), "enemy move first overridden by later ally taunt")
 	verify(enemy.taunted_member_id == u.source_member_id and enemy.taunted_until == time+8, "taunt8sec")
 	verify(u.command_retreat_until == time+6 and not u.strategy_dash.is_empty(), "evade dash six seconds")
 	for command in f.tp.current.pending_commands:
 		verify(command.executed and UnitStateCodec.is_pure_data(command.metadata), "commands pure metadata and executed once")
 	verify(f.tp.current.pending_commands[0].metadata.target_enemy_ids.size() == 2, "nearest max2 no distance cutoff")
-	enemy.focus_member_id = f.battle.units[1].source_member_id
-	enemy.focus_until = time+10
-	verify(enemy.target_selector.select_target(enemy, f.battle.units) == u, "taunt outranks focus")
-	f.battle.clock.elapsed = time+8
-	verify(enemy.target_selector.select_target(enemy, f.battle.units) == f.battle.units[1], "taunt expiry returns focus")
+	verify(enemy.target_selector.select_target(enemy, f.battle.units) == u, "taunt picks the taunting ally")
 	verify(not f.tp.resolve(), "resolve once")
 	f.battle.clock.elapsed = time
 	f.battle.simulate(.1)

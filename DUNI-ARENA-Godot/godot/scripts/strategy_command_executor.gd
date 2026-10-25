@@ -8,6 +8,7 @@ static func cancel_intent(unit: BattleUnit) -> void:
 		for attack in unit.battle.melee_strikes:
 			if attack.source_battle_id==unit.battle_id:attack.life=0
 	unit.strategy_dash.clear()
+	unit.strategy_cast.clear()
 	unit.strategy_heading = Vector2.ZERO
 	unit.velocity = Vector2.ZERO
 static func execute_all(manager: TurningPointManager) -> void:

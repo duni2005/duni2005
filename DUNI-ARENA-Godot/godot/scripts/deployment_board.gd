@@ -3,6 +3,7 @@ extends Control
 ## Coordinate adapter + input/presentation only. Rules live in DeploymentPlan.
 signal battle_unit_selected(actor_id: String)
 var selected_actor_id: String = ""
+var strategy_actor_id: String = "" # enemy whose turning-point strategy card is open
 signal selection_changed(member_id: String)
 signal placement_changed(error: DeploymentRules.Code)
 signal edit_started
@@ -161,8 +162,17 @@ func _gui_input(event: InputEvent) -> void:
 		var pressed: bool=(event is InputEventMouseButton and event.device!=-1 and event.button_index==MOUSE_BUTTON_LEFT and event.pressed) or (event is InputEventScreenTouch and event.pressed)
 		if pressed and board_rect().has_point(event.position):
 			var point: Vector2=logical_point(event.position)
+			# An enemy's strategy badge over its head counts as tapping that enemy.
+			var badge: BattleUnit=EnemyStrategyView.badge_hit(battle,presentation.parent_transform,event.position)
+			var inspected: String=strategy_actor_id;strategy_actor_id=""
 			for u in battle.units:
-				if not u.alive or u.position.distance_to(point)>28*u.combat_scale():continue
+				if badge!=null and u!=badge:continue
+				if not u.alive or badge==null and u.position.distance_to(point)>28*u.combat_scale():continue
+				# First tap on an enemy with a strategy opens its card; the next opens the unit sheet.
+				if EnemyStrategyView.plan_for(battle,u.actor_id())!=null:
+					if inspected==u.actor_id():unit_info_requested.emit(u.data.type_id,"",null)
+					else:strategy_actor_id=u.actor_id()
+					accept_event();return
 				# Tapping the selected unit again opens its description.
 				if selected_actor_id==u.actor_id():unit_info_requested.emit(u.data.type_id,u.source_member_id if u.original_team==0 else "",null);accept_event();return
 				selected_actor_id=u.actor_id();battle_unit_selected.emit(selected_actor_id);accept_event();return

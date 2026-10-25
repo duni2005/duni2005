@@ -13,10 +13,6 @@ func select_target(unit, candidates: Array):
 		for candidate in candidates:
 			if candidate.source_member_id == unit.taunted_member_id and is_valid_enemy(unit, candidate):
 				return candidate
-	if unit.focus_until > unit.battle.clock.elapsed:
-		for candidate in candidates:
-			if candidate.source_member_id == unit.focus_member_id and is_valid_enemy(unit, candidate):
-				return candidate
 	if unit.battle.full_characters_enabled:
 		if unit.stance==CombatStance.COVER:
 			var anchor=unit.battle.find_actor(unit.cover_actor_id)

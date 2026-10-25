@@ -393,7 +393,7 @@ func all_character_cards_and_plans() -> void:
 			var card: StrategyCardInstance=guild.state.give_strategy_card(card_kind)
 			verify(StrategyCardExecutor.apply(b.turning,card.card_id,member.member_id,str(card_kind)+str(kind)).code==StrategyCardExecutor.Code.OK,"card %s/type%d"%[card_kind,kind])
 		verify(u.shield_hp==100 and u.shield_remaining==8 and u.iron_defense_remaining==15 and u.parry_cooldown==0,"shield/iron runtime %d"%kind)
-		var plan:=EnemyTurningPlan.new();plan.source_enemy_id=e.source_enemy_id;plan.plan_type=EnemyTurningPlan.SPECIAL;plan.metadata=EnemyTurningPlan.special_metadata(kind)
+		var plan:=EnemyTurningPlan.new();plan.source_enemy_id=e.source_enemy_id;plan.plan_type=EnemyTurningPlan.OVERCHARGE;plan.metadata=EnemyTurningPlan.special_metadata(kind)
 		e.stun_remaining=1;var before: float=e.ultimate_gauge
 		EnemyPlanExecutor.execute(plan,b)
 		if kind==7:verify(e.state_value("ammo")==2 and e.state_value("reloadRemaining")==0 and e.strategy_special_until==20,"shotgun special exact8")

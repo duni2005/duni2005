@@ -238,8 +238,7 @@ func refresh(value: TurningPointManager) -> void:
 	for plan in manager.current.enemy_plans:
 		var enemy: BattleUnit = EnemyPlanExecutor.find_enemy(manager.battle, plan.source_enemy_id)
 		var type_name: String = enemy.data.display_name if enemy != null else "DEAD"
-		var kind: String = "특수 능력" if plan.plan_type == EnemyTurningPlan.SPECIAL else "집중" if plan.plan_type == EnemyTurningPlan.FOCUS else "후퇴"
-		lines.append("%s %s · %s%s" % [type_name, plan.source_enemy_id.trim_prefix("enemy_room_01_"), kind, " → " + plan.target_member_id if plan.plan_type == EnemyTurningPlan.FOCUS else ""])
+		lines.append("%s %s · %s" % [type_name, plan.source_enemy_id.trim_prefix("enemy_room_01_"), EnemyTurningPlan.NAMES[plan.plan_type]])
 	plans.text = "\n".join(lines)
 	var card_rows: Array[String] = []
 	for card in manager.guild.state.strategy_cards:

@@ -144,6 +144,9 @@ func simulate(real_delta: float) -> void:
 		if not unit.alive:
 			continue
 		StrategyEffects.advance(unit, delta)
+		if EnemyPlanExecutor.advance(unit, delta):
+			unit.queue_redraw()
+			continue
 		unit.target = unit.target_selector.select_target(unit, units)
 		unit.movement.advance(unit, delta)
 		unit.combat.advance(unit, delta, self)
@@ -393,6 +396,8 @@ func simulate_common(delta: float) -> void:
 			unit.ultimate.advance_charge(unit,delta)
 			if unit.data.type_id!=5:unit.ability.tick(unit,delta)
 			if unit.ability.locked(unit):continue
+		if EnemyPlanExecutor.advance(unit,delta):
+			KnockbackController.advance(unit,delta);unit.queue_redraw();continue
 		unit.threat_response.advance(unit)
 		unit.target = unit.target_selector.select_target(unit,units)
 		if full_characters_enabled:unit.brain.advance(unit,unit.target,delta)

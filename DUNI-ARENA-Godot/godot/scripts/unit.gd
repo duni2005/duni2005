@@ -14,11 +14,10 @@ var transcendence_gauge: float = 0.0
 var stance: StringName = CombatStance.NORMAL
 var character_specific_state: Dictionary = {}
 # Battle-only strategy commands. Never store TP/plan objects in persistent state.
-var focus_member_id: String = ""
-var focus_until: float = 0.0
 var command_retreat_until: float = 0.0
 var retreat_point: Vector2 = Vector2.ZERO
 var strategy_dash: Dictionary = {}
+var strategy_cast: Dictionary = {} # an enemy special strategy (smash/cleave) being carried out
 var strategy_heading: Vector2 = Vector2.ZERO
 var strategy_special_until: float = 0.0
 var shield_hp: float = 0.0

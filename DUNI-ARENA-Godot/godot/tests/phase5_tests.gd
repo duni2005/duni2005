@@ -11,13 +11,13 @@ func verify(value: bool, message: String) -> void:
 		failures += 1
 		push_error("PHASE 5 FAIL: " + message)
 
-func fixture() -> Dictionary:
+func fixture(legacy: bool = true) -> Dictionary:
 	var guild := GuildManager.new()
 	for index in range(4): guild.create_member(0 if index < 3 else 1)
 	var room := RoomState.new()
 	room.add_enemy("e1", BattleManager.WARRIOR, Vector2(640, 220))
 	room.add_enemy("e2", BattleManager.ARCHER, Vector2(710, 620))
-	var battle := legacy_manager()
+	var battle := legacy_manager() if legacy else BattleManager.new()
 	battle.auto_start = false
 	host.root.add_child(battle)
 	battle.set_physics_process(false)
@@ -40,8 +40,10 @@ func make_plan(f: Dictionary, kind: StringName, index: int = 2) -> EnemyTurningP
 	plan.plan_id = "test_plan"
 	plan.source_enemy_id = f.battle.units[index].source_enemy_id
 	plan.plan_type = kind
-	plan.target_member_id = f.battle.units[1].source_member_id
-	if kind == EnemyTurningPlan.SPECIAL: plan.metadata = EnemyTurningPlan.special_metadata(f.battle.units[index].data.type_id)
+	var enemy: BattleUnit = f.battle.units[index]
+	match kind:
+		EnemyTurningPlan.OVERCHARGE: plan.metadata = EnemyTurningPlan.special_metadata(enemy.data.type_id)
+		EnemyTurningPlan.MOVE: plan.metadata = {"from": CharacterPersistence.point(enemy.position), "to": CharacterPersistence.point(enemy.position + Vector2(-200, 0))}
 	return plan
 
 func test_clock_and_schedule() -> void:
@@ -123,7 +125,7 @@ func test_frozen_state_and_stance() -> void:
 	verify(f.battle.clock.elapsed == at, "paused sim clock frozen")
 	verify(is_equal_approx(f.tp.current.remaining_real_time, 39), "paused real countdown advances")
 	verify(arrow.position == arrow_at and arrow.lifetime == life, "projectile paused")
-	verify(plans == f.tp.current.enemy_plans and not plans[0].executed, "plans generated once and fixed")
+	verify(plans == f.tp.current.enemy_plans and plans.all(func(p): return not p.executed), "plans generated once and fixed")
 	verify(unit.receive_damage(10, f.battle.units[2]) == 0, "even direct HP path denies paused combat damage")
 	verify(f.battle.damage_resolver.apply(f.battle.units[2], unit, 10) == 0, "resolver paused")
 	verify(f.tp.change_stance(unit.source_member_id, CombatStance.CAUTIOUS), "live stance selection")
@@ -138,56 +140,33 @@ func test_frozen_state_and_stance() -> void:
 	verify(f.guild.get_member(unit.source_member_id).stance == CombatStance.CAUTIOUS, "stance survives room settlement")
 	f.battle.free()
 
-func test_plans_focus_and_special() -> void:
+func test_plans_and_overcharge() -> void:
 	groups += 1
 	var f: Dictionary = fixture()
 	pause(f)
-	verify(f.tp.current.enemy_plans.size() == 2 and f.tp.current.enemy_plans[0].source_enemy_id == "e1", "per living enemy stable ID plan")
-	verify(UnitStateCodec.is_pure_data(f.tp.current.enemy_plans[0].metadata), "pure metadata")
+	var ids: Array = f.tp.current.enemy_plans.map(func(p): return p.source_enemy_id)
+	verify(f.tp.current.enemy_plans.size() <= 2 and ids.all(func(id): return id in ["e1", "e2"] and ids.count(id) == 1), "at most one strategy per living enemy, stable IDs")
+	verify(f.tp.current.enemy_plans.all(func(p): return UnitStateCodec.is_pure_data(p.metadata) and EnemyTurningPlan.NAMES.has(p.plan_type)), "pure metadata, known strategies")
 	var unsafe := EnemyTurningPlan.new()
 	var node := Node.new()
 	unsafe.metadata = {"node": node}
 	verify(unsafe.metadata.is_empty(), "plan metadata refuses Node refs")
 	node.free()
-	var a: BattleUnit = f.battle.units[0]
-	var b: BattleUnit = f.battle.units[1]
-	a.current_hp = 100
-	b.current_hp = 30
-	verify(TurningPointManager.focus_target([a,b]) == b, "lowest HP RATIO target")
-	var old: UnitData = a.data
-	a.data = old.duplicate(true)
-	a.data.type_id = 5
-	verify(TurningPointManager.focus_target([b,a]) == a, "first healer ahead of low ratio")
-	a.data = old
-	var focus: EnemyTurningPlan = make_plan(f, EnemyTurningPlan.FOCUS)
-	var special: EnemyTurningPlan = make_plan(f, EnemyTurningPlan.SPECIAL, 3)
-	f.tp.current.enemy_plans.assign([focus, special])
+	var special: EnemyTurningPlan = make_plan(f, EnemyTurningPlan.OVERCHARGE, 3)
+	f.tp.current.enemy_plans.assign([special])
 	var requests: Array = []
 	f.tp.ultimate_requested.connect(func(id, data): requests.append([id, data]))
-	verify(f.tp.resolve(), "shared resolve executes focus/special")
-	var enemy: BattleUnit = f.battle.units[2]
-	verify(enemy.focus_member_id == b.source_member_id and enemy.focus_until == f.battle.clock.elapsed + 10, "focus duration10")
-	enemy.position = a.position + Vector2(60,0)
-	verify(enemy.target_selector.select_target(enemy, f.battle.units) == b, "focus overrides nearer valid enemy")
-	verify(f.battle.units[3].ultimate_gauge == 100 and requests.size() == 1 and requests[0][0] == "e2", "special charge+readiness hook without invented ability")
+	verify(f.tp.resolve(), "shared resolve executes overcharge")
+	verify(f.battle.units[3].ultimate_gauge == 100 and requests.size() == 1 and requests[0][0] == "e2", "overcharge charge+readiness hook without invented ability")
 	verify(f.battle.units[3].character_specific_state.strategyUltimateReady and f.battle.units[3].character_specific_state.ultReadyAge == 5, "web readiness fields")
-	verify(focus.executed and special.executed and not f.tp.resolve() and requests.size() == 1, "plans/hook execute once")
-	b.receive_damage(9999, enemy)
-	verify(enemy.target_selector.select_target(enemy, f.battle.units) == a, "dead focus falls back safely")
-	var invalid := EnemyTurningPlan.new()
-	invalid.source_enemy_id = "e1"
-	invalid.plan_type = EnemyTurningPlan.FOCUS
-	invalid.target_member_id = "missing"
-	enemy.combat_state = CombatController.State.WINDUP
-	EnemyPlanExecutor.execute(invalid, f.battle)
-	verify(invalid.executed and enemy.combat_state == CombatController.State.WINDUP, "invalid focus safely no-op")
+	verify(special.executed and not f.tp.resolve() and requests.size() == 1, "plans/hook execute once")
 	var shotgun: Dictionary = EnemyTurningPlan.special_metadata(7)
 	verify(shotgun.mode == "temporary_boost" and shotgun.duration == 8 and shotgun.damage_multiplier == 1.25 and shotgun.ammo == 2 and shotgun.reloadRemaining == 0, "shotgun exact exception metadata")
 	# A temporary definition tests the future hook; no new character Resource.
 	var shotunit: BattleUnit = f.battle.units[3]
 	var boost := EnemyTurningPlan.new()
 	boost.source_enemy_id = "e2"
-	boost.plan_type = EnemyTurningPlan.SPECIAL
+	boost.plan_type = EnemyTurningPlan.OVERCHARGE
 	boost.metadata = shotgun
 	EnemyPlanExecutor.execute(boost, f.battle)
 	verify(shotunit.strategy_special_until == f.battle.clock.elapsed + 8 and shotunit.combat.cooldown == 0 and shotunit.character_specific_state.ammo == 2, "exception readiness applied, no fictional shotgun attack")
@@ -197,24 +176,27 @@ func test_enemy_retreat_and_automatic() -> void:
 	groups += 1
 	var f: Dictionary = fixture()
 	pause(f,20)
-	var plan: EnemyTurningPlan = make_plan(f, EnemyTurningPlan.RETREAT)
+	var plan: EnemyTurningPlan = make_plan(f, EnemyTurningPlan.MOVE)
 	f.tp.current.enemy_plans.assign([plan])
 	f.tp.current.remaining_real_time = 0.5
 	var at: float = f.battle.clock.elapsed
 	f.battle.simulate(0.5)
 	verify(f.tp.resolve_count == 1 and f.tp.current.resolved and f.battle.clock.state == BattleClock.State.NORMAL, "automatic shared resolve")
-	verify(plan.executed and not f.battle.finished and f.battle.result == null, "enemy retreat is not BattleEndReason.RETREAT")
+	verify(plan.executed and not f.battle.finished and f.battle.result == null, "enemy move is not BattleEndReason.RETREAT")
 	var enemy: BattleUnit = f.battle.units[2]
-	verify(enemy.command_retreat_until == at + 6 and not enemy.strategy_dash.is_empty(), "6sec retreat plus dash")
+	verify(not enemy.strategy_dash.is_empty(), "move strategy dashes")
 	verify(enemy.position.is_finite() and enemy.position.x >= 28 and enemy.position.x <= 772, "dash bounds finite")
-	verify(not enemy.combat.can_start(enemy, f.battle.units[0]), "retreat blocks attacks")
+	verify(not enemy.combat.can_start(enemy, f.battle.units[0]), "dash blocks attacks")
 	var before: Vector2 = enemy.position
 	f.battle.simulate(0.1)
-	verify(enemy.position != before and not f.battle.finished, "enemy escape dash explicit movement")
+	verify(enemy.position != before and not f.battle.finished, "enemy move dash explicit movement")
 	verify(f.tp.next_at == 42 and is_equal_approx(f.battle.clock.elapsed, at + 0.2), "automatic resume uses capped frame, excludes strategy wall time")
-	for frame in range(120): f.battle.simulate(1.0/60)
-	verify(enemy.strategy_dash.is_empty() and enemy.position.is_finite(), "dash completes then safe flee")
-	verify(f.session.request_retreat(), "whole battle retreat after individual retreat")
+	for frame in range(30):
+		if not enemy.strategy_dash.is_empty(): f.battle.simulate(1.0/60)
+	verify(enemy.strategy_dash.is_empty() and enemy.position.distance_to(CharacterPersistence.vector(plan.metadata.to)) < 2, "dash ends on the shown path end")
+	for frame in range(90): f.battle.simulate(1.0/60)
+	enemy.command_retreat_until = f.battle.clock.elapsed + 3
+	verify(f.session.request_retreat(), "whole battle retreat after enemy move")
 	var saved: Dictionary = f.room.enemy_state.e1.persistent_state
 	verify(saved.retreatRemaining > 0 and not saved.has("plan") and not saved.has("turning"), "remaining retreat numeric persistence, no plan objects")
 	var retry := legacy_manager()
@@ -294,14 +276,91 @@ func test_overshoot_and_dead_sides() -> void:
 	verify(f.tp.current == null and f.battle.finished, "no live enemy => end before TP")
 	f.battle.free()
 
+func test_special_strategies(legacy: bool) -> void:
+	groups += 1
+	var mode: String = " (legacy)" if legacy else " (full)"
+	verify(EnemyStrategyPlanner.progress(0) == 0 and EnemyStrategyPlanner.progress(14) == 1 and EnemyStrategyPlanner.chance(0) < EnemyStrategyPlanner.chance(1), "chance grows with tower progress")
+	var f: Dictionary = fixture(legacy)
+	pause(f)
+	var ally: BattleUnit = f.battle.units[0]
+	var enemy: BattleUnit = f.battle.units[2]
+	# Situations: hurt and next to a foe.
+	enemy.current_hp = enemy.max_hp * .3
+	ally.position = enemy.position + Vector2(-70, 0)
+	var rng := RandomNumberGenerator.new()
+	var used := [0, 0]
+	var kinds: Dictionary = {}
+	for i in range(400):
+		rng.seed = i
+		for side in range(2):
+			var plan: EnemyTurningPlan = EnemyStrategyPlanner.plan(enemy, float(side), rng)
+			if plan == null: continue
+			used[side] += 1
+			kinds[plan.plan_type] = true
+			if side == 1 and plan.plan_type == EnemyTurningPlan.HEAL: verify(is_equal_approx(plan.metadata.amount, .3), "heal stronger on the top floor" + mode)
+	verify(used[0] > 60 and used[0] < 150 and used[1] > used[0] * 2, "not every enemy uses one; more often later" + mode)
+	verify(kinds.has(EnemyTurningPlan.HEAL) and kinds.has(EnemyTurningPlan.SMASH) and not kinds.has(EnemyTurningPlan.MOVE), "hurt melee next to a foe heals or smashes, no walk-in" + mode)
+	# Heal and charge resolve at once.
+	var heal := make_plan(f, EnemyTurningPlan.HEAL); heal.metadata = {"amount": .2}
+	var charge := make_plan(f, EnemyTurningPlan.CHARGE, 3); charge.metadata = {"gauge": 20.0}
+	var gauge: float = f.battle.units[3].ultimate_gauge
+	# Smash: the ally stands in the fan in front.
+	var smash := make_plan(f, EnemyTurningPlan.SMASH)
+	smash.metadata = {"angle": PI, "range": 150.0, "damage": 30.0, "stun": 2.0}
+	f.tp.current.enemy_plans.assign([heal, charge, smash])
+	verify(f.tp.resolve(), "resolve runs strategies" + mode)
+	verify(is_equal_approx(enemy.current_hp, enemy.max_hp * .5), "heal 20% max HP" + mode)
+	verify(f.battle.units[3].ultimate_gauge >= gauge + 20 - .01, "charge 20%" + mode)
+	verify(not enemy.strategy_cast.is_empty(), "smash winds up" + mode)
+	var hp: float = ally.current_hp
+	for frame in range(30): f.battle.simulate(1.0 / 60)
+	verify(ally.current_hp == hp and not enemy.strategy_cast.is_empty(), "nothing lands during the warning" + mode)
+	for frame in range(12): f.battle.simulate(1.0 / 60)
+	verify(ally.current_hp < hp and ally.stun_remaining > 1.5 and enemy.strategy_cast.is_empty(), "smash hits and stuns 2s" + mode)
+	f.battle.free()
+	# Cleave: dash along the path, hitting the ally on it once.
+	f = fixture(legacy)
+	pause(f)
+	ally = f.battle.units[0]
+	enemy = f.battle.units[2]
+	ally.position = enemy.position + Vector2(-180, 0)
+	ally.parry_cooldown = 999 # a parry would knock the dasher back (covered elsewhere)
+	var cleave := make_plan(f, EnemyTurningPlan.CLEAVE)
+	var end: Vector2 = enemy.position + Vector2(-300, 0)
+	cleave.metadata = {"from": CharacterPersistence.point(enemy.position), "to": CharacterPersistence.point(end), "width": 64.0, "damage": 25.0}
+	f.tp.current.enemy_plans.assign([cleave])
+	f.tp.resolve()
+	hp = ally.current_hp
+	for frame in range(60): f.battle.simulate(1.0 / 60)
+	verify(ally.current_hp < hp and hp - ally.current_hp <= 25 * 1.6, "cleave hits the ally on the path once" + mode)
+	verify(enemy.strategy_cast.is_empty() and enemy.position.distance_to(end) < 40, "cleave ends at the path end" + mode)
+	f.battle.free()
+	# A stun during the warning cancels the attack.
+	f = fixture(legacy)
+	pause(f)
+	ally = f.battle.units[0]
+	enemy = f.battle.units[2]
+	ally.position = enemy.position + Vector2(-70, 0)
+	smash = make_plan(f, EnemyTurningPlan.SMASH)
+	smash.metadata = {"angle": PI, "range": 150.0, "damage": 30.0, "stun": 2.0}
+	f.tp.current.enemy_plans.assign([smash])
+	f.tp.resolve()
+	f.battle.simulate(1.0 / 60)
+	StatusController.stun(enemy, 1)
+	hp = ally.current_hp
+	for frame in range(60): f.battle.simulate(1.0 / 60)
+	verify(enemy.strategy_cast.is_empty() and ally.stun_remaining <= 0 and ally.current_hp == hp, "stun cancels a winding-up strategy" + mode)
+	f.battle.free()
+
 func run(tree: SceneTree) -> void:
 	host = tree
 	test_clock_and_schedule()
 	test_frozen_state_and_stance()
-	test_plans_focus_and_special()
+	test_plans_and_overcharge()
 	test_enemy_retreat_and_automatic()
 	test_end_priority_and_retreat()
 	test_overshoot_and_dead_sides()
+	for legacy in [true, false]: test_special_strategies(legacy)
 	print("PHASE 5 RESULT: ", groups, " test groups; ", checks, " checks; ", failures, " failures")
 
 func legacy_manager() -> BattleManager:

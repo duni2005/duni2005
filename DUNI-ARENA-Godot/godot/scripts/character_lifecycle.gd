@@ -167,8 +167,8 @@ static func control(u,source,duration: float=7) -> bool:
 	u.puppet_control={"owner":source.actor_id(),"remaining":duration,"original_team":original,"team":source.team}
 	u.team=source.team;reset_intent(u);u.combat.cooldown=maxf(u.combat.cooldown,.25);return true
 static func reset_intent(u) -> void:
-	release_action(u,true);cancel_duel(u);u.combat.cancel(u);u.ultimate.cast.clear();u.hero_rescue.clear();u.machine_dash.clear();u.dodge_state.clear();u.strategy_dash.clear();u.frog_hop.clear();u.parry_remaining=0;u.evade_remaining=0;u.target=null;u.brain=BattleBrain.new();u.brain.initialize(u.battle.rng);u.brain.next_initiative_at=u.battle.clock.elapsed+u.battle.rng.randf_range(.15,.65);u.knockback_velocity=Vector2.ZERO
-	u.taunted_member_id="";u.taunted_until=0;u.focus_member_id="";u.focus_until=0;u.command_retreat_until=0;u.set_state("strategyUltimateReady",false)
+	release_action(u,true);cancel_duel(u);u.combat.cancel(u);u.ultimate.cast.clear();u.hero_rescue.clear();u.machine_dash.clear();u.dodge_state.clear();u.strategy_dash.clear();u.strategy_cast.clear();u.frog_hop.clear();u.parry_remaining=0;u.evade_remaining=0;u.target=null;u.brain=BattleBrain.new();u.brain.initialize(u.battle.rng);u.brain.next_initiative_at=u.battle.clock.elapsed+u.battle.rng.randf_range(.15,.65);u.knockback_velocity=Vector2.ZERO
+	u.taunted_member_id="";u.taunted_until=0;u.command_retreat_until=0;u.set_state("strategyUltimateReady",false)
 static func end_control(u) -> void:
 	if u.puppet_control.is_empty():return
 	u.team=int(u.puppet_control.original_team);u.puppet_control.clear();reset_intent(u)
