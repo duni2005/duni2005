@@ -37,7 +37,7 @@ func _draw() -> void:
 	var life: float=2 if cue=="turning" else 1.15
 	var alpha: float=minf(clampf(age/.12,0,1),clampf((life-age)/.35,0,1))
 	if cue in ["victory","defeat"]:
-		draw_rect(rect,Color(tint,alpha*.16));return
+		draw_rect(Rect2(Vector2.ZERO,size),Color(tint,alpha*.16));return
 	if cue=="turning":
 		CinematicArtwork.paint(self,rect,"turning",turning_age)
 		return

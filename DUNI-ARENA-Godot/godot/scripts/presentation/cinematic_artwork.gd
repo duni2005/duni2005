@@ -14,18 +14,20 @@ static func paint(canvas: Control,arena: Rect2,kind: String,age: float) -> void:
 	# Colour grade: cold blue for frozen time, warm/neutral for endings.
 	var grade: Color=Color(.02,.05,.11,shade*1.35) if kind=="turning" else Color(.02,.02,.04,shade*1.15) if motif!="defeat" else Color(.08,.01,.02,shade*1.25)
 	canvas.draw_rect(Rect2(Vector2.ZERO,canvas.size),grade)
+	# The field fills the whole screen, so the vignette frame and the letterbox bars sit on the
+	# screen's own edges.
+	var screen:=Rect2(Vector2.ZERO,canvas.size)
 	for i in range(10):
 		var inset: float=i*arena.size.x*.014
-		canvas.draw_rect(arena.grow(-inset),Color(0,0,.01,shade*.09),false,maxf(1,arena.size.x*.014))
-	# Cinematic letterbox bars slide in over the arena edges.
-	var bars: float=ramp(age,0.0 if kind=="turning" else BattleCinematicState.DIM_START,.35)*(1-ramp(age,4.2,.4) if kind=="turning" else 1)*arena.size.y*.085
+		canvas.draw_rect(screen.grow(-inset),Color(0,0,.01,shade*.09),false,maxf(1,arena.size.x*.014))
+	# Cinematic letterbox bars slide in from the top and bottom of the screen.
+	var bars: float=ramp(age,0.0 if kind=="turning" else BattleCinematicState.DIM_START,.35)*(1-ramp(age,4.2,.4) if kind=="turning" else 1)*canvas.size.y*.085
 	if bars>0:
-		# Bars span the whole screen width so they line up with the full-screen grade.
-		var top: float=arena.position.y;var bottom: float=arena.end.y;var w: float=canvas.size.x
-		canvas.draw_rect(Rect2(0,top,w,bars),Color(0,0,0,.82))
-		canvas.draw_rect(Rect2(0,bottom-bars,w,bars),Color(0,0,0,.82))
-		canvas.draw_line(Vector2(0,top+bars),Vector2(w,top+bars),Color(tint,.35*alpha),1)
-		canvas.draw_line(Vector2(0,bottom-bars),Vector2(w,bottom-bars),Color(tint,.35*alpha),1)
+		var w: float=canvas.size.x;var h: float=canvas.size.y
+		canvas.draw_rect(Rect2(0,0,w,bars),Color(0,0,0,.82))
+		canvas.draw_rect(Rect2(0,h-bars,w,bars),Color(0,0,0,.82))
+		canvas.draw_line(Vector2(0,bars),Vector2(w,bars),Color(tint,.35*alpha),1)
+		canvas.draw_line(Vector2(0,h-bars),Vector2(w,h-bars),Color(tint,.35*alpha),1)
 	if alpha<=0:return
 	var center: Vector2=arena.get_center();var mobile: bool=arena.size.x<500
 	var start: float=0.0 if kind=="turning" else BattleCinematicState.TITLE_START
