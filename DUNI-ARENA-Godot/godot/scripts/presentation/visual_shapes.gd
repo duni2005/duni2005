@@ -18,9 +18,9 @@ static func bolt(canvas: CanvasItem,a: Vector2,b: Vector2,color: Color,seed: flo
 	for i in range(1,9):points.append(a+diff*(float(i)/9)+n*(VisualParticles.noise(i+seed)*2-1)*10)
 	points.append(b);canvas.draw_polyline(points,Color(color,.25),width*3);canvas.draw_polyline(points,color,width);canvas.draw_polyline(points,Color("f3fbff"),maxf(1,width*.35))
 	canvas.draw_line(points[3],points[3]+n*14+diff.normalized()*18,Color(color,.6),1.5)
-## Mossy flagstone arena; `margin` arena units of ruins and trees show around it, fading out.
+## Meadow arena; `margin` arena units of scenery show around it, fading out. Canopy shade sways.
 static func arena(canvas: CanvasItem,margin: float=0) -> void:
-	ArenaFloor.draw(canvas,margin)
+	ArenaFloor.draw(canvas,margin,Time.get_ticks_msec()/1000.0)
 	if margin<=0:return
 	# The scenery darkens towards the edge of the view.
 	var fade:=Color("173a35");var clear:=Color(fade,0)

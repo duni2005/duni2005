@@ -31,6 +31,7 @@ var duration: float = 0
 var fade_at: float = 0
 var view := Vector2(390, 844)
 var cam := Vector2.ZERO
+var drift: float = 0 # sideways slide of the background layers only; the tower stays centred
 var zoom: float = 1
 var shake: float = 0
 var chunks: Array = []
@@ -76,7 +77,7 @@ func _wide_zoom() -> float:
 func _cam_for(z: float, ground: float) -> Vector2:
 	return Vector2(0, -(ground - .5) * view.y / z)
 func _camera() -> void:
-	var close: float = _close_zoom();shake = 0
+	var close: float = _close_zoom();shake = 0;drift = 0
 	if mode == "intro":
 		var wide: float = _wide_zoom()
 		if t < 3.8:zoom = lerpf(wide, wide * 1.4, _ease(t / 3.8));cam = _cam_for(zoom, .84)
@@ -84,8 +85,9 @@ func _camera() -> void:
 			var k: float = clampf((t - 3.8) / 1.2, 0, 1);k = k * k * k * (k * (k * 6 - 15) + 10)
 			zoom = exp(lerpf(log(wide * 1.4), log(close), k));cam = _cam_for(zoom, lerpf(.84, .86, k))
 		else:zoom = close * (1 + (t - 5.0) * .012);cam = _cam_for(zoom, .86)
-		# A slow sideways drift over the opening shot, so the layers slide past each other.
-		cam.x = 110 * (1 - _ease(t / 5.0))
+		# A slow sideways drift of the background over the opening shot, so the layers slide
+		# past the centred tower.
+		drift = 110 * (1 - _ease(t / 5.0))
 	elif mode == "clear":
 		var far: float = close * .74
 		if t < 5.0:zoom = far;cam = _cam_for(zoom, .87)
@@ -107,7 +109,7 @@ func _layer_scale(f: float) -> float:
 	return minf(view.x / 390, view.y / 844) * pow(zoom / _close_zoom(), f)
 func _layer(p: Vector2, f: float) -> Vector2:
 	var s: float = _layer_scale(f)
-	return Vector2(view.x * .5 + (p.x - cam.x * f) * s, to_screen(Vector2.ZERO).y + p.y * s) + Vector2(_shake().x, 0)
+	return Vector2(view.x * .5 + (p.x - drift * f) * s, to_screen(Vector2.ZERO).y + p.y * s) + Vector2(_shake().x, 0)
 
 func _draw() -> void:
 	var alpha: float = minf(clampf(t / (.5 if mode == "clear" else .35), 0, 1), clampf((duration - t) / .6, 0, 1))
@@ -124,7 +126,7 @@ func _sky() -> void:
 	var horizon: float = to_screen(Vector2.ZERO).y;var mid: float = horizon * .5
 	_vgradient(0, mid, SKY_TOP, SKY_MID);_vgradient(mid, horizon, SKY_MID, SKY_LOW);_vgradient(horizon, view.y, SKY_LOW, SKY_LOW)
 	# Warm light washing in from the upper left, haze along the horizon.
-	var sun := Vector2(-view.x * .1 - cam.x * .02, view.y * .02)
+	var sun := Vector2(-view.x * .1 - drift * .02, view.y * .02)
 	VfxArt.glow(self, sun, view.x * 1.2, Color("fff1cf"), .45)
 	VfxArt.glow(self, Vector2(view.x * .5, horizon), view.x * .9, Color("f4f1dc"), .5, .35)
 	_birds()
@@ -135,8 +137,8 @@ func _vgradient(y0: float, y1: float, top: Color, bottom: Color) -> void:
 ## A loose flock crossing the sky, wings flapping.
 func _birds() -> void:
 	for i in range(9):
-		var drift: float = fposmod(i * .137 + t * (.03 + (i % 3) * .008), 1.3) - .15
-		var at := Vector2(drift * view.x, view.y * (.3 + (i % 4) * .035 + (i % 2) * .02) + sin(t * 1.3 + i) * 5)
+		var slide: float = fposmod(i * .137 + t * (.03 + (i % 3) * .008), 1.3) - .15
+		var at := Vector2(slide * view.x, view.y * (.3 + (i % 4) * .035 + (i % 2) * .02) + sin(t * 1.3 + i) * 5)
 		var s: float = (4 + (i % 3) * 2) * clampf(view.x / 390, .8, 2);var flap: float = sin(t * 8 + i * 1.7)
 		var tip := Vector2(s, -s * (.2 + flap * .45))
 		draw_polyline(PackedVector2Array([at + Vector2(-tip.x, tip.y), at + Vector2(-s * .4, -s * .05 * flap), at, at + Vector2(s * .4, -s * .05 * flap), at + tip]), Color(1, 1, 1, .85), maxf(1.2, s * .2), true)
@@ -188,7 +190,7 @@ func _treeline(f: float, base: float, amp: float, seed_value: float, top: Color,
 	pts.append(Vector2(pts[0].x, view.y + 40));colors.append(bottom)
 	draw_polygon(pts, colors)
 
-func _tree(base: Vector2, h: float, kind: int, color: Color, haze: float = 0) -> void:
+func _tree(base: Vector2, h: float, kind: int, color: Color, seed_value: int, haze: float = 0) -> void:
 	if base.x < -h or base.x > view.x + h or h < 2:return
 	var bark: Color = Color("6b5440").lerp(HAZE, haze);color = color.lerp(HAZE, haze)
 	var trunk_w: float = maxf(1.5, h * .06)
@@ -208,7 +210,8 @@ func _tree(base: Vector2, h: float, kind: int, color: Color, haze: float = 0) ->
 	for p in spots.slice(2, 5):draw_circle(c + p * r + Vector2(-r * .16, -r * .18), r * .3, color.lightened(.16))
 	if kind == 2:
 		# Blossom: a scatter of light flowers.
-		var local := RandomNumberGenerator.new();local.seed = int(base.x * 13)
+		# Seeded per tree (not by screen position) so the blossoms hold still as the camera moves.
+		var local := RandomNumberGenerator.new();local.seed = seed_value
 		for i in range(8):draw_circle(c + Vector2(local.randf_range(-.8, .8), local.randf_range(-.7, .4)) * r, maxf(1, r * .08), Color("fff3f8", .9))
 func _tree_color(i: int, kind: int) -> Color:
 	if kind == 1:return [Color("3f6e4a"), Color("4a7d52"), Color("355f45")][i % 3]
@@ -220,7 +223,7 @@ func _back_trees() -> void:
 		var x: float = -1100 + i * 100 + (i % 3) * 22
 		if absf(x) < 60:continue
 		var kind: int = 1 if i % 3 == 1 else 2 if i % 7 == 3 else 0
-		_tree(_layer(Vector2(x, 2), .6), (46 + (i % 4) * 10) * s, kind, _tree_color(i * 3, kind), .3)
+		_tree(_layer(Vector2(x, 2), .6), (46 + (i % 4) * 10) * s, kind, _tree_color(i * 3, kind), i, .3)
 func _meadow() -> void:
 	# Rolling green ground from the tower's foot to the bottom of the screen.
 	var pts := PackedVector2Array();var colors := PackedColorArray()
@@ -424,7 +427,7 @@ func _mid_trees() -> void:
 	for i in range(10):
 		var side: float = -1.0 if i % 2 == 0 else 1.0;var x: float = side * (TW * .95 + (i / 2) * 150 + (i % 3) * 20)
 		var kind: int = 1 if i % 5 == 3 else 2 if i % 4 == 1 else 0
-		_tree(to_screen(Vector2(x, 4)), (140 + (i % 3) * 40) * zoom, kind, _tree_color(i * 5 + 1, kind))
+		_tree(to_screen(Vector2(x, 4)), (140 + (i % 3) * 40) * zoom, kind, _tree_color(i * 5 + 1, kind), 100 + i)
 func _leaf(root: Vector2, dir: Vector2, length: float, width: float, color: Color) -> void:
 	var n: Vector2 = dir.orthogonal();var pts := PackedVector2Array();var colors := PackedColorArray()
 	for k in range(9):
