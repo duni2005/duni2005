@@ -1,8 +1,18 @@
 shader_type canvas_item;
 render_mode unshaded;
-// Hand-painted arena floor, rendered once into a texture (see ArenaFloor). Coordinates are
-// arena units: the 800-unit arena sits inside `margin` units of scenery on every side.
+// Arena floor as a clean vector-style meadow, rendered once into a texture (see ArenaFloor).
+// Coordinates are arena units: the 800-unit arena sits inside `margin` units of scenery.
+// Flat colour areas with crisp edges: grass tones, a worn sandy path with stepping stones and
+// puddles, sparse flowers and tufts; soft tree, bush and pillar shadows reaching in from the
+// edges; outside, a bush fringe, rocks, rune pillars and round tree canopies.
 uniform float margin = 320.0;
+
+const vec3 GRASS = vec3(.42, .64, .26);
+const vec3 GRASS_LIGHT = vec3(.50, .71, .30);
+const vec3 GRASS_DARK = vec3(.36, .56, .23);
+const vec3 SAND = vec3(.83, .78, .62);
+const vec3 STONE = vec3(.86, .82, .70);
+const vec3 SHADE = vec3(.68, .76, .72);
 
 float hash(vec2 p) {
 	vec3 p3 = fract(vec3(p.xyx) * .1031);
@@ -23,178 +33,223 @@ float noise(vec2 p) {
 float fbm(vec2 p) {
 	float v = 0.0;
 	float a = .5;
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 4; i++) {
 		v += a * noise(p);
 		p = p * 2.03 + vec2(17.1, 9.2);
 		a *= .5;
 	}
 	return v;
 }
-// Voronoi cells: x = distance to the nearest border, y = cell id, z = distance to the seed.
-vec3 cells(vec2 x) {
-	vec2 n = floor(x);
-	vec2 f = fract(x);
-	vec2 mg = vec2(0.0);
-	vec2 mr = vec2(0.0);
-	float md = 8.0;
+// Crisp edge for a signed distance in arena units (positive inside); one texel is ~1.4 units.
+float fill(float d) {
+	return smoothstep(-.8, .8, d);
+}
+// Signed distance to a lobed (cloud / bush) circle.
+float lobed(vec2 v, float r, float lobes, float depth, float phase) {
+	float a = atan(v.y, v.x);
+	return r * (1.0 + depth * sin(a * lobes + phase) + depth * .5 * sin(a * (lobes * 2.0 + 1.0) + phase * 1.7)) - length(v);
+}
+mat2 turn(float a) {
+	return mat2(vec2(cos(a), sin(a)), vec2(-sin(a), cos(a)));
+}
+
+float path_x(float y) {
+	return 400.0 + 180.0 * sin(y * .0055 + 1.1) + 45.0 * sin(y * .017 + 2.0);
+}
+// A worn path winding down the arena with a branch to the right; grass breaks across it.
+float path(vec2 p) {
+	float d = 28.0 + 12.0 * noise(vec2(p.y * .012, 3.0)) - abs(p.x - path_x(p.y));
+	float y2 = 600.0 + 60.0 * sin(p.x * .008);
+	float d2 = 22.0 + 8.0 * noise(vec2(p.x * .015, 7.0)) - abs(p.y - y2);
+	if (p.x > path_x(600.0)) d = max(d, d2);
+	d += (noise(p * .16) - .5) * 8.0;
+	d -= smoothstep(.66, .8, noise(vec2(p.y * .01 + p.x * .004, 1.0))) * 50.0;
+	return d;
+}
+
+vec3 meadow(vec2 p) {
+	// Two or three flat grass tones in broad, clean-edged patches.
+	float t = fbm(p * .0032);
+	vec3 col = mix(GRASS, GRASS_LIGHT, fill((t - .56) * 260.0));
+	col = mix(col, GRASS_DARK, fill((.34 - t) * 260.0));
+	// Sparse grass tufts: three short blades.
+	vec2 g = floor(p / 30.0);
+	if (hash(g + 1.3) > .86) {
+		vec2 q = p - (g + .2 + hash2(g + 2.0) * .6) * 30.0;
+		float blades = 0.0;
+		for (int k = -1; k <= 1; k++) {
+			float lean = float(k) * .45;
+			float along = clamp(-q.y, 0.0, 7.0 - abs(float(k)) * 2.0);
+			blades = max(blades, fill(1.0 - length(q - vec2(lean * along + float(k) * 1.5, -along))));
+		}
+		col = mix(col, GRASS_DARK * .9, blades * .8);
+	}
+	return col;
+}
+
+void sand_and_stones(vec2 p, inout vec3 col) {
+	float d = path(p);
+	col = mix(col, SAND, fill(d));
+	col = mix(col, SAND * .93, fill(d) * fill(4.0 - d) * .6);
+	// Puddles sitting on the path, ringed with sand.
+	for (int k = 0; k < 2; k++) {
+		float y = k == 0 ? 280.0 : 650.0;
+		vec2 c = vec2(path_x(y) + (k == 0 ? -18.0 : 22.0), y);
+		vec2 v = (p - c) * vec2(1.0, 1.45);
+		float rim = lobed(v, 46.0, 3.0, .12, float(k) * 2.0);
+		float water = lobed(v, 34.0, 3.0, .12, float(k) * 2.0);
+		col = mix(col, SAND * 1.02, fill(rim));
+		col = mix(col, vec3(.60, .78, .74), fill(water));
+		col = mix(col, vec3(.72, .86, .82), fill(water) * fill(lobed(v - vec2(-9.0, -7.0), 18.0, 2.0, .1, 1.0)));
+	}
+	// Flat stepping stones, mostly along the path.
+	vec2 cell = floor(p / 64.0);
 	for (int j = -1; j <= 1; j++) {
 		for (int i = -1; i <= 1; i++) {
-			vec2 g = vec2(float(i), float(j));
-			vec2 r = g + hash2(n + g) * .8 + .1 - f;
-			float d = dot(r, r);
-			if (d < md) { md = d; mr = r; mg = g; }
+			vec2 g = cell + vec2(float(i), float(j));
+			vec2 c = (g + .25 + hash2(g) * .5) * 64.0;
+			float on_path = step(-24.0, path(c));
+			if (hash(g + 2.0) > .12 + on_path * .5) continue;
+			float rx = 11.0 + hash(g + 6.0) * 11.0;
+			float ry = rx * (.6 + hash(g + 7.0) * .3);
+			mat2 m = turn(hash(g + 5.0) * 3.14);
+			vec2 q = m * (p - c);
+			vec2 qs = m * (p - c - vec2(2.0, 4.0));
+			float shadow = (1.0 - length(qs / vec2(rx, ry))) * ry;
+			float stone = (1.0 - length(q / vec2(rx, ry))) * ry;
+			col = mix(col, col * .78, fill(shadow) * (1.0 - fill(stone)));
+			vec3 face = mix(STONE * .9, STONE, fill(stone - 2.5));
+			col = mix(col, face, fill(stone));
 		}
 	}
-	float border = 8.0;
-	for (int j = -2; j <= 2; j++) {
-		for (int i = -2; i <= 2; i++) {
-			vec2 g = mg + vec2(float(i), float(j));
-			vec2 r = g + hash2(n + g) * .8 + .1 - f;
-			if (dot(mr - r, mr - r) > .00001) border = min(border, dot(.5 * (mr + r), normalize(r - mr)));
+	// Tiny flowers on the grass.
+	vec2 f = floor(p / 26.0);
+	if (hash(f + 8.0) > .9 && d < -6.0) {
+		vec2 o = (f + .25 + hash2(f + 9.0) * .5) * 26.0;
+		vec3 petal = hash(f + 3.0) > .4 ? vec3(.96, .95, .9) : vec3(.98, .88, .5);
+		col = mix(col, petal, fill(2.2 - length(p - o)));
+	}
+}
+
+// Shade cast into the arena by trees, bushes and pillars outside it (down-right light).
+float edge_shade(vec2 p) {
+	float shade = 0.0;
+	// Big canopy shadows reaching in from beyond each edge.
+	for (int side = 0; side < 4; side++) {
+		float along = side < 2 ? p.x : p.y;
+		float across = side == 0 ? p.y : side == 1 ? 800.0 - p.y : side == 2 ? p.x : 800.0 - p.x;
+		float slot = floor(along / 190.0);
+		for (int k = -1; k <= 1; k++) {
+			float s = slot + float(k);
+			if (hash(vec2(s, float(side) + 40.0)) < .3) continue;
+			float centre = (s + .2 + hash(vec2(s, float(side) + 41.0)) * .6) * 190.0;
+			float r = 70.0 + hash(vec2(s, float(side) + 42.0)) * 50.0;
+			vec2 v = vec2(along - centre, across + r * .45);
+			shade = max(shade, fill(lobed(v, r, 6.0, .07, s * 3.0 + float(side))));
 		}
 	}
-	return vec3(border, hash(n + mg), length(mr));
-}
-
-// Worn cream flagstones: big and small slabs, soft darker rims, mottled faces.
-vec3 flagstones(vec2 p) {
-	vec2 warped = p + (vec2(fbm(p * .01), fbm(p * .01 + 7.3)) - .5) * 30.0;
-	float size = 96.0;
-	vec3 c = cells(warped / size);
-	float edge = c.x * size;
-	float id = c.y;
-	if (id > .7) {
-		// Some slabs are cracked into smaller stones.
-		vec3 s = cells(warped / (size * .5) + 31.7);
-		edge = min(edge, s.x * size * .5);
-		id = fract(id + s.y * 3.1);
+	// Thin shade right under the bush fringe.
+	float inside = min(min(p.x, 800.0 - p.x), min(p.y, 800.0 - p.y));
+	shade = max(shade, (1.0 - smoothstep(0.0, 12.0, inside)) * .7);
+	// Rune pillar shadows.
+	for (int k = 0; k < 4; k++) {
+		vec2 base = k == 0 ? vec2(320.0, -34.0) : k == 1 ? vec2(480.0, -34.0) : k == 2 ? vec2(-34.0, 520.0) : vec2(834.0, 280.0);
+		// Slanted down-right, away from the light.
+		vec2 q = p - base;
+		q.x -= max(q.y, 0.0) * .45;
+		shade = max(shade, fill(min(min(q.x + 13.0, 13.0 - q.x), min(q.y, 74.0 - q.y))));
 	}
-	vec3 base = mix(vec3(.93, .89, .77), vec3(.89, .85, .73), id);
-	base = mix(base, vec3(.95, .91, .80), step(.75, fract(id * 7.0)) * .6);
-	base *= .975 + .05 * fbm(p * .03 + id * 10.0);
-	// A soft darker rim inside each slab, a lighter centre, a thin warm grout line.
-	vec3 rim = base * vec3(.9, .875, .82);
-	vec3 col = mix(rim, base, smoothstep(1.0, 7.0, edge));
-	col += vec3(.03, .025, .015) * smoothstep(10.0, 30.0, edge);
-	vec3 grout = vec3(.78, .72, .58);
-	return mix(grout, col, smoothstep(.5, 1.6, edge));
+	return shade;
 }
 
-// Broad moss patches with ragged edges, darker blotches and lighter tops; creeping into cracks.
-vec4 moss(vec2 p, float crack) {
-	float m = fbm(p * .0052 + 3.7) + (noise(p * .09) - .5) * .05 + crack * .05;
-	float cover = smoothstep(.565, .575, m);
-	vec3 fill = mix(vec3(.62, .73, .28), vec3(.72, .80, .36), fbm(p * .03));
-	fill = mix(fill, vec3(.53, .64, .24), smoothstep(.6, .75, fbm(p * .05 + 4.0)) * .7);
-	vec3 col = mix(vec3(.50, .60, .22), fill, smoothstep(.575, .6, m));
-	return vec4(col, cover);
+vec3 bush(vec2 v, float r, float seed, vec3 col) {
+	float body = lobed(v, r, 5.0, .12, seed);
+	float top = lobed(v + vec2(r * .22, r * .26), r * .62, 4.0, .14, seed + 1.0);
+	col = mix(col, vec3(.20, .40, .22), fill(body));
+	col = mix(col, vec3(.28, .51, .27), fill(body - 3.0));
+	col = mix(col, vec3(.40, .63, .32), fill(top));
+	return col;
 }
 
-vec3 grass(vec2 p) {
-	vec3 col = mix(vec3(.58, .74, .29), vec3(.70, .82, .36), fbm(p * .008));
-	col = mix(col, vec3(.47, .64, .25), smoothstep(.55, .75, fbm(p * .02 + 2.0)) * .6);
-	// Tiny white and blue flowers.
-	vec2 g = floor(p / 16.0);
-	vec2 o = hash2(g) * 16.0;
-	float flower = step(.86, hash(g + 5.0)) * (1.0 - smoothstep(1.2, 2.2, length(p - g * 16.0 - o)));
-	return mix(col, mix(vec3(.97, .96, .9), vec3(.62, .78, .95), step(.5, hash(g + 9.0))), flower);
-}
-
-// Cream blocks in courses: x = along the run, y = across it (0 at the inner edge).
-vec3 blocks(vec2 q, float course, float span, float seed) {
-	float row = floor(q.y / course);
-	float u = (q.x + row * span * .5) / span;
-	float cell = floor(u);
-	float tone = hash(vec2(cell, row + seed));
-	vec3 col = mix(vec3(.90, .86, .74), vec3(.84, .81, .70), tone);
-	float fu = fract(u) * span;
-	float fv = fract(q.y / course) * course;
-	float edge = min(min(fu, span - fu), min(fv, course - fv));
-	col = mix(col * vec3(.85, .84, .8), col, smoothstep(1.0, 4.0, edge));
-	return mix(vec3(.42, .5, .44), col, smoothstep(.6, 1.6, edge));
+void scenery(vec2 p, float out_d, inout vec3 col) {
+	// Ground beyond the arena: darker grass.
+	col = mix(GRASS_DARK * .92, GRASS_DARK, fill((fbm(p * .004) - .5) * 200.0));
+	// Rocks and stones scattered about.
+	vec2 g = floor(p / 90.0);
+	vec2 c = (g + .25 + hash2(g + 30.0) * .5) * 90.0;
+	float cd = max(max(-c.x, c.x - 800.0), max(-c.y, c.y - 800.0));
+	if (hash(g + 31.0) > .78 && cd > 50.0) {
+		vec2 v = (p - c) * vec2(1.0, 1.3);
+		float r = 9.0 + hash(g + 32.0) * 9.0;
+		col = mix(col, col * .7, fill(lobed(v - vec2(4.0, 6.0), r, 3.0, .1, 1.0)));
+		col = mix(col, vec3(.58, .62, .64), fill(lobed(v, r, 3.0, .1, 1.0)));
+		col = mix(col, vec3(.74, .77, .77), fill(lobed(v + vec2(2.0, 3.0), r * .7, 3.0, .1, 1.0)));
+	}
+	// Tree shadows, then canopies, on a coarse grid that thickens away from the arena.
+	vec2 cell = floor(p / 120.0);
+	for (int pass = 0; pass < 2; pass++) {
+		for (int j = -1; j <= 1; j++) {
+			for (int i = -1; i <= 1; i++) {
+				vec2 t = cell + vec2(float(i), float(j));
+				vec2 tc = (t + .2 + hash2(t + 3.0) * .6) * 120.0;
+				float td = max(max(-tc.x, tc.x - 800.0), max(-tc.y, tc.y - 800.0));
+				float r = 48.0 + hash(t + 4.0) * 28.0;
+				if (td < r + 42.0 || hash(t + 11.0) > .45 + smoothstep(120.0, 260.0, td) * .5) continue;
+				vec2 v = p - tc;
+				if (pass == 0) {
+					col = mix(col, col * SHADE * .9, fill(lobed(v - vec2(26.0, 34.0), r * 1.02, 7.0, .06, hash(t) * 9.0)));
+				} else {
+					float body = lobed(v, r, 7.0, .06, hash(t) * 9.0);
+					float mid = lobed(v + vec2(r * .12, r * .16), r * .78, 6.0, .08, hash(t) * 7.0);
+					float top = lobed(v + vec2(r * .3, r * .34), r * .42, 5.0, .1, hash(t) * 5.0);
+					bool golden = hash(t + 21.0) > .86;
+					col = mix(col, golden ? vec3(.62, .46, .18) : vec3(.15, .35, .25), fill(body));
+					col = mix(col, golden ? vec3(.82, .63, .24) : vec3(.22, .47, .30), fill(mid));
+					col = mix(col, golden ? vec3(.93, .80, .42) : vec3(.36, .60, .34), fill(top));
+				}
+			}
+		}
+	}
+	// Bush fringe hugging the arena edge.
+	bool vertical_side = abs(p.x - 400.0) > abs(p.y - 400.0);
+	float along = vertical_side ? p.y : p.x;
+	float slot = floor(along / 40.0);
+	for (int k = -1; k <= 1; k++) {
+		float s = slot + float(k);
+		vec2 seed = vec2(s, vertical_side ? 50.0 : 60.0) + (p.x + p.y > 800.0 ? 7.0 : 0.0);
+		if (hash(seed) < .14) continue;
+		float r = 15.0 + hash(seed + 1.0) * 10.0;
+		float centre = (s + .5 + (hash(seed + 2.0) - .5) * .4) * 40.0;
+		vec2 v = vertical_side ? vec2(out_d - (r + 4.0), along - centre) : vec2(along - centre, out_d - (r + 4.0));
+		if (vertical_side && p.x < 400.0) v.x = -v.x;
+		if (!vertical_side && p.y < 400.0) v.y = -v.y;
+		col = mix(col, col * .72, fill(lobed(v - vec2(5.0, 7.0), r, 5.0, .12, s)));
+		col = bush(v, r, s, col);
+	}
+	// Rune pillars: grey stone with a lit cap and a glowing cyan mark.
+	for (int k = 0; k < 4; k++) {
+		vec2 base = k == 0 ? vec2(320.0, -34.0) : k == 1 ? vec2(480.0, -34.0) : k == 2 ? vec2(-34.0, 520.0) : vec2(834.0, 280.0);
+		vec2 q = p - base;
+		if (abs(q.x) < 15.0 && abs(q.y) < 17.0) {
+			col = q.y < -7.0 ? vec3(.74, .77, .78) : vec3(.56, .60, .63);
+			float rune = 5.5 - (abs(q.x) + abs(q.y - 3.0));
+			col = mix(col, vec3(.55, .95, 1.0), fill(rune) * (1.0 - fill(rune - 2.5) * .6));
+		}
+	}
 }
 
 void fragment() {
 	vec2 p = UV * (800.0 + margin * 2.0) - margin;
 	float out_d = max(max(-p.x, p.x - 800.0), max(-p.y, p.y - 800.0));
-	bool vertical_side = abs(p.x - 400.0) > abs(p.y - 400.0);
-	float along = vertical_side ? p.y : p.x;
 	vec3 col;
 	if (out_d <= 0.0) {
-		vec3 stone = flagstones(p);
-		float crack = 1.0 - smoothstep(.0, 3.0, cells((p + (vec2(fbm(p * .01), fbm(p * .01 + 7.3)) - .5) * 30.0) / 96.0).x * 96.0);
-		// Worn sandy patches where the slabs have sunk away.
-		float sand = smoothstep(.63, .68, fbm(p * .0045 + 9.1));
-		col = mix(stone, vec3(.92, .82, .6) * (.97 + .05 * fbm(p * .03)), sand * .85);
-		vec4 m = moss(p, crack);
-		col = mix(col, m.rgb, m.a);
-		// Cool tree shade drifting in from the edges.
-		float inside = min(min(p.x, 800.0 - p.x), min(p.y, 800.0 - p.y));
-		float shade = smoothstep(.5, .56, fbm(p * .0065 + 20.0) + .3 * (1.0 - smoothstep(0.0, 140.0, inside)));
-		col *= mix(vec3(1.0), vec3(.78, .86, .82), shade * (1.0 - smoothstep(40.0, 160.0, inside)));
+		col = meadow(p);
+		sand_and_stones(p, col);
+		col = mix(col, col * SHADE, edge_shade(p));
 	} else {
-		col = grass(p);
-		// Low curb wall right around the arena.
-		if (out_d < 26.0) {
-			col = blocks(vec2(along, out_d), 13.0, 42.0, vertical_side ? 1.0 : 2.0);
-			col = mix(col, vec3(.62, .73, .28), smoothstep(.6, .64, fbm(p * .03 + 1.0)) * .9);
-			col *= mix(.92, 1.0, smoothstep(0.0, 26.0, out_d));
-		} else if (out_d < 40.0) {
-			col *= mix(.72, 1.0, smoothstep(26.0, 40.0, out_d));
-		}
-		// Ruined wall stretches beyond the curb: block tops, a shaded front face, a cast shadow.
-		float run = floor(along / 150.0);
-		bool standing = hash(vec2(run, vertical_side ? 3.0 : 7.0)) > .35 && fract(along / 150.0) > .12 && fract(along / 150.0) < .82;
-		float side_y = p.y < 400.0 ? -1.0 : 1.0;
-		if (standing && out_d > 50.0 && out_d < 74.0) {
-			col = blocks(vec2(along, out_d - 50.0), 12.0, 32.0, run);
-			col = mix(col, vec3(.62, .73, .28), smoothstep(.6, .64, fbm(p * .04 + 3.0)) * .9);
-		} else if (standing && !vertical_side && ((side_y < 0.0 && out_d > 40.0 && out_d <= 50.0) || (side_y > 0.0 && out_d >= 74.0 && out_d < 84.0))) {
-			col = mix(vec3(.50, .64, .58), vec3(.43, .57, .52), fract(along / 30.0 + floor(out_d / 5.0) * .5) < .06 ? 1.0 : 0.0);
-		} else if (standing && ((vertical_side && out_d >= 74.0 && out_d < 86.0 && p.x > 400.0) || (vertical_side && out_d > 38.0 && out_d <= 50.0 && p.x < 400.0) || (!vertical_side && side_y > 0.0 && out_d >= 84.0 && out_d < 96.0))) {
-			col *= .76;
-		}
-		// Corner pillars: a capped block with its front face and shadow.
-		vec2 corner = vec2(p.x < 400.0 ? -52.0 : 852.0, p.y < 400.0 ? -52.0 : 852.0);
-		vec2 k = p - corner;
-		if (abs(k.x) < 22.0 && abs(k.y) < 22.0) {
-			col = mix(vec3(.95, .91, .80), vec3(.85, .81, .70), smoothstep(10.0, 22.0, max(abs(k.x), abs(k.y))));
-			col = mix(col, vec3(.62, .73, .28), smoothstep(.55, .6, fbm(p * .06)) * .8);
-		} else if (abs(k.x) < 22.0 && k.y >= 22.0 && k.y < 36.0) {
-			col = vec3(.50, .64, .58);
-		} else if (k.x >= 22.0 && k.x < 34.0 && k.y > -14.0 && k.y < 42.0) {
-			col *= .76;
-		}
-		// Round leafy canopies on a coarse grid, thickening away from the arena.
-		vec2 cell = floor(p / 130.0);
-		for (int j = -1; j <= 1; j++) {
-			for (int i = -1; i <= 1; i++) {
-				vec2 g = cell + vec2(float(i), float(j));
-				vec2 c = (g + .2 + hash2(g + 3.0) * .6) * 130.0;
-				float cd = max(max(-c.x, c.x - 800.0), max(-c.y, c.y - 800.0));
-				if (cd < 95.0 || hash(g + 11.0) > .35 + smoothstep(100.0, 260.0, cd) * .6) continue;
-				float r = 46.0 + hash(g + 4.0) * 30.0;
-				vec2 d = p - c;
-				float ang = atan(d.y, d.x);
-				float wobble = 1.0 + .08 * sin(ang * 7.0 + hash(g) * 20.0) + .05 * sin(ang * 13.0 + hash(g) * 9.0);
-				// Shadow first, offset down-right.
-				if (length(d - vec2(16.0, 22.0)) < r * wobble) col *= .7;
-				float q = length(d) / (r * wobble);
-				if (q < 1.0) {
-					bool autumn = hash(g + 21.0) > .85;
-					vec3 dark = autumn ? vec3(.62, .45, .16) : vec3(.12, .34, .32);
-					vec3 mid = autumn ? vec3(.85, .66, .24) : vec3(.20, .47, .40);
-					vec3 light = autumn ? vec3(.96, .84, .44) : vec3(.42, .66, .42);
-					float lit = dot(normalize(d + vec2(.001)), vec2(-.7, -.7)) * .5 + .5;
-					vec3 leaf = mix(mid, light, smoothstep(.55, .9, lit * (1.0 - q * .5) + (fbm(p * .05) - .5) * .4));
-					// Soft leaf clusters rather than a flat disc.
-					leaf = mix(leaf * .84, leaf, smoothstep(.42, .56, fbm(p * .07 + hash(g) * 9.0)));
-					col = mix(dark, leaf, smoothstep(.0, .12, 1.0 - q));
-				}
-			}
-		}
+		scenery(p, out_d, col);
 	}
-	// Warm sunlight overall.
-	col *= vec3(1.02, 1.0, .95);
+	// A touch dimmer and warmer than the raw palette.
+	col *= vec3(.95, .93, .88);
 	COLOR = vec4(col, 1.0);
 }
