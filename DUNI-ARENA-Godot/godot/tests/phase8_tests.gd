@@ -367,7 +367,7 @@ func persistence_whitelist() -> void:
 	verify(u.combat.attack_metadata.get("combo",0)==0,"combo starts0")
 	var profile: AttackData=u.ability.next_profile(u,2)
 	verify(profile.windup==.12,"UFC second/third windup .12")
-	u.combat.cancel(u);u.parry_cooldown=0;u.defense_cooldown=0
+	u.combat.cancel(u);u.parry_cooldown=0;u.defense_cooldown=0;u.mind.enabled=false
 	verify(u.parry.start(u,b.units[1]),"parry available against multihit")
 	var before: float=b.units[1].current_hp
 	hit(b,b.units[1],u,5,{"attack_token":"fist0"});hit(b,b.units[1],u,5,{"attack_token":"fist1"})

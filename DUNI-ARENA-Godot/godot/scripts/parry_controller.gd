@@ -30,7 +30,7 @@ func start(unit, source = null) -> bool:
 func try_block(unit, source, power: float, token: Variant) -> bool:
 	if not perfect(unit): return false
 	var key: String = str(token) if token != null else "%d:%d:%s" % [source.battle_id, source.combat.attack_serial, power]
-	if not rolls.has(key): rolls[key] = unit.battle.rng.randf() < success_chance(unit, power)
+	if not rolls.has(key): rolls[key] = unit.battle.rng.randf() < success_chance(unit, power) * unit.mind.parry_factor(unit)
 	if not rolls[key]:
 		unit.parry_remaining = minf(unit.parry_remaining, .8)
 		return false

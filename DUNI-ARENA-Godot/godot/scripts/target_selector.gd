@@ -31,7 +31,10 @@ func select_target(unit, candidates: Array):
 			if is_valid_enemy(unit,reply):return reply
 		var punish=unit.battle.find_actor(unit.brain.punish_actor)
 		if unit.brain.punish_until>unit.battle.clock.elapsed and is_valid_enemy(unit,punish):return punish
-		return committed(unit,unit.ability.choose_target(unit,unit.enemies()))
+		var best=unit.ability.choose_target(unit,unit.enemies())
+		# Character choices that aim at allies (healing, support) are kept as they are.
+		if best==null or best.team!=unit.team:best=unit.mind.pick_target(unit,best)
+		return committed(unit,best)
 	var nearest = null
 	var nearest_distance: float = INF
 	for candidate in candidates:

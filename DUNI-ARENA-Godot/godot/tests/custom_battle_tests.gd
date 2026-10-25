@@ -55,6 +55,7 @@ func run(tree: SceneTree) -> void:
 	multikill(tree)
 	stairs()
 	await unit_sheet(tree)
+	tactical_mind(tree)
 	await map_wallet_return(tree)
 	ai_health(tree)
 	print("CUSTOM BATTLE RESULT: ",checks," checks; ",failures," failures")
@@ -118,6 +119,8 @@ func new_characters(tree: SceneTree) -> void:
 	# 기관사: the train hits enemies on the line hard and shoves allies lightly.
 	b=duel(tree,[[27,0,Vector2(100,400)],[4,0,Vector2(250,400)],[1,1,Vector2(500,400)],[1,1,Vector2(650,400)]])
 	var conductor: BattleUnit=b.units[0];conductor.ultimate_gauge=100
+	# The enemies stand still on the line, so the check is about the train, not where they wander.
+	for foe in [b.units[2],b.units[3]]:foe.move_speed=0
 	verify(not conductor.ability.can_attack(conductor,b.units[2]),"conductor has no basic attack")
 	var enemy_hp: float=b.units[2].current_hp+b.units[3].current_hp;var ally_hp: float=b.units[1].current_hp
 	var ran: bool=false
@@ -296,3 +299,39 @@ func unit_sheet(tree: SceneTree) -> void:
 	var titles: Array=sheet.find_children("*","Label",true,false).map(func(l):return l.text)
 	verify(["행동성향","기본공격","패시브","궁극기","초월 스킬"].all(func(x):return x in titles),"unit sheet shows every section")
 	sheet.queue_free();host.queue_free()
+func tactical_mind(tree: SceneTree) -> void:
+	# Every unit has a base role, shown first among its traits.
+	var roles: bool=true
+	for data in CharacterCatalog.all().values():
+		if TacticalMind.trait_names(data)[0] not in TacticalMind.ROLE_NAMES.values():roles=false
+	verify(roles,"every unit has one base role")
+	var make:=func(rows: Array) -> BattleManager:
+		var b:=BattleManager.new();b.auto_start=false;tree.root.add_child(b);var placements: Array[Dictionary]=[]
+		for row in rows:placements.append({"data":CharacterCatalog.all()[row[0]],"team":row[1],"position":row[2]})
+		b.start_battle(placements,11);b.set_physics_process(false);b.clock.elapsed=1;return b
+	# HP and the balance of the fight move the temper.
+	var b: BattleManager=make.call([[0,0,Vector2(300,400)],[0,1,Vector2(500,400)]]);var u: BattleUnit=b.units[0]
+	u.mind.next_eval=-INF;var healthy: float=u.mind.bias(u)
+	u.current_hp=u.max_hp*.15;u.mind.next_eval=-INF;var hurt: float=u.mind.bias(u)
+	verify(hurt<healthy-.3,"low HP turns a unit cautious")
+	verify(u.mind.parry_factor(u)>1 and u.mind.parry_mistake(u,.3)<.3,"a cautious mind parries better and times it better")
+	b.free()
+	b=make.call([[0,0,Vector2(300,400)],[1,0,Vector2(250,300)],[5,0,Vector2(250,500)],[0,1,Vector2(500,400)]]);u=b.units[0];u.mind.next_eval=-INF
+	verify(u.mind.bias(u)>.45 and u.mind.charging(u),"a healthy melee unit that outnumbers the enemy presses the attack")
+	b.free()
+	# A far-off swing at someone else is ignored; a shot aimed at a healthy unit is parried, not dodged.
+	b=make.call([[0,0,Vector2(150,400)],[0,0,Vector2(560,420)],[0,1,Vector2(620,400)],[1,1,Vector2(620,200)]]);u=b.units[0]
+	var foe: BattleUnit=b.units[2];foe.combat.attack_target=b.units[1];foe.combat_state=CombatController.State.WINDUP
+	verify(u.mind.adjust_reaction(u,{"parry":.4,"dodge":.2,"counter":.3,"hold":.1},foe).hold==1.0,"a distant attack on an ally is ignored")
+	var archer: BattleUnit=b.units[3];archer.combat.attack_target=u;u.parry_cooldown=0
+	var odds: Dictionary=u.mind.adjust_reaction(u,{"parry":.4,"dodge":.2,"counter":.3,"hold":.1},archer)
+	verify(odds.dodge==0 and odds.parry>.4,"a healthy unit blocks a shot aimed at it")
+	u.current_hp=u.max_hp*.2;u.mind.next_eval=-INF
+	odds=u.mind.adjust_reaction(u,{"parry":.4,"dodge":.2,"counter":.3,"hold":.1},archer)
+	verify(odds.dodge>odds.parry,"a hurt unit sidesteps a shot aimed at it")
+	b.free()
+	# A guard goes for whoever is attacking a nearby ally.
+	b=make.call([[4,0,Vector2(300,400)],[1,0,Vector2(380,400)],[0,1,Vector2(450,400)],[0,1,Vector2(250,300)]]);u=b.units[0]
+	var attacker: BattleUnit=b.units[2];attacker.combat.attack_target=b.units[1];attacker.combat_state=CombatController.State.WINDUP
+	verify(u.mind.pick_target(u,b.units[3])==attacker,"a guard targets the enemy attacking its ally")
+	b.free()

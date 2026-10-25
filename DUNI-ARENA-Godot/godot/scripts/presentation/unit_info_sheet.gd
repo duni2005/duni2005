@@ -77,7 +77,7 @@ func _build(column: VBoxContainer) -> void:
 	var scroll := ScrollContainer.new();scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL;scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER;column.add_child(scroll)
 	var body := VBoxContainer.new();body.size_flags_horizontal = Control.SIZE_EXPAND_FILL;body.add_theme_constant_override("separation", 10);scroll.add_child(body)
 	body.add_child(_stats_grid(data))
-	var traits: Array = Array(data.tags).filter(func(t):return UnitLore.TRAITS.has(t))
+	var traits: Array = TacticalMind.trait_names(data).filter(func(t):return UnitLore.TRAITS.has(t))
 	var trait_text: String = "\n".join(traits.map(func(t):return "[b]%s[/b]  %s" % [t, UnitLore.TRAITS[t]]))
 	if member != null:trait_text += "\n[color=#8fe3ff]현재 성향 · %s[/color]  %s" % [ArenaUI.stance(member.stance), ArenaUI.STANCE_HELP.get(member.stance, "")]
 	body.add_child(_section("guild", "행동성향", trait_text, Color("8fe3ff")))

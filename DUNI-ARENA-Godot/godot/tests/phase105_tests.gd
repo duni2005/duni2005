@@ -12,6 +12,8 @@ func match_at(type: int=0,point: Vector2=Vector2(400,400)) -> BattleManager:
 	var u: BattleUnit=b.units[0];u.current_hp=u.max_hp*.6;u.move_speed=u.data.move_speed;u.facing=0;u.combat.cooldown=0;u.target=b.units[1]
 	u.brain.mode="observe";u.brain.think=5;u.brain.hold=5;u.brain.last_target=b.units[1].actor_id();u.brain.next_initiative_at=9;u.brain.commit_until=0;u.brain.phase=1.2;u.movement_phase=1.2;u.brain.side=1;u.brain.standoff=162;u.brain.swerve=1.1;u.brain.reaction=.2;u.brain.tempo=1;u.brain.patience=1;u.brain.goal=Vector2(700,400);u.brain.entry_plan="observe";u.brain.heading=Vector2.ZERO
 	u.area_evaluator.initialized=true;u.area_evaluator.next_think=99
+	# These checks pin the original web port; the tactical mind on top is tested separately.
+	u.mind.enabled=false
 	return b
 func golden(data: Dictionary) -> void:
 	for row in data.rows:

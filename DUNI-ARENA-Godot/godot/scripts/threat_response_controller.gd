@@ -41,7 +41,7 @@ static func impact_delay(unit, enemy) -> float:
 static func timing(unit, delay: float) -> Dictionary:
 	var rng: RandomNumberGenerator = unit.battle.rng
 	var lead: float = rng.randf_range(.17,.31)
-	var mistake: bool = rng.randf() < (.15 if unit.stance==CombatStance.CAUTIOUS else .3)
+	var mistake: bool = rng.randf() < unit.mind.parry_mistake(unit,.15 if unit.stance==CombatStance.CAUTIOUS else .3)
 	var mode: String = ("early" if delay > .6 and rng.randf()<.5 else "late") if mistake else "normal"
 	var wait: float = delay-lead
 	if mode=="early": wait-=rng.randf_range(.45,.95)
@@ -79,12 +79,12 @@ func advance(unit) -> void:
 	var read: Dictionary = read_attacks[key]
 	if read.done or now<read.at: return
 	read.done=true
-	var probabilities: Dictionary = chances(unit)
+	var probabilities: Dictionary = unit.mind.adjust_reaction(unit,chances(unit),source)
 	var mode: StringName = &"parry" if read.roll<probabilities.parry else &"dodge" if read.roll<probabilities.parry+probabilities.dodge else &"counter" if read.roll<probabilities.parry+probabilities.dodge+probabilities.counter else &"hold"
 	var delay: float = impact_delay(unit,source)
 	response={"mode":mode,"observed_at":now+.00001,"source_id":source.battle_id,"serial":reaction_serial(source),"fired":false,"hidden":source.combat.hidden_launch,"started":false,"side":-1 if battle.rng.randf()<.5 else 1,"until":now+minf(1.05,delay+.4)}
 	counts[mode]=counts.get(mode,0)+1
-	if mode==&"parry": response.merge(timing(unit,delay),true)
+	if mode==&"parry": response.merge(timing(unit,delay),true);response.advance=unit.mind.advance_while_parrying(unit,source)
 	if unit.battle.full_characters_enabled and mode==&"counter":unit.brain.begin(unit,source,1.5,"counter")
 	if unit.battle.full_characters_enabled and mode==&"hold":unit.brain.mode="circle";unit.brain.hold=battle.rng.randf_range(.15,.4)
 	if mode in [&"parry",&"dodge"]:
@@ -130,10 +130,12 @@ func movement(unit, delta: float) -> bool:
 		return true
 	if response.mode==&"dodge" and unit.battle.full_characters_enabled and (unit.state_value("shadowTime")>0 or unit.command_retreat_until>unit.battle.clock.elapsed or not unit.lost_sword.is_empty()):return false
 	if response.mode==&"parry" and not response.started:
-		# Keep moving normally until the blow is close; then plant and face it.
-		if unit.battle.full_characters_enabled and unit.battle.clock.elapsed<float(response.get("parry_at",0))-.3:return false
+		# Keep moving normally until the blow is close; then plant and face it. A healthy unit
+		# parrying a shot aimed at it steps towards the shooter instead.
+		var stepping: bool=response.get("advance",false)
+		if unit.battle.full_characters_enabled and unit.battle.clock.elapsed<float(response.get("parry_at",0))-.3 and not stepping:return false
 		unit.facing=lerp_angle(unit.facing,(source.position-unit.position).angle(),minf(1,delta*8))
-		direction=(unit.position-source.position).normalized()*.15*.5
+		direction=(source.position-unit.position).normalized()*.4 if stepping else (unit.position-source.position).normalized()*.15*.5
 	elif response.mode==&"dodge" and unit.combat_state==CombatController.State.IDLE:
 		var away: Vector2 = (unit.position-source.position).normalized()
 		direction=Vector2.from_angle(source.combat.aim_angle+PI/2)*response.side if source.data.attack_range>100 else away*.8-away.orthogonal()*response.side

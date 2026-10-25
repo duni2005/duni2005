@@ -11,7 +11,7 @@ const MUTED=Color("9aa5c2")
 const DANGER=Color("ff8088")
 const HP=Color("86e3a4")
 const STANCE_NAMES={&"normal":"기본",&"cautious":"신중함",&"rush":"저돌적",&"cover":"엄호"}
-const STANCE_HELP={&"normal":"균형 잡힌 기본 전투 성향",&"cautious":"위험을 살피며 신중하게 교전합니다.",&"rush":"공격을 적극적으로 시도합니다.",&"cover":"아군을 엄호하는 위치를 선택합니다."}
+const STANCE_HELP={&"normal":"균형 잡힌 기본 전투 성향",&"cautious":"거리를 유지하며 적의 공격이 빠질 때를 노리고, 패링을 더 잘 씁니다.",&"rush":"적에게 다가가 빠르게 공격합니다. 패링 성공률은 낮아집니다.",&"cover":"아군을 엄호하는 위치를 선택합니다."}
 static var shared_theme: Theme
 static var pip_on: StyleBoxFlat
 static var pip_off: StyleBoxFlat

@@ -48,6 +48,7 @@ var threat_response := ThreatResponseController.new()
 var area_evaluator := AreaEvaluator.new()
 var ability: CharacterAbility
 var brain := BattleBrain.new()
+var mind := TacticalMind.new()
 var ultimate := UltimateController.new()
 var original_team: int = 0
 var deployment_position: Vector2 = Vector2.ZERO

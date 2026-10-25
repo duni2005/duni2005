@@ -52,7 +52,7 @@ func initialize(r: RandomNumberGenerator) -> void:
 	next_initiative_at=r.randf_range(.4,3.8)*tempo
 	goal=Vector2(r.randf_range(100,700),r.randf_range(100,700))
 func defensive(u) -> bool:
-	return (u.stance==CombatStance.CAUTIOUS or u.data.tags.has("대치형")) and u.stance!=CombatStance.RUSH and u.state_value("shadowTime")<=0 and u.taunted_until<=u.battle.clock.elapsed
+	return (u.stance==CombatStance.CAUTIOUS or u.data.tags.has("대치형") or u.mind.cautious(u)) and u.stance!=CombatStance.RUSH and u.state_value("shadowTime")<=0 and u.taunted_until<=u.battle.clock.elapsed
 func turn_face(u,point: Vector2,dt: float) -> void:
 	var turn: float=wrapf((point-u.position).angle()-u.facing,-PI,PI)
 	u.facing+=clampf(turn,-.75*dt,.75*dt) if u.data.type_id==18 else turn*minf(1,dt*8)
@@ -94,6 +94,7 @@ func advance(u, enemy, _dt: float) -> void:
 		was_attacking=false;attack_decision.clear();next_initiative_at=maxf(now,disengage_until)+r.randf_range(.3,2.3)*tempo*(1.25 if u.stance==CombatStance.CAUTIOUS else 1)
 	if enemy==null or u.stun_remaining>0 or u.evade_remaining>0 or u.ability.locked(u) or not u.lost_sword.is_empty() or u.command_retreat_until>now:return
 	if not attack_decision.is_empty():attack_decision.actor=enemy.actor_id()
+	u.mind.pace(u,enemy)
 	if not u.threat_response.response.is_empty() or u.combat.cooldown>0 or now<maxf(maxf(disengage_until,return_until),commit_until):return
 	if defensive(u):
 		if now<float(spacing.exit) or spacing.threatening or now<float(spacing.probe):return
@@ -115,7 +116,7 @@ func attack_ready(u, enemy) -> bool:
 		if anchor!=null and anchor.alive and anchor.position.distance_to(enemy.position)>240:return false
 	if ParryController.perfect(u) or u.threat_response.response.get("mode",&"")==&"parry":return false
 	if u.state_value("shadowTime")>0:return true
-	var pressure: bool=u.stance==CombatStance.RUSH or u.taunted_until>now
+	var pressure: bool=u.stance==CombatStance.RUSH or u.taunted_until>now or u.mind.charging(u)
 	if not pressure and (u.threat_response.response.get("mode",&"")==&"dodge" and now<float(u.threat_response.response.get("until",0)) or now>=commit_until and now>=punish_until or now<disengage_until or now<return_until):return false
 	if attack_decision.is_empty():attack_decision={"actor":enemy.actor_id(),"at":now+intent_delay(u,"pressure" if pressure else "counter" if u.threat_response.response.get("mode",&"")==&"counter" else "punish" if now<punish_until else "initiative")}
 	attack_decision.actor=enemy.actor_id()
@@ -265,6 +266,10 @@ func move_stance(u,enemy,dt: float) -> bool:
 	steer(u,direction,dt,factor,"strategy");return true
 func movement(u,enemy,dt: float) -> void:
 	movement_override="";ability_override=""
+	if u.mind.active(u) and TacticalMind.role(u.data)==TacticalMind.FIXED:
+		u.velocity=Vector2.ZERO;heading=Vector2.ZERO;movement_override="fixed"
+		if enemy!=null:turn_face(u,enemy.position,dt)
+		return
 	if move_stance(u,enemy,dt):return
 	if u.data.type_id==16 and u.ability.modify_movement(u,enemy,dt):ability_override="paladin_rally";return
 	if u.data.type_id==14 and u.combat_state!=CombatController.State.IDLE:heading=Vector2.ZERO;u.velocity=Vector2.ZERO;ability_override="slash_combo";return

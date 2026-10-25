@@ -60,7 +60,7 @@ func pause_and_interrupt() -> void:
 	verify(not u.combat.counter and u.combat_state==CombatController.State.IDLE,"stun still cancels counter")
 	b.free()
 func real_parry() -> void:
-	var b:=fixture();var u: BattleUnit=b.units[0];var enemy: BattleUnit=b.units[1]
+	var b:=fixture();var u: BattleUnit=b.units[0];var enemy: BattleUnit=b.units[1];u.mind.enabled=false
 	verify(u.parry.start(u,enemy),"real parry begins")
 	var out: DamageOutcome=b.damage_resolver.resolve(enemy,u,16,{"critical":false,"attack_token":"stall-repro"})
 	verify(out.parried and u.combat.counter,"actual hit creates parry counter")
