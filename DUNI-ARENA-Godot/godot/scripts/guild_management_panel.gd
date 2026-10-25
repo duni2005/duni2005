@@ -48,7 +48,6 @@ func _ready() -> void:
  var window: Window=get_window()
  if window is AcceptDialog:
   window.borderless=true;window.get_ok_button().hide();window.add_theme_stylebox_override("panel",StyleBoxEmpty.new())
-  column.add_child(ArenaBrandBar.new())
   var heading:=HBoxContainer.new();heading.custom_minimum_size.y=44;column.add_child(heading)
   var context_room: RoomState=prebattle_room if prebattle_room!=null else header_room
   page_title=Label.new();page_title.text=ArenaUI.room_title(context_room) if context_room!=null else "길드 관리";page_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;page_title.add_theme_font_size_override("font_size",18);page_title.clip_text=true;heading.add_child(page_title)

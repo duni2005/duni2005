@@ -53,7 +53,6 @@ func _ready() -> void:
 	for side in ["left","top","right","bottom"]:margin.add_theme_constant_override("margin_"+side,16)
 	ArenaUI.safe_margin(margin)
 	column=VBoxContainer.new();margin.add_child(column)
-	var brand:=ArenaBrandBar.new();column.add_child(brand)
 	var top:=HBoxContainer.new();top.custom_minimum_size.y=44;column.add_child(top)
 	heading=Label.new();heading.add_theme_font_size_override("font_size",18);heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.clip_text=true;top.add_child(heading)
 	guild_button=ArenaUI.nav_button("guild",_open_guild);top.add_child(guild_button)

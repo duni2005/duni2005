@@ -48,7 +48,6 @@ func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var margin:=MarginContainer.new();margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);add_child(margin);ArenaUI.safe_margin(margin)
 	var column:=VBoxContainer.new();column.add_theme_constant_override("separation",8);margin.add_child(column)
-	column.add_child(ArenaBrandBar.new())
 	# Setup header: title, settings summary, back to the main menu.
 	setup_header=HBoxContainer.new();setup_header.custom_minimum_size.y=44;column.add_child(setup_header)
 	title_label=Label.new();title_label.text="커스텀 전투";title_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;title_label.add_theme_font_override("font",ArenaUI.heading_font());title_label.add_theme_font_size_override("font_size",20);title_label.add_theme_color_override("font_color",ArenaUI.GOLD);setup_header.add_child(title_label)
@@ -88,7 +87,7 @@ func _ready() -> void:
 	trans_scroll=ScrollContainer.new();trans_scroll.set_meta("hold_drag",true);trans_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;trans_scroll.custom_minimum_size.y=60;column.add_child(trans_scroll);trans_scroll.hide()
 	trans_row=HBoxContainer.new();trans_row.add_theme_constant_override("separation",6);trans_scroll.add_child(trans_row)
 	battle_toolbar=HBoxContainer.new();column.add_child(battle_toolbar);battle_toolbar.hide()
-	var kill_feed:=KillFeed.new();kill_feed.board=board;add_child(kill_feed)
+	var kill_feed:=KillFeed.new();kill_feed.board=board;kill_feed.status=status_line;add_child(kill_feed)
 	pause_button=_button(battle_toolbar,"Ⅱ 일시정지",_toggle_pause);pause_button.custom_minimum_size.x=104;pause_button.add_theme_font_size_override("font_size",11);ArenaUI.quiet(pause_button)
 	var lead:=Control.new();lead.size_flags_horizontal=Control.SIZE_EXPAND_FILL;battle_toolbar.add_child(lead)
 	var speeds:=HBoxContainer.new();speeds.add_theme_constant_override("separation",4);battle_toolbar.add_child(speeds)

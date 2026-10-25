@@ -168,30 +168,49 @@ func _count_kill(victim,source) -> void:
 	for waiting in multi_queue:
 		if waiting.actor==item.actor:waiting.count=item.count;return
 	multi_queue.append(item)
+## Multi-kill banner: a ribbon that snaps open across the upper field with the killer's portrait,
+## the streak name, a shine sweep and one pip per kill.
 func _draw_multi_kill(rect: Rect2) -> void:
 	if multi_banner.is_empty():return
 	var age: float=float(multi_banner.age);var level: int=int(multi_banner.count)
-	var enter: float=clampf(age/.18,0,1);var alpha: float=minf(enter,clampf((BANNER_LIFE-age)/.55,0,1))
+	var enter: float=clampf(age/.22,0,1);var alpha: float=minf(clampf(age/.1,0,1),clampf((BANNER_LIFE-age)/.45,0,1))
 	var color: Color=MULTI_KILL_COLORS[level];var team: Color=multi_banner.color
-	# Below the kill log in the top-right corner.
-	var center:=Vector2(rect.get_center().x,rect.position.y+clampf(rect.size.y*.34,120,220))
-	var size: float=clampf(rect.size.x*.085,22,40);var pop: float=1+(1-enter)*.35+(.08*sin(clampf(age/.5,0,1)*PI) if level>=4 else 0)
-	VfxArt.glow(self,center+Vector2(0,size*.1),size*4,color,.22*alpha)
-	draw_set_transform(center,0,Vector2.ONE*pop)
 	var font: Font=ArenaUI.heading_font();var text: String=MULTI_KILL_NAMES[level]
-	draw_string_outline(font,Vector2(-rect.size.x*.5,size*.36),text,HORIZONTAL_ALIGNMENT_CENTER,rect.size.x,int(size),6,Color(.12,.05,.02,.85*alpha))
-	draw_string(font,Vector2(-rect.size.x*.5,size*.36),text,HORIZONTAL_ALIGNMENT_CENTER,rect.size.x,int(size),Color(color.lightened(.35),alpha))
+	var size: float=clampf(rect.size.x*.075,20,34);var text_w: float=font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,int(size)).x
+	var icon: float=size*1.45;var band_h: float=size*1.75;var band_w: float=text_w+icon+size*1.6
+	var center:=Vector2(rect.get_center().x,rect.position.y+clampf(rect.size.y*.24,90,180))
+	var half: float=band_w*.5*(1-pow(1-enter,3));var tip: float=band_h*.42;var top: float=center.y-band_h*.5;var bottom: float=center.y+band_h*.5
+	VfxArt.glow(self,center,band_w*.8,color,.28*alpha,.5)
+	var band:=PackedVector2Array([Vector2(center.x-half-tip,center.y),Vector2(center.x-half,top),Vector2(center.x+half,top),Vector2(center.x+half+tip,center.y),Vector2(center.x+half,bottom),Vector2(center.x-half,bottom)])
+	var dark:=Color(.06,.04,.09,.94*alpha);var lit:=Color(color.darkened(.62),.94*alpha)
+	draw_polygon(band,PackedColorArray([Color(lit,lit.a*.8),dark,dark,Color(lit,lit.a*.8),lit,lit]))
+	var outline:=band.duplicate();outline.append(band[0]);draw_polyline(outline,Color(color,.9*alpha),2,true)
+	draw_line(Vector2(center.x-half,top+3),Vector2(center.x+half,top+3),Color(1,1,1,.14*alpha),1)
+	if enter<1:return
+	# A shine sweeps across once the ribbon is open.
+	var k: float=clampf((age-.22)/.45,0,1)
+	if k>0 and k<1:
+		var x: float=lerpf(center.x-half,center.x+half-band_h*.4,k)
+		draw_colored_polygon(PackedVector2Array([Vector2(x+band_h*.25,top+2),Vector2(x+band_h*.45,top+2),Vector2(x+band_h*.2,bottom-2),Vector2(x,bottom-2)]),Color(1,1,1,.22*(1-k)*alpha))
+	var portrait:=Vector2(center.x-half+icon*.5+size*.25,center.y)
+	draw_circle(portrait,icon*.56,Color("0b0f1a",alpha));UnitIcon.draw_team(self,Rect2(portrait-Vector2.ONE*icon*.5,Vector2.ONE*icon),int(multi_banner.type),team,alpha)
+	var pop: float=1+(1-clampf((age-.22)/.25,0,1))*.22;var text_x: float=portrait.x+icon*.5+size*.35+text_w*.5
+	draw_set_transform(Vector2(text_x,center.y),0,Vector2.ONE*pop)
+	draw_string_outline(font,Vector2(-text_w*.5,size*.36),text,HORIZONTAL_ALIGNMENT_LEFT,-1,int(size),5,Color(.06,.03,.02,.9*alpha))
+	draw_string(font,Vector2(-text_w*.5,size*.36),text,HORIZONTAL_ALIGNMENT_LEFT,-1,int(size),Color(color.lightened(.45),alpha))
 	draw_set_transform(Vector2.ZERO)
-	# Killer chip above, one tick per kill below.
-	var icon: float=22;var name_w: float=ArenaUI.heading_font().get_string_size(String(multi_banner.name),HORIZONTAL_ALIGNMENT_LEFT,-1,12).x
-	var chip_x: float=center.x-(icon+6+name_w)*.5;var chip_y: float=center.y-size*.7-icon
-	UnitIcon.draw_team(self,Rect2(chip_x,chip_y,icon,icon),int(multi_banner.type),team,alpha)
-	draw_string_outline(font,Vector2(chip_x+icon+6,chip_y+icon*.7),String(multi_banner.name),HORIZONTAL_ALIGNMENT_LEFT,-1,12,4,Color(0,0,0,.7*alpha))
-	draw_string(font,Vector2(chip_x+icon+6,chip_y+icon*.7),String(multi_banner.name),HORIZONTAL_ALIGNMENT_LEFT,-1,12,Color(team.lightened(.4),alpha))
-	var tick_w: float=14;var start: float=center.x-(level*(tick_w+4)-4)*.5
+	# Killer name above, one pip per kill below.
+	var name: String=String(multi_banner.name)
+	draw_string_outline(font,Vector2(center.x-120,top-6),name,HORIZONTAL_ALIGNMENT_CENTER,240,12,4,Color(0,0,0,.75*alpha))
+	draw_string(font,Vector2(center.x-120,top-6),name,HORIZONTAL_ALIGNMENT_CENTER,240,12,Color(team.lightened(.45),alpha))
+	var pip: float=5;var start: float=center.x-(level-1)*pip*1.6
 	for i in range(level):
-		var x: float=start+i*(tick_w+4);var y: float=center.y+size*.62
-		draw_colored_polygon(PackedVector2Array([Vector2(x+3,y),Vector2(x+tick_w+3,y),Vector2(x+tick_w,y+4),Vector2(x,y+4)]),Color(team.lightened(.2),alpha))
+		var at:=Vector2(start+i*pip*3.2,bottom+pip+4)
+		draw_colored_polygon(PackedVector2Array([at+Vector2(0,-pip),at+Vector2(pip,0),at+Vector2(0,pip),at+Vector2(-pip,0)]),Color(color.lightened(.3),alpha))
+func _age_banner(dt: float) -> void:
+	if multi_banner.is_empty():return
+	multi_banner.age=float(multi_banner.age)+maxf(0,dt)
+	if multi_banner.age>=BANNER_LIFE:multi_banner=multi_queue.pop_front() if not multi_queue.is_empty() else {}
 func _prepare_ending(reason: BattleEndReason.Value) -> void:
 	if cinematic.started or not is_instance_valid(battle):return
 	var rows: Array[Dictionary]=[];var arrows: Array[Dictionary]=[]
@@ -210,6 +229,8 @@ func ensure_cinematic(reason: BattleEndReason.Value) -> BattleCinematicState:
 func _advance_ending(delta: float) -> void:
 	var before: float=BattleCinematicState.motion_seconds(cinematic.age)
 	cinematic.advance(delta);end_age=cinematic.age
+	# The last kills often end the fight: their streak banner plays over the ending.
+	_age_banner(delta)
 	var slow_dt: float=BattleCinematicState.motion_seconds(cinematic.age)-before
 	real_age+=slow_dt;particles.advance(slow_dt)
 	for collection in [effects,numbers,afterimages]:
@@ -233,9 +254,7 @@ func advance(delta: float) -> void:
 	for i in range(kill_notices.size()-1,-1,-1):
 		kill_notices[i].age+=maxf(0,ui_delta)
 		if kill_notices[i].age>3.2:kill_notices.remove_at(i)
-	if not multi_banner.is_empty():
-		multi_banner.age=float(multi_banner.age)+maxf(0,ui_delta)
-		if multi_banner.age>=BANNER_LIFE:multi_banner=multi_queue.pop_front() if not multi_queue.is_empty() else {}
+	_age_banner(ui_delta)
 	impact_cooldown=maxf(0,impact_cooldown-delta);impact_remaining=maxf(0,impact_remaining-delta)
 	if impact_remaining<=0:particles.advance(delta)
 	for id in flashes:flashes[id]=maxf(0,float(flashes[id])-delta)
@@ -336,8 +355,8 @@ func advance(delta: float) -> void:
 		if unit.alive:rows.append({"position":unit.position,"velocity":unit.velocity,"scale":unit.combat_scale()})
 	camera.set_framing(rows)
 	var ending: bool=battle.finished and end_age<1.55 and camera.finale_remaining>0
-	if battle.clock.state==BattleClock.State.TURNING_SLOWDOWN and not battle.finished:camera.advance_overview(ui_delta)
-	else:camera.advance(ui_delta,(battle.clock.state!=BattleClock.State.NORMAL or battle.finished) and not ending)
+	if battle.clock.state==BattleClock.State.TURNING_SLOWDOWN and not battle.finished:camera.advance_overview(ui_delta,2.0,ArenaCameraController.TURNING_ZOOM)
+	else:camera.advance(ui_delta,(battle.clock.state!=BattleClock.State.NORMAL or battle.finished) and not ending,ArenaCameraController.TURNING_ZOOM if battle.clock.state==BattleClock.State.TURNING_PAUSED else 1.0)
 	queue_redraw()
 	if is_instance_valid(glow_layer):glow_layer.queue_redraw()
 	if is_instance_valid(field_layer) and board!=null:
@@ -362,7 +381,7 @@ func _draw() -> void:
 		for edge in range(10):draw_rect(Rect2(edge*8,edge*8,800-edge*16,800-edge*16),Color(0,.03,.025,.025*t),false,8)
 		for x in range(80,800,80):draw_line(Vector2(x,20),Vector2(x,780),Color(.7,.8,.6,.07*t),1)
 	if cinematic.started and battle.finished:
-		_draw_ending();draw_set_transform(Vector2.ZERO);return
+		_draw_ending();draw_set_transform(Vector2.ZERO);_draw_multi_kill(rect);return
 	for z in ([] if battle.finished else battle.zones.entries):
 		var point: Vector2=CharacterPersistence.vector(z.point);var c: Color=ZONE_COLORS.get(z.kind,Color("a3b7ff"));var radius: float=z.radius
 		if z.kind=="ring":
@@ -457,10 +476,10 @@ func _unit(u: BattleUnit,parent: Transform2D) -> void:
 		pose_override={"key":"0:basic","index":13+roundi(swing*11),"angle":row.angle,"weapon_scale":1.4,"swing":swing}
 	CharacterPainter.draw_unit(self,u,parent,float(flashes.get(u.battle_id,0))/.15,pose_override)
 	_ability_state(u)
-	# HP bar: dark outlined well and bright team-colour fill, never smaller than ~34x5 screen px
+	# HP bar: dark outlined well and bright team-colour fill, never smaller than ~28x4 screen px
 	# however far the board is scaled down on a phone.
 	var px: float=1/maxf(.05,parent.get_scale().x)
-	var bar_w: float=maxf(58,34*px);var hp_h: float=maxf(7,5*px);var ult_h: float=maxf(4,3*px)
+	var bar_w: float=maxf(48,28*px);var hp_h: float=maxf(6,4*px);var ult_h: float=maxf(3,2.5*px)
 	var hp_rect:=Rect2(at+Vector2(-bar_w*.5,-radius-6-hp_h-ult_h),Vector2(bar_w,hp_h));var hp_frac: float=clampf(u.current_hp/u.max_hp,0,1)
 	draw_rect(hp_rect.grow(px),Color(0,0,0,.85));draw_rect(hp_rect,Color("1a2232"))
 	draw_rect(Rect2(hp_rect.position,Vector2(hp_rect.size.x*hp_frac,hp_rect.size.y)),color.lightened(.15))

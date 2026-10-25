@@ -29,13 +29,13 @@ static func fade(c: Control, delay: float = 0, time: float = .22) -> void:
 	t.tween_callback(func():c.remove_meta("motion_alpha"))
 
 ## Page entrance: rows of the main column fade in, then the on-screen cards pop in one by one.
-## The brand bar and wallet header stay put so pages share one steady header.
+## The wallet header stays put so pages share one steady header.
 static func enter(root: Control) -> void:
 	if not enabled or not is_instance_valid(root) or not root.is_inside_tree():return
 	await root.get_tree().process_frame
 	if not is_instance_valid(root):return
 	var column: BoxContainer = _column(root)
-	var rows: Array = [] if column == null else column.get_children().filter(func(c):return c is Control and c.visible and not (c is ArenaBrandBar or c is WalletBar))
+	var rows: Array = [] if column == null else column.get_children().filter(func(c):return c is Control and c.visible and not c is WalletBar)
 	for i in range(mini(rows.size(), 10)):fade(rows[i], i * .04)
 	var view: Rect2 = root.get_viewport_rect();var cards: Array = []
 	_collect_cards(root, view, cards)

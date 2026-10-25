@@ -44,7 +44,6 @@ func _ready() -> void:
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,16)
 	ArenaUI.safe_margin(margin)
 	body=VBoxContainer.new();margin.add_child(body)
-	var brand:=ArenaBrandBar.new();body.add_child(brand)
 	var top:=HBoxContainer.new();top.custom_minimum_size.y=44;body.add_child(top)
 	var heading:=Label.new();heading.name="TowerHeading";heading.text="두니 타워 · 탐험 지도";heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_theme_font_override("font",ArenaUI.heading_font());heading.add_theme_font_size_override("font_size",19);top.add_child(heading)
 	guild_button=make_nav_button(top,"guild",open_guild);guild_button.custom_minimum_size=Vector2(44,44);guild_button.tooltip_text="유닛 / 인벤토리 / 강화"

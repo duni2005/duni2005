@@ -4,6 +4,8 @@ extends RefCounted
 const MAX_ZOOM: float=2.2
 const PRESENTATION_ZOOM: float=1.12
 const VIEW_ZOOM_LIMIT: float=2.5
+## Turning point overview: the whole arena with a margin, so HP bars of units at the edges show.
+const TURNING_ZOOM: float=.86
 var offset:=Vector2.ZERO
 var strength: float=0
 var age: float=0
@@ -34,13 +36,13 @@ func user_pan_by(screen_delta: Vector2) -> void:
 	user_focus=(user_focus-screen_delta/(user_zoom-1)).clamp(Vector2.ZERO,Vector2(800,800))
 func user_relax(real_delta: float) -> void:
 	if user_zoom>1:user_zoom=maxf(1,lerpf(user_zoom,1,1-exp(-real_delta*6))-.002)
-func advance_overview(real_delta: float,duration: float=2.0) -> void:
+func advance_overview(real_delta: float,duration: float=2.0,target_zoom: float=1) -> void:
 	# TP's two real-second slowdown reveals the entire logical arena.
 	# Read-only camera interpolation; the simulation clock remains authoritative.
 	if overview_age<0:overview_age=0;overview_zoom=zoom;overview_center=center
 	overview_age+=maxf(0,real_delta)
 	var t: float=clampf(overview_age/maxf(.01,duration),0,1);t=t*t*(3-2*t)
-	zoom=lerpf(overview_zoom,1,t);center=overview_center.lerp(Vector2(400,400),t)
+	zoom=lerpf(overview_zoom,target_zoom,t);center=overview_center.lerp(Vector2(400,400),t)
 	pan=(Vector2(400,400)-center)*zoom;offset=Vector2.ZERO;strength=0
 static func bounds(rows: Array,padding: float=0,predict: bool=false) -> Rect2:
 	var lower:=Vector2(INF,INF);var upper:=Vector2(-INF,-INF)
@@ -65,12 +67,12 @@ func focus(point: Vector2,duration: float=.7) -> void:
 	focus_point=point;focus_remaining=duration
 func finish(point: Vector2) -> void:
 	focus_point=point;finale_remaining=1.55
-func advance(real_delta: float,paused: bool=false) -> void:
+func advance(real_delta: float,paused: bool=false,paused_zoom: float=1) -> void:
 	overview_age=-1
 	var dt: float=maxf(0,real_delta)
 	age+=dt;strength=maxf(0,strength-dt*22);focus_remaining=maxf(0,focus_remaining-dt)
 	if paused:
-		offset=Vector2.ZERO;zoom=1;pan=Vector2.ZERO;center=Vector2(400,400);return
+		offset=Vector2.ZERO;zoom=paused_zoom;pan=Vector2.ZERO;center=Vector2(400,400);return
 	var finale: bool=finale_remaining>0
 	finale_remaining=maxf(0,finale_remaining-dt)
 	offset=(Vector2(sin(age*61),cos(age*47))*.7+(Vector2(400,400)-focus_point).normalized()*.3)*strength
