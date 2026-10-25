@@ -176,11 +176,11 @@ func _draw_multi_kill(rect: Rect2) -> void:
 	var enter: float=clampf(age/.22,0,1);var alpha: float=minf(clampf(age/.1,0,1),clampf((BANNER_LIFE-age)/.45,0,1))
 	var color: Color=MULTI_KILL_COLORS[level];var team: Color=multi_banner.color
 	var font: Font=ArenaUI.heading_font();var text: String=MULTI_KILL_NAMES[level]
-	var size: float=clampf(rect.size.x*.075,20,34);var text_w: float=font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,int(size)).x
-	var icon: float=size*1.45;var band_h: float=size*1.75;var band_w: float=text_w+icon+size*1.6
+	var size: float=clampf(rect.size.x*.05,15,24);var text_w: float=font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,int(size)).x
+	var icon: float=size*1.4;var band_h: float=size*1.7;var band_w: float=text_w+icon+size*1.6
 	var center:=Vector2(rect.get_center().x,rect.position.y+clampf(rect.size.y*.24,90,180))
 	var half: float=band_w*.5*(1-pow(1-enter,3));var tip: float=band_h*.42;var top: float=center.y-band_h*.5;var bottom: float=center.y+band_h*.5
-	VfxArt.glow(self,center,band_w*.8,color,.28*alpha,.5)
+	VfxArt.glow(self,center,band_w*.65,color,.2*alpha,.5)
 	var band:=PackedVector2Array([Vector2(center.x-half-tip,center.y),Vector2(center.x-half,top),Vector2(center.x+half,top),Vector2(center.x+half+tip,center.y),Vector2(center.x+half,bottom),Vector2(center.x-half,bottom)])
 	var dark:=Color(.06,.04,.09,.94*alpha);var lit:=Color(color.darkened(.62),.94*alpha)
 	draw_polygon(band,PackedColorArray([Color(lit,lit.a*.8),dark,dark,Color(lit,lit.a*.8),lit,lit]))
@@ -194,16 +194,16 @@ func _draw_multi_kill(rect: Rect2) -> void:
 		draw_colored_polygon(PackedVector2Array([Vector2(x+band_h*.25,top+2),Vector2(x+band_h*.45,top+2),Vector2(x+band_h*.2,bottom-2),Vector2(x,bottom-2)]),Color(1,1,1,.22*(1-k)*alpha))
 	var portrait:=Vector2(center.x-half+icon*.5+size*.25,center.y)
 	draw_circle(portrait,icon*.56,Color("0b0f1a",alpha));UnitIcon.draw_team(self,Rect2(portrait-Vector2.ONE*icon*.5,Vector2.ONE*icon),int(multi_banner.type),team,alpha)
-	var pop: float=1+(1-clampf((age-.22)/.25,0,1))*.22;var text_x: float=portrait.x+icon*.5+size*.35+text_w*.5
+	var pop: float=1+(1-clampf((age-.22)/.25,0,1))*.15;var text_x: float=portrait.x+icon*.5+size*.35+text_w*.5
 	draw_set_transform(Vector2(text_x,center.y),0,Vector2.ONE*pop)
-	draw_string_outline(font,Vector2(-text_w*.5,size*.36),text,HORIZONTAL_ALIGNMENT_LEFT,-1,int(size),5,Color(.06,.03,.02,.9*alpha))
+	draw_string_outline(font,Vector2(-text_w*.5,size*.36),text,HORIZONTAL_ALIGNMENT_LEFT,-1,int(size),4,Color(.06,.03,.02,.9*alpha))
 	draw_string(font,Vector2(-text_w*.5,size*.36),text,HORIZONTAL_ALIGNMENT_LEFT,-1,int(size),Color(color.lightened(.45),alpha))
 	draw_set_transform(Vector2.ZERO)
 	# Killer name above, one pip per kill below.
 	var name: String=String(multi_banner.name)
-	draw_string_outline(font,Vector2(center.x-120,top-6),name,HORIZONTAL_ALIGNMENT_CENTER,240,12,4,Color(0,0,0,.75*alpha))
-	draw_string(font,Vector2(center.x-120,top-6),name,HORIZONTAL_ALIGNMENT_CENTER,240,12,Color(team.lightened(.45),alpha))
-	var pip: float=5;var start: float=center.x-(level-1)*pip*1.6
+	draw_string_outline(font,Vector2(center.x-120,top-6),name,HORIZONTAL_ALIGNMENT_CENTER,240,11,4,Color(0,0,0,.75*alpha))
+	draw_string(font,Vector2(center.x-120,top-6),name,HORIZONTAL_ALIGNMENT_CENTER,240,11,Color(team.lightened(.45),alpha))
+	var pip: float=3.5;var start: float=center.x-(level-1)*pip*1.6
 	for i in range(level):
 		var at:=Vector2(start+i*pip*3.2,bottom+pip+4)
 		draw_colored_polygon(PackedVector2Array([at+Vector2(0,-pip),at+Vector2(pip,0),at+Vector2(0,pip),at+Vector2(-pip,0)]),Color(color.lightened(.3),alpha))
@@ -373,7 +373,7 @@ func _draw() -> void:
 	parent_transform=Transform2D(0,Vector2.ONE*factor,0,rect.position)*camera.transform()
 	draw_set_transform_matrix(parent_transform)
 	if is_instance_valid(field_layer):field_layer.align(parent_transform)
-	VisualShapes.arena(self)
+	VisualShapes.arena(self,ArenaFloor.MARGIN)
 	if battle.clock.state in [BattleClock.State.TURNING_SLOWDOWN,BattleClock.State.TURNING_PAUSED]:
 		# Turning point tint lies on the ground only; units stay at full brightness.
 		var t: float=clampf(battle.clock.slowdown_elapsed/2,0,1)

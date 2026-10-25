@@ -18,16 +18,16 @@ static func bolt(canvas: CanvasItem,a: Vector2,b: Vector2,color: Color,seed: flo
 	for i in range(1,9):points.append(a+diff*(float(i)/9)+n*(VisualParticles.noise(i+seed)*2-1)*10)
 	points.append(b);canvas.draw_polyline(points,Color(color,.25),width*3);canvas.draw_polyline(points,color,width);canvas.draw_polyline(points,Color("f3fbff"),maxf(1,width*.35))
 	canvas.draw_line(points[3],points[3]+n*14+diff.normalized()*18,Color(color,.6),1.5)
-static func arena(canvas: CanvasItem) -> void:
-	canvas.draw_rect(Rect2(0,0,800,800),Color("192e23"))
-	for row in range(20):
-		for col in range(20):
-			if (row+col)%2==0:canvas.draw_rect(Rect2(col*40,row*40,40,40),Color(.39,.47,.38,.035))
-	for i in range(20,800,20):
-		canvas.draw_line(Vector2(i,20),Vector2(i,780),Color(.39,.48,.41,.13),1);canvas.draw_line(Vector2(20,i),Vector2(780,i),Color(.39,.48,.41,.13),1)
-	canvas.draw_rect(Rect2(18,18,764,764),Color("4a6250"),false,1)
-	canvas.draw_arc(Vector2(400,400),165,0,TAU,64,Color(.43,.55,.41,.12),1)
-	canvas.draw_rect(Rect2(1,1,798,798),Color("52665b"),false,3)
+## Mossy flagstone arena; `margin` arena units of ruins and trees show around it, fading out.
+static func arena(canvas: CanvasItem,margin: float=0) -> void:
+	ArenaFloor.draw(canvas,margin)
+	if margin<=0:return
+	# The scenery darkens towards the edge of the view.
+	var fade:=Color("173a35");var clear:=Color(fade,0)
+	var inner:=Rect2(0,0,800,800).grow(margin*.3);var outer:=Rect2(0,0,800,800).grow(margin)
+	var a: Array=[inner.position,Vector2(inner.end.x,inner.position.y),inner.end,Vector2(inner.position.x,inner.end.y)]
+	var b: Array=[outer.position,Vector2(outer.end.x,outer.position.y),outer.end,Vector2(outer.position.x,outer.end.y)]
+	for k in range(4):canvas.draw_polygon(PackedVector2Array([a[k],a[(k+1)%4],b[(k+1)%4],b[k]]),PackedColorArray([clear,clear,fade,fade]))
 static func barrier(canvas: CanvasItem,point: Vector2,radius: float,color: Color,age: float) -> void:
 	VfxArt.shield(canvas,point,radius,color,age)
 
