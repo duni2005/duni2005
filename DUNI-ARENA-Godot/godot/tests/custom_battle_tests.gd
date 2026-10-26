@@ -347,10 +347,10 @@ func stat_damage(tree: SceneTree) -> void:
 	# Level growth: HP 12%, damage and defense 8% per level; elites scale attack %.
 	var g:=GuildManager.new();g.state.tower=TowerRunState.new();var m: GuildMemberState=g.create_member(2);m.total_exp=GrowthRules.exp_for_level(5)
 	var grown: UnitCombatStats=g.member_stats(m)
-	verify(is_equal_approx(grown.magic_damage,45*1.4) and is_equal_approx(grown.defense,35*1.4) and grown.magic_defense==10 and grown.attack==1,"growth raises damage stats and defense, attack % stays 100%")
+	verify(is_equal_approx(grown.magic_damage,UnitStatTable.base_magic(2)*1.4) and is_equal_approx(grown.defense,35*1.4) and grown.magic_defense==10 and grown.attack==1,"growth raises damage stats and defense, attack % stays 100%")
 	var entry:=EnemySpawnEntry.new();entry.level=0;entry.set_rank(&"elite")
 	var elite: UnitCombatStats=TowerEnemyStatsAssembler.assemble(CharacterCatalog.all()[2],entry)
-	verify(elite.attack==entry.damage_multiplier and elite.attack>1 and is_equal_approx(elite.magic_damage,45*.8),"elite damage multiplier becomes attack %")
+	verify(elite.attack==entry.damage_multiplier and elite.attack>1 and is_equal_approx(elite.magic_damage,UnitStatTable.base_magic(2)*.8),"elite damage multiplier becomes attack %")
 func tactical_mind(tree: SceneTree) -> void:
 	# Every unit has a base role, shown first among its traits.
 	var roles: bool=true

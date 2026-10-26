@@ -50,6 +50,8 @@ func release_ultimate(u,a,dt: float) -> bool:
 		else:
 			u.battle.damage_resolver.resolve(u,v,UnitStatTable.raw(u,&"ult"),{"dmg":&"ult","impulse":0,"visible_hazard":true})
 			KnockbackController.apply(v,side*760+dir*320,u)
+	# A hit that ends the battle clears the cast.
+	if not a.has("s"):return true
 	if float(a.s)<float(track.to)+TRAIN_LENGTH:return false
 	u.set_state("trainFx",0);return true
 func ultimate_danger(u,observer,a: Dictionary) -> bool:
