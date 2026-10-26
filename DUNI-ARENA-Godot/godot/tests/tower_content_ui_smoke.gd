@@ -88,7 +88,7 @@ func flow(touch: bool) -> void:
 	verify(item.equipped_to_member_id==member.member_id and t.guild.member_max_hp(member)==180,"explicit equip input")
 	await click(panel.tabs["upgrade"],touch)
 	gold=run_state.gold;await click(panel.upgrade_button,touch)
-	verify(member.level==1 and run_state.gold==gold-80 and t.guild.member_max_hp(member)==202,"upgrade UI +actual derived maxHP")
+	verify(member.level==1 and member.total_exp==100 and run_state.gold==gold-100 and t.guild.member_max_hp(member)==202,"EXP pack UI +actual derived maxHP")
 	await capture("mobile-guild" if touch else "desktop-guild")
 	await click(screen.guild_panel.close_button,touch)
 	await click(screen.room_buttons["0:3"],touch)
