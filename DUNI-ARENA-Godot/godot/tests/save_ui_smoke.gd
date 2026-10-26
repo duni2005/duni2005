@@ -89,11 +89,11 @@ func flow(touch: bool) -> void:
 	verify(menu.tower_screen.battle_screen.plan.entries()[0].position==Vector2(180,400),"checkpoint exact starting formation")
 	await capture("mobile-checkpoint" if touch else "desktop-checkpoint")
 	menu.free();await frames()
-## Entering the tower dives the title camera in first (about 1.5 s with UI motion on).
+## Entering the tower dives the title camera in and shows a loading screen first (about 3 s
+## with UI motion on); waits until the run is open and the loading screen has lifted.
 func tower_opened(menu: MainMenuScreen) -> void:
-	for i in range(240):
-		if menu.tower_screen!=null:break
-		await process_frame
+	var until: int=Time.get_ticks_msec()+8000
+	while Time.get_ticks_msec()<until and (menu.tower_screen==null or not root.find_children("*","LoadingScreen",true,false).is_empty()):await process_frame
 	await frames()
 func finish_reveal(screen: TowerScreen,touch: bool) -> void:
 	for i in range(10):

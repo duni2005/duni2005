@@ -181,6 +181,9 @@ func _room_finished(result: BattleResult, applied: BattleSettlement.Status) -> v
 		end_board_height=board.custom_minimum_size.y
 		end_presenting=end_sequence.active
 		end_overlay.begin(end_sequence,board)
+		# The battle music gives way to the victory or defeat music.
+		if result.end_reason==BattleEndReason.Value.VICTORY:BackgroundMusic.play(&"victory",BackgroundMusic.RESULT_FADE)
+		elif result.end_reason in [BattleEndReason.Value.DEFEAT,BattleEndReason.Value.RUN_ENDED]:BackgroundMusic.play(&"defeat",BackgroundMusic.RESULT_FADE)
 	settlement_status = applied
 	var names: Dictionary={BattleEndReason.Value.VICTORY:"승리",BattleEndReason.Value.DEFEAT:"패배",BattleEndReason.Value.RETREAT:"후퇴",BattleEndReason.Value.DRAW:"무승부",BattleEndReason.Value.RUN_ENDED:"탐험 종료"}
 	status.text="%s · %.1f초"%[names[result.end_reason],result.elapsed]

@@ -60,7 +60,7 @@ func _ensure_room() -> void:
 func start_battle() -> void:
 	if not board.editing or starting_battle:return
 	starting_battle=true;start_button.disabled=true
-	UiTransition.play("battle")
+	UiTransition.play("battle");BackgroundMusic.play(&"battle")
 	_reset_ending();result_revealed=false;reward_feedback.clear();retreat_routed=false
 	for icon in trans_row.get_children():trans_row.remove_child(icon);icon.queue_free()
 	trans_press.clear()

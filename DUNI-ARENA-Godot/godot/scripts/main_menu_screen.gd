@@ -125,12 +125,15 @@ func continue_run() -> void:
 	var loaded: SaveLoadResult=save_manager.load_controller()
 	if not loaded.ok():status.text="이어하기 실패 · "+loaded.detail;continue_button.disabled=true;return
 	_dive_into(loaded.controller,"이전 정상 저장에서 복구했습니다." if loaded.from_backup else "")
-## The camera dives into the tower, then the run opens (at once without UI motion).
+## The camera dives into the tower, a loading screen covers the hand-over, then the run opens
+## (all at once without UI motion). The tower theme starts from the top on each entry.
 func _dive_into(controller: TowerController,notice: String="") -> void:
 	tower_dialog.hide();overwrite_dialog.hide()
 	var open:=func():
-		open_tower(controller)
-		if not notice.is_empty():tower_screen.show_notice(notice)
+		BackgroundMusic.reset(&"tower")
+		LoadingScreen.run(self,func():
+			open_tower(controller)
+			if not notice.is_empty():tower_screen.show_notice(notice))
 	if not UiMotion.enabled:open.call();return
 	_set_menu_disabled(true)
 	create_tween().tween_property(menu,"modulate:a",0.0,.3)
@@ -139,12 +142,14 @@ func _set_menu_disabled(on: bool) -> void:
 	for button in [tower_button,custom_button,settings_button]:button.disabled=on
 func open_custom() -> void:
 	if is_instance_valid(custom_screen) or is_instance_valid(tower_screen):return
-	UiTransition.play("forward")
-	menu.get_parent().hide();scenery.hide()
-	custom_screen=CustomBattleScreen.new();add_child(custom_screen)
-	custom_screen.closed.connect(func():call_deferred("close_custom"))
+	_set_menu_disabled(true)
+	LoadingScreen.run(self,func():
+		menu.get_parent().hide();scenery.hide();_set_menu_disabled(false)
+		custom_screen=CustomBattleScreen.new();add_child(custom_screen)
+		custom_screen.closed.connect(func():call_deferred("close_custom"))
+		BackgroundMusic.play(&"battle"))
 func close_custom() -> void:
-	UiTransition.play("back")
+	UiTransition.play("back");BackgroundMusic.play(&"menu")
 	if is_instance_valid(custom_screen):remove_child(custom_screen);custom_screen.queue_free();custom_screen=null
 	menu.get_parent().show();scenery.show();_reveal()
 func open_tower(controller: TowerController) -> void:

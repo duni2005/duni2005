@@ -119,6 +119,9 @@ func flow(touch: bool) -> void:
 	for i in range(3):
 		var m: GuildMemberState=t.guild.create_member(0);ids.append(m.member_id)
 	await click(screen.map_scroll.stairs,touch)
+	# The climb shows a loading screen first.
+	var until: int=Time.get_ticks_msec()+6000
+	while Time.get_ticks_msec()<until and not root.find_children("*","LoadingScreen",true,false).is_empty():await process_frame
 	verify(t.current_floor()==1 and screen.room_buttons["0:2"].disabled and not screen.room_buttons["1:0"].disabled,"stairs climb; the floor below stays behind")
 	screen.open_guild();await frames();screen.guild_panel.selected_member_id=ids[0];screen.guild_panel.show_tab("upgrade");await frames()
 	await click(screen.guild_panel.promote_button,touch)

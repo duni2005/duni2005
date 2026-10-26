@@ -33,11 +33,11 @@ func capture(label: String) -> void:
 	await RenderingServer.frame_post_draw
 	var path: String="res://migration/phase12-"+label+".png"
 	tree.root.get_texture().get_image().save_png(path);snapshots.append(path)
-## Entering the tower dives the title camera in first (about 1.5 s with UI motion on).
+## Entering the tower dives the title camera in and shows a loading screen first (about 3 s
+## with UI motion on); waits until the run is open and the loading screen has lifted.
 func tower_opened(menu: MainMenuScreen) -> void:
-	for i in range(240):
-		if menu.tower_screen!=null:break
-		await tree.process_frame
+	var until: int=Time.get_ticks_msec()+8000
+	while Time.get_ticks_msec()<until and (menu.tower_screen==null or not tree.root.find_children("*","LoadingScreen",true,false).is_empty()):await tree.process_frame
 	await frames()
 func inside(c: Control) -> bool:
 	return c.get_global_rect().position.x>=-1 and c.get_global_rect().end.x<=tree.root.content_scale_size.x+1 and c.get_global_rect().end.y<=tree.root.content_scale_size.y+1

@@ -179,8 +179,8 @@ func _ascend() -> void:
 	var before: int=controller.guild.state.tower.current_chapter
 	if not controller.ascend():return
 	var after: int=controller.guild.state.tower.current_chapter
-	if after>before and TowerCinematic.auto_play():cinematic.play("clear",after)
-	show_map()
+	# A loading screen covers the climb; the chapter-clear cinematic plays once it lifts.
+	LoadingScreen.run(self,show_map,func():if after>before and TowerCinematic.auto_play():cinematic.play("clear",after))
 func _cinematic_done() -> void:
 	map_scroll.play_unfold()
 func select_room(id: String) -> void:
