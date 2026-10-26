@@ -107,7 +107,6 @@ func clear(node: Node) -> void:
 func render() -> void:
  var guild: GuildManager=controller.guild
  if guild.get_member(selected_member_id)==null:selected_member_id=guild.all_members()[0].member_id if not guild.all_members().is_empty() else ""
- clear(roster);clear(inventory_grid)
  for key in tabs:tabs[key].button_pressed=key==active_tab
  var main_list: bool=active_tab=="guild"
  roster_scroll.custom_minimum_size.y=220 if main_list else 92
@@ -118,15 +117,22 @@ func render() -> void:
  details.visible=active_tab=="inventory";upgrade_frame.visible=active_tab=="upgrade";upgrade_button.visible=active_tab=="upgrade";inventory_heading.visible=active_tab=="inventory"
  inventory_scroll.visible=active_tab=="inventory";status.visible=not status.text.is_empty()
  if active_tab=="inventory":inventory_scroll.custom_minimum_size.y=0
- for member in guild.all_members():
+ # Cards are reused across renders: re-adding them reshapes every Korean label, which is what
+ # made each tap (select, tab, upgrade) stall on phones.
+ var members: Array=guild.all_members()
+ if roster.get_children().map(func(c):return String(c.name))!=members.map(func(m):return m.member_id):
+  clear(roster)
+  for member in members:
+   var card:=ArenaCard.new();card.name=member.member_id;card.toggle_mode=true;ArenaUI.bind(card,_select.bind(member.member_id));roster.add_child(card)
+ for member in members:
   var data: UnitData=guild.definition(member.unit_type_id);var stats: UnitCombatStats=guild.member_stats(member)
-  var button:=ArenaCard.new();button.name=member.member_id;button.text="%s %s%s\nLv.%d · %s\n❤️ %d/%d"%[data.emoji,data.display_name,"⭐".repeat(member.stars),member.level,ArenaUI.member_label(member.member_id),ceili(member.current_hp),int(stats.max_hp)]
-  button.text+="\n"+("사망 · 배치 불가" if not member.is_alive() else ArenaUI.stance(member.stance))
+  var button: ArenaCard=roster.get_node(NodePath(member.member_id))
+  # Assigned once: an unchanged label is not reshaped.
+  button.text="%s %s%s\nLv.%d · %s\n❤️ %d/%d\n%s"%[data.emoji,data.display_name,"⭐".repeat(member.stars),member.level,ArenaUI.member_label(member.member_id),ceili(member.current_hp),int(stats.max_hp),"사망 · 배치 불가" if not member.is_alive() else ArenaUI.stance(member.stance)]
   button.card_type="member";button.type_id=member.unit_type_id;button.title=data.display_name;button.subtitle="%s · Lv. %d"%[ArenaUI.member_label(member.member_id),member.level];button.hp=member.current_hp;button.hp_max=stats.max_hp;button.stars=member.stars;button.dead=not member.is_alive();button.status_text=ArenaUI.stance(member.stance)+" · 장비 %d/%d"%[controller.content.inventory.equipped(member.member_id).size(),GuildMemberCombatStats.equipment_limit(member)]
   button.show_member(guild,member);button.strip_style=not main_list
   button.card_type="member" if active_tab=="guild" else "mini_member"
-  button.custom_minimum_size=Vector2(0 if main_list else 70,152 if main_list else 88);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL if main_list else Control.SIZE_FILL;button.toggle_mode=true;button.button_pressed=member.member_id==selected_member_id
-  ArenaUI.bind(button,_select.bind(member.member_id));roster.add_child(button)
+  button.custom_minimum_size=Vector2(0 if main_list else 70,152 if main_list else 88);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL if main_list else Control.SIZE_FILL;button.set_pressed_no_signal(member.member_id==selected_member_id);button.queue_redraw()
  var selected: GuildMemberState=guild.get_member(selected_member_id)
  if selected==null:return
  var stats: UnitCombatStats=guild.member_stats(selected);var items: Array[ItemInstance]=controller.content.inventory.equipped(selected_member_id)
@@ -146,26 +152,40 @@ func render() -> void:
  var spare: Array=controller.content.inventory.available().filter(func(i):return not ItemCatalog.get_item(i.kind).consumable)
  var consumables: Array=controller.content.inventory.available().filter(func(i):return ItemCatalog.get_item(i.kind).consumable)
  var worn: Array=guild.state.inventory.filter(func(i):return not i.consumed and not i.equipped_to_member_id.is_empty())
+ var cards: Array=guild.state.strategy_cards.filter(func(c):return not c.consumed)
+ var ready: Array=cards.filter(func(c):return StrategyCardExecutor.availability(c,guild.state.strategy_progress))
+ var waiting: Array=cards.filter(func(c):return not StrategyCardExecutor.availability(c,guild.state.strategy_progress))
+ # Slots are kept per item/card and only created for new ones: adding a slot reshapes its label.
+ var pool: Dictionary={}
+ for child in inventory_grid.get_children():pool[String(child.name)]=child
+ var order: Array[Control]=[]
  for group in [[spare,"equipment"],[consumables,"consumable"],[worn,"equipped"]]:
   for instance in group[0]:
-   var data: ItemData=ItemCatalog.get_item(instance.kind);var button:=ArenaCard.new();button.kind=String(instance.kind);button.title=data.display_name;button.description=data.description;button.name="item_%d"%instance.item_id;button.text="%s %s · 설명 / %s"%[data.emoji,data.display_name,"사용" if data.consumable else "장착"]
+   var key: String="item_%d"%instance.item_id;var button: ArenaCard=pool.get(key);pool.erase(key)
+   if button==null:button=ArenaCard.new();button.name=key;ArenaUI.bind(button,_inspect.bind(instance.item_id))
+   var data: ItemData=ItemCatalog.get_item(instance.kind);button.kind=String(instance.kind);button.title=data.display_name;button.description=data.description;button.text="%s %s · 설명 / %s"%[data.emoji,data.display_name,"사용" if data.consumable else "장착"]
    button.status_text="아이템";button.card_type="slot";button.slot_kind=group[1];button.rarity=ItemCatalog.grade_color(instance.kind) if not data.consumable else Color(0,0,0,0);button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description
    if group[1]=="equipped":
     var owner: GuildMemberState=guild.get_member(instance.equipped_to_member_id)
     button.owner_type=owner.unit_type_id if owner!=null else -1;button.price=ArenaUI.member_label(instance.equipped_to_member_id)+" 장착" if owner!=null else "장착 중"
    else:button.price="소모" if data.consumable else "장비"
-   ArenaUI.bind(button,_inspect.bind(instance.item_id));inventory_grid.add_child(button)
- var cards: Array=guild.state.strategy_cards.filter(func(c):return not c.consumed)
- var ready: Array=cards.filter(func(c):return StrategyCardExecutor.availability(c,guild.state.strategy_progress))
- var waiting: Array=cards.filter(func(c):return not StrategyCardExecutor.availability(c,guild.state.strategy_progress))
+   button.queue_redraw();order.append(button)
  for card in ready+waiting:
-  var button:=ArenaCard.new();var data: StrategyCardData=StrategyCardCatalog.get_card(card.kind);var on_hold: bool=card in waiting
+  var data: StrategyCardData=StrategyCardCatalog.get_card(card.kind);var on_hold: bool=card in waiting
+  var key: String="card_%d_%s"%[card.card_id,on_hold];var button: ArenaCard=pool.get(key);pool.erase(key)
+  if button==null:button=ArenaCard.new();button.name=key;ArenaUI.bind(button,_inspect_card.bind(data,on_hold))
   button.kind=String(card.kind);button.title=data.display_name;button.description=data.description;button.text="🃏 %s · 전략카드"%data.display_name;button.status_text="전략"
   button.price=("%d층부터"%(card.ready_floor+1) if data.usage_rule==StrategyCardData.Usage.COOLDOWN else "다음 층") if on_hold else "일회성" if data.usage_rule==StrategyCardData.Usage.ONCE else "층당 1회" if data.usage_rule==StrategyCardData.Usage.FLOOR else "두 층 쿨타임"
   button.card_type="slot";button.slot_kind="cooldown" if on_hold else "strategy";button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description
-  ArenaUI.bind(button,_inspect_card.bind(data,on_hold));inventory_grid.add_child(button)
- while inventory_grid.get_child_count()<24:
-  var empty:=PanelContainer.new();empty.custom_minimum_size=Vector2(60,64);empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.mouse_filter=Control.MOUSE_FILTER_IGNORE;empty.add_theme_stylebox_override("panel",ArenaUI.box(Color("0b0f1a"),Color("1b2236")));inventory_grid.add_child(empty)
+  button.queue_redraw();order.append(button)
+ for i in range(maxi(0,24-order.size())):
+  var key: String="empty_%d"%i;var empty: Control=pool.get(key);pool.erase(key)
+  if empty==null:empty=PanelContainer.new();empty.name=key;empty.custom_minimum_size=Vector2(60,64);empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.mouse_filter=Control.MOUSE_FILTER_IGNORE;empty.add_theme_stylebox_override("panel",ArenaUI.box(Color("0b0f1a"),Color("1b2236")))
+  order.append(empty)
+ for node in pool.values():inventory_grid.remove_child(node);node.queue_free()
+ for i in range(order.size()):
+  if order[i].get_parent()==null:inventory_grid.add_child(order[i])
+  inventory_grid.move_child(order[i],i)
 func _select(id: String) -> void:
  # Tapping the unit that is already selected opens its description sheet.
  var member: GuildMemberState=controller.guild.get_member(id)
