@@ -38,7 +38,8 @@ func flow(touch: bool) -> void:
 	var slot: String="user://phase11-ui/"+Crypto.new().generate_random_bytes(8).hex_encode()+"/autosave.json"
 	var menu:=MainMenuScreen.new();menu.save_manager=SaveManager.new(slot);root.add_child(menu);await frames()
 	verify(menu.continue_button.disabled,"no save disables Continue")
-	await click(menu.new_button,touch);verify(menu.tower_screen!=null and menu.save_manager.read_document().ok(),"New creates actual autosave")
+	await click(menu.tower_button,touch);await tower_opened(menu)
+	verify(menu.tower_screen!=null and menu.save_manager.read_document().ok(),"no save: 타워 입장 starts at once and autosaves")
 	var screen: TowerScreen=menu.tower_screen;var c: TowerController=screen.controller
 	c.new_run(19,73);screen.show_map();await frames()
 	await click(screen.room_buttons["0:0"],touch)
@@ -66,7 +67,8 @@ func flow(touch: bool) -> void:
 	screen.menu_dialog.hide();await click(screen.menu_button,touch);await click(screen.main_button,touch);await frames();screen=null;c=null;member=null;item=null;room=null;recruit=null
 	verify(menu.tower_screen==null and not menu.continue_button.disabled,"run view disposed / Continue available")
 	await capture("mobile-menu" if touch else "desktop-menu")
-	await click(menu.continue_button,touch);screen=menu.tower_screen;c=screen.controller
+	await click(menu.tower_button,touch);verify(menu.tower_dialog.visible,"save: 타워 입장 opens continue / start over")
+	await click(menu.continue_button,touch);await tower_opened(menu);screen=menu.tower_screen;c=screen.controller
 	verify(c.guild.state.run_id==previous_run_id and c.guild.state.gold==previous_gold and c.guild.all_members().size()==5,"Continue exact run values")
 	verify(c.content.inventory.equipped(c.guild.all_members()[0].member_id).size()==1 and c.guild.all_members()[0].level==1,"Continue equipment/growth")
 	verify(c.guild.state.tower.map.get_room("0:0").recruit.offers[0].purchased and c.guild.state.tower.map.get_room("0:1").shop.offers.any(func(o):return o.offer_id==stock.offer_id and o.purchased),"Continue candidates and stock")
@@ -82,11 +84,17 @@ func flow(touch: bool) -> void:
 	verify(b.units.filter(func(u):return not u.source_enemy_id.is_empty()).size()==3 and enemy.current_hp==40 and enemy.position==Vector2(470,330),"loaded damaged enemy and dead omission")
 	verify(b.turning.next_at==12,"new TP schedule")
 	# Emulate OS restart while battle is unfinished: dispose the whole view.
-	menu.return_menu();screen=null;c=null;battle_screen=null;b=null;await frames();await click(menu.continue_button,touch)
+	menu.return_menu();screen=null;c=null;battle_screen=null;b=null;await frames();await click(menu.tower_button,touch);await click(menu.continue_button,touch);await tower_opened(menu)
 	verify(menu.tower_screen.battle_screen!=null and menu.tower_screen.controller.guild.state.tower.phase==&"deploy","live crash checkpoint routes to deployment")
 	verify(menu.tower_screen.battle_screen.plan.entries()[0].position==Vector2(180,400),"checkpoint exact starting formation")
 	await capture("mobile-checkpoint" if touch else "desktop-checkpoint")
 	menu.free();await frames()
+## Entering the tower dives the title camera in first (about 1.5 s with UI motion on).
+func tower_opened(menu: MainMenuScreen) -> void:
+	for i in range(240):
+		if menu.tower_screen!=null:break
+		await process_frame
+	await frames()
 func finish_reveal(screen: TowerScreen,touch: bool) -> void:
 	for i in range(10):
 		if screen.fx.active.is_empty():break

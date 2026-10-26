@@ -33,6 +33,12 @@ func capture(label: String) -> void:
 	await RenderingServer.frame_post_draw
 	var path: String="res://migration/phase12-"+label+".png"
 	tree.root.get_texture().get_image().save_png(path);snapshots.append(path)
+## Entering the tower dives the title camera in first (about 1.5 s with UI motion on).
+func tower_opened(menu: MainMenuScreen) -> void:
+	for i in range(240):
+		if menu.tower_screen!=null:break
+		await tree.process_frame
+	await frames()
 func inside(c: Control) -> bool:
 	return c.get_global_rect().position.x>=-1 and c.get_global_rect().end.x<=tree.root.content_scale_size.x+1 and c.get_global_rect().end.y<=tree.root.content_scale_size.y+1
 func run(owner: SceneTree) -> void:
@@ -42,8 +48,8 @@ func run(owner: SceneTree) -> void:
 		print("PHASE12 UI begin ",window_size)
 		var mobile: bool=window_size.x==390
 		var menu:=MainMenuScreen.new();menu.save_manager=SaveManager.new("user://phase12-tests/menu-"+DisplayServer.get_name()+".json");tree.root.add_child(menu);await frames()
-		verify(inside(menu.new_button) and inside(menu.continue_button),"menu actions fit %s"%window_size)
-		verify(menu.new_button.size.y>=44,"touch minimum")
+		verify([menu.tower_button,menu.custom_button,menu.settings_button].all(func(b):return inside(b) and b.size.y>=44),"three menu buttons fit with touch height %s"%window_size)
+		verify(not menu.continue_button.is_visible_in_tree() and not menu.find_children("*","Label",true,false).any(func(l):return "길드원" in l.text),"title shows the wordmark and three buttons only")
 		verify(menu.theme==ArenaUI.get_theme(),"shared theme")
 		if mobile or window_size==Vector2i(1280,720):await capture(("mobile" if mobile else "desktop")+"-menu")
 		menu.free();await frames()
@@ -105,6 +111,11 @@ func run(owner: SceneTree) -> void:
 	print("PHASE12 UI content/save")
 	await content_and_save()
 	print("PHASE12 UI paired/stress")
+	# No save: 타워 입장 starts a run at once (the camera dive is skipped without UI motion).
+	var fresh:=MainMenuScreen.new();fresh.save_manager=SaveManager.new("user://phase12-tests/fresh-"+Crypto.new().generate_random_bytes(6).hex_encode()+".json");tree.root.add_child(fresh);await frames()
+	fresh.enter_tower();await tower_opened(fresh)
+	verify(fresh.tower_screen!=null and not fresh.tower_dialog.visible,"no save: 타워 입장 starts at once")
+	fresh.free();await frames()
 	await stress()
 	print("PHASE12 RESULT: ",checks," checks; ",failures," failures; effects<=",peak_effects," numbers<=",peak_numbers," display=",DisplayServer.get_name())
 func content_and_save() -> void:
@@ -115,14 +126,15 @@ func content_and_save() -> void:
 	var menu:=MainMenuScreen.new();menu.save_manager=save;tree.root.add_child(menu);await frames()
 	verify("마지막 저장" in menu.status.text and "챕터" in menu.status.text,"Continue metadata timestamp")
 	verify(c.content_rng.state==original_rng,"metadata no content RNG")
-	await click(menu.continue_button);await frames();verify(menu.tower_screen!=null and menu.tower_screen.content_screen!=null,"Continue routes incomplete event")
+	await click(menu.tower_button);await frames();verify(menu.tower_dialog.visible and menu.tower_screen==null,"a save makes 타워 입장 ask continue or start over")
+	await click(menu.continue_button);await tower_opened(menu);verify(menu.tower_screen!=null and menu.tower_screen.content_screen!=null,"Continue routes incomplete event")
 	verify("온천" in menu.tower_screen.content_screen.heading.text,"event content display")
 	await capture("mobile-event");menu.return_menu();await frames()
 	# Corrupt primary with backup intact: UI warning only, never replay a result.
 	verify(save.manual_save(c).ok(),"normal backup generation")
 	var f:=FileAccess.open(save.path,FileAccess.WRITE);f.store_string("broken");f.close()
 	menu.refresh();await frames();verify(not menu.continue_button.disabled and "백업" in menu.status.text,"backup recovery preview")
-	await click(menu.continue_button);await frames();verify("복구" in menu.tower_screen.notice.text,"backup recovery notice")
+	await click(menu.tower_button);await frames();await click(menu.continue_button);await tower_opened(menu);verify("복구" in menu.tower_screen.notice.text,"backup recovery notice")
 	menu.free();c.release_runtime_connections();await frames()
 	var tower:=TowerScreen.new();tree.root.add_child(tower);tower.controller.new_run(19,73);tower.show_map();await frames()
 	var dead: GuildMemberState=tower.controller.guild.all_members().back();dead.current_hp=0
