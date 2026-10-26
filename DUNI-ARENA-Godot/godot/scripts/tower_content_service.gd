@@ -126,20 +126,26 @@ func equip(item_id: int,member_id: String) -> Dictionary:
 	member.character_specific_state=state;instance.equipped_to_member_id=member_id
 	if partner!=null:return success({"item_id":instance.item_id,"member_id":member_id,"combined":instance.kind,"components":[partner.item_id,item_id]})
 	return success({"item_id":item_id,"member_id":member_id})
-func upgrade(member_id: String) -> Dictionary:
+## Buys experience in packs of GrowthRules.EXP_PACK. Levels gained raise HP by the max-HP gain
+## (reviving a fallen unit); the rest stays as progress toward the next level.
+func buy_exp(member_id: String,packs: int) -> Dictionary:
 	if not inventory.valid():return failure(&"invalid_inventory")
 	if not can_manage():return failure(&"management_locked")
 	var member: GuildMemberState=guild.get_member(member_id)
 	if member==null:return failure(&"invalid_member")
-	# Gold buys the experience still missing for the next level.
-	var gained: int=GrowthRules.exp_to_next(member.level)-GrowthRules.exp_progress(member.total_exp)
-	var cost: int=GuildMemberCombatStats.upgrade_cost(member);var receipt: String="upgrade:%s:%d:%d"%[member_id,member.stars,member.total_exp]
+	if packs<1:return failure(&"invalid_amount")
+	var gained: int=packs*GrowthRules.EXP_PACK;var cost: int=packs*GrowthRules.pack_cost()
+	var receipt: String="exp:%s:%d:%d"%[member_id,member.total_exp,packs]
 	if not ResourceTransaction.can_spend(guild.state,cost,0,receipt):return failure(&"funds")
 	var old_max: float=guild.member_stats(member).max_hp;var dead: bool=not member.is_alive()
 	ResourceTransaction.spend(guild.state,cost,0,receipt);member.total_exp+=gained
 	var gain: float=GuildMemberCombatStats.heal(guild,member,maxf(0,guild.member_stats(member).max_hp-old_max),true)
-	if dead and member.unit_type_id==13:GuildMemberCombatStats.reset_bomber(member)
+	if dead and member.is_alive() and member.unit_type_id==13:GuildMemberCombatStats.reset_bomber(member)
 	return success({"level":member.level,"exp_gained":gained,"hp_gained":gain,"gold_spent":cost})
+## Buys exactly the packs needed for the next level.
+func level_up(member_id: String) -> Dictionary:
+	var member: GuildMemberState=guild.get_member(member_id)
+	return buy_exp(member_id,GrowthRules.packs_to_level(member.total_exp)) if member!=null else failure(&"invalid_member")
 func upgrade_sortie() -> Dictionary:
 	if not can_manage():return failure(&"management_locked")
 	var cost: int=GrowthRules.sortie_cost(guild.state)
@@ -254,7 +260,8 @@ func execute(action: StringName,options: Dictionary={}) -> Dictionary:
 		&"reroll":return reroll()
 		&"buy":return buy(options.get("offer_id",""))
 		&"equip":return equip(options.get("item_id",0),options.get("member_id",""))
-		&"upgrade":return upgrade(options.get("member_id",""))
+		&"upgrade":return buy_exp(options.get("member_id",""),1)
+		&"level_up":return level_up(options.get("member_id",""))
 		&"finish":return finish()
 		&"rest":return rest(options.get("choice",&""),options.get("members",[]))
 		&"event":return event(options.get("choice",&""))

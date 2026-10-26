@@ -25,5 +25,3 @@ static func heal(guild: GuildManager,member: GuildMemberState,base: float,revive
 static func reset_bomber(member: GuildMemberState) -> void:
 	var state: Dictionary=member.character_specific_state;state["bomberRush"]=false;state["bomberRushTime"]=0;state["bomberFuse"]=null;member.character_specific_state=state
 
-## Gold to buy the experience still missing for the next level.
-static func upgrade_cost(member: GuildMemberState) -> int:return GrowthRules.gold_for_exp(GrowthRules.exp_to_next(member.level)-GrowthRules.exp_progress(member.total_exp))

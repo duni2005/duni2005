@@ -115,16 +115,15 @@ func equipment_growth() -> void:
 	verify(is_equal_approx(t.guild.member_stats(member).healing_power,1.21) and member.current_hp==0,"dead equip permitted /necklace multiplication")
 	t.guild.state.gold=10000
 	var result: Dictionary=t.content_action(&"upgrade",{"member_id":member.member_id})
-	verify(result.ok and member.level==1 and is_equal_approx(member.current_hp,18*1.21) and t.guild.state.gold==9920,"dead upgrade revives with incoming healing")
-	for i in range(1,10):verify(t.content_action(&"upgrade",{"member_id":member.member_id}).ok,"upgrade levels through10")
-	verify(member.level==10 and member.total_exp==1700 and t.guild.state.gold==8300,"gold buys EXP 1:1, Lv.10 = 1700 EXP")
+	verify(result.ok and member.total_exp==100 and member.level==1 and GrowthRules.exp_progress(member.total_exp)==20 and is_equal_approx(member.current_hp,18*1.21) and t.guild.state.gold==9900,"one 100 EXP pack: dead unit levels and revives with incoming healing, excess kept")
+	verify(t.content_action(&"level_up",{"member_id":member.member_id}).ok and member.level==2 and member.total_exp==200 and t.guild.state.gold==9800,"instant level-up buys the one pack still needed")
+	while member.level<10:verify(t.content_action(&"level_up",{"member_id":member.member_id}).ok,"level-up repeats")
+	verify(member.level==10 and 10000-t.guild.state.gold==member.total_exp and member.total_exp>=1700 and member.total_exp<1800,"gold buys EXP 1:1 in 100 packs; overshoot stays as progress")
 	var stats: UnitCombatStats=t.guild.member_stats(member)
 	verify(stats.max_hp==330 and is_equal_approx(stats.attack,base.attack*1.8) and is_equal_approx(stats.defense,base.defense_power*1.8) and is_equal_approx(stats.speed,base.move_speed*1.2),"linear growth hp12/atk8/def8/speed2")
-	verify(t.content_action(&"upgrade",{"member_id":member.member_id}).ok and member.level==11 and t.guild.state.gold==8020,"no level cap; Lv.10->11 costs 280")
+	var gold: int=t.guild.state.gold;var packs: int=GrowthRules.packs_to_level(member.total_exp)
+	verify(t.content_action(&"level_up",{"member_id":member.member_id}).ok and member.level==11 and gold-t.guild.state.gold==packs*100,"no level cap; level-up spends packs x 100 G")
 	verify(t.guild.member_stats(member).max_hp==348,"growth keeps scaling past 10 (hp +12%/level)")
-	member.total_exp+=100
-	verify(GrowthRules.exp_progress(member.total_exp)==100 and GuildMemberCombatStats.upgrade_cost(member)==300-100,"partial progress lowers the next purchase")
-	verify(t.content_action(&"upgrade",{"member_id":member.member_id}).ok and member.level==12 and GrowthRules.exp_progress(member.total_exp)==0 and t.guild.state.gold==7820,"buying the rest reaches the next level exactly")
 	var other: GuildMemberState=t.guild.all_members()[1];t.guild.state.gold=0;var hp: float=other.current_hp
 	verify(not t.content_action(&"upgrade",{"member_id":other.member_id}).ok and other.current_hp==hp and other.level==0,"failed upgrade unchanged")
 	var bomber: GuildMemberState=t.guild.create_member(13);bomber.current_hp=0;bomber.character_specific_state={"bomberRush":true,"bomberRushTime":4,"bomberFuse":1};t.guild.state.gold=100
@@ -133,6 +132,7 @@ func growth_rules() -> void:
 	groups+=1
 	verify(GrowthRules.exp_to_next(0)==80 and GrowthRules.exp_to_next(9)==260 and GrowthRules.exp_for_level(10)==1700,"EXP per level = 80 + 20L, same as the old gold cost")
 	verify(GrowthRules.level_for_exp(1699)==9 and GrowthRules.level_for_exp(1700)==10 and GrowthRules.exp_progress(1750)==50,"level and in-level progress from total EXP")
+	verify(GrowthRules.EXP_PACK==100 and GrowthRules.pack_cost()==100 and GrowthRules.packs_to_level(GrowthRules.exp_for_level(3)+50)==1 and GrowthRules.packs_to_level(GrowthRules.exp_for_level(5))==2,"EXP sold in 100 packs; level-up buys ceil(missing/100)")
 	var m:=GuildMemberState.new();m.level=7;verify(m.total_exp==GrowthRules.exp_for_level(7) and m.level==7,"setting a level stores its cumulative EXP")
 	var t:=tower();t.guild.state.gold=10000;var limits: Array=[];var spent: Array=[]
 	verify(GrowthRules.sortie_limit(t.guild.state)==3,"three units sortie by default")

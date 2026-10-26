@@ -26,7 +26,7 @@ func flow(res: Vector2i):
 	verify(fits(panel.upgrade_button) and fits(panel.upgrade_summary),"upgrade tiles/action fit viewport")
 	var hp: float=frog.current_hp;var gold: int=g.state.gold
 	await shot("upgrade");await tap(panel.upgrade_button);await frames()
-	verify(frog.level==1 and g.state.gold==gold-80 and frog.current_hp>hp,"restyled upgrade invokes one existing growth transaction")
+	verify(frog.level==1 and frog.total_exp==100 and g.state.gold==gold-100 and frog.current_hp>hp,"EXP pack button invokes one growth transaction")
 	var saved: String=pure();await tap(panel.menu_button);await frames()
 	verify(panel.menu_dialog.visible and pure()==saved,"prepare menu opens without state/RNG change")
 	await shot("menu");panel.menu_dialog.hide();await tap(panel.page_action);await frames()

@@ -5,6 +5,8 @@ extends RefCounted
 
 ## Gold spent per point of experience is 1 G = 1 EXP.
 const EXP_PER_GOLD: int = 1
+## Experience is bought in packs of this size.
+const EXP_PACK: int = 100
 ## Experience added on top of the three units' combined experience when they promote.
 const PROMOTION_BONUS_EXP: int = 300
 const MAX_STARS: int = 2
@@ -24,6 +26,10 @@ static func level_for_exp(total_exp: int) -> int:
 ## Experience gained inside the current level.
 static func exp_progress(total_exp: int) -> int:return total_exp - exp_for_level(level_for_exp(total_exp))
 static func gold_for_exp(amount: int) -> int:return ceili(float(amount) / EXP_PER_GOLD)
+static func pack_cost() -> int:return gold_for_exp(EXP_PACK)
+## Packs needed to reach the next level; the excess stays as progress.
+static func packs_to_level(total_exp: int) -> int:
+	return ceili(float(exp_to_next(level_for_exp(total_exp)) - exp_progress(total_exp)) / EXP_PACK)
 
 static func sortie_limit(run: RunState) -> int:return SORTIE_BASE + run.sortie_level
 ## Gold for the next sortie upgrade, or -1 when fully upgraded.

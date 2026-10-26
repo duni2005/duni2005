@@ -7,7 +7,7 @@ config/use_custom_user_dir=true
 config/custom_user_dir_name="DUNI_ARENA"
 run/main_scene="res://scenes/main_menu.tscn"
 config/icon="res://assets/ui/app_icon.png"
-config/version="0.40.0-preview"
+config/version="0.40.1-preview"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 
 [autoload]

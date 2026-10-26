@@ -150,7 +150,7 @@ func _draw() -> void:
 		if sold:cached_style.bg_color=Color("1d3a3a");cached_style.border_color=Color("5fb592")
 		if spent:cached_style.bg_color=Color("111726");cached_style.border_color=Color("283250")
 	var plain: bool=not active and not dead and not disabled
-	cached_style.set_corner_radius_all(22 if card_type=="nav" else 7)
+	cached_style.set_corner_radius_all(int(minf(size.x,size.y)*.5) if card_type=="nav" else 7)
 	if card_type in UNIT_TYPES:
 		cached_style.set_corner_radius_all(10)
 		if plain:cached_style.bg_color=Color("26314f") if hovered else Color("1e2846");cached_style.border_color=Color("4a5b90")
@@ -202,7 +202,8 @@ func _draw() -> void:
 			draw_line(center+Vector2(-6,-6),center+Vector2(6,6),ArenaUI.MUTED,1.5,true);draw_line(center+Vector2(-6,6),center+Vector2(6,-6),ArenaUI.MUTED,1.5,true)
 		elif kind=="menu":
 			for y in [-6,0,6]:draw_line(center+Vector2(-8,y),center+Vector2(8,y),Color("e5dfc3"),2,true)
-		else:ArenaIcon.draw(self,center,"guild",24,Color("9ac8df"))
+		elif kind=="guild":ArenaIcon.draw(self,center,"guild",24,Color("9ac8df"))
+		else:ArenaIcon.draw(self,center,kind,minf(size.x,size.y)*.46,Color(1,1,1,.35 if disabled else 1))
 		return
 	if card_type=="prediction_team":
 		write(Vector2(15,23),title,15,gold if active else Color("eef1fa"))
