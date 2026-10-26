@@ -140,7 +140,9 @@ func flow(touch: bool) -> void:
 	await click(screen.content_screen.map_button,touch)
 	verify(screen.content_screen==null and run_state.tower.phase==&"route","prediction returns map")
 	screen.free();await frames()
-func member_stats_attack(t: TowerController,m: GuildMemberState) -> float:return t.guild.member_stats(m).attack
+func member_stats_attack(t: TowerController,m: GuildMemberState) -> float:
+	var stats: UnitCombatStats=t.guild.member_stats(m)
+	return UnitStatTable.damage_stat(stats,UnitStatTable.main_kind(m.unit_type_id))*stats.attack
 func run() -> void:
 	root.gui_embed_subwindows=true
 	await flow(false);await flow(true)
