@@ -7,12 +7,17 @@ config/use_custom_user_dir=true
 config/custom_user_dir_name="DUNI_ARENA"
 run/main_scene="res://scenes/main_menu.tscn"
 config/icon="res://assets/ui/app_icon.png"
-config/version="0.42.0-preview"
+config/version="0.43.0-preview"
 config/features=PackedStringArray("4.6", "GL Compatibility")
+boot_splash/bg_color=Color(0.863, 0.82, 0.953, 1)
+boot_splash/stretch_mode=4
+boot_splash/use_filter=false
+boot_splash/image="res://assets/ui/boot_splash.png"
 
 [autoload]
 
 UiMotionHooks="*res://scripts/presentation/ui_motion_hooks.gd"
+MusicPlayer="*res://scripts/presentation/music_player.gd"
 
 [display]
 window/size/viewport_width=900

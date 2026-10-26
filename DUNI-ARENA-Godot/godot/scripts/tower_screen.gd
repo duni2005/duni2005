@@ -116,6 +116,7 @@ func new_run() -> void:
 	controller.new_run(seed_value,seed_value^0x35a921)
 	show_map()
 func show_map() -> void:
+	BackgroundMusic.play(&"tower")
 	if is_instance_valid(content_screen) or is_instance_valid(battle_screen):UiTransition.play("back")
 	if is_instance_valid(content_screen):remove_child(content_screen);content_screen.queue_free();content_screen=null
 	if is_instance_valid(battle_screen):remove_child(battle_screen);battle_screen.queue_free();battle_screen=null
@@ -198,6 +199,8 @@ func _show_selected_room() -> void:
 	if is_instance_valid(battle_screen) or is_instance_valid(content_screen):return
 	UiTransition.play("forward")
 	var room: RoomState=controller.current_room()
+	# Battle rooms have their own music; every other room keeps the tower theme.
+	BackgroundMusic.play(&"battle" if controller.guild.state.tower.phase==&"deploy" else &"tower")
 	if controller.guild.state.tower.phase==&"deploy":
 		body.get_parent().hide()
 		battle_screen=TowerBattleScreen.new();battle_screen.tower_controller=controller;add_child(battle_screen);battle_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

@@ -21,6 +21,7 @@ func _ready() -> void:
 	ArenaUI.install(self)
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	get_window().gui_embed_subwindows=true;get_tree().auto_accept_quit=false
+	BackgroundMusic.play(&"menu")
 	get_window().close_requested.connect(_close)
 	backdrop=TitleBackdrop.new();add_child(backdrop)
 	var margin:=MarginContainer.new();menu_margin=margin;margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);add_child(margin)
@@ -119,13 +120,13 @@ func close_custom() -> void:
 	if is_instance_valid(custom_screen):remove_child(custom_screen);custom_screen.queue_free();custom_screen=null
 	menu.get_parent().show();backdrop.show()
 func open_tower(controller: TowerController) -> void:
-	UiTransition.play("forward")
+	UiTransition.play("forward");BackgroundMusic.play(&"tower")
 	menu.get_parent().hide();backdrop.hide()
 	if is_instance_valid(tower_screen):remove_child(tower_screen);tower_screen.queue_free()
 	tower_screen=load("res://scenes/tower.tscn").instantiate();tower_screen.controller=controller;tower_screen.resume_saved=true;add_child(tower_screen)
 	tower_screen.main_menu_requested.connect(func():call_deferred("return_menu"))
 func return_menu() -> void:
-	UiTransition.play("back")
+	UiTransition.play("back");BackgroundMusic.play(&"menu")
 	if is_instance_valid(tower_screen):remove_child(tower_screen);tower_screen.queue_free();tower_screen=null
 	menu.get_parent().show();backdrop.show();refresh()
 func _build_settings() -> void:
