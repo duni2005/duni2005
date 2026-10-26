@@ -29,6 +29,8 @@ var strategy_cards: Array[StrategyCardInstance] = []
 var next_strategy_card_number: int = 1
 var strategy_progress := StrategyProgressContext.new()
 var strategy_use_receipts: Dictionary = {}
+## Sortie upgrades bought this run (see GrowthRules.sortie_limit).
+var sortie_level: int = 0
 func give_strategy_card(kind: StringName) -> StrategyCardInstance:
 	if StrategyCardCatalog.get_card(kind) == null: return null
 	var card := StrategyCardInstance.new()

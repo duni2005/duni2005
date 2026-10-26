@@ -44,11 +44,11 @@ func select_room(id: String) -> TowerNavigationPolicy.Code:
 	if code!=TowerNavigationPolicy.Code.OK:return code
 	var room: RoomState=guild.state.tower.map.get_room(id)
 	if not room.discovered:
-		if room.room_type==RoomType.EVENT and room.event_type not in [&"prediction",&"promotion",&"hotSpring",&"supply"]:
+		if room.room_type==RoomType.EVENT and room.event_type not in [&"prediction",&"hotSpring",&"supply"]:
 			var encountered: Array=[]
 			for other in guild.state.tower.map.rooms.values():
 				if other.discovered and other.room_type==RoomType.EVENT:encountered.append(other.event_type)
-			var options: Array=[&"prediction",&"promotion",&"hotSpring",&"supply"];var total: int=0
+			var options: Array=[&"prediction",&"hotSpring",&"supply"];var total: int=0
 			for type in options:total+=1 if type in encountered else 4
 			var roll: float=generator.rng.randf()*total
 			for type in options:
@@ -58,12 +58,11 @@ func select_room(id: String) -> TowerNavigationPolicy.Code:
 	room.visited=true
 	var state: TowerRunState=guild.state.tower;state.visited_rooms[id]=true;state.selected_room_id=id;state.current_chapter=room.chapter_index
 	room.content_visits+=1
-	var reenter: bool=room.room_type in [RoomType.SHOP,RoomType.RECRUIT] or room.event_type==&"promotion" and not room.consumed
+	var reenter: bool=room.room_type in [RoomType.SHOP,RoomType.RECRUIT]
 	state.phase=&"cleared" if room.cleared and not reenter else &"deploy" if RoomType.is_combat(room.room_type) else &"event_active" if room.room_type==RoomType.EVENT else room.room_type
 	if state.phase==RoomType.SHOP:content.ensure_shop(room)
 	if state.phase==&"event_active":
 		content.ensure_event(room)
-		if room.event_type==&"promotion":room.event.selected_members.clear();room.event.resolved=false
 	guild.state.strategy_progress.current_depth=room.floor_index
 	_autosave();changed.emit();return code
 ## The floor the party stands on (the map shows only this floor's rooms).
@@ -201,7 +200,7 @@ func content_action(action: StringName,options: Dictionary={}) -> Dictionary:
 		if not complete_room_content(current_room().room_id,result.completion):_defer_save=false;return {"ok":false,"code":&"completion_rejected"}
 	if result.ok:update_gameover()
 	_defer_save=false
-	if result.ok and action!=&"promotion_select":_autosave()
+	if result.ok:_autosave()
 	changed.emit();return result
 func complete_room_content(room_id: String,result: RoomContentResult) -> bool:
 	var room: RoomState=current_room()
@@ -209,11 +208,9 @@ func complete_room_content(room_id: String,result: RoomContentResult) -> bool:
 	if content.pending_completions.get(result.receipt)!=result or guild.state.content_receipts.has(result.receipt):return false
 	var deferred: bool=_defer_save;_defer_save=true
 	guild.state.content_receipts[result.receipt]=result.outcome.duplicate(true);content.pending_completions.erase(result.receipt)
-	if room.event!=null:
-		room.event.reward_receipt=result.receipt
-		if room.event_type==&"promotion":room.event.resolved=true
+	if room.event!=null:room.event.reward_receipt=result.receipt
 	room.cleared=true;guild.state.tower.cleared_rooms[room_id]=true
-	room.consumed=room.room_type==RoomType.REST or room.room_type==RoomType.EVENT and (room.event_type!=&"promotion" or room.event.promotion_used>=room.event.promotion_limit)
+	room.consumed=room.room_type in [RoomType.REST,RoomType.EVENT]
 	refresh_progress(room.floor_index)
 	guild.state.tower.last_content_outcome=result.outcome.duplicate(true)
 	guild.state.tower.phase=&"content_result" if result.stay_for_result else &"route"

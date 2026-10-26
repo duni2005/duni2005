@@ -44,7 +44,6 @@ func ensure_event(node: RoomState) -> void:
 	if node.event!=null:return
 	var event:=EventState.new();event.event_type=node.event_type;node.event=event
 	match node.event_type:
-		&"promotion":event.promotion_limit=rng.randi_range(1,3)
 		&"hotSpring":event.choices=[&"bathe",&"lottery"]
 		&"supply":
 			event.choices=[&"heal",&"guild",&"gold",&"loot"]
@@ -132,19 +131,26 @@ func upgrade(member_id: String) -> Dictionary:
 	if not can_manage():return failure(&"management_locked")
 	var member: GuildMemberState=guild.get_member(member_id)
 	if member==null:return failure(&"invalid_member")
-	if member.level>=10:return failure(&"max_level")
-	var cost: int=GuildMemberCombatStats.upgrade_cost(member);var receipt: String="upgrade:%s:%d:%d"%[member_id,member.stars,member.level]
+	# Gold buys the experience still missing for the next level.
+	var gained: int=GrowthRules.exp_to_next(member.level)-GrowthRules.exp_progress(member.total_exp)
+	var cost: int=GuildMemberCombatStats.upgrade_cost(member);var receipt: String="upgrade:%s:%d:%d"%[member_id,member.stars,member.total_exp]
 	if not ResourceTransaction.can_spend(guild.state,cost,0,receipt):return failure(&"funds")
 	var old_max: float=guild.member_stats(member).max_hp;var dead: bool=not member.is_alive()
-	ResourceTransaction.spend(guild.state,cost,0,receipt);member.level+=1
+	ResourceTransaction.spend(guild.state,cost,0,receipt);member.total_exp+=gained
 	var gain: float=GuildMemberCombatStats.heal(guild,member,maxf(0,guild.member_stats(member).max_hp-old_max),true)
 	if dead and member.unit_type_id==13:GuildMemberCombatStats.reset_bomber(member)
-	return success({"level":member.level,"hp_gained":gain,"gold_spent":cost})
+	return success({"level":member.level,"exp_gained":gained,"hp_gained":gain,"gold_spent":cost})
+func upgrade_sortie() -> Dictionary:
+	if not can_manage():return failure(&"management_locked")
+	var cost: int=GrowthRules.sortie_cost(guild.state)
+	if cost<0:return failure(&"max_sortie")
+	var receipt: String="sortie:%d"%guild.state.sortie_level
+	if not ResourceTransaction.can_spend(guild.state,cost,0,receipt):return failure(&"funds")
+	ResourceTransaction.spend(guild.state,cost,0,receipt);guild.state.sortie_level+=1
+	return success({"sortie_limit":GrowthRules.sortie_limit(guild.state),"gold_spent":cost})
 func finish() -> Dictionary:
 	if not live() or room()==null:return failure(&"run_ended")
 	if valid_room(RoomType.RECRUIT) or valid_room(RoomType.SHOP):return completion(&"close")
-	if guild.state.tower.phase==&"event_active" and room().event_type==&"promotion":
-		room().event.selected_members.clear();return completion(&"promotion_done")
 	return failure(&"unfinished_content")
 func rest(choice: StringName,members: Array=[]) -> Dictionary:
 	if not valid_room(RoomType.REST) or room().cleared:return failure(&"wrong_room")
@@ -204,37 +210,44 @@ func event(choice: StringName) -> Dictionary:
 	else:return failure(&"invalid_event")
 	e.selected_choice=choice;e.resolved=true;e.outcome=outcome.duplicate(true)
 	return completion(choice,outcome,e.event_type==&"hotSpring")
-func promotion_eligible(member: GuildMemberState) -> bool:return member!=null and member.is_alive() and member.level==10 and member.stars in [0,1]
-func select_promotion(member_id: String) -> Dictionary:
-	if not live() or room()==null or room().event_type!=&"promotion" or guild.state.tower.phase!=&"event_active":return failure(&"wrong_room")
-	var e: EventState=room().event;var member: GuildMemberState=guild.get_member(member_id)
-	if e.selected_members.has(member_id):e.selected_members.erase(member_id);return success()
-	if e.promotion_used>=e.promotion_limit or not promotion_eligible(member) or e.selected_members.size()>=3:return failure(&"ineligible")
-	if not e.selected_members.is_empty():
-		var first: GuildMemberState=guild.get_member(e.selected_members[0])
-		if first==null or first.unit_type_id!=member.unit_type_id or first.stars!=member.stars:return failure(&"ineligible")
-	e.selected_members.append(member_id);return success()
-func promote() -> Dictionary:
+## Material gear fills the lead in this order: ancient, then rare (combined), then the rest.
+const GEAR_PRIORITY = {&"ancient":2,&"rare":1}
+## A unit can promote with two more living units of the same character and star rank.
+func promotion_eligible(member: GuildMemberState) -> bool:
+	if member==null or not member.is_alive() or member.stars>=GrowthRules.MAX_STARS:return false
+	return guild.living_members().filter(func(m):return m.unit_type_id==member.unit_type_id and m.stars==member.stars).size()>=3
+## The lead stays and gains a star; the two materials are consumed. Experience is pooled with a
+## bonus, HP becomes the three units' average, and the materials' gear fills the lead's free slots
+## (ancient first, then rare, then the rest; random within a grade; leftovers go to the inventory).
+func promote(lead_id: String,material_ids: Array) -> Dictionary:
 	if not inventory.valid():return failure(&"invalid_inventory")
-	if not live() or room()==null or room().event_type!=&"promotion" or guild.state.tower.phase!=&"event_active":return failure(&"wrong_room")
-	var e: EventState=room().event
-	if e.selected_members.size()!=3 or e.promotion_used>=e.promotion_limit:return failure(&"invalid_selection")
-	var members: Array=[];var seen: Dictionary={}
-	for id in e.selected_members:
-		var member: GuildMemberState=guild.get_member(id)
-		if not promotion_eligible(member) or seen.has(id):return failure(&"invalid_selection")
-		seen[id]=true;members.append(member)
-	var lead: GuildMemberState=members[0]
+	if not can_manage():return failure(&"management_locked")
+	if material_ids.size()!=2:return failure(&"invalid_selection")
+	var lead: GuildMemberState=guild.get_member(lead_id);var members: Array=[lead];var seen: Dictionary={lead_id:true}
+	for id in material_ids:
+		if seen.has(id):return failure(&"invalid_selection")
+		seen[id]=true;members.append(guild.get_member(id))
+	if members.any(func(m):return m==null or not m.is_alive()) or lead.stars>=GrowthRules.MAX_STARS:return failure(&"ineligible")
 	if members.any(func(m):return m.unit_type_id!=lead.unit_type_id or m.stars!=lead.stars):return failure(&"ineligible")
-	var old_max: float=guild.member_stats(lead).max_hp
+	var total_exp: int=GrowthRules.PROMOTION_BONUS_EXP;var hp: float=0
+	for member in members:total_exp+=member.total_exp;hp+=member.current_hp
+	var gear: Array=[]
 	for other in members.slice(1):
-		for item in inventory.equipped(other.member_id):item.equipped_to_member_id=""
+		for item in inventory.equipped(other.member_id):item.equipped_to_member_id="";gear.append(item)
 		guild.state.guild_members.erase(other.member_id)
 		guild.state.last_formation.entries=guild.state.last_formation.entries.filter(func(entry):return entry.member_id!=other.member_id)
-	lead.stars+=1;lead.level=0;var next_max: float=guild.member_stats(lead).max_hp
-	lead.current_hp=clampf(lead.current_hp+maxf(0,next_max-old_max),0,next_max)
-	e.promotion_used+=1;e.selected_members.clear()
-	return success({"member_id":lead.member_id,"stars":lead.stars})
+	lead.stars+=1;lead.total_exp=total_exp;lead.current_hp=hp/members.size()
+	shuffle(gear)
+	gear.sort_custom(func(a,b):return GEAR_PRIORITY.get(ItemCatalog.get_item(a.kind).grade,0)>GEAR_PRIORITY.get(ItemCatalog.get_item(b.kind).grade,0))
+	var placed: Array=[];var returned: Array=[]
+	for item in gear:
+		# Equipping runs the usual rules, so two basics on the lead still fuse into a rare item.
+		var result: Dictionary=equip(item.item_id,lead.member_id)
+		if result.ok:placed.append(item.item_id)
+		else:returned.append(item.item_id)
+	# The average HP is capped by the new maximum, gear included.
+	lead.current_hp=minf(lead.current_hp,guild.member_stats(lead).max_hp)
+	return success({"member_id":lead.member_id,"stars":lead.stars,"level":lead.level,"equipped":placed,"returned":returned})
 func execute(action: StringName,options: Dictionary={}) -> Dictionary:
 	match action:
 		&"recruit":return recruit(options.get("offer_id",""))
@@ -245,6 +258,6 @@ func execute(action: StringName,options: Dictionary={}) -> Dictionary:
 		&"finish":return finish()
 		&"rest":return rest(options.get("choice",&""),options.get("members",[]))
 		&"event":return event(options.get("choice",&""))
-		&"promotion_select":return select_promotion(options.get("member_id",""))
-		&"promote":return promote()
+		&"sortie_upgrade":return upgrade_sortie()
+		&"promote":return promote(options.get("member_id",""),options.get("materials",[]))
 	return failure(&"invalid_action")

@@ -15,7 +15,7 @@ static func capture(controller: TowerController,id: String,created: int,recovery
 	if not codec.error.is_empty():return SaveLoadResult.failure(SaveLoadResult.Code.VALIDATION_ERROR,codec.error)
 	if formation!=null:data.last_formation=codec.encode(formation,"formation")
 	var timestamp: int=maxi(created,int(Time.get_unix_time_from_system()))
-	var document: Dictionary={"schema_version":1,"save_id":id,"created_at":created,"updated_at":timestamp,"migration_version":"phase11-v1","run":data,"rng":{},"recovery":recovery.duplicate(true),"metadata":metadata_for(controller.guild.state,id,timestamp,not recovery.is_empty())}
+	var document: Dictionary={"schema_version":SaveMigrator.CURRENT_VERSION,"save_id":id,"created_at":created,"updated_at":timestamp,"migration_version":SaveMigrator.MIGRATION_LABEL,"run":data,"rng":{},"recovery":recovery.duplicate(true),"metadata":metadata_for(controller.guild.state,id,timestamp,not recovery.is_empty())}
 	for kind in ["map","content","combat"]:
 		var rng: RandomNumberGenerator=controller.generator.rng if kind=="map" else controller.content_rng if kind=="content" else controller.combat_rng
 		document.rng[kind]={"seed":str(rng.seed),"state":str(rng.state)}

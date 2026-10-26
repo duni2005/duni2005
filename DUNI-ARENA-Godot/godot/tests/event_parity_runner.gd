@@ -65,15 +65,16 @@ func flow(res: Vector2i):
 	await select_event(&"supply");c=ui.content_screen;verify(c.event_grid.get_child_count()==4 and not c.map_button.visible,"treasure four original options")
 	await shot("supply");var gold: int=ui.controller.guild.state.gold;await tap(c.event_grid.get_node("gold"))
 	verify(ui.controller.guild.state.gold==gold+300 and ui.controller.guild.state.tower.phase==&"route","treasure choice pays once / returns map")
-	await fresh();var r: RoomState=ui.controller.guild.state.tower.map.get_room("0:4");r.event_type=&"promotion";r.event=null
-	for i in range(3):var member: GuildMemberState=ui.controller.guild.create_member(0);member.level=10;member.current_hp=ui.controller.guild.member_max_hp(member)
-	ui.select_room("0:4");await frames();ui.fx.advance(3);c=ui.content_screen
-	verify(c.map_button.visible and not c.map_button.disabled,"promotion has original done action")
-	var members: Array=ui.controller.guild.all_members().slice(4)
-	for m in members:await tap(c.content_box.find_child(m.member_id,true,false))
-	var promote: Button=c.content_box.find_child("Promote",true,false);verify(not promote.disabled,"three matching individuals unlock promotion")
-	await shot("promotion");await tap(promote);verify(ui.controller.guild.get_member(members[0].member_id).stars==1,"promotion keeps first individual")
-	ui.fx.advance(4);await tap(c.map_button);verify(ui.controller.guild.state.tower.phase==&"route","promotion done returns map")
+	# Promotion lives in the guild screen's upgrade tab, not in an event room.
+	await fresh();var members: Array=[]
+	for i in range(3):var member: GuildMemberState=ui.controller.guild.create_member(0);member.current_hp=ui.controller.guild.member_max_hp(member);members.append(member)
+	ui.open_guild();await frames();var panel: GuildManagementPanel=ui.guild_panel;panel.selected_member_id=members[0].member_id;panel.show_tab("upgrade");await frames()
+	verify(not panel.promote_button.disabled,"three matching units enable promotion");await tap(panel.promote_button)
+	var dialog: PromotionDialog=panel.promotion_dialog;verify(dialog.visible and dialog.lead_id==members[0].member_id,"promotion window opens with the selected unit as lead")
+	for m in members.slice(1):await tap(dialog.grid.get_node(NodePath(m.member_id)))
+	verify(not dialog.confirm.disabled,"lead + two materials unlock promotion")
+	await shot("promotion");await tap(dialog.confirm);verify(ui.controller.guild.get_member(members[0].member_id).stars==1 and ui.controller.guild.get_member(members[1].member_id)==null,"promotion keeps the lead")
+	ui.fx.advance(4)
 	await select_event(&"prediction");c=ui.content_screen
 	verify(not c.map_button.visible,"prediction cannot escape before result");await shot("prediction")
 	await battle_fixture();var s: TowerBattleScreen=ui.battle_screen;var b: BattleManager=s.battle

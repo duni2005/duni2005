@@ -13,7 +13,14 @@ var member_id: String = "":
 		if member_id.is_empty():
 			member_id = value
 var unit_type_id: int
-var level: int = 0
+## Experience gained since Lv.0; the level is derived from it.
+var total_exp: int = 0:
+	set(value):
+		total_exp = maxi(0, value)
+## Setting a level directly drops any progress inside it.
+var level: int:
+	get: return GrowthRules.level_for_exp(total_exp)
+	set(value): total_exp = GrowthRules.exp_for_level(maxi(0, value))
 var stars: int = 0
 var current_hp: float
 var energy: int = MAX_ENERGY:

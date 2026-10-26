@@ -87,9 +87,15 @@ func test_invariant_and_capacity() -> void:
 		member.character_specific_state = {"nested": {"test_counter": 3}}
 	var before: Dictionary = member_snapshot(guild)
 	var plan := DeploymentPlan.new(guild)
-	for index in range(30):
-		verify(plan.place(guild.all_members()[index].member_id, Vector2(40 + index % 6 * 60, 40 + int(index / 6) * 60)) == DeploymentRules.Code.OK, "30 survivors deploy without custom 24 cap")
-	verify(plan.entries().size() == 30, "tower has no artificial deployment headcount limit")
+	var spot := func(index: int) -> Vector2: return Vector2(40 + index % 6 * 60, 40 + int(index / 6) * 60)
+	for index in range(3):
+		verify(plan.place(guild.all_members()[index].member_id, spot.call(index)) == DeploymentRules.Code.OK, "three units sortie by default")
+	verify(plan.place(guild.all_members()[3].member_id, spot.call(3)) == DeploymentRules.Code.SORTIE_FULL and plan.entries().size() == 3, "a fourth unit is refused at the default sortie limit")
+	verify(plan.move(guild.all_members()[0].member_id, Vector2(40, 40)) == DeploymentRules.Code.OK, "moving a placed unit is not limited")
+	guild.state.sortie_level = GrowthRules.SORTIE_COSTS.size()
+	for index in range(3, 8):
+		verify(plan.place(guild.all_members()[index].member_id, spot.call(index)) == DeploymentRules.Code.OK, "fully upgraded sortie reaches eight")
+	verify(plan.place(guild.all_members()[8].member_id, spot.call(8)) == DeploymentRules.Code.SORTIE_FULL and plan.entries().size() == 8, "never more than eight")
 	var copied: Array[DeploymentEntry] = plan.entries()
 	copied[0].position = Vector2(700, 700)
 	verify(plan.entries()[0].position == Vector2(40, 40), "returned entries are detached from draft")
@@ -101,13 +107,13 @@ func test_invariant_and_capacity() -> void:
 	plan.clear()
 	verify(member_snapshot(guild) == before, "placement/removal/clear preserves every member field including energy")
 	for iteration in range(5):
-		verify(plan.restore(formation) == 30, "repeated restoration remains valid")
+		verify(plan.restore(formation) == 8, "repeated restoration remains valid")
 		verify(member_snapshot(guild) == before, "restoration does not mutate member state")
 		plan.clear()
 	formation.entries[0].position = Vector2(20, 900)
 	verify(member_snapshot(guild) == before, "formation mutation cannot affect member state")
 	verify(guild.state.last_formation.entries.is_empty(), "editing/cancelling draft never saves last started formation")
-	print("PASS Phase 3 pure-state invariants / >24 placements")
+	print("PASS Phase 3 pure-state invariants / sortie limit")
 
 func test_restore() -> void:
 	groups += 1

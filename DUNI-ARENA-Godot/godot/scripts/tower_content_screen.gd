@@ -96,7 +96,7 @@ func _ready() -> void:
 	revive_confirm=button(revival_footer,"부활",_confirm_revive);revive_confirm.custom_minimum_size=Vector2(112,44);ArenaUI.primary(revive_confirm)
 	revive_dialog.canceled.connect(func():selecting_revive=false;revive_selection.clear())
 	guild_dialog=AcceptDialog.new();guild_dialog.title="길드 / 인벤토리";guild_dialog.get_ok_button().text="닫기";add_child(guild_dialog)
-	guild_panel=GuildManagementPanel.new();guild_panel.controller=controller;guild_panel.header_room=controller.current_room();guild_dialog.add_child(guild_panel);guild_panel.modified.connect(refresh_wallet);guild_panel.home_requested.connect(func():main_menu_requested.emit())
+	guild_panel=GuildManagementPanel.new();guild_panel.controller=controller;guild_panel.header_room=controller.current_room();guild_dialog.add_child(guild_panel);guild_panel.modified.connect(refresh_wallet);guild_panel.promoted.connect(func(e):guild_dialog.hide();presentation_requested.emit(e));guild_panel.home_requested.connect(func():main_menu_requested.emit())
 	render()
 func _storage_status(result: SaveLoadResult) -> void:
 	storage_status.text="저장 완료" if result.ok() else "전투 종료 후 저장할 수 있습니다." if result.code==SaveLoadResult.Code.BUSY else "저장 실패 · "+result.detail
@@ -142,7 +142,7 @@ func render() -> void:
 	refresh_wallet();clear(content_box)
 	event_grid=null
 	var current: RoomState=controller.current_room()
-	room_title.text={&"hotSpring":"온천",&"supply":"보물상자",&"promotion":"승급",&"prediction":"전투 예측"}.get(current.event_type,RoomType.LABELS[current.room_type])
+	room_title.text={&"hotSpring":"온천",&"supply":"보물상자",&"prediction":"전투 예측"}.get(current.event_type,RoomType.LABELS[current.room_type])
 	emblem.icon=String(current.room_type) if current.room_type!=RoomType.EVENT else String(current.event_type)
 	emblem.caption="%d층 · %d번 방"%[current.floor_index+1,current.lane+1];emblem.visible=current.room_type!=RoomType.SHOP or content_tab!="inventory"
 	party_strip.visible=current.room_type==RoomType.REST or current.event_type in [&"hotSpring",&"supply"]
@@ -153,9 +153,8 @@ func render() -> void:
 	var node: RoomState=controller.current_room();var phase: StringName=controller.guild.state.tower.phase
 	map_button.disabled=not TowerNavigationPolicy.can_return(controller.guild.state)
 	# The original hides the map action until an event has actually resolved.
-	map_button.visible=node.room_type!=RoomType.EVENT or node.event_type==&"promotion" or node.cleared
-	if node.event_type==&"promotion":map_button.text="완료 · 지도로";map_button.disabled=false
-	else:map_button.text="지도로"
+	map_button.visible=node.room_type!=RoomType.EVENT or node.cleared
+	map_button.text="지도로"
 	map_footer.visible=map_button.visible;footer_gap.visible=map_footer.visible
 	abandon_button.disabled=controller.guild.state.game_over or is_instance_valid(battle) and not battle.finished
 	if content_tabs.visible and motion_tab!=content_tab:
@@ -166,7 +165,6 @@ func render() -> void:
 	if node.room_type==RoomType.RECRUIT:render_recruit(node)
 	elif node.room_type==RoomType.SHOP:render_shop(node)
 	elif node.room_type==RoomType.REST:render_rest()
-	elif node.event_type==&"promotion":render_promotion(node)
 	elif node.event_type==&"prediction":render_prediction(node)
 	else:render_event(node)
 func render_recruit(node: RoomState) -> void:
@@ -182,7 +180,7 @@ func render_recruit(node: RoomState) -> void:
 	if deal_cards:deal_cards=false;UiMotion.deal(row.get_children())
 func render_shop(node: RoomState) -> void:
 	if content_tab=="inventory":
-		var panel:=GuildManagementPanel.new();panel.controller=controller;panel.custom_minimum_size.y=420;content_box.add_child(panel);panel.show_tab("inventory");panel.modified.connect(refresh_wallet);return
+		var panel:=GuildManagementPanel.new();panel.controller=controller;panel.custom_minimum_size.y=420;content_box.add_child(panel);panel.show_tab("inventory");panel.modified.connect(refresh_wallet);panel.promoted.connect(presentation_requested.emit);return
 	offers_grid=GridContainer.new();offers_grid.columns=3;offers_grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content_box.add_child(offers_grid)
 	for offer in node.shop.offers:
 		if String(offer.category)!=content_tab:continue
@@ -224,31 +222,6 @@ func _toggle_revive(id: String) -> void:
 	if id in revive_selection:revive_selection.erase(id)
 	elif revive_selection.size()<2:revive_selection.append(id)
 	call_deferred("_refresh_revive")
-func render_promotion(node: RoomState) -> void:
-	var event: EventState=node.event
-	_section("남은 승급 %d회"%(event.promotion_limit-event.promotion_used))
-	var info:=Label.new();info.text="같은 종류·성급의 Lv.10 유닛 3명을 고르세요";info.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;info.add_theme_font_size_override("font_size",11);info.add_theme_color_override("font_color",ArenaUI.MUTED);content_box.add_child(info)
-	var slots:=HBoxContainer.new();slots.alignment=BoxContainer.ALIGNMENT_CENTER;content_box.add_child(slots)
-	var first: GuildMemberState=controller.guild.get_member(event.selected_members[0]) if not event.selected_members.is_empty() else null
-	for i in range(3):
-		var slot:=ArenaCard.new();slot.card_type="promotion_slot";slot.custom_minimum_size=Vector2(48,58);slot.type_id=-1
-		if i<event.selected_members.size():
-			var member: GuildMemberState=controller.guild.get_member(event.selected_members[i]);slot.type_id=member.unit_type_id;slot.subtitle="유지" if i==0 else "소비";ArenaUI.bind(slot,_action.bind(&"promotion_select",{"member_id":member.member_id}))
-		else:slot.disabled=true
-		slots.add_child(slot)
-	var arrow:=Label.new();arrow.text="→";slots.add_child(arrow)
-	var preview:=ArenaCard.new();preview.card_type="promotion_slot";preview.type_id=first.unit_type_id if first!=null else -1;preview.subtitle="%d성"%(first.stars+1) if first!=null else "승급";preview.custom_minimum_size=Vector2(58,58);preview.disabled=true;slots.add_child(preview)
-	var grid:=GridContainer.new();grid.columns=3;content_box.add_child(grid)
-	for member in controller.guild.all_members():
-		var selected: bool=member.member_id in event.selected_members
-		var matching: bool=first==null or first.unit_type_id==member.unit_type_id and first.stars==member.stars
-		var eligible: bool=controller.content.promotion_eligible(member) and matching
-		var c:=ArenaCard.new();c.name=member.member_id;c.card_type="promotion_member";c.type_id=member.unit_type_id;c.title=controller.guild.definition(member.unit_type_id).display_name;c.subtitle="%s · Lv.%d"%[ArenaUI.member_label(member.member_id),member.level];c.hp=member.current_hp;c.hp_max=controller.guild.member_max_hp(member);c.dead=not member.is_alive();c.status_text="선택됨" if selected else "사망" if c.dead else "최고 성급" if member.stars>=2 else "Lv.10 필요" if member.level<10 else "승급 가능" if matching else "종류·성급 다름";c.selected=selected;c.custom_minimum_size=Vector2(0,158);c.show_member(controller.guild,member);c.size_flags_horizontal=Control.SIZE_EXPAND_FILL;c.disabled=not selected and (not eligible or event.selected_members.size()>=3 or event.promotion_used>=event.promotion_limit);ArenaUI.bind(c,_action.bind(&"promotion_select",{"member_id":member.member_id}));grid.add_child(c)
-	var footer:=HBoxContainer.new();content_box.add_child(footer)
-	var count:=Label.new();count.size_flags_horizontal=Control.SIZE_EXPAND_FILL;count.text="%d / 3명 선택"%event.selected_members.size();count.add_theme_font_size_override("font_size",12);footer.add_child(count)
-	var promote: Button=button(footer,"승급",_action.bind(&"promote"),"Promote");ArenaUI.primary(promote);promote.custom_minimum_size.x=112;promote.disabled=event.selected_members.size()!=3 or event.promotion_used>=event.promotion_limit
-	if first!=null:
-		var detail:=Label.new();detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;detail.add_theme_font_size_override("font_size",11);detail.text="첫 길드원과 장비는 유지됩니다. 다른 두 길드원은 소비되며 장비는 인벤토리로 반환됩니다.";content_box.add_child(detail)
 func render_event(node: RoomState) -> void:
 	if node.event.resolved:
 		if node.event.selected_choice==&"bathe":_result("hotSpring","온천욕 완료","따뜻한 온천에서 생존 유닛들이 회복했습니다.",Color("7fd8e8"),["HP +10%"])
@@ -341,15 +314,14 @@ func _process(_delta: float) -> void:
 		if is_instance_valid(board):column.remove_child(board);board.queue_free();board=null
 		call_deferred("render")
 func _return_map() -> void:
-	if controller.current_room().event_type==&"promotion" and controller.guild.state.tower.phase==&"event_active":_action(&"finish");return
 	if controller.return_map():map_requested.emit()
 
 func _present_action(action: StringName,outcome: Dictionary) -> void:
 	var event: Dictionary=outcome.duplicate(true);event["point"]=get_tree().root.get_meta("action_point",get_viewport_rect().size*.5)
-	if action in [&"recruit",&"promote"] and outcome.has("member_id"):
+	if action==&"recruit" and outcome.has("member_id"):
 		var member: GuildMemberState=controller.guild.get_member(outcome.member_id)
 		if member==null:return
-		event.merge({"kind":"recruit" if action==&"recruit" else "promotion","key":"%s:%s:%d"%[action,member.member_id,member.stars],"title":controller.guild.definition(member.unit_type_id).display_name,"type":member.unit_type_id,"stars":member.stars,"slots":GuildMemberCombatStats.equipment_limit(member)})
+		event.merge({"kind":"recruit","key":"%s:%s:%d"%[action,member.member_id,member.stars],"title":controller.guild.definition(member.unit_type_id).display_name,"type":member.unit_type_id,"stars":member.stars,"slots":GuildMemberCombatStats.equipment_limit(member)})
 	elif action==&"buy":
 		var gained: Dictionary=outcome.duplicate();gained.erase("gold_spent");gained.erase("tokens_spent")
 		event.merge({"title":"구매 완료","icon":"shop","detail":outcome_text(gained)})

@@ -1,7 +1,7 @@
 class_name DeploymentRules
 extends RefCounted
 ## Tower rules, not custom mode's 24-unit limit. No UI strings or state writes.
-enum Code { OK, UNKNOWN_MEMBER, DEAD_MEMBER, ALREADY_DEPLOYED, NOT_DEPLOYED, OUTSIDE_DEPLOYMENT_ZONE, TOO_CLOSE, INVALID_POSITION, INVALID_TEAM, EMPTY_DEPLOYMENT, INVALID_ENEMY }
+enum Code { OK, UNKNOWN_MEMBER, DEAD_MEMBER, ALREADY_DEPLOYED, NOT_DEPLOYED, OUTSIDE_DEPLOYMENT_ZONE, TOO_CLOSE, INVALID_POSITION, INVALID_TEAM, EMPTY_DEPLOYMENT, INVALID_ENEMY, SORTIE_FULL }
 const MIN_POSITION := Vector2(40, 40)
 const MAX_POSITION := Vector2(380, 760)
 ## MIGRATION_NOTE: fixed center distance ignores character body size.
@@ -40,6 +40,8 @@ static func validate(guild: GuildManager, entry: DeploymentEntry, entries: Array
 		return Code.ALREADY_DEPLOYED
 	if moving and not exists:
 		return Code.NOT_DEPLOYED
+	if not moving and entries.size() >= GrowthRules.sortie_limit(guild.state):
+		return Code.SORTIE_FULL
 	return position_error(entry.position, entries, blockers, entry.member_id if moving else "")
 
 static func validate_all(guild: GuildManager, entries: Array[DeploymentEntry], blockers: Array[Vector2]) -> Code:

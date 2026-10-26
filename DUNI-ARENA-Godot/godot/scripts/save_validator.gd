@@ -52,6 +52,7 @@ static func point_ok(p: Vector2) -> bool:return p.is_finite() and p.x>=28 and p.
 static func validate(document: Dictionary) -> SaveLoadResult:
 	var version: SaveLoadResult=SaveMigrator.prepare(document)
 	if not version.ok():return version
+	document=version.document
 	if not UnitStateCodec.is_pure_data(document):return reject("non_pure_document")
 	if document.size()!=9:return reject("unknown_header_fields")
 	for key in ["save_id","created_at","updated_at","migration_version","run","rng","metadata","recovery"]:
@@ -194,7 +195,7 @@ static func validate_room(room: RoomState) -> String:
 			seen[offer.offer_id]=true
 	if room.event!=null:
 		var event: EventState=room.event
-		if room.room_type!=RoomType.EVENT or event.event_type!=room.event_type or event.promotion_limit<0 or event.promotion_used<0 or event.promotion_used>event.promotion_limit:return "event"
-		if event.event_type not in [&"promotion",&"prediction",&"supply",&"hotSpring"]:return "event_type"
+		if room.room_type!=RoomType.EVENT or event.event_type!=room.event_type:return "event"
+		if event.event_type not in [&"prediction",&"supply",&"hotSpring"]:return "event_type"
 		if event.prediction!=null and (not PredictionRules.valid(event.prediction) or event.prediction.status not in [&"ready",&"resolved"]):return "prediction_state"
 	return ""

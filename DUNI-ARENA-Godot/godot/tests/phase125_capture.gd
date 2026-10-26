@@ -50,9 +50,8 @@ func run() -> void:
 		await reset();await shot("tower");screen.open_guild();await shot("guild");await shot("upgrade");await shot("equipment");screen.guild_dialog.hide()
 		for pair in [["0:0","recruit"],["0:1","shop"],["0:2","rest"],["0:4","event"]]:
 			await reset();await select_room(pair[0]);await shot(pair[1])
-		await reset();var event: RoomState=screen.controller.guild.state.tower.map.get_room("0:4");event.event_type=&"promotion";event.event=null
-		for m in screen.controller.guild.all_members():m.level=10
-		await select_room("0:4");await shot("promotion")
+		await reset();var trio: Array=[screen.controller.guild.create_member(0),screen.controller.guild.create_member(0),screen.controller.guild.create_member(0)]
+		screen.open_guild();screen.guild_panel.show_tab("upgrade");screen.guild_panel.promotion_dialog.open(trio[0].member_id);await shot("promotion");screen.guild_panel.promotion_dialog.hide();screen.guild_dialog.hide()
 		var room: TowerBattleScreen=await battle_fixture();await shot("character-select");await shot("deployment")
 		room.start_battle();room.battle.set_physics_process(false);await shot("battle-zero")
 		var b: BattleManager=room.battle

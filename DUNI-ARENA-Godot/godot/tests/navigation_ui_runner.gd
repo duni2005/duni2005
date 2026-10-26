@@ -34,7 +34,7 @@ func flow(res: Vector2i):
 	verify(not s.management_dialog.visible and s.board.editing,"X returns directly to deployment")
 	verify(s.plan.get_entry(member.member_id).position==Vector2(150,300) and pure()==before,"opening/closing navigation preserves domain/RNG/draft")
 	# Real room screens share the same header; the fixed footer is outside scroll.
-	for kind in ["recruit","shop","rest","hotSpring","supply","promotion","prediction"]:
+	for kind in ["recruit","shop","rest","hotSpring","supply","prediction"]:
 		await fresh()
 		var id: String={"recruit":"0:0","shop":"0:1","rest":"0:2"}.get(kind,"0:4")
 		var node: RoomState=ui.controller.guild.state.tower.map.get_room(id)

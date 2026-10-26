@@ -114,20 +114,18 @@ func flow(touch: bool) -> void:
 	verify(event_room.cleared and event_room.consumed and not screen.content_screen.map_button.disabled,"event result unlocks map")
 	await capture("mobile-event" if touch else "desktop-event")
 	await click(screen.content_screen.map_button,touch)
-	# Promotion UI eligibility fixture: three individual living warrior members.
-	var promotion_room: RoomState=run_state.tower.map.get_room("1:0");promotion_room.room_type=RoomType.EVENT;promotion_room.event_type=&"promotion";promotion_room.event=null
+	# Promotion from the guild screen's upgrade tab: three individual living warrior members.
 	var ids: Array[String]=[]
 	for i in range(3):
-		var m: GuildMemberState=t.guild.create_member(0);m.level=10;ids.append(m.member_id)
+		var m: GuildMemberState=t.guild.create_member(0);ids.append(m.member_id)
 	await click(screen.map_scroll.stairs,touch)
 	verify(t.current_floor()==1 and screen.room_buttons["0:2"].disabled and not screen.room_buttons["1:0"].disabled,"stairs climb; the floor below stays behind")
-	await click(screen.room_buttons["1:0"],touch)
-	for id in ids:await click(screen.content_screen.content_box.find_child(id,true,false),touch)
-	await click(screen.content_screen.content_box.find_child("Promote",true,false),touch)
+	screen.open_guild();await frames();screen.guild_panel.selected_member_id=ids[0];screen.guild_panel.show_tab("upgrade");await frames()
+	await click(screen.guild_panel.promote_button,touch)
+	for id in ids.slice(1):await click(screen.guild_panel.promotion_dialog.grid.get_node(NodePath(id)),touch)
+	await click(screen.guild_panel.promotion_dialog.confirm,touch)
 	verify(t.guild.get_member(ids[0]).stars==1 and t.guild.get_member(ids[1])==null and t.guild.get_member(ids[2])==null,"promotion via selection/input")
 	await finish_reveal(screen,touch)
-	await click(screen.content_screen.map_button,touch)
-	verify(promotion_room.cleared,"promotion completion progression")
 	var prediction_room: RoomState=run_state.tower.map.get_room("1:1");prediction_room.room_type=RoomType.EVENT;prediction_room.event_type=&"prediction";prediction_room.event=null
 	screen.show_map();await frames();await click(screen.room_buttons["1:1"],touch)
 	await click(screen.content_screen.content_box.get_node("team_0"),touch);await click(screen.content_screen.content_box.find_child("stake_50",true,false),touch)

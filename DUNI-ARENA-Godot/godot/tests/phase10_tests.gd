@@ -40,11 +40,15 @@ func golden() -> void:
 	var base: Dictionary={}
 	for type in range(26):base[type]=[g.definition(type).max_hp,g.definition(type).attack,g.definition(type).defense_power,g.definition(type).move_speed]
 	for row in web.samples:
+		# The web gave each star 40 levels of stats; stars now add none (promotion pays EXP instead).
+		if row.stars>0:continue
 		g.state.inventory.clear()
 		var member: GuildMemberState=g.create_member(row.type);member.level=row.level;member.stars=row.stars;member.fang_kills=row.kills
 		for kind in row.gear:inv.give(StringName(kind)).equipped_to_member_id=member.member_id
 		var stats: UnitCombatStats=g.member_stats(member)
 		for pair in [["max_hp","hp"],["attack","dmg"],["defense","defensePower"],["speed","speed"],["healing_power","healingPower"],["victory_gold","victoryGold"],["vigor_totem_count","totemCount"],["charge_totem_count","chargeTotemCount"],["fang_count","fangCount"],["opening_awl_count","openingAwlCount"]]:verify(is_equal_approx(stats.get(pair[0]),row.stats[pair[1]]),"executed JS growth/gear golden")
+	var plain: GuildMemberState=g.create_member(0);var starred: GuildMemberState=g.create_member(0);plain.level=4;starred.level=4;starred.stars=2
+	verify(g.member_stats(plain).max_hp==g.member_stats(starred).max_hp and g.member_stats(plain).attack==g.member_stats(starred).attack,"stars add no stat bonus")
 	for type in range(26):verify(base[type]==[g.definition(type).max_hp,g.definition(type).attack,g.definition(type).defense_power,g.definition(type).move_speed],"shared UnitData immutable")
 func recruit_shop() -> void:
 	groups+=1
@@ -100,9 +104,9 @@ func equipment_growth() -> void:
 	verify(not t.content_action(&"equip",{"item_id":boots.item_id,"member_id":member.member_id}).ok and boots.equipped_to_member_id.is_empty(),"two slots enforce")
 	verify(not t.content_action(&"equip",{"item_id":vital.item_id,"member_id":t.guild.all_members()[1].member_id}).ok,"no move/double equip")
 	member.stars=1;verify(t.content_action(&"equip",{"item_id":boots.item_id,"member_id":member.member_id}).ok,"one star three slots")
-	verify(is_equal_approx(t.guild.member_stats(member).speed,base.move_speed*(1+40*.02)*1.1),"stars + boots speed")
+	verify(is_equal_approx(t.guild.member_stats(member).speed,base.move_speed*1.1),"stars + boots speed (no star stats)")
 	member.stars=2;give(t,&"boots",member)
-	verify(GuildMemberCombatStats.equipment_limit(member)==4 and is_equal_approx(t.guild.member_stats(member).speed,base.move_speed*2.6*1.21),"two stars4 slots /boots multiply")
+	verify(GuildMemberCombatStats.equipment_limit(member)==4 and is_equal_approx(t.guild.member_stats(member).speed,base.move_speed*1.21),"two stars4 slots /boots multiply")
 	var ids: Array=t.content.inventory.equipped(member.member_id).map(func(i):return i.item_id)
 	var recovery: ItemInstance=t.content.inventory.give(&"reengrave")
 	verify(t.content_action(&"equip",{"item_id":recovery.item_id,"member_id":member.member_id}).ok and recovery.consumed,"reengrave consumes")
@@ -113,43 +117,74 @@ func equipment_growth() -> void:
 	var result: Dictionary=t.content_action(&"upgrade",{"member_id":member.member_id})
 	verify(result.ok and member.level==1 and is_equal_approx(member.current_hp,18*1.21) and t.guild.state.gold==9920,"dead upgrade revives with incoming healing")
 	for i in range(1,10):verify(t.content_action(&"upgrade",{"member_id":member.member_id}).ok,"upgrade levels through10")
-	verify(member.level==10 and t.guild.state.gold==8300 and not t.content_action(&"upgrade",{"member_id":member.member_id}).ok,"total upgrade1700/max10")
+	verify(member.level==10 and member.total_exp==1700 and t.guild.state.gold==8300,"gold buys EXP 1:1, Lv.10 = 1700 EXP")
 	var stats: UnitCombatStats=t.guild.member_stats(member)
 	verify(stats.max_hp==330 and is_equal_approx(stats.attack,base.attack*1.8) and is_equal_approx(stats.defense,base.defense_power*1.8) and is_equal_approx(stats.speed,base.move_speed*1.2),"linear growth hp12/atk8/def8/speed2")
+	verify(t.content_action(&"upgrade",{"member_id":member.member_id}).ok and member.level==11 and t.guild.state.gold==8020,"no level cap; Lv.10->11 costs 280")
+	verify(t.guild.member_stats(member).max_hp==348,"growth keeps scaling past 10 (hp +12%/level)")
+	member.total_exp+=100
+	verify(GrowthRules.exp_progress(member.total_exp)==100 and GuildMemberCombatStats.upgrade_cost(member)==300-100,"partial progress lowers the next purchase")
+	verify(t.content_action(&"upgrade",{"member_id":member.member_id}).ok and member.level==12 and GrowthRules.exp_progress(member.total_exp)==0 and t.guild.state.gold==7820,"buying the rest reaches the next level exactly")
 	var other: GuildMemberState=t.guild.all_members()[1];t.guild.state.gold=0;var hp: float=other.current_hp
 	verify(not t.content_action(&"upgrade",{"member_id":other.member_id}).ok and other.current_hp==hp and other.level==0,"failed upgrade unchanged")
 	var bomber: GuildMemberState=t.guild.create_member(13);bomber.current_hp=0;bomber.character_specific_state={"bomberRush":true,"bomberRushTime":4,"bomberFuse":1};t.guild.state.gold=100
 	verify(t.content_action(&"upgrade",{"member_id":bomber.member_id}).ok and bomber.is_alive() and bomber.character_specific_state.bomberFuse==null,"dead bomber upgrade cleanup")
+func growth_rules() -> void:
+	groups+=1
+	verify(GrowthRules.exp_to_next(0)==80 and GrowthRules.exp_to_next(9)==260 and GrowthRules.exp_for_level(10)==1700,"EXP per level = 80 + 20L, same as the old gold cost")
+	verify(GrowthRules.level_for_exp(1699)==9 and GrowthRules.level_for_exp(1700)==10 and GrowthRules.exp_progress(1750)==50,"level and in-level progress from total EXP")
+	var m:=GuildMemberState.new();m.level=7;verify(m.total_exp==GrowthRules.exp_for_level(7) and m.level==7,"setting a level stores its cumulative EXP")
+	var t:=tower();t.guild.state.gold=10000;var limits: Array=[];var spent: Array=[]
+	verify(GrowthRules.sortie_limit(t.guild.state)==3,"three units sortie by default")
+	for i in range(5):
+		var gold: int=t.guild.state.gold;var result: Dictionary=t.content_action(&"sortie_upgrade")
+		limits.append(result.outcome.sortie_limit if result.ok else -1);spent.append(gold-t.guild.state.gold)
+	verify(limits==[4,5,6,7,8] and spent==[500,800,1200,1700,2300],"five sortie upgrades: 500/800/1200/1700/2300 G, +1 each")
+	var gold: int=t.guild.state.gold
+	verify(not t.content_action(&"sortie_upgrade").ok and t.guild.state.gold==gold and GrowthRules.sortie_limit(t.guild.state)==8,"sortie tops out at eight")
+	t=tower();t.guild.state.gold=499;verify(not t.content_action(&"sortie_upgrade").ok and t.guild.state.sortie_level==0,"sortie upgrade needs the gold")
 func promotion() -> void:
 	groups+=1
+	for seed in range(12):
+		var e:=TowerController.new();e.new_run(seed+3,seed+5);e.select_room("0:4")
+		verify(e.current_room().event_type in [&"prediction",&"hotSpring",&"supply"],"promotion is no longer an event room")
 	var t:=tower();t.guild.state.gold=10000
 	var members: Array=[t.guild.all_members()[0],t.guild.all_members()[1],t.guild.create_member(0)]
-	for m in members:m.level=10;m.current_hp=100
-	var lead: GuildMemberState=members[0];give(t,&"vital",lead);give(t,&"greenNecklace",lead)
-	var returned: ItemInstance=give(t,&"boots",members[1]);var returned2: ItemInstance=give(t,&"fang",members[2])
+	var lead: GuildMemberState=members[0]
+	members[0].level=3;members[1].level=1;members[2].total_exp=50
+	members[0].current_hp=100;members[1].current_hp=60;members[2].current_hp=20
+	var sword: ItemInstance=give(t,&"woodSword",lead)
+	var ancient: ItemInstance=give(t,&"phoenixFeather",members[1]);var staff: ItemInstance=give(t,&"staff",members[1])
+	var rare: ItemInstance=give(t,ItemCatalog.combined_kind(&"ether",&"redThorn"),members[2]);var feather: ItemInstance=give(t,&"hawkFeather",members[2])
 	t.guild.state.last_formation.capture([DeploymentEntry.new(lead.member_id,Vector2(100,100)),DeploymentEntry.new(members[1].member_id,Vector2(100,200)),DeploymentEntry.new(members[2].member_id,Vector2(100,300))])
-	enter_event(t,&"promotion");var event: EventState=t.current_room().event;verify(event.promotion_limit in [1,2,3],"promotion limit1..3")
-	var before: int=t.guild.all_members().size();var max_hp: float=t.guild.member_stats(lead).max_hp
-	verify(not t.content_action(&"promote").ok,"needs three selected")
-	verify(not t.content_action(&"promotion_select",{"member_id":t.guild.all_members()[2].member_id}).ok,"wrong level rejected")
-	for m in members:verify(t.content_action(&"promotion_select",{"member_id":m.member_id}).ok,"eligible selected")
-	verify(t.content_action(&"promote").ok,"promotion succeeds")
-	verify(t.guild.get_member(lead.member_id)==lead and lead.stars==1 and lead.level==0 and t.guild.all_members().size()==before-2,"lead ID retained/two consumed/level reset")
-	verify(returned.equipped_to_member_id.is_empty() and returned2.equipped_to_member_id.is_empty() and t.content.inventory.equipped(lead.member_id).size()==2,"gear identity returned /lead preserved")
-	verify(lead.current_hp==100+t.guild.member_stats(lead).max_hp-max_hp,"promotion HP increase direct, no healing bonus")
+	var before: int=t.guild.all_members().size();var other: GuildMemberState=t.guild.create_member(1)
+	verify(t.content.promotion_eligible(lead) and not t.content.promotion_eligible(other),"three same-character same-star units, no level gate")
+	verify(not t.content_action(&"promote",{"member_id":lead.member_id,"materials":[members[1].member_id]}).ok,"needs two materials")
+	verify(not t.content_action(&"promote",{"member_id":lead.member_id,"materials":[members[1].member_id,other.member_id]}).ok,"different character rejected")
+	verify(not t.content_action(&"promote",{"member_id":lead.member_id,"materials":[members[1].member_id,members[1].member_id]}).ok,"duplicate material rejected")
+	members[2].current_hp=0
+	verify(not t.content_action(&"promote",{"member_id":lead.member_id,"materials":[members[1].member_id,members[2].member_id]}).ok,"dead material rejected")
+	members[2].current_hp=20
+	t.guild.state.guild_members.erase(other.member_id);before=t.guild.all_members().size()
+	var result: Dictionary=t.content_action(&"promote",{"member_id":lead.member_id,"materials":[members[1].member_id,members[2].member_id]})
+	verify(result.ok and t.guild.get_member(lead.member_id)==lead and lead.stars==1 and t.guild.all_members().size()==before-2,"lead kept, two consumed")
+	verify(lead.total_exp==300+80+50+GrowthRules.PROMOTION_BONUS_EXP and lead.level==GrowthRules.level_for_exp(lead.total_exp) and lead.level==5,"EXP pooled plus bonus, level recomputed")
+	verify(is_equal_approx(lead.current_hp,60),"HP becomes the three units' average")
+	var worn: Array=t.content.inventory.equipped(lead.member_id)
+	verify(worn.size()==3 and ancient in worn and rare in worn,"ancient then rare fill the free slots first")
+	verify(sword.consumed and worn.any(func(i):return ItemCatalog.get_item(i.kind).components.has(&"woodSword")),"a basic fused with the lead's basic as it was equipped")
+	var leftover: Array=[staff,feather].filter(func(i):return not i.consumed)
+	verify(leftover.size()==1 and leftover[0].equipped_to_member_id.is_empty(),"gear without a free slot goes back to the inventory")
 	verify(t.guild.state.last_formation.entries.size()==1 and t.guild.state.last_formation.entries[0].member_id==lead.member_id,"formation removes consumed IDs")
-	var count: int=t.guild.all_members().size();verify(not t.content_action(&"promote").ok and t.guild.all_members().size()==count,"double promote blocked")
-	verify(t.content_action(&"finish").ok and t.current_room().cleared,"promotion finishes clear")
-	if not t.current_room().consumed:
-		t.select_room("0:4");verify(t.guild.state.tower.phase==&"event_active" and event.promotion_used==1,"promotion reentry retains remaining uses")
-		t.content_action(&"finish")
-	# Separate full same-star gate, max star refusal and second-star result.
+	var count: int=t.guild.all_members().size();verify(not t.content_action(&"promote",{"member_id":lead.member_id,"materials":[members[1].member_id,members[2].member_id]}).ok and t.guild.all_members().size()==count,"consumed materials cannot promote again")
+	# Second star: four slots; the average HP is capped by the new maximum; stars stop at two.
 	t=tower();members=[t.guild.all_members()[0],t.guild.all_members()[1],t.guild.create_member(0)]
-	for m in members:m.stars=1;m.level=10;m.current_hp=200
-	enter_event(t,&"promotion")
-	for m in members:t.content_action(&"promotion_select",{"member_id":m.member_id})
-	verify(t.content_action(&"promote").ok and members[0].stars==2 and GuildMemberCombatStats.equipment_limit(members[0])==4,"second star /four slots")
-	verify(not t.content_action(&"promotion_select",{"member_id":members[0].member_id}).ok,"highest star rejected")
+	for m in members:m.stars=1;m.level=10;m.current_hp=9999
+	verify(t.content_action(&"promote",{"member_id":members[0].member_id,"materials":[members[1].member_id,members[2].member_id]}).ok and members[0].stars==2 and GuildMemberCombatStats.equipment_limit(members[0])==4,"second star /four slots")
+	verify(members[0].current_hp==t.guild.member_stats(members[0]).max_hp,"average HP capped at the new maximum")
+	var more: Array=[t.guild.create_member(0),t.guild.create_member(0)]
+	for m in more:m.stars=2
+	verify(not t.content.promotion_eligible(members[0]) and not t.content_action(&"promote",{"member_id":members[0].member_id,"materials":[more[0].member_id,more[1].member_id]}).ok,"highest star rejected")
 func rest_events() -> void:
 	groups+=1
 	for choice in [&"player",&"resources",&"guild",&"revive"]:
@@ -315,5 +350,5 @@ func invalid_operations() -> void:
 	for member in t.guild.all_members():member.current_hp=0
 	verify(not t.content_action(&"upgrade",{"member_id":t.guild.all_members()[0].member_id}).ok and t.guild.state.game_over,"content does not revive a gameover guild")
 func run(tree: SceneTree) -> void:
-	host=tree;golden();recruit_shop();equipment_growth();promotion();rest_events();rewards_transactions();prediction();combat();invalid_operations()
+	host=tree;golden();recruit_shop();equipment_growth();growth_rules();promotion();rest_events();rewards_transactions();prediction();combat();invalid_operations()
 	print("PHASE 10 RESULT: ",groups," groups; ",checks," checks; ",failures," failures")

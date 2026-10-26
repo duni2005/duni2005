@@ -20,6 +20,7 @@ var redo_button: Button
 var erase_button: Button
 var tools_row: HBoxContainer
 var tool_mode_label: Label
+var sortie_label: Label
 var undo_history: Array[Array]=[]
 var redo_history: Array[Array]=[]
 var edit_before: Array=[]
@@ -79,6 +80,7 @@ func _build_ui() -> void:
 	deploy_tools_button=erase_button # Retained inspection handle; no popup action.
 	var clear_tool: Button=_tool(tools_row,"clear_all","모두 지우기",clear_draft);clear_tool.name="ClearAll"
 	tool_mode_label=Label.new();tool_mode_label.add_theme_font_size_override("font_size",11);tools_row.add_child(tool_mode_label)
+	sortie_label=Label.new();sortie_label.name="Sortie";sortie_label.add_theme_font_size_override("font_size",13);tools_row.add_child(sortie_label)
 	deploy_tools=PopupMenu.new();add_child(deploy_tools)
 	for label in ["선택 길드원 배치 해제","전체 배치 초기화","마지막 진형 복원"]:deploy_tools.add_item(label)
 	deploy_tools.id_pressed.connect(func(id):
@@ -269,10 +271,13 @@ func toggle_eraser() -> void:
 	board.erase_mode=erase_button.button_pressed;status.text="해제할 유닛을 누르세요." if board.erase_mode else "선택한 유닛을 배치하세요."
 func _update_tools() -> void:
 	if undo_button==null or board==null:return
-	var view_state: Array=[board.editing,undo_history.size(),redo_history.size(),plan.entries().size() if plan!=null else 0,board.erase_mode]
+	var view_state: Array=[board.editing,undo_history.size(),redo_history.size(),plan.entries().size() if plan!=null else 0,board.erase_mode,GrowthRules.sortie_limit(guild.state)]
 	if view_state==tool_view_state:return
 	tool_view_state=view_state
 	tools_row.visible=board.editing;undo_button.disabled=not board.editing or undo_history.is_empty();redo_button.disabled=not board.editing or redo_history.is_empty()
 	tools_row.get_node("ClearAll").disabled=not board.editing or plan==null or plan.entries().is_empty()
 	for tool in [undo_button,redo_button,erase_button,tools_row.get_node("ClearAll")]:tool.queue_redraw()
 	if tool_mode_label!=null:tool_mode_label.text="지우개 켜짐" if board.erase_mode else "";tool_mode_label.add_theme_color_override("font_color",ArenaUI.GOLD)
+	# Units sent out of the guild's sortie limit; full turns gold.
+	var placed: int=plan.entries().size() if plan!=null else 0;var limit: int=GrowthRules.sortie_limit(guild.state)
+	sortie_label.text="출정 %d/%d"%[placed,limit];sortie_label.add_theme_color_override("font_color",ArenaUI.GOLD if placed>=limit else ArenaUI.MUTED)

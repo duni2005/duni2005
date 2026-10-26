@@ -92,23 +92,19 @@ func outcomes() -> void:
 	verify(c.new_run(21,77),"new run replacement")
 	await frames();loaded=c.save_manager.load_controller();verify(loaded.ok() and not loaded.run.game_over and loaded.run.run_id==c.guild.state.run_id,"new run replaces ended autosave")
 func promotion_events_prediction() -> void:
-	var c:=fresh();await frames();var run: RunState=c.guild.state;var s: SaveManager=c.save_manager
+	var c:=fresh();await frames();var s: SaveManager=c.save_manager
 	var a: GuildMemberState=c.guild.all_members()[0];var b: GuildMemberState=c.guild.all_members()[1];var donor: GuildMemberState=c.guild.create_member(0)
-	for member in [a,b,donor]:member.level=10
+	for member in [a,b,donor]:member.level=2
 	var keep: ItemInstance=c.content.inventory.give(&"vital","promotion:keep");keep.equipped_to_member_id=a.member_id
-	var returned: ItemInstance=c.content.inventory.give(&"fang","promotion:return");returned.equipped_to_member_id=b.member_id
-	var room: RoomState=run.tower.map.get_room("0:4");room.event_type=&"promotion";c.select_room(room.room_id);await frames()
+	var moved: ItemInstance=c.content.inventory.give(&"fang","promotion:move");moved.equipped_to_member_id=b.member_id
 	var writes: int=s.writes
-	for member in [a,b,donor]:verify(c.content_action(&"promotion_select",{"member_id":member.member_id}).ok,"promotion selection")
-	await frames();verify(s.writes==writes,"UI promotion choices not autosaved")
-	verify(s.manual_save(c).ok(),"stable promotion choice save")
-	var loaded: SaveLoadResult=s.load_controller();verify(loaded.ok() and loaded.controller.current_room().event.selected_members.is_empty() and loaded.run.guild_members.size()==5,"selection absent and no partial transaction")
-	writes=s.writes;verify(c.content_action(&"promote").ok,"real promotion transaction")
-	await frames();loaded=s.load_controller();verify(loaded.ok() and s.writes==writes+1 and loaded.run.guild_members.size()==3,"promotion one atomic autosave")
-	verify(loaded.controller.guild.get_member(a.member_id).stars==1 and loaded.controller.guild.get_member(a.member_id).level==0 and loaded.controller.guild.get_member(b.member_id)==null,"promotion identities/stars")
-	verify(loaded.controller.content.inventory.get_item(keep.item_id).equipped_to_member_id==a.member_id and loaded.controller.content.inventory.get_item(returned.item_id).equipped_to_member_id.is_empty(),"equipment returned with same IDs")
-	verify(c.content_action(&"finish").ok,"promotion finish")
-	await frames();loaded=s.load_controller();verify(loaded.ok() and loaded.run.tower.map.get_room(room.room_id).cleared,"promotion room progress persisted")
+	verify(c.content_action(&"promote",{"member_id":a.member_id,"materials":[b.member_id,donor.member_id]}).ok,"real promotion transaction from the guild screen")
+	await frames();var loaded: SaveLoadResult=s.load_controller();verify(loaded.ok() and s.writes==writes+1 and loaded.run.guild_members.size()==3,"promotion one atomic autosave")
+	verify(loaded.controller.guild.get_member(a.member_id).stars==1 and loaded.controller.guild.get_member(a.member_id).total_exp==3*GrowthRules.exp_for_level(2)+GrowthRules.PROMOTION_BONUS_EXP and loaded.controller.guild.get_member(b.member_id)==null,"promotion identities/stars/EXP persisted")
+	verify(loaded.controller.content.inventory.get_item(keep.item_id).equipped_to_member_id==a.member_id and loaded.controller.content.inventory.get_item(moved.item_id).equipped_to_member_id==a.member_id,"material gear moves to the lead with the same IDs")
+	writes=s.writes;c.guild.state.gold=600;verify(c.content_action(&"sortie_upgrade").ok,"sortie upgrade")
+	await frames();loaded=s.load_controller();verify(loaded.ok() and loaded.run.sortie_level==1 and loaded.run.gold==100,"sortie upgrade persisted")
+	var room: RoomState
 	c=fresh();await frames();room=c.guild.state.tower.map.get_room("0:4");room.event_type=&"hotSpring";c.select_room(room.room_id)
 	verify(c.content_action(&"event",{"choice":&"bathe"}).ok,"hot spring choice")
 	await frames();loaded=c.save_manager.load_controller();verify(loaded.ok() and loaded.run.tower.phase==&"content_result" and loaded.controller.current_room().event.resolved,"hot spring result saved")

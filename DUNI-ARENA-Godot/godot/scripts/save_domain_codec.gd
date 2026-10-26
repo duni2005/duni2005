@@ -1,9 +1,9 @@
 class_name SaveDomainCodec
 extends RefCounted
-## Explicit v1 domain schema. Never reflects arbitrary Objects or instantiates scripts from a save.
+## Explicit domain schema (save version SaveMigrator.CURRENT_VERSION). Never reflects arbitrary Objects or instantiates scripts from a save.
 const SCALARS = {
-	"run":{"run_id":"s","next_member_number":"i","settled_battle_ids":"d","player_max_hp":"f","player_hp":"f","game_over":"b","game_over_reason":"i","death_losses_by_result_id":"d","next_strategy_card_number":"i","strategy_use_receipts":"d","gold":"i","tokens":"i","next_item_number":"i","inventory_receipts":"d","transaction_receipts":"d","content_receipts":"d"},
-	"member":{"member_id":"s","unit_type_id":"i","level":"i","stars":"i","current_hp":"f","energy":"i","ultimate_gauge":"f","transcendence_gauge":"f","stance":"n","character_specific_state":"d","fang_kills":"i"},
+	"run":{"run_id":"s","next_member_number":"i","settled_battle_ids":"d","player_max_hp":"f","player_hp":"f","game_over":"b","game_over_reason":"i","death_losses_by_result_id":"d","next_strategy_card_number":"i","strategy_use_receipts":"d","gold":"i","tokens":"i","next_item_number":"i","inventory_receipts":"d","transaction_receipts":"d","content_receipts":"d","sortie_level":"i"},
+	"member":{"member_id":"s","unit_type_id":"i","total_exp":"i","stars":"i","current_hp":"f","energy":"i","ultimate_gauge":"f","transcendence_gauge":"f","stance":"n","character_specific_state":"d","fang_kills":"i"},
 	"item":{"item_id":"i","kind":"n","equipped_to_member_id":"s","consumed":"b"},
 	"card":{"card_id":"i","kind":"n","used_depth":"i","used_floors":"ai","ready_floor":"i","consumed":"b"},
 	"progress":{"current_depth":"i","unlocked_floor":"i"},
@@ -17,7 +17,7 @@ const SCALARS = {
 	"enemy":{"enemy_id":"s","unit_type_id":"i","current_hp":"f","position":"v","ultimate_gauge":"f","stance":"n","persistent_state":"d"},
 	"recruit":{"revision":"i"},"recruit_offer":{"offer_id":"s","unit_type_id":"i","gold_price":"i","token_price":"i","purchased":"b"},
 	"shop":{},"shop_offer":{"offer_id":"s","category":"n","kind":"n","gold_price":"i","purchased":"b"},
-	"event":{"event_type":"n","choices":"an","selected_choice":"n","resolved":"b","reward_receipt":"s","outcome":"d","promotion_limit":"i","promotion_used":"i","treasure_kind":"n","treasure_reward":"n"},
+	"event":{"event_type":"n","choices":"an","selected_choice":"n","resolved":"b","reward_receipt":"s","outcome":"d","treasure_kind":"n","treasure_reward":"n"},
 	"prediction":{"teams":"ad","picked_team":"i","stake":"i","status":"n","result":"n","payout":"i","tokens":"i"},
 	"reward":{"reward_id":"s","kind":"n","item_kind":"n","fulfilled":"b"}}
 const CHILDREN = {"run":{"tower":"tower","strategy_progress":"progress","last_formation":"formation"},"tower":{"map":"map"},"room":{"encounter":"encounter","recruit":"recruit","shop":"shop","event":"event"},"event":{"prediction":"prediction"}}
@@ -30,8 +30,9 @@ static func raw_valid(kind: String,field: String,value: Variant) -> bool:
 	if field=="stance":return value in [CombatStance.NORMAL,CombatStance.CAUTIOUS,CombatStance.RUSH,CombatStance.COVER]
 	if field in ["ultimate_gauge","transcendence_gauge"]:return value>=0 and value<=100
 	if field=="energy":return value>=0 and value<=5
-	if kind=="member" and field=="level":return value>=0 and value<=10
-	if field=="stars":return value>=0 and value<=2
+	if field=="total_exp":return value>=0
+	if field=="sortie_level":return value>=0 and value<=GrowthRules.SORTIE_COSTS.size()
+	if field=="stars":return value>=0 and value<=GrowthRules.MAX_STARS
 	if field=="game_over_reason":return value>=0 and value<=3
 	if field=="player_max_hp":return value>0
 	if field in ["player_hp","current_hp","gold","tokens","fang_kills"]:return value>=0

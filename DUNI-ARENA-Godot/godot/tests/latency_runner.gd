@@ -24,7 +24,7 @@ func run() -> void:
 	verify(heartbeats>0,"main loop keeps processing during writer")
 	metrics.writer_ms=save.last_write_usec/1000.0;metrics.writer_heartbeats=heartbeats
 	var first: Dictionary=save.read_document().document
-	verify(first.schema_version==1 and first.run.tower.map.rooms.size()==120,"same v1 full map schema")
+	verify(first.schema_version==SaveMigrator.CURRENT_VERSION and first.run.tower.map.rooms.size()==120,"same current-version full map schema")
 	var initial: int=c.guild.state.gold
 	c.guild.state.gold+=1;save.request_autosave(c)
 	c.guild.state.gold+=2;save.request_autosave(c)

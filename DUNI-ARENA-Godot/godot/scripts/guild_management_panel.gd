@@ -40,6 +40,12 @@ var item_member: Label
 var item_slots: Label
 var item_note: Label
 signal home_requested
+## A promotion finished; the event drives the promotion cutscene.
+signal promoted(event: Dictionary)
+var sortie_info: Label
+var sortie_button: Button
+var promote_button: Button
+var promotion_dialog: PromotionDialog
 func _ready() -> void:
  theme=ArenaUI.get_theme();var outer:=StyleBoxFlat.new();outer.bg_color=ArenaUI.BACKGROUND;add_theme_stylebox_override("panel",outer)
  custom_minimum_size.x=280
@@ -79,9 +85,17 @@ func _ready() -> void:
  var upgrade_column:=VBoxContainer.new();upgrade_frame.add_child(upgrade_column)
  upgrade_summary=UpgradeSummary.new();upgrade_column.add_child(upgrade_summary)
  upgrade_button=Button.new();upgrade_button.custom_minimum_size.y=44;ArenaUI.bind(upgrade_button,_upgrade);upgrade_column.add_child(upgrade_button)
+ promote_button=Button.new();promote_button.text="승급";promote_button.custom_minimum_size.y=44;ArenaUI.with_icon(promote_button,"star",16);ArenaUI.bind(promote_button,_open_promotion);upgrade_column.add_child(promote_button)
+ upgrade_column.add_child(HSeparator.new())
+ # Guild-wide: how many units may sortie into a tower battle.
+ var sortie_row:=HBoxContainer.new();sortie_row.add_theme_constant_override("separation",8);upgrade_column.add_child(sortie_row)
+ sortie_info=Label.new();sortie_info.size_flags_horizontal=Control.SIZE_EXPAND_FILL;sortie_info.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;sortie_info.add_theme_font_size_override("font_size",12);sortie_row.add_child(sortie_info)
+ sortie_button=Button.new();sortie_button.custom_minimum_size=Vector2(150,44);ArenaUI.bind(sortie_button,_upgrade_sortie);sortie_row.add_child(sortie_button)
  status=Label.new();status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;status.add_theme_font_size_override("font_size",12);content.add_child(status)
  inventory_scroll=ScrollContainer.new();inventory_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;inventory_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;content.add_child(inventory_scroll)
  inventory_grid=GridContainer.new();inventory_grid.columns=4;inventory_grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;inventory_grid.add_theme_constant_override("h_separation",6);inventory_grid.add_theme_constant_override("v_separation",6);inventory_scroll.add_child(inventory_grid)
+ promotion_dialog=PromotionDialog.new();promotion_dialog.controller=controller;add_child(promotion_dialog);ArenaModalBackdrop.new().connect_window(promotion_dialog,self)
+ promotion_dialog.promoted.connect(func(event):status.text="승급 완료";modified.emit();call_deferred("render");promoted.emit(event))
  item_dialog=ConfirmationDialog.new();add_child(item_dialog);item_dialog.confirmed.connect(_confirm_item);ArenaModalBackdrop.new().connect_window(item_dialog,self)
  _build_item_dialog()
  if window is AcceptDialog:
@@ -137,7 +151,7 @@ func render() -> void:
  if selected==null:return
  var stats: UnitCombatStats=guild.member_stats(selected);var items: Array[ItemInstance]=controller.content.inventory.equipped(selected_member_id)
  details.text="%s%s · Lv.%d · %s 피해\nHP %d/%d · 장비 %d/%d\n공격 %.1f · 방어 %.1f · 이동 %.1f\n%s"%[guild.definition(selected.unit_type_id).display_name,"★".repeat(selected.stars),selected.level,CharacterCatalog.damage_label(selected.unit_type_id),ceili(selected.current_hp),int(stats.max_hp),items.size(),GuildMemberCombatStats.equipment_limit(selected),stats.attack,stats.defense,stats.speed," / ".join(items.map(func(i):return ItemCatalog.get_item(i.kind).display_name))]
- if selected.level<10 and active_tab=="upgrade":
+ if active_tab=="upgrade":
   var preview: GuildMemberState=GuildMemberState.new();preview.unit_type_id=selected.unit_type_id;preview.level=selected.level+1;preview.stars=selected.stars;preview.member_id=selected.member_id;preview.fang_kills=selected.fang_kills
   var next: UnitCombatStats=GuildMemberCombatStats.assemble(guild.definition(selected.unit_type_id),preview,controller.content.inventory)
   details.text+="\n다음 강화 · Lv. %d → %d\nHP %s → %s · 공격 %s → %s\n방어 %s → %s · 이동 %s → %s"%[selected.level,selected.level+1,ArenaUI.number(stats.max_hp),ArenaUI.number(next.max_hp),ArenaUI.number(stats.attack),ArenaUI.number(next.attack),ArenaUI.number(stats.defense),ArenaUI.number(next.defense),ArenaUI.number(stats.speed),ArenaUI.number(next.speed)]
@@ -145,9 +159,16 @@ func render() -> void:
  inventory_name.text="%s · %d/%d"%[guild.definition(selected.unit_type_id).display_name,items.size(),GuildMemberCombatStats.equipment_limit(selected)]
  var owned_cards: Array=guild.state.strategy_cards.filter(func(c):return not c.consumed)
  inventory_count.text="장비 %d · 소모품 %d · 장착 %d · 전략카드 %d"%[controller.content.inventory.available().filter(func(i):return not ItemCatalog.get_item(i.kind).consumable).size(),controller.content.inventory.available().filter(func(i):return ItemCatalog.get_item(i.kind).consumable).size(),guild.state.inventory.filter(func(i):return not i.consumed and not i.equipped_to_member_id.is_empty()).size(),owned_cards.size()]
- upgrade_summary.member_name=guild.definition(selected.unit_type_id).display_name;upgrade_summary.level=selected.level;upgrade_summary.hp=selected.current_hp;upgrade_summary.max_hp=stats.max_hp;upgrade_summary.maxed=selected.level>=10;upgrade_summary.queue_redraw()
- upgrade_button.text="Lv.10 · 최대 레벨" if selected.level>=10 else "강화 · %dG"%GuildMemberCombatStats.upgrade_cost(selected)
- upgrade_button.disabled=selected.level>=10 or guild.state.gold<GuildMemberCombatStats.upgrade_cost(selected) or not controller.content.can_manage()
+ upgrade_summary.member_name=guild.definition(selected.unit_type_id).display_name;upgrade_summary.level=selected.level;upgrade_summary.hp=selected.current_hp;upgrade_summary.max_hp=stats.max_hp
+ upgrade_summary.exp_progress=GrowthRules.exp_progress(selected.total_exp);upgrade_summary.exp_needed=GrowthRules.exp_to_next(selected.level);upgrade_summary.total_exp=selected.total_exp;upgrade_summary.queue_redraw()
+ var cost: int=GuildMemberCombatStats.upgrade_cost(selected)
+ upgrade_button.text="경험치 %d 구매 · %dG"%[cost*GrowthRules.EXP_PER_GOLD,cost]
+ upgrade_button.disabled=guild.state.gold<cost or not controller.content.can_manage()
+ promote_button.disabled=not controller.content.can_manage() or not guild.living_members().any(controller.content.promotion_eligible)
+ var sortie_cost: int=GrowthRules.sortie_cost(guild.state)
+ sortie_info.text="출정 수 · 최대 %d명\n전투에 동시에 배치할 수 있는 유닛 수"%GrowthRules.sortie_limit(guild.state)
+ sortie_button.text="최대 단계" if sortie_cost<0 else "출정 +1 · %dG"%sortie_cost
+ sortie_button.disabled=sortie_cost<0 or guild.state.gold<sortie_cost or not controller.content.can_manage()
  # Slots in reading order: spare equipment, consumables, equipped gear, ready cards, waiting cards.
  var spare: Array=controller.content.inventory.available().filter(func(i):return not ItemCatalog.get_item(i.kind).consumable)
  var consumables: Array=controller.content.inventory.available().filter(func(i):return ItemCatalog.get_item(i.kind).consumable)
@@ -195,6 +216,11 @@ func _upgrade() -> void:
  get_tree().root.set_meta("action_point",ArenaUI.control_center(upgrade_button))
  var result: Dictionary=controller.content_action(&"upgrade",{"member_id":selected_member_id});status.text="강화 완료" if result.ok else "강화 불가 · "+String(result.code)
  modified.emit();call_deferred("render")
+func _upgrade_sortie() -> void:
+ get_tree().root.set_meta("action_point",ArenaUI.control_center(sortie_button))
+ var result: Dictionary=controller.content_action(&"sortie_upgrade");status.text="출정 수 증가 · 최대 %d명"%GrowthRules.sortie_limit(controller.guild.state) if result.ok else "출정 수 업그레이드 불가 · "+String(result.code)
+ modified.emit();call_deferred("render")
+func _open_promotion() -> void:promotion_dialog.open(selected_member_id)
 func _build_item_dialog() -> void:
  # Item sheet: what it is, what it does, and who receives it, before the player commits.
  item_dialog.borderless=true;item_dialog.title="";item_dialog.theme=ArenaUI.get_theme()

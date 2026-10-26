@@ -77,7 +77,7 @@ func _ready() -> void:
 	confirm_new=ConfirmationDialog.new();confirm_new.dialog_text="저장된 탐험을 새 런으로 교체하겠습니까?";add_child(confirm_new);confirm_new.confirmed.connect(new_run)
 	if not resume_saved:new_run()
 	guild_dialog=AcceptDialog.new();guild_dialog.title="유닛";guild_dialog.get_ok_button().text="닫기";add_child(guild_dialog)
-	guild_panel=GuildManagementPanel.new();guild_panel.controller=controller;guild_dialog.add_child(guild_panel);guild_panel.modified.connect(_refresh_wallet)
+	guild_panel=GuildManagementPanel.new();guild_panel.controller=controller;guild_dialog.add_child(guild_panel);guild_panel.modified.connect(_refresh_wallet);guild_panel.promoted.connect(func(e):guild_dialog.hide();_present_content(e))
 	guild_panel.home_requested.connect(_main_menu)
 	if resume_saved:route_loaded()
 func _request_new_run() -> void:
@@ -153,7 +153,7 @@ func _refresh_map_cards() -> void:
 		for id in floor.room_ids:
 			var room: RoomState=state.map.get_room(id);var button: ArenaCard=room_buttons[id]
 			var kind: String=RoomType.LABELS.get(room.visible_kind(),"미탐험")
-			if room.discovered and room.room_type==RoomType.EVENT:kind={&"promotion":"승급",&"hotSpring":"온천",&"supply":"보물상자",&"prediction":"전투 예측"}.get(room.event_type,kind)
+			if room.discovered and room.room_type==RoomType.EVENT:kind={&"hotSpring":"온천",&"supply":"보물상자",&"prediction":"전투 예측"}.get(room.event_type,kind)
 			var marker: String="✓ 클리어" if room.cleared else "소비 완료" if room.consumed else "방문함" if room.visited else "발견" if room.discovered or room.publicly_visible else "탐험 가능"
 			button.text="%d번 방\n%s\n%s"%[room.lane+1,kind,marker];button.title=kind;button.subtitle="%d"%(room.lane+1);button.status_text=marker
 			button.kind=String(room.event_type) if room.discovered and room.room_type==RoomType.EVENT else String(room.visible_kind()) if room.visible_kind()!=&"" else "hidden"
@@ -278,7 +278,7 @@ func _present_content(event: Dictionary) -> void:
 	var origin: Vector2=event.get("point",_resource_origin())
 	fx.sync_wallet(_current_wallet(),origin,event)
 	if event.get("kind","") in ["recruit","promotion"]:
-		fx.enqueue({"kind":event.kind,"room_id":controller.guild.state.tower.selected_room_id,"key":event.get("key",""),"title":event.title,"type":event.type,"stars":event.get("stars",0),"detail":"길드원 영입" if event.kind=="recruit" else "승급 완료 · 장비 %d칸"%event.get("slots",3),"delay":.5 if event.kind=="recruit" else 0})
+		fx.enqueue({"kind":event.kind,"room_id":controller.guild.state.tower.selected_room_id,"key":event.get("key",""),"title":event.title,"type":event.type,"stars":event.get("stars",0),"detail":"길드원 영입" if event.kind=="recruit" else "승급 완료 · Lv.%d · 장비 %d칸"%[event.get("level",0),event.get("slots",3)],"delay":.5 if event.kind=="recruit" else 0})
 	elif event.has("title"):fx.toast(event.title,event.get("icon","event"),event.get("detail",""))
 
 func _discovery_flight(id: String,origin: Vector2) -> void:

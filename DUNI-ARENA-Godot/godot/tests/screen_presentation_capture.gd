@@ -20,14 +20,10 @@ func run():
 		ui.content_screen._action(&"recruit",{"offer_id":offer.offer_id});await frames();ui.fx.advance(.85);await shot(tag+"-recruit-reveal")
 		ui.fx.skip_recruit();ui.fx.advance(0);await shot(tag+"-recruit")
 		ui.content_screen._return_map();await frames();ui.select_room("0:1");await frames();ui.fx.advance(2.2);await shot(tag+"-shop")
-		await reset();ui.controller.guild.create_member(0)
-		for member in ui.controller.guild.all_members():
-			if member.unit_type_id==0:member.level=10
-		var room: RoomState=ui.controller.guild.state.tower.map.get_room("0:4");room.event_type=&"promotion";room.event=null
-		ui.select_room("0:4");await frames();ui.fx.advance(2.2)
-		var group: Array=ui.controller.guild.all_members().filter(func(m):return m.unit_type_id==0)
-		for m in group:ui.content_screen._action(&"promotion_select",{"member_id":m.member_id})
-		ui.content_screen._action(&"promote");await frames();ui.fx.advance(1.0);await shot(tag+"-promotion")
+		await reset();var group: Array=[ui.controller.guild.create_member(0),ui.controller.guild.create_member(0),ui.controller.guild.create_member(0)]
+		ui.open_guild();var promotion: PromotionDialog=ui.guild_panel.promotion_dialog;promotion.open(group[0].member_id)
+		for m in group.slice(1):promotion._pick(m.member_id)
+		await frames();promotion._promote();await frames();ui.fx.advance(1.0);await shot(tag+"-promotion")
 		await reset();ui.controller.guild.state.player_hp=70
 		for id in ui.controller.guild.state.tower.map.floors[0].room_ids:ui.controller.guild.state.tower.map.get_room(id).cleared=true
 		ui.controller.refresh_progress(0);ui.show_map();await frames();ui.fx.advance(.7);await shot(tag+"-conquest")

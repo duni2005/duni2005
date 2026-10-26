@@ -22,7 +22,7 @@ func round_trip() -> void:
 	var decode_usec: int=Time.get_ticks_usec()-time
 	verify(equal_run(c.guild.state,restored.run),"complete semantic run equality")
 	verify(restored.run!=c.guild.state and restored.run.guild_members.values()[0]!=c.guild.state.guild_members.values()[0],"independent objects")
-	verify(parsed.schema_version==1 and restored.metadata.guild_count==c.guild.all_members().size(),"schema and metadata")
+	verify(parsed.schema_version==SaveMigrator.CURRENT_VERSION and restored.metadata.guild_count==c.guild.all_members().size(),"schema and metadata")
 	verify(restored.run.tower.map.floors.size()==15 and restored.run.tower.map.rooms.size()==120,"whole actual map")
 	for member in c.guild.all_members():
 		var loaded: GuildMemberState=restored.controller.guild.get_member(member.member_id)
@@ -103,8 +103,11 @@ func character_injection() -> void:
 	if not loaded.ok():return
 	var c: TowerController=loaded.controller
 	c.content_action(&"event",{"choice":&"bathe"});c.return_map();c.select_room("0:3")
+	# Fully upgraded sortie (8); the units inspected below (greatsword, shotgun, puppet owner) go first.
+	c.guild.state.sortie_level=GrowthRules.SORTIE_COSTS.size()
+	var living: Array=c.guild.living_members();living.sort_custom(func(x,y):return x.unit_type_id in [10,7,25] and not y.unit_type_id in [10,7,25])
 	var plan:=DeploymentPlan.new(c.guild);var index: int=0
-	for member in c.guild.living_members():
+	for member in living.slice(0,GrowthRules.sortie_limit(c.guild.state)):
 		verify(plan.place(member.member_id,Vector2(90+(index%3)*90,70+(index/3)*85))==DeploymentRules.Code.OK,"persistent actor placement")
 		index+=1
 	var b:=BattleManager.new();b.auto_start=false;tree.root.add_child(b);b.set_physics_process(false)
@@ -120,8 +123,31 @@ func character_injection() -> void:
 	var initial_flight: float=sword.lost_sword.flight;b.simulate(.01)
 	verify(sword.lost_sword.flight<initial_flight and b.units.all(func(u):return u.position.is_finite()),"complex persistent states actually advance")
 	b.free();c.release_runtime_connections()
+## v1 saves: levels become the EXP that reaches them, sortie starts at 0 upgrades, and a promotion
+## room turns into a supply room.
+func migration() -> void:
+	var v1: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/save_v1.json"))
+	var untouched: String=JSON.stringify(v1)
+	var prepared: SaveLoadResult=SaveMigrator.prepare(v1)
+	verify(prepared.ok() and prepared.document.schema_version==2 and JSON.stringify(v1)==untouched,"v1 migrates on a copy")
+	var loaded: SaveLoadResult=SaveSnapshotLoader.restore(v1)
+	verify(loaded.ok() and loaded.document.schema_version==SaveMigrator.CURRENT_VERSION,"v1 fixture loads as v2")
+	if not loaded.ok():return
+	var levels: Dictionary={}
+	for member in v1.run.guild_members:levels[member.member_id]=int(member.level)
+	for member in loaded.run.guild_members.values():
+		verify(member.total_exp==GrowthRules.exp_for_level(levels[member.member_id]) and member.level==levels[member.member_id],"level %d becomes its cumulative EXP"%levels[member.member_id])
+	verify(loaded.controller.guild.get_member("member_000002").total_exp==1700 and loaded.run.sortie_level==0 and GrowthRules.sortie_limit(loaded.run)==3,"Lv.10 = 1700 EXP; old runs sortie three")
+	var promo: Dictionary=v1.duplicate(true)
+	for room in promo.run.tower.map.rooms:
+		if room.room_id=="1:5":
+			room.event_type="promotion";room.event={"choices":[],"event_type":"promotion","outcome":{},"prediction":null,"promotion_limit":2,"promotion_used":1,"resolved":false,"reward_receipt":"","selected_choice":"","treasure_kind":"","treasure_reward":""}
+	loaded=SaveSnapshotLoader.restore(promo)
+	var room: RoomState=loaded.run.tower.map.get_room("1:5") if loaded.ok() else null
+	verify(room!=null and room.event_type==&"supply" and room.event.event_type==&"supply" and room.event.choices.size()==4 and ItemCatalog.get_item(room.event.treasure_reward)!=null,"a promotion room becomes a supply room")
+	verify(loaded.ok() and SaveValidator.validate(SaveSnapshotBuilder.capture(loaded.controller,"save_migrated",1).document).ok(),"a migrated run saves again as v2")
 func run(host: SceneTree) -> void:
-	tree=host;location="user://phase11-tests/"+Crypto.new().generate_random_bytes(8).hex_encode();round_trip();invalid_saves()
+	tree=host;location="user://phase11-tests/"+Crypto.new().generate_random_bytes(8).hex_encode();round_trip();invalid_saves();migration()
 	var fixture: Variant=JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/save_v1.json"));verify(fixture is Dictionary and SaveSnapshotLoader.restore(fixture).ok(),"fixed v1 compatibility fixture")
 	character_injection()
 	var runtime:=Phase11RuntimeTests.new();await runtime.run(tree,location+"/runtime");checks+=runtime.checks;failures+=runtime.failures
