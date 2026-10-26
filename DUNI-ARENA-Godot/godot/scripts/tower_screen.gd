@@ -48,9 +48,6 @@ func _ready() -> void:
 	var heading:=Label.new();heading.name="TowerHeading";heading.text="두니 타워 · 탐험 지도";heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.add_theme_font_override("font",ArenaUI.heading_font());heading.add_theme_font_size_override("font_size",19);top.add_child(heading)
 	guild_button=make_nav_button(top,"guild",open_guild);guild_button.custom_minimum_size=Vector2(44,44);guild_button.tooltip_text="유닛 / 인벤토리 / 강화"
 	menu_button=make_nav_button(top,"menu",func():menu_dialog.popup_centered(Vector2i(280,0)));menu_button.custom_minimum_size=Vector2(44,44);menu_button.tooltip_text="메뉴"
-	for button in [guild_button,menu_button]:
-		for state in ["normal","hover","pressed"]:
-			var style: StyleBoxFlat=ArenaUI.box(Color("1c2540"));style.set_corner_radius_all(22);button.add_theme_stylebox_override(state,style)
 	wallet=WalletBar.new();wallet.guild=controller.guild;body.add_child(wallet)
 	menu_dialog=AcceptDialog.new();menu_dialog.title="메뉴";menu_dialog.get_ok_button().text="닫기";add_child(menu_dialog);ArenaModalBackdrop.new().connect_window(menu_dialog,self)
 	var actions:=VBoxContainer.new();menu_dialog.add_child(actions);ArenaUI.dialog_header(menu_dialog,actions,"메뉴")

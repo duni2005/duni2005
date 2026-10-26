@@ -38,7 +38,7 @@ func _ready() -> void:
 	theme=ArenaUI.get_theme();add_theme_constant_override("separation",4)
 	# Compact frame: time/resume row, ally chips, stance segments. The card hand sits below it, unframed.
 	var box := PanelContainer.new();box.name="Frame"
-	var frame: StyleBoxFlat=ArenaUI.box(Color(.05,.07,.12,.94),Color("3c4a72"));frame.set_corner_radius_all(14)
+	var frame: StyleBoxFlat=ArenaUI.window_style(ArenaUI.WINDOW_RIM,Color(ArenaUI.PANEL,.95))
 	for side in ["left","right"]:frame.set("content_margin_"+side,8)
 	frame.content_margin_top=6;frame.content_margin_bottom=6;frame.border_width_top=2;frame.border_color=Color("8fe3ff",.55)
 	box.add_theme_stylebox_override("panel",frame);add_child(box)

@@ -40,7 +40,7 @@ func _ready() -> void:
 	retreat_scene=end_overlay
 	var title: Label=status.get_parent().get_child(0);title.text="";title.custom_minimum_size.y=44
 	navigation_row=HBoxContainer.new();title.add_child(navigation_row);navigation_row.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE);navigation_row.offset_top=0;navigation_row.offset_bottom=44
-	navigation_title=Label.new();navigation_title.text=ArenaUI.room_title(room);navigation_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;navigation_title.add_theme_font_size_override("font_size",18);navigation_title.clip_text=true;navigation_row.add_child(navigation_title)
+	navigation_title=Label.new();navigation_title.text=ArenaUI.room_title(room);navigation_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;navigation_title.add_theme_font_override("font",ArenaUI.heading_font());navigation_title.add_theme_font_size_override("font_size",19);navigation_title.clip_text=true;navigation_row.add_child(navigation_title)
 	next_button.pressed.disconnect(next_button.get_meta("bound_action"))
 	ArenaUI.bind(next_button,_return_map)
 	next_button.text="탐험 지도로"
@@ -117,7 +117,7 @@ func _process(delta: float) -> void:
 	if menu_button!=null:menu_button.visible=board.editing
 	if header_editing!=board.editing:
 		header_editing=board.editing
-		navigation_title.add_theme_font_size_override("font_size",18 if board.editing else 14);navigation_title.text=("" if board.editing else "두니 타워 · ")+ArenaUI.room_title(room)
+		navigation_title.add_theme_font_size_override("font_size",19 if board.editing else 14);navigation_title.text=("" if board.editing else "두니 타워 · ")+ArenaUI.room_title(room)
 	# A height-bound (landscape) arena grows when the fight slims the wallet;
 	# tall phones are width-bound and keep the full wallet.
 	var viewport: Vector2=get_viewport_rect().size;var slim: bool=not board.editing and viewport.x>viewport.y*.8
@@ -150,9 +150,9 @@ func _build_tower_result() -> void:
 	result_overlay.color=ArenaUI.BACKGROUND
 	var margin:=MarginContainer.new();margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);result_overlay.add_child(margin);ArenaUI.safe_margin(margin)
 	var column:=VBoxContainer.new();margin.add_child(column)
-	var heading:=Label.new();heading.text="%d층 · %d번 방 · %s"%[room.floor_index+1,room.lane+1,RoomType.LABELS[room.room_type]];heading.custom_minimum_size.y=44;heading.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;column.add_child(heading)
+	var heading:=Label.new();heading.text="%d층 · %d번 방 · %s"%[room.floor_index+1,room.lane+1,RoomType.LABELS[room.room_type]];heading.custom_minimum_size.y=44;heading.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;heading.add_theme_font_override("font",ArenaUI.heading_font());heading.add_theme_font_size_override("font_size",19);column.add_child(heading)
 	result_wallet=WalletBar.new();result_wallet.guild=guild;column.add_child(result_wallet)
-	result_panel=PanelContainer.new();result_panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;result_panel.add_theme_stylebox_override("panel",ArenaUI.box(ArenaUI.PANEL,Color("34406a")));column.add_child(result_panel)
+	result_panel=PanelContainer.new();result_panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;result_panel.add_theme_stylebox_override("panel",ArenaUI.window_style());column.add_child(result_panel)
 	result_emblem=PanelEmblem.new();result_emblem.mode="result";result_panel.add_child(result_emblem)
 	var center:=CenterContainer.new();result_panel.add_child(center)
 	result_column=VBoxContainer.new();result_column.add_theme_constant_override("separation",16);center.add_child(result_column)
@@ -160,7 +160,7 @@ func _build_tower_result() -> void:
 	result_kicker=Label.new();result_kicker.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;result_kicker.add_theme_font_override("font",ArenaUI.numbers_font());result_kicker.add_theme_font_size_override("font_size",16);result_kicker.add_theme_color_override("font_color",ArenaUI.ACCENT);result_column.add_child(result_kicker)
 	result_heading.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;result_heading.add_theme_font_override("font",ArenaUI.heading_font());result_heading.add_theme_font_size_override("font_size",30);result_heading.add_theme_color_override("font_color",Color("eef1fa"));result_column.add_child(result_heading)
 	var summary_center:=CenterContainer.new();result_column.add_child(summary_center)
-	var summary:=PanelContainer.new();summary.custom_minimum_size.x=260;var summary_style:=ArenaUI.box(Color("1b2338"),Color("36446a"));summary_style.set_corner_radius_all(10);summary_style.content_margin_left=20;summary_style.content_margin_right=20;summary_style.content_margin_top=12;summary_style.content_margin_bottom=12;summary.add_theme_stylebox_override("panel",summary_style);summary_center.add_child(summary)
+	var summary:=PanelContainer.new();summary.custom_minimum_size.x=260;var summary_style:=ArenaUI.card_style();summary_style.content_margin_left=20;summary_style.content_margin_right=20;summary_style.content_margin_top=14;summary_style.content_margin_bottom=14;summary.add_theme_stylebox_override("panel",summary_style);summary_center.add_child(summary)
 	result_detail=VBoxContainer.new();result_detail.add_theme_constant_override("separation",12);summary.add_child(result_detail)
 	result_losses=Label.new();result_losses.add_theme_color_override("font_color",Color("ff8088"));result_detail.add_child(result_losses)
 	result_rewards=Label.new();result_rewards.add_theme_color_override("font_color",ArenaUI.HP);result_detail.add_child(result_rewards)
@@ -173,8 +173,7 @@ func _format_result(result: BattleResult) -> void:
 	result_heading.text="방 클리어!" if victory else "안전하게 후퇴했습니다" if result.end_reason==BattleEndReason.Value.RETREAT else "탐험이 종료되었습니다" if guild.state.game_over else "길드원을 정비해 다시 도전하세요"
 	result_heading.add_theme_color_override("font_color",ArenaUI.GOLD if victory else Color("eef1fa"))
 	result_kicker.add_theme_color_override("font_color",ArenaUI.ACCENT if victory else ArenaUI.DANGER if guild.state.game_over else ArenaUI.MUTED)
-	var panel_style: StyleBoxFlat=ArenaUI.box(ArenaUI.PANEL,Color("36446a") if not victory else Color("6a5a34"));panel_style.set_corner_radius_all(12)
-	result_panel.add_theme_stylebox_override("panel",panel_style)
+	result_panel.add_theme_stylebox_override("panel",ArenaUI.window_style(Color("a88a4a") if victory else ArenaUI.WINDOW_RIM))
 	var losses: Dictionary=guild.state.death_losses_by_result_id.get(result.result_id,{})
 	var death_loss: float=losses.values().reduce(func(a,b):return a+float(b),0.0)
 	var penalty: float=20 if result.end_reason==BattleEndReason.Value.DEFEAT else 0

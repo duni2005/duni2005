@@ -105,17 +105,15 @@ func _button(parent: Node,text: String,callback: Callable) -> Button:
 	var b:=Button.new();b.text=text;b.custom_minimum_size.y=44;ArenaUI.bind(b,callback);parent.add_child(b);return b
 func _team_style(b: Button,team: int) -> void:
 	var color: Color=CustomBattleSetup.team_color(team)
-	for state in ["normal","hover","pressed","hover_pressed","disabled","focus"]:
-		var on: bool=state in ["pressed","hover_pressed"]
-		var style: StyleBoxFlat=ArenaUI.box(Color(color,.32) if on else Color("111726"),Color(color,1.0 if on else .55));style.set_corner_radius_all(8);style.set_border_width_all(2 if on else 1)
-		if state=="focus":style.draw_center=false;style.border_color=Color.TRANSPARENT
-		b.add_theme_stylebox_override(state,style)
+	# Raised chips like every button; the selected team sinks in, filled with its colour.
+	ArenaUI.style_button(b,Color("1a2338"))
+	for state in ["pressed","hover_pressed"]:b.add_theme_stylebox_override(state,ArenaUI.raised(color.darkened(.45),state))
 	for name in ["font_color","font_hover_color","font_focus_color"]:b.add_theme_color_override(name,Color(color,.85))
 	for name in ["font_pressed_color","font_hover_pressed_color"]:b.add_theme_color_override(name,Color.WHITE)
 
 func _build_winner() -> void:
 	winner_panel=PanelContainer.new();winner_panel.z_index=25;add_child(winner_panel);winner_panel.hide()
-	var style: StyleBoxFlat=ArenaUI.box(Color(ArenaUI.PANEL,.96),Color("6a5a34"));style.set_corner_radius_all(14);style.content_margin_left=24;style.content_margin_right=24;style.content_margin_top=18;style.content_margin_bottom=18;winner_panel.add_theme_stylebox_override("panel",style)
+	var style: StyleBoxFlat=ArenaUI.window_style(Color("a88a4a"),Color(ArenaUI.PANEL,.97));style.content_margin_left=24;style.content_margin_right=24;style.content_margin_top=18;style.content_margin_bottom=18;winner_panel.add_theme_stylebox_override("panel",style)
 	var col:=VBoxContainer.new();col.add_theme_constant_override("separation",10);winner_panel.add_child(col)
 	var kicker:=Label.new();kicker.text="BATTLE COMPLETE";kicker.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;kicker.add_theme_font_override("font",ArenaUI.numbers_font());kicker.add_theme_color_override("font_color",ArenaUI.ACCENT);col.add_child(kicker)
 	winner_title=Label.new();winner_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;winner_title.add_theme_font_override("font",ArenaUI.heading_font());winner_title.add_theme_font_size_override("font_size",28);col.add_child(winner_title)

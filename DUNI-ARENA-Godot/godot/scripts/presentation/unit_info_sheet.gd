@@ -24,8 +24,9 @@ func _ready() -> void:
 	backdrop.gui_input.connect(func(e: InputEvent):
 		if (e is InputEventMouseButton or e is InputEventScreenTouch) and e.pressed:close())
 	panel = PanelContainer.new()
-	var style: StyleBoxFlat = ArenaUI.box(Color("111a2c"), Color("3a4a74"));style.corner_radius_top_left = 18;style.corner_radius_top_right = 18;style.corner_radius_bottom_left = 0;style.corner_radius_bottom_right = 0
-	style.border_width_bottom = 0;style.shadow_color = Color(0, 0, 0, .5);style.shadow_size = 18
+	# A bottom sheet: the window frame, open at the bottom edge.
+	var style: StyleBoxFlat = ArenaUI.window_style();style.corner_radius_bottom_left = 0;style.corner_radius_bottom_right = 0;style.border_width_bottom = 0
+	for side in ["left", "right", "top", "bottom"]:style.set("content_margin_" + side, 8 if side in ["left", "right"] else 5)
 	panel.add_theme_stylebox_override("panel", style);add_child(panel)
 	var margin := MarginContainer.new()
 	for side in ["left", "right"]:margin.add_theme_constant_override("margin_" + side, 16)

@@ -2,8 +2,7 @@ class_name ConquestRewardButton
 extends Button
 var fraction: float=0
 func _ready() -> void:
-	for state in ["normal","hover","pressed"]:add_theme_stylebox_override(state,ArenaUI.box(Color("1b2338") if state=="normal" else Color("26314e"),Color("3a4870")))
-	add_theme_font_size_override("font_size",11);add_theme_color_override("font_color",Color("d6def5"))
+	ArenaUI.secondary(self);add_theme_font_size_override("font_size",11)
 func _draw() -> void:
 	if fraction<=0:return
 	# Clockwise progress around the reward frame, as in the source conic border.

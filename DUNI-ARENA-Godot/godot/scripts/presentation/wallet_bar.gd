@@ -63,7 +63,7 @@ func advance_view(dt: float) -> void:
 	if state!=_paint_state:_paint_state=state;queue_redraw()
 func _draw() -> void:
 	if guild==null:return
-	if _panel_style==null:_panel_style=ArenaUI.box(Color("141b2d"),Color("4a5680"));_panel_style.set_corner_radius_all(9)
+	if _panel_style==null:_panel_style=ArenaUI.card_style(Color("4a5680"),Color("141b2d"))
 	if compact:_draw_compact();return
 	draw_style_box(_panel_style,Rect2(0,0,size.x,68))
 	var font: Font=get_theme_default_font();var numbers: Font=ArenaUI.numbers_font();var w: float=size.x*.30

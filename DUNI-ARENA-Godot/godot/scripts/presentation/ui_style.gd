@@ -1,10 +1,23 @@
 class_name ArenaUI
 extends RefCounted
 ## Shared presentation vocabulary. No domain/RNG/state mutation.
+## Design tokens. Three kinds of surface, never mixed up:
+##   windows  - framed (2px rim, radius 16, deep shadow): dialogs, sheets, overlays;
+##   cards    - flat (1px line, radius 12, no shadow): sections and lists inside a page;
+##   buttons  - raised (rim + a darker lip underneath, radius 12) and sink when pressed.
 const BACKGROUND=Color("0a0e18")
-const PANEL=Color("131a2b")
-const SURFACE=Color("1b2338")
-const BORDER=Color("36446a")
+const PANEL=Color("151c30")
+const SURFACE=Color("1c2540")
+const BORDER=Color("33416a")
+const WINDOW_RIM=Color("4d5d92")
+const CARD_LINE=Color("2b375a")
+const TEXT=Color("eef2ff")
+const SECONDARY=Color("2e3c66")
+const DANGER_FILL=Color("b04656")
+const RADIUS_WINDOW=16
+const RADIUS_BUTTON=12
+const RADIUS_CARD=12
+const LIP=4
 const ACCENT=Color("ffb15c")
 const GOLD=Color("ffd98c")
 const MUTED=Color("9aa5c2")
@@ -49,15 +62,10 @@ static func fit_window(window: Window) -> Vector2i:
 	if window.content_scale_size!=logical:window.content_scale_size=logical
 	return logical
 static func price_button(button: Button,label: String,currency: String,amount: int) -> void:
-	# "label (icon) amount" on the currency's chip colours: gold = dark gold, gem = dark blue.
+	# "label (icon) amount" on a raised chip in the currency's colour: gold = bronze, gem = deep blue.
 	button.text="";button.icon=null;button.custom_minimum_size.x=maxf(button.custom_minimum_size.x,124)
 	var gold: bool=currency=="gold"
-	for state in ["normal","hover","pressed","disabled","focus"]:
-		var style: StyleBoxFlat=box(Color("3a2f18") if gold else Color("1a2a45"),Color("c9a24a") if gold else Color("5f9bd8"))
-		if state in ["hover","pressed"]:style.bg_color=style.bg_color.lightened(.1)
-		if state=="disabled":style.border_color.a=.3;style.bg_color.a=.35
-		if state=="focus":style.draw_center=false;style.border_color=Color.TRANSPARENT
-		style.set_corner_radius_all(8);button.add_theme_stylebox_override(state,style)
+	style_button(button,Color("7a5a22") if gold else Color("27477a"))
 	var row:=HBoxContainer.new();row.name="PriceRow";row.alignment=BoxContainer.ALIGNMENT_CENTER;row.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_theme_constant_override("separation",6);row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);button.add_child(row)
 	var text:=Label.new();text.text=label;text.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(text)
 	var icon:=TextureRect.new();icon.texture=ArenaIcon.texture(currency);icon.custom_minimum_size=Vector2(16,16);icon.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;icon.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;icon.mouse_filter=Control.MOUSE_FILTER_IGNORE;row.add_child(icon)
@@ -66,24 +74,19 @@ static func price_button(button: Button,label: String,currency: String,amount: i
 	row.modulate.a=.55 if button.disabled else 1.0
 	if button.disabled:value.add_theme_color_override("font_color",DANGER);text.add_theme_color_override("font_color",DANGER)
 static func tab(button: Button) -> void:
-	# Section tabs: bright outline on the page's dark fill; the selected tab (toggled on) lights up.
-	for state in ["normal","hover","pressed","hover_pressed","disabled","focus"]:
+	# Segmented tabs: unselected sit flat in a recessed track; the selected one is a raised face.
+	for state in ["normal","hover","pressed","hover_pressed","disabled"]:
 		var on: bool=state in ["pressed","hover_pressed"]
-		var style: StyleBoxFlat=box(Color("33416b") if on else Color("111726"),Color("9fb1e0") if on else Color("5d6c96"))
-		style.set_corner_radius_all(8);style.set_border_width_all(2 if on else 1)
-		if state=="focus":style.draw_center=false;style.border_color=Color.TRANSPARENT
+		var style: StyleBoxFlat=raised(Color("3a4d86"),"normal") if on else box(Color("0f1524") if state!="hover" or touch_ui() else Color("151d32"),Color(1,1,1,.06))
+		style.set_corner_radius_all(10);style.content_margin_top=7;style.content_margin_bottom=7
+		if on:style.shadow_offset=Vector2(0,2)
 		button.add_theme_stylebox_override(state,style)
+	button.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
 	for name in ["font_pressed_color","font_hover_pressed_color"]:button.add_theme_color_override(name,Color("ffffff"))
-	for name in ["font_color","font_hover_color","font_focus_color"]:button.add_theme_color_override(name,Color("b9c3dc"))
+	for name in ["font_color","font_hover_color","font_focus_color"]:button.add_theme_color_override(name,Color("8f9bbb"))
 static func quiet(button: Button,selected: bool=false) -> void:
-	# Low-priority battle controls: sky-blue outline on a near-background fill; selection brightens the fill.
-	for state in ["normal","hover","pressed","hover_pressed","disabled","focus"]:
-		var on: bool=selected or state in ["pressed","hover_pressed"]
-		var style: StyleBoxFlat=box(Color("2a4466") if on else Color("101829"),Color("7fb4e0",.85 if on else .5))
-		style.set_corner_radius_all(8);style.expand_margin_top=-5;style.expand_margin_bottom=-5
-		if state=="focus":style.draw_center=false;style.border_color=Color.TRANSPARENT
-		button.add_theme_stylebox_override(state,style)
-	for name in ["font_color","font_hover_color","font_pressed_color","font_focus_color","font_hover_pressed_color"]:button.add_theme_color_override(name,Color("eef1fa") if selected else Color("aac4de"))
+	# Low-priority controls: a small dark raised face; selection turns it steel blue.
+	style_button(button,Color("3a4d86") if selected else Color("1a2338"),TEXT if selected else Color("b4c2e0"))
 static func page_rect(node: Node) -> Rect2i:
 	# Full-page dialogs open at their final rect, so they never jump after the first frames.
 	var root: Window=node.get_tree().root
@@ -98,18 +101,49 @@ static func is_held(button: BaseButton) -> bool:
 static func pip_style(on: bool) -> StyleBoxFlat:
 	if pip_on==null:pip_on=box(GOLD,GOLD);pip_off=box(Color("26304a"),Color("26304a"));pip_on.set_corner_radius_all(1);pip_off.set_corner_radius_all(1)
 	return pip_on if on else pip_off
+## A raised button face: `base` fill, a lighter rim and a darker lip underneath. Pressed, the
+## face sinks onto its lip; disabled, it goes flat and dim.
+static func raised(base: Color,state: String="normal") -> StyleBoxFlat:
+	var s:=StyleBoxFlat.new();s.set_corner_radius_all(RADIUS_BUTTON);s.set_border_width_all(1)
+	s.content_margin_left=10;s.content_margin_right=10;s.content_margin_top=8;s.content_margin_bottom=8
+	var face: Color=base.lightened(.08) if state=="hover" else base.darkened(.1) if state in ["pressed","hover_pressed"] else base
+	if state=="disabled":face=Color(base.lerp(Color("1a2030"),.75),.85)
+	s.bg_color=face;s.border_color=face.lightened(.22) if state!="disabled" else Color(1,1,1,.06)
+	# The lip is a hard 1px-soft shadow straight below (Godot skips a shadow of size 0).
+	s.shadow_color=Color(base.darkened(.55),1 if state!="disabled" else .5);s.shadow_size=1
+	var lip: int=1 if state in ["pressed","hover_pressed"] else 2 if state=="disabled" else LIP
+	s.shadow_offset=Vector2(0,lip);s.expand_margin_bottom=0
+	# Sinking: the face moves down by the lip it loses, the text with it.
+	if state in ["pressed","hover_pressed"]:s.expand_margin_top=-(LIP-1);s.expand_margin_bottom=LIP-1;s.content_margin_top+=LIP-1;s.content_margin_bottom-=LIP-1
+	return s
+## Applies a raised style for every state, with matching text colours.
+static func style_button(button: Button,base: Color,text: Color=TEXT) -> void:
+	for state in ["normal","hover","pressed","hover_pressed","disabled"]:button.add_theme_stylebox_override(state,raised(base,state if state!="hover" or not touch_ui() else "normal"))
+	button.add_theme_stylebox_override("focus",StyleBoxEmpty.new())
+	for name in ["font_color","font_hover_color","font_pressed_color","font_focus_color","font_hover_pressed_color"]:button.add_theme_color_override(name,text)
+	button.add_theme_color_override("font_disabled_color",Color(MUTED,.55))
+	for name in ["icon_normal_color","icon_hover_color","icon_pressed_color","icon_focus_color","icon_hover_pressed_color"]:button.add_theme_color_override(name,Color.WHITE)
+	button.add_theme_color_override("icon_disabled_color",Color(1,1,1,.4))
+## Main action: warm orange, dark text.
 static func primary(button: Button) -> void:
-	button.set_meta("primary_cta",true)
-	button.add_theme_stylebox_override("normal",button_box(ACCENT,Color("efbc8f")))
-	button.add_theme_stylebox_override("hover",button_box(Color("ffc49b"),Color("ffdab6")) if not touch_ui() else button.get_theme_stylebox("normal"))
-	button.add_theme_stylebox_override("pressed",button_box(Color("d98b53"),Color("ffce9f")))
-	for name in ["font_color","font_hover_color","font_pressed_color","font_focus_color"]:button.add_theme_color_override(name,Color("29211b"))
-static func danger(button: Button) -> void:
-	for state in ["normal","hover","pressed","disabled"]:
-		button.add_theme_stylebox_override(state,button_box(Color("49303b") if state!="disabled" else Color("2d2630"),Color("a36d79") if state!="disabled" else Color("71505e")))
-	for name in ["font_color","font_hover_color","font_pressed_color","font_disabled_color","font_focus_color"]:button.add_theme_color_override(name,DANGER)
+	button.set_meta("primary_cta",true);style_button(button,ACCENT,Color("2a1c10"))
+## Everyday action: steel blue (also the theme default).
+static func secondary(button: Button) -> void:style_button(button,SECONDARY)
+static func danger(button: Button) -> void:style_button(button,DANGER_FILL)
 static func button_box(color: Color,border: Color) -> StyleBoxFlat:
 	var s: StyleBoxFlat=box(color,border);return s
+## Framed window surface (dialogs, sheets, overlays).
+static func window_style(rim: Color=WINDOW_RIM,fill: Color=PANEL) -> StyleBoxFlat:
+	var s:=box(fill,rim);s.set_border_width_all(2);s.set_corner_radius_all(RADIUS_WINDOW)
+	s.shadow_color=Color(0,0,0,.55);s.shadow_size=22;s.shadow_offset=Vector2(0,8)
+	for side in ["left","right","top","bottom"]:s.set("content_margin_"+side,16)
+	return s
+## Flat card surface (sections inside a page or window).
+static func card_style(line: Color=CARD_LINE,fill: Color=SURFACE) -> StyleBoxFlat:
+	var s:=box(fill,line);s.set_corner_radius_all(RADIUS_CARD)
+	for side in ["left","right"]:s.set("content_margin_"+side,12)
+	for side in ["top","bottom"]:s.set("content_margin_"+side,10)
+	return s
 static func box(color: Color,border: Color=Color("36446a")) -> StyleBoxFlat:
 	var s:=StyleBoxFlat.new();s.bg_color=color;s.border_color=border
 	s.set_border_width_all(1);s.set_corner_radius_all(7)
@@ -119,30 +153,45 @@ static func get_theme() -> Theme:
 	if shared_theme!=null:return shared_theme
 	shared_theme=Theme.new();shared_theme.default_font_size=14
 	body_font=load("res://assets/ui/fonts/korean.otf");shared_theme.default_font=body_font
-	# Soft drop shadows lift panels and dialogs off the animated backdrop.
-	var panel: StyleBoxFlat=box(PANEL);panel.shadow_color=Color(0,0,0,.35);panel.shadow_size=8;panel.shadow_offset=Vector2(0,3)
-	shared_theme.set_stylebox("panel","PanelContainer",panel)
-	var dialog: StyleBoxFlat=box(PANEL,BORDER);dialog.shadow_color=Color(0,0,0,.5);dialog.shadow_size=18;dialog.shadow_offset=Vector2(0,6)
-	shared_theme.set_stylebox("panel","AcceptDialog",dialog)
-	for state in ["normal","hover","pressed","hover_pressed","disabled","focus"]:
-		var color: Color=Color("232d4a") if state=="normal" else Color("2c385c") if state=="hover" else Color("51432d") if state in ["pressed","hover_pressed"] else Color("191c28")
-		shared_theme.set_stylebox(state,"Button",button_box(color,Color("ebc27a") if state in ["pressed","hover_pressed","focus"] else Color("4a3f58") if state=="disabled" else Color("56669c")))
-	var focus:=box(Color.TRANSPARENT,ACCENT);focus.draw_center=false;shared_theme.set_stylebox("focus","Button",focus)
-	if touch_ui():
-		# No hover on touch: a tapped button must not stay highlighted, nor keep a focus ring.
-		shared_theme.set_stylebox("hover","Button",shared_theme.get_stylebox("normal","Button"));shared_theme.set_stylebox("focus","Button",StyleBoxEmpty.new())
+	# Cards: flat. Windows (dialogs) and their embedded frames: framed with a deep shadow.
+	shared_theme.set_stylebox("panel","PanelContainer",card_style())
+	# A dialog's panel fills its own window, so a shadow would only be clipped there.
+	var dialog:=window_style();dialog.shadow_size=0
+	for kind in ["AcceptDialog","ConfirmationDialog"]:shared_theme.set_stylebox("panel",kind,dialog)
+	var frame: StyleBoxFlat=window_style();frame.expand_margin_top=30
+	for state in ["embedded_border","embedded_unfocused_border"]:shared_theme.set_stylebox(state,"Window",frame)
+	shared_theme.set_color("title_color","Window",TEXT);shared_theme.set_font("title_font","Window",heading_font());shared_theme.set_font_size("title_font_size","Window",16);shared_theme.set_constant("title_height","Window",30)
+	# Buttons: raised steel-blue faces by default.
+	for state in ["normal","hover","pressed","hover_pressed","disabled"]:shared_theme.set_stylebox(state,"Button",raised(SECONDARY,state if state!="hover" or not touch_ui() else "normal"))
+	shared_theme.set_stylebox("focus","Button",StyleBoxEmpty.new() if touch_ui() else _focus_ring())
 	shared_theme.set_type_variation("ArenaCard","Button")
 	for state in ["normal","hover","pressed","hover_pressed","disabled","focus"]:shared_theme.set_stylebox(state,"ArenaCard",StyleBoxEmpty.new())
 	# Native text is accessibility metadata; the authored card draws all visible type.
 	shared_theme.set_font_size("font_size","ArenaCard",1)
 	for state in ["font_color","font_hover_color","font_pressed_color","font_disabled_color","font_focus_color","font_hover_pressed_color"]:shared_theme.set_color(state,"ArenaCard",Color.TRANSPARENT)
-	shared_theme.set_color("font_color","Label",Color("eef1fa"))
-	shared_theme.set_color("font_color","Button",Color("eef1fa"))
-	shared_theme.set_color("font_disabled_color","Button",DANGER)
-	shared_theme.set_color("font_pressed_color","Button",Color("e6eff7"))
-	shared_theme.set_constant("separation","VBoxContainer",6);shared_theme.set_constant("separation","HBoxContainer",6)
+	shared_theme.set_color("font_color","Label",TEXT)
+	for name in ["font_color","font_hover_color","font_pressed_color","font_focus_color","font_hover_pressed_color"]:shared_theme.set_color(name,"Button",TEXT)
+	shared_theme.set_color("font_disabled_color","Button",Color(MUTED,.55))
+	shared_theme.set_font_size("font_size","Button",15)
+	# Option menus and toggles follow the button language; scroll bars are thin pills.
+	for state in ["normal","hover","pressed","disabled"]:shared_theme.set_stylebox(state,"OptionButton",raised(SECONDARY,state if state!="hover" or not touch_ui() else "normal"))
+	for state in ["normal","hover","pressed","hover_pressed","disabled"]:shared_theme.set_stylebox(state,"CheckButton",StyleBoxEmpty.new())
+	var grabber:=box(Color(1,1,1,.22),Color.TRANSPARENT);grabber.set_corner_radius_all(4);grabber.content_margin_left=3;grabber.content_margin_right=3
+	var track:=StyleBoxEmpty.new();track.content_margin_left=3;track.content_margin_right=3
+	for bar in ["VScrollBar","HScrollBar"]:
+		shared_theme.set_stylebox("scroll",bar,track);shared_theme.set_stylebox("grabber",bar,grabber)
+		var lit:=grabber.duplicate();lit.bg_color=Color(1,1,1,.35);shared_theme.set_stylebox("grabber_highlight",bar,lit);shared_theme.set_stylebox("grabber_pressed",bar,lit)
+	var bar_bg:=box(Color("0d1322"),Color(1,1,1,.06));bar_bg.set_corner_radius_all(6);var bar_fill:=box(ACCENT,Color.TRANSPARENT);bar_fill.set_corner_radius_all(6)
+	shared_theme.set_stylebox("background","ProgressBar",bar_bg);shared_theme.set_stylebox("fill","ProgressBar",bar_fill)
+	var tip:=window_style();tip.shadow_size=8;for side in ["left","right","top","bottom"]:tip.set("content_margin_"+side,8)
+	shared_theme.set_stylebox("panel","TooltipPanel",tip)
+	var line:=StyleBoxLine.new();line.color=Color(1,1,1,.08);line.thickness=1;shared_theme.set_stylebox("separator","HSeparator",line)
+	shared_theme.set_constant("separation","VBoxContainer",8);shared_theme.set_constant("separation","HBoxContainer",8)
 	shared_theme.set_constant("h_separation","HFlowContainer",8);shared_theme.set_constant("v_separation","HFlowContainer",6)
 	return shared_theme
+static func _focus_ring() -> StyleBoxFlat:
+	var ring:=box(Color.TRANSPARENT,Color(ACCENT,.8));ring.draw_center=false;ring.set_border_width_all(2);ring.set_corner_radius_all(RADIUS_BUTTON+2);ring.expand_margin_left=2;ring.expand_margin_right=2;ring.expand_margin_top=2;ring.expand_margin_bottom=2
+	return ring
 static func install(root: Control) -> void:
 	if root.is_inside_tree():root.get_window().title="DUNI ARENA"
 	root.theme=get_theme()
@@ -237,15 +286,18 @@ static func plain(value: String) -> String:
 		out+=value[i]
 	return out.strip_edges()
 
+## Window title bar: title on the left, a round close button on the right, a hairline below.
 static func dialog_header(window: AcceptDialog,column: VBoxContainer,title: String) -> Button:
-	window.borderless=true;window.get_ok_button().hide()
+	window.borderless=true;window.transparent_bg=true;window.get_ok_button().hide()
 	var row:=HBoxContainer.new();column.add_child(row);column.move_child(row,0)
-	var label:=Label.new();label.text=title;label.add_theme_font_override("font",heading_font());label.add_theme_font_size_override("font_size",18);label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;row.add_child(label)
-	var close:=Button.new();close.text="×";close.tooltip_text="닫기";close.custom_minimum_size=Vector2(44,44);close.add_theme_font_size_override("font_size",23)
-	for state in ["normal","pressed"]:close.add_theme_stylebox_override(state,StyleBoxEmpty.new())
-	close.add_theme_stylebox_override("hover",box(Color("1f2a44"),Color.TRANSPARENT));row.add_child(close);bind(close,window.hide)
+	var label:=Label.new();label.text=title;label.add_theme_font_override("font",heading_font());label.add_theme_font_size_override("font_size",19);label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;label.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;row.add_child(label)
+	var close:=close_button(window.hide);row.add_child(close)
+	var line:=HSeparator.new();column.add_child(line);column.move_child(line,1)
 	return close
-
+## Round close button, the same raised circle as the page close buttons.
+static func close_button(callback: Callable) -> Button:
+	var close:=nav_button("close",callback);close.tooltip_text="닫기";close.custom_minimum_size=Vector2(40,40);close.size_flags_vertical=Control.SIZE_SHRINK_CENTER
+	return close
 static func with_icon(button: Button,kind: String,width: int=16,right: bool=false) -> void:
 	button.icon=ArenaIcon.texture(kind);button.expand_icon=true;button.add_theme_constant_override("icon_max_width",width)
 	button.icon_alignment=HORIZONTAL_ALIGNMENT_RIGHT if right else HORIZONTAL_ALIGNMENT_LEFT

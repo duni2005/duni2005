@@ -14,7 +14,7 @@ const TRACKS := {
 ## Tracks that resume from where they were stopped instead of starting over.
 const RESUME := [&"tower"]
 ## Seconds of crossfade between two tracks, from silence at start, into a track's own start,
-## from battle into the victory / defeat music, and out when a loading screen opens.
+## of silence-first fade-out before the victory / defeat music, and out when a loading screen opens.
 const CHANGE_FADE: float = 1.2
 const START_FADE: float = .5
 const LOOP_FADE: float = 2.5
@@ -28,6 +28,8 @@ var tweens: Array = [null, null]
 var positions: Dictionary = {}
 var held: bool = false
 var pending: StringName = &""
+## A track waiting for the previous one to fade out completely (victory / defeat).
+var delayed: Tween
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
@@ -42,6 +44,10 @@ static func _node() -> BackgroundMusic:
 static func play(track: StringName, fade: float = -1) -> void:
 	var node := _node()
 	if node != null:node.switch_to(track, fade)
+## Fades the current music out completely, then starts `track` (victory / defeat after battle).
+static func play_after_silence(track: StringName, out_time: float = RESULT_FADE) -> void:
+	var node := _node()
+	if node != null:node.switch_after(track, out_time)
 ## Fades the music out and holds further requests (loading screens).
 static func hold() -> void:
 	var node := _node()
@@ -62,12 +68,24 @@ static func reset(track: StringName) -> void:
 func switch_to(track: StringName, fade: float = -1) -> void:
 	if held:pending = track;return
 	if track == current or not TRACKS.has(track):return
+	if delayed != null:delayed.kill();delayed = null
 	_remember()
 	var first: bool = current == &"" and not players.any(func(p):return p.playing)
 	current = track
 	_crossfade(load(TRACKS[track]), fade if fade > 0 else START_FADE if first else CHANGE_FADE, float(positions.get(track, 0.0)) if track in RESUME else 0.0)
 
+func switch_after(track: StringName, out_time: float) -> void:
+	if held:pending = track;return
+	if track == current or not TRACKS.has(track):return
+	if delayed != null:delayed.kill()
+	_remember()
+	current = track
+	for i in range(2):_fade(i, 0, out_time, true)
+	delayed = create_tween();delayed.tween_interval(out_time)
+	delayed.tween_callback(func():delayed = null;_crossfade(load(TRACKS[track]), START_FADE))
+
 func fade_out(time: float = CHANGE_FADE) -> void:
+	if delayed != null:delayed.kill();delayed = null
 	_remember()
 	current = &""
 	for i in range(2):_fade(i, 0, time, true)

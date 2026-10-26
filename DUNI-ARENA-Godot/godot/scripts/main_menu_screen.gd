@@ -63,17 +63,13 @@ func _menu_button(text: String,icon: String,callback: Callable,primary: bool) ->
 	ArenaUI.with_icon(button,icon,20);menu.add_child(button);ArenaUI.bind(button,callback)
 	if primary:
 		ArenaUI.primary(button)
-		for state in ["normal","hover","pressed"]:button.get_theme_stylebox(state).set_corner_radius_all(12)
-	else:
-		for state in ["normal","hover","pressed","hover_pressed"]:
-			var style: StyleBoxFlat=ArenaUI.box(Color("101a2c",.82) if state=="normal" else Color("1d2a46",.9),Color(1,1,1,.28) if state=="normal" else Color(1,1,1,.5));style.set_corner_radius_all(12);button.add_theme_stylebox_override(state,style)
-		button.add_theme_color_override("font_color",Color("eef2ff"))
+	else:ArenaUI.style_button(button,Color("1b2644",.94))
 	return button
 ## Continue / start over, shown when 타워 입장 finds a save.
 func _build_tower_dialog() -> void:
 	tower_dialog=AcceptDialog.new();tower_dialog.title="두니 타워";tower_dialog.get_ok_button().text="닫기";add_child(tower_dialog);ArenaModalBackdrop.new().connect_window(tower_dialog,self)
 	var column:=VBoxContainer.new();column.add_theme_constant_override("separation",10);column.custom_minimum_size.x=290;tower_dialog.add_child(column);ArenaUI.dialog_header(tower_dialog,column,"두니 타워")
-	var card:=PanelContainer.new();var card_style: StyleBoxFlat=ArenaUI.box(Color("101626",.9),Color("2c3756"));card_style.set_corner_radius_all(8);card_style.content_margin_left=12;card_style.content_margin_right=12;card_style.content_margin_top=8;card_style.content_margin_bottom=8;card.add_theme_stylebox_override("panel",card_style);column.add_child(card)
+	var card:=PanelContainer.new();card.add_theme_stylebox_override("panel",ArenaUI.card_style());column.add_child(card)
 	status=Label.new();status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;status.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;status.add_theme_font_size_override("font_size",12);status.add_theme_color_override("font_color",Color("c9d0e6"));status.custom_minimum_size.x=264;card.add_child(status)
 	continue_button=Button.new();continue_button.text="이어하기";continue_button.custom_minimum_size.y=54;continue_button.add_theme_font_override("font",ArenaUI.heading_font());continue_button.add_theme_font_size_override("font_size",17);column.add_child(continue_button);ArenaUI.bind(continue_button,continue_run);ArenaUI.primary(continue_button)
 	new_button=Button.new();new_button.text="새로하기";new_button.custom_minimum_size.y=48;new_button.add_theme_font_size_override("font_size",15);column.add_child(new_button);ArenaUI.bind(new_button,_request_new)

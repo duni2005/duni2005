@@ -114,7 +114,7 @@ func _init() -> void:
 	clip_text=true;theme=ArenaUI.get_theme();theme_type_variation=&"ArenaCard"
 func _ready() -> void:
 	mouse_default_cursor_shape=Control.CURSOR_POINTING_HAND;texture_filter=CanvasItem.TEXTURE_FILTER_LINEAR
-	cached_style=ArenaUI.box(Color("1b2338"),Color("36446a"));cached_style.shadow_color=Color(0,0,0,.2);cached_style.shadow_size=0;cached_style.shadow_offset=Vector2(0,3)
+	cached_style=ArenaUI.box(Color("1b2338"),Color("36446a"));cached_style.shadow_size=1
 	if card_type=="nav":cached_style.set_corner_radius_all(22)
 	mouse_entered.connect(queue_redraw);mouse_exited.connect(queue_redraw);toggled.connect(func(_v):queue_redraw())
 func write(at: Vector2,value: String,font_size: int=14,color: Color=Color("eef1fa"),width: float=-1,center: bool=false) -> void:
@@ -150,9 +150,8 @@ func _draw() -> void:
 		if sold:cached_style.bg_color=Color("1d3a3a");cached_style.border_color=Color("5fb592")
 		if spent:cached_style.bg_color=Color("111726");cached_style.border_color=Color("283250")
 	var plain: bool=not active and not dead and not disabled
-	cached_style.set_corner_radius_all(int(minf(size.x,size.y)*.5) if card_type=="nav" else 7)
+	cached_style.set_corner_radius_all(int(minf(size.x,size.y)*.5) if card_type=="nav" else ArenaUI.RADIUS_CARD)
 	if card_type in UNIT_TYPES:
-		cached_style.set_corner_radius_all(10)
 		if plain:cached_style.bg_color=Color("26314f") if hovered else Color("1e2846");cached_style.border_color=Color("4a5b90")
 	elif card_type in ACTION_TYPES:
 		cached_style.set_corner_radius_all(12)
@@ -163,7 +162,7 @@ func _draw() -> void:
 			if plain:cached_style.bg_color=Color("2f3542") if hovered else Color("262b36");cached_style.border_color=Color("6a7790") if hovered else Color("4f5a6e")
 			elif disabled and not active:cached_style.bg_color=Color(Color("262b36"),.4 if not sold else .7);cached_style.border_color=Color(Color("4f5a6e"),.4 if not sold else .7)
 	elif card_type=="slot":
-		cached_style.set_corner_radius_all(9)
+		cached_style.set_corner_radius_all(10)
 		if plain:cached_style.bg_color=Color("1b2440");cached_style.border_color=Color("5a6aa0")
 		if plain and SLOT_COLORS.has(slot_kind):cached_style.bg_color=Color(SLOT_COLORS[slot_kind][0]);cached_style.border_color=Color(SLOT_COLORS[slot_kind][1])
 	if card_type=="deploy_member" and plain:
@@ -171,11 +170,14 @@ func _draw() -> void:
 		cached_style.bg_color=Color("1c3a3a") if deployed else Color("161d30");cached_style.border_color=Color("5fc9a0") if deployed else Color("37425f")
 		if deployed:cached_style.set_border_width_all(2)
 	if held:cached_style.bg_color=cached_style.bg_color.lightened(.12);cached_style.border_color=ArenaUI.ACCENT
+	# Every card is a button: a darker lip underneath that it sinks onto when held; disabled ones lie flat.
+	var lip: float=0 if disabled and not active else 1 if held else 3
+	cached_style.shadow_offset=Vector2(0,lip);cached_style.shadow_color=Color(cached_style.bg_color.darkened(.6),cached_style.bg_color.a if lip>0 else 0)
 	draw_style_box(cached_style,Rect2(Vector2.ONE,size-Vector2.ONE*2))
-	if card_type in UNIT_TYPES or card_type in ACTION_TYPES:
-		# Thin top sheen lifts the card off the panel.
+	if card_type!="nav" and lip>0:
+		# Thin top sheen catches the light on the raised face.
 		var r: float=cached_style.corner_radius_top_left
-		draw_line(Vector2(r,2.5),Vector2(size.x-r,2.5),Color(1,1,1,.08),1)
+		draw_line(Vector2(r,2.5),Vector2(size.x-r,2.5),Color(1,1,1,.1),1)
 	var muted: Color=Color("9aa5c2");var gold: Color=ArenaUI.GOLD
 	if dead or (disabled and card_type not in ["room","nav","promotion_slot"]):muted=ArenaUI.DANGER;gold=ArenaUI.DANGER
 	if sold and card_type in SHOP_TYPES:muted=Color("8d8a85");gold=Color("8d8a85")
