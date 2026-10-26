@@ -7,8 +7,7 @@ static func attack(unit) -> float:
 	return unit.attack_power * stance_factor(unit)
 ## Stance and the strategy power buff, part of attack %.
 static func stance_factor(unit) -> float:
-	var stance: float = .8 if unit.stance == CombatStance.CAUTIOUS else 1.25 if unit.stance == CombatStance.RUSH else .85 if unit.stance == CombatStance.COVER else 1.0
-	return stance * (1.25 if unit.strategy_special_until > unit.battle.clock.elapsed else 1.0)
+	return StanceRules.damage(unit) * (1.25 if unit.strategy_special_until > unit.battle.clock.elapsed else 1.0)
 ## Attack % of a hit: the stat (items, kill growth, elite/boss multiplier) times stance effects.
 static func attack_factor(unit) -> float:
 	return (unit.combat_stats.attack if unit.combat_stats != null else 1.0) * stance_factor(unit)
@@ -30,4 +29,4 @@ static func mitigation(unit, kind: StringName) -> float:
 static func armor(unit) -> float:
 	return maxf(0, defense(unit) - unit.defense_power)
 static func taken(unit) -> float:
-	return (1.2 if unit.character_specific_state.get("saintFallen",false) and unit.data.type_id==19 else 1)*(1.15 if unit.state_value("curseTime")>0 else 1)*(1.2 if unit.stance == CombatStance.RUSH else 1.0)
+	return (1.2 if unit.character_specific_state.get("saintFallen",false) and unit.data.type_id==19 else 1)*(1.15 if unit.state_value("curseTime")>0 else 1)*StanceRules.taken(unit)

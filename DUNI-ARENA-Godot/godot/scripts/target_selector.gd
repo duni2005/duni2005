@@ -14,6 +14,7 @@ func select_target(unit, candidates: Array):
 			if candidate.source_member_id == unit.taunted_member_id and is_valid_enemy(unit, candidate):
 				return candidate
 	if unit.battle.full_characters_enabled:
+		if unit.stance==CombatStance.RUSH:return rush_target(unit)
 		if unit.stance==CombatStance.COVER:
 			var anchor=unit.battle.find_actor(unit.cover_actor_id)
 			if anchor==null or not anchor.alive or anchor.team!=unit.team:
@@ -29,7 +30,8 @@ func select_target(unit, candidates: Array):
 		if unit.brain.punish_until>unit.battle.clock.elapsed and is_valid_enemy(unit,punish):return punish
 		var best=unit.ability.choose_target(unit,unit.enemies())
 		# Character choices that aim at allies (healing, support) are kept as they are.
-		if best==null or best.team!=unit.team:best=unit.mind.pick_target(unit,best)
+		if best!=null and best.team==unit.team:return committed(unit,best)
+		best=cautious_target(unit) if unit.stance==CombatStance.CAUTIOUS else unit.mind.pick_target(unit,best)
 		return committed(unit,best)
 	var nearest = null
 	var nearest_distance: float = INF
@@ -42,6 +44,25 @@ func select_target(unit, candidates: Array):
 			nearest_distance = distance
 	return nearest
 
+## Rush stance: the nearest enemy, kept until it dies or is gone (taunts are handled before).
+## Character choices that aim at allies (healing, support) are kept.
+func rush_target(unit):
+	var own=unit.ability.choose_target(unit,unit.enemies())
+	if own!=null and own.team==unit.team:return own
+	var current=unit.target
+	if is_valid_enemy(unit,current) and not current.unavailable() and unit.enemies().has(current):return current
+	return CharacterAbility.nearest(unit,unit.enemies())
+## Cautious stance: whoever is attacking this unit from close by, else the most isolated enemy
+## (each other enemy near a candidate counts as extra distance).
+func cautious_target(unit):
+	var foes: Array=unit.enemies();var best=null;var best_score: float=INF
+	for e in foes:
+		if e.combat.attack_target==unit and e.combat_state!=CombatController.State.IDLE and unit.position.distance_to(e.position)<unit.data.attack_range+160:return e
+	for e in foes:
+		var crowd: int=foes.filter(func(o):return o!=e and o.position.distance_to(e.position)<StanceRules.CAUTIOUS_ISOLATION_RADIUS).size()
+		var score: float=unit.position.distance_to(e.position)+crowd*StanceRules.CAUTIOUS_ISOLATION_WEIGHT
+		if score<best_score:best_score=score;best=e
+	return best
 ## Target commitment (full characters): keep the current target for a while instead of
 ## flicking between enemies at similar range. Switch early only when the target is gone,
 ## another enemy is already in reach while this one is not, or another is far closer.

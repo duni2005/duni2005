@@ -53,6 +53,7 @@ var glow_layer: CombatGlowLayer
 var field_layer: MagicFieldLayer
 var ult_released: Dictionary={}
 var ult_timers: Dictionary={}
+var stance_marks:=StanceMarks.new()
 ## Buff windows opened by an ultimate; the unit wears a rising aura in its ink colour meanwhile.
 const EMPOWERED_STATES=["guardianUltTime","paladinBlessingTime","mirrorReflectTime","sniperBurstReady","tankFlameReady"]
 func impact_pause(milliseconds: int) -> void:
@@ -251,6 +252,7 @@ func advance(delta: float) -> void:
 	var ui_delta: float=delta
 	if is_instance_valid(battle) and not battle.finished:delta*=battle.clock.speed
 	real_age+=maxf(0,delta);last_dt=delta
+	stance_marks.track(battle if is_instance_valid(battle) else null,real_age)
 	for i in range(kill_notices.size()-1,-1,-1):
 		kill_notices[i].age+=maxf(0,ui_delta)
 		if kill_notices[i].age>3.2:kill_notices.remove_at(i)
@@ -493,6 +495,7 @@ func _unit(u: BattleUnit,parent: Transform2D) -> void:
 		draw_rect(ult_rect.grow(px*.8),Color(0,0,0,.8));draw_rect(ult_rect,Color("1c2433"))
 		draw_rect(Rect2(ult_rect.position,Vector2(ult_rect.size.x*gauge,ult_rect.size.y)),Color("ffe28a") if gauge>=1 else Color("c49dff"))
 		if gauge>=1:VfxArt.glow(self,at+Vector2(0,-radius-6),30,Color("ffe28a"),.25+.15*sin(real_age*6),.2)
+	stance_marks.draw(self,u,hp_rect,px,real_age)
 	if u.shield_hp>0:
 		VfxArt.shield(self,at,radius+9,Color("7ddfff"),real_age);draw_rect(Rect2(hp_rect.position-Vector2(0,ult_h+px),Vector2(bar_w*minf(1,u.shield_hp/100),ult_h)),Color("7ddfff"))
 	if u.invincible_remaining>0:

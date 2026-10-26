@@ -56,6 +56,7 @@ func run(tree: SceneTree) -> void:
 	stairs()
 	await unit_sheet(tree)
 	stat_damage(tree)
+	stances(tree)
 	tactical_mind(tree)
 	await map_wallet_return(tree)
 	ai_health(tree)
@@ -309,6 +310,85 @@ func unit_sheet(tree: SceneTree) -> void:
 	sheet=UnitInfoSheet.open(host,30);await tree.process_frame
 	verify(sheet.stats.magic_damage==UnitStatTable.base_magic(30) and sheet.find_children("*","Label",true,false).any(func(l):return l.text=="10 + 마법 피해의 85%  →  예상 30"),"base sheet: magnet's pole hit is 10 + 85% of 24 magic damage")
 	sheet.queue_free();host.queue_free()
+## Player stances (StanceRules): numbers, the cautious counter, and effects the situational
+## mind must never switch on.
+func stances(tree: SceneTree) -> void:
+	var b:=duel(tree,[[0,0,Vector2(300,400)],[0,1,Vector2(380,400)],[0,1,Vector2(380,560)]]);b.started=true
+	var u: BattleUnit=b.units[0];var e: BattleUnit=b.units[1]
+	u.stance=CombatStance.RUSH
+	verify(is_equal_approx(CombatRules.stance_factor(u),StanceRules.RUSH_DAMAGE) and is_equal_approx(CombatRules.taken(u),StanceRules.RUSH_TAKEN) and StanceRules.reaction(u).z==0,"rush deals x1.1, takes x1.2, no counter bonus")
+	u.stance=CombatStance.CAUTIOUS
+	verify(is_equal_approx(CombatRules.stance_factor(u),StanceRules.CAUTIOUS_DAMAGE) and is_equal_approx(CombatRules.taken(u),StanceRules.CAUTIOUS_TAKEN),"cautious deals x1, takes x0.85")
+	# Counter: a dodged hit readies +50% on the next hit, +100% after blocking a rusher; no stacking.
+	e.stun_remaining=1000;e.combat_stats.max_hp=10000;e.current_hp=10000
+	u.evade_remaining=1
+	var out: DamageOutcome=b.damage_resolver.resolve(e,u,40,{"critical":false,"impulse":0})
+	verify(out.avoided and StanceRules.counter_ready(u) and u.state_value("counterBoostBonus")==StanceRules.COUNTER_BONUS,"cautious dodge readies the counter")
+	u.evade_remaining=0
+	var plain:=func(raw: float) -> float:return CombatRules.js_round(raw*CombatRules.attack_factor(u)*CombatRules.taken(e)*CombatRules.mitigation(e,&"physical"))
+	out=b.damage_resolver.resolve(u,e,100,{"dmg":&"basic","critical":false,"impulse":0})
+	verify(out.hp_damage==plain.call(150) and not StanceRules.counter_ready(u),"counter adds 50% to the next hit and is spent")
+	out=b.damage_resolver.resolve(u,e,100,{"dmg":&"basic","critical":false,"impulse":0})
+	verify(out.hp_damage==plain.call(100),"the hit after it is normal")
+	e.stance=CombatStance.RUSH;e.stun_remaining=0
+	for i in range(2):u.evade_remaining=1;b.damage_resolver.resolve(e,u,40,{"critical":false,"impulse":0})
+	e.stun_remaining=1000;u.evade_remaining=0
+	out=b.damage_resolver.resolve(u,e,100,{"dmg":&"basic","critical":false,"impulse":0})
+	verify(u.state_value("counterBoosts")==3 and out.hp_damage==CombatRules.js_round(200*CombatRules.attack_factor(u)*CombatRules.taken(e)*CombatRules.mitigation(e,&"physical")),"blocking a rusher doubles the counter; a second block only refreshes it")
+	# A merely cautious mood (normal stance) gets no counter.
+	u.stance=CombatStance.NORMAL;u.mind.temper=-1;e.stun_remaining=0;u.evade_remaining=1
+	out=b.damage_resolver.resolve(e,u,40,{"critical":false,"impulse":0})
+	verify(out.avoided and not StanceRules.counter_ready(u),"a normal-stance dodge (cautious mood or not) never readies the counter")
+	u.evade_remaining=0;u.mind.temper=0;e.stance=CombatStance.NORMAL
+	b.queue_free()
+	# Rush keeps the nearest enemy until it dies; a normal unit switches to a far closer one.
+	b=duel(tree,[[0,0,Vector2(300,400)],[0,1,Vector2(420,400)],[0,1,Vector2(650,400)]]);b.started=true
+	u=b.units[0];var near: BattleUnit=b.units[1];var far: BattleUnit=b.units[2]
+	u.stance=CombatStance.RUSH;u.target=u.target_selector.select_target(u,b.units)
+	far.position=Vector2(330,420)
+	verify(u.target==near and u.target_selector.select_target(u,b.units)==near,"rush sticks to its target")
+	u.stance=CombatStance.NORMAL;u.mind.temper=1
+	verify(u.mind.charging(u) and u.target_selector.select_target(u,b.units)==far,"a charging mood does not make a normal unit stick")
+	u.stance=CombatStance.RUSH;near.receive_damage(99999,far)
+	verify(u.target_selector.select_target(u,b.units)==far,"rush retargets once its target falls")
+	u.brain.released(u)
+	verify(u.brain.disengage_until==0 and u.brain.mode=="approach","rush does not step back after attacking")
+	u.stance=CombatStance.CAUTIOUS;u.brain.released(u)
+	verify(u.brain.disengage_until>b.clock.elapsed and u.brain.mode=="retreat","cautious steps back after attacking")
+	b.queue_free()
+	# Cautious targets whoever attacks it, else the most isolated enemy.
+	b=duel(tree,[[0,0,Vector2(300,400)],[0,1,Vector2(450,400)],[0,1,Vector2(500,450)],[0,1,Vector2(300,650)]]);b.started=true
+	u=b.units[0];u.stance=CombatStance.CAUTIOUS
+	verify(u.target_selector.cautious_target(u)==b.units[3],"cautious prefers the isolated enemy")
+	b.units[1].combat_state=CombatController.State.WINDUP;b.units[1].combat.attack_target=u
+	verify(u.target_selector.cautious_target(u)==b.units[1],"cautious answers the enemy attacking it")
+	b.units[1].combat_state=CombatController.State.IDLE
+	b.queue_free()
+	# Cautious waits for the enemy's first swing (up to a limit), and does not chase a runner.
+	b=duel(tree,[[0,0,Vector2(300,400)],[0,1,Vector2(360,400)]]);b.started=true;b.clock.elapsed=1
+	u=b.units[0];e=b.units[1];u.stance=CombatStance.CAUTIOUS;u.mind.enabled=false
+	u.brain.update_spacing(u,e);u.brain.spacing.probe=0;u.brain.next_initiative_at=0;u.brain.hesitations=2;u.combat.cooldown=0;u.parry_cooldown=99
+	u.brain.advance(u,e,1.0/60)
+	verify(u.brain.commit_until==0,"cautious holds its first attack until the enemy swings")
+	b.clock.elapsed=1+StanceRules.CAUTIOUS_FIRST_WAIT+.1;u.brain.spacing.probe=0;u.brain.advance(u,e,1.0/60)
+	verify(u.brain.commit_until>b.clock.elapsed,"cautious takes the initiative after the wait limit")
+	u.brain.commit_until=0;u.brain.attack_decision.clear()
+	verify(not u.brain.move_home(u,e,.1) and u.brain.home_set,"contact remembers where the cautious unit fought")
+	e.position=Vector2(650,400)
+	verify(u.brain.move_home(u,e,.1) and u.brain.movement_override=="cautious_return","a runner is not chased: back to its spot")
+	b.clock.elapsed+=StanceRules.CAUTIOUS_HOME_TIME+.1
+	verify(not u.brain.move_home(u,e,.1),"after waiting, it closes in again")
+	u.stance=CombatStance.NORMAL;u.brain.home_set=true;u.brain.home_since=-1
+	verify(not u.brain.move_stance(u,e,.1) or u.brain.movement_override!="cautious_return","the leash is cautious-only")
+	# Situational mood flips show a short popup; the stance itself is a fixed icon.
+	u.mind.enabled=true
+	var marks:=StanceMarks.new();u.mind.temper=.8;marks.track(b,1)
+	var first: Dictionary=marks.popups.get(u.battle_id,{})
+	marks.track(b,1.2)
+	verify(int(first.get("mood",0))==1 and is_equal_approx(float(marks.popups[u.battle_id].start),1),"charging mood pops up once when it starts")
+	u.mind.temper=-.6;marks.track(b,2)
+	verify(int(marks.popups[u.battle_id].mood)==-1,"cautious mood pops up when it starts")
+	b.queue_free()
 ## Stat table coverage and the damage formula on live custom-battle units.
 func stat_damage(tree: SceneTree) -> void:
 	var tagged: bool=true

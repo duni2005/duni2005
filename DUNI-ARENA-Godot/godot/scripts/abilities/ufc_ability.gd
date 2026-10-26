@@ -20,6 +20,8 @@ func release_ultimate(u,a,dt: float) -> bool:
 			KnockbackController.apply(enemy,(u.position-enemy.position).normalized()*400,u)
 		var d: float=u.position.distance_to(enemy.position)
 		if d<230 and not ParryController.perfect(enemy):enemy.position=MovementController.clamp_position(enemy.position+(u.position-enemy.position).normalized()*170*(1-d/230)*dt)
+	# A hit that ends the battle clears the cast.
+	if a.is_empty():return true
 	if not arrived and float(a.rush_time)<1.6:return false
 	u.battle.zones.add(u,"ring",u.position,150*u.combat_scale(),10);return true
 func ultimate_danger(u,observer,a: Dictionary) -> bool:return observer.position.distance_to(CharacterPersistence.vector(a.point))<240 or PhysicalAttackSystem.point_distance(observer.position,u.position,CharacterPersistence.vector(a.point))<120

@@ -50,6 +50,7 @@ func resolve_minimal(source, target, raw_damage: float) -> DamageOutcome:
 	return outcome
 
 func complete(source, target, outcome: DamageOutcome) -> DamageOutcome:
+	if battle.full_characters_enabled and (outcome.avoided or outcome.parried):StanceRules.grant_counter(target, source)
 	if outcome.hp_damage > 0: damage_applied.emit(source, target, outcome.hp_damage, outcome.critical)
 	damage_resolved.emit(source, target, outcome)
 	return outcome
@@ -81,6 +82,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 			if UnitStatTable.has_element(spec.tags):damage*=stats.element_power if stats!=null else 1.0
 			if out.critical:damage*=stats.crit_damage if stats!=null else UnitStatTable.CRIT_DAMAGE
 			if out.ultimate or spec.skill==&"ultimate":out.ultimate=true;damage*=stats.ult_damage if stats!=null else 1.0
+			damage*=StanceRules.spend_counter(source)
 	if battle.full_characters_enabled:
 		if not collision and options.get("critical",true):damage*=CharacterCombat.champion_factor(source)
 		if source!=null and not collision:
@@ -122,12 +124,12 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 		if unique.get("avoid",false):out.avoided=true;return complete(source,target,out)
 		if unique.has("amount"):amount=unique.amount;impulse*=float(unique.get("impulse_factor",1));out.damage_reduced=true
 	if not reducing and can_evade and target.defense_cooldown <= 0:
-		if target.stance == CombatStance.CAUTIOUS and rng.randf() < .1:
-			target.defense_cooldown = 3
+		if target.stance == CombatStance.CAUTIOUS and rng.randf() < StanceRules.CAUTIOUS_DODGE_CHANCE:
+			target.defense_cooldown = StanceRules.CAUTIOUS_DODGE_COOLDOWN
 			DodgeController.start(target, source)
 			out.avoided = true
 			return complete(source, target, out)
-		if target.data.type_id in ([1,3,5,7] if battle.full_characters_enabled else [1]) and rng.randf() < (.2 if target.data.type_id in [5,7] else .25)*(.5 if target.stance == CombatStance.RUSH else 1):
+		if target.data.type_id in ([1,3,5,7] if battle.full_characters_enabled else [1]) and rng.randf() < (.2 if target.data.type_id in [5,7] else .25)*(StanceRules.RUSH_ROLE_DODGE if target.stance == CombatStance.RUSH else 1):
 			target.defense_cooldown = 6 if target.data.type_id==3 else .8 if target.data.type_id==5 else 4
 			DodgeController.start(target, source,&"healer" if target.data.type_id==5 else &"roll")
 			out.avoided = true

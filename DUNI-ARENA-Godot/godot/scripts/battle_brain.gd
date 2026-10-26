@@ -41,6 +41,11 @@ var goal: Vector2
 var heading: Vector2 = Vector2.ZERO
 var last_target: String = ""
 var decisions: int = 0
+## Cautious stance: where the unit last fought its target, and since when it has been waiting
+## there for a target that ran out of reach.
+var home: Vector2 = Vector2.ZERO
+var home_set: bool = false
+var home_since: float = -1
 func initialize(r: RandomNumberGenerator) -> void:
 	think=r.randf_range(.2,.65); hold=r.randf_range(.7,1.6)
 	boldness=r.randf_range(.7,1.35); caution=r.randf_range(.8,1.4)
@@ -64,12 +69,13 @@ func begin(u, enemy, duration: float=2.2, reason: String="initiative") -> void:
 	attack_decision={"actor":enemy.actor_id(),"at":now+intent_delay(u,reason),"reason":reason}
 	next_initiative_at=commit_until+u.battle.rng.randf_range(.45,1.7)*tempo
 func intent_delay(u,reason: String) -> float:
+	if u.stance==CombatStance.RUSH:return u.battle.rng.randf_range(StanceRules.RUSH_INTENT_DELAY.x,StanceRules.RUSH_INTENT_DELAY.y)
 	var delay: float=u.battle.rng.randf_range(.06,.42) if reason in ["counter","punish"] else u.battle.rng.randf_range(.06,.55) if reason=="pressure" else u.battle.rng.randf_range(.18,.95)
-	return delay*tempo*(1.15 if u.stance==CombatStance.CAUTIOUS else 1)
+	return delay*tempo*StanceRules.pick(u,1,StanceRules.CAUTIOUS_INTENT,1)
 func update_spacing(u,enemy) -> void:
 	if enemy==null or not defensive(u):return
 	var now: float=u.battle.clock.elapsed;var r: RandomNumberGenerator=u.battle.rng
-	if spacing.get("actor","")!=enemy.actor_id():spacing={"actor":enemy.actor_id(),"distance":u.position.distance_to(enemy.position),"measured":now,"probe":next_initiative_at,"exit":0.0,"opening":0.0,"observed":null,"spent":null,"own":last_attack,"closing":0.0}
+	if spacing.get("actor","")!=enemy.actor_id():spacing={"actor":enemy.actor_id(),"distance":u.position.distance_to(enemy.position),"measured":now,"probe":next_initiative_at,"exit":0.0,"opening":0.0,"observed":null,"spent":null,"own":last_attack,"closing":0.0,"since":now}
 	if now-float(spacing.measured)>=.08:
 		spacing.closing=(float(spacing.distance)-u.position.distance_to(enemy.position))/(now-float(spacing.measured));spacing.distance=u.position.distance_to(enemy.position);spacing.measured=now
 	var visible: bool=CombatPerception.can_see_attack(u,enemy,enemy.position,enemy.combat.hidden_launch)
@@ -91,13 +97,15 @@ func advance(u, enemy, _dt: float) -> void:
 	var now: float=u.battle.clock.elapsed;var r: RandomNumberGenerator=u.battle.rng
 	if u.combat_state!=CombatController.State.IDLE or not u.ultimate.cast.is_empty():was_attacking=true;return
 	if was_attacking:
-		was_attacking=false;attack_decision.clear();next_initiative_at=maxf(now,disengage_until)+r.randf_range(.3,2.3)*tempo*(1.25 if u.stance==CombatStance.CAUTIOUS else 1)
+		was_attacking=false;attack_decision.clear();next_initiative_at=maxf(now,disengage_until)+r.randf_range(.3,2.3)*tempo*StanceRules.pick(u,1,StanceRules.CAUTIOUS_INITIATIVE,1)
 	if enemy==null or u.stun_remaining>0 or u.evade_remaining>0 or u.ability.locked(u) or not u.lost_sword.is_empty() or u.command_retreat_until>now:return
 	if not attack_decision.is_empty():attack_decision.actor=enemy.actor_id()
 	u.mind.pace(u,enemy)
 	if not u.threat_response.response.is_empty() or u.combat.cooldown>0 or now<maxf(maxf(disengage_until,return_until),commit_until):return
 	if defensive(u):
 		if now<float(spacing.exit) or spacing.threatening or now<float(spacing.probe):return
+		# Cautious stance: let the enemy swing first and answer its recovery (up to a wait limit).
+		if u.stance==CombatStance.CAUTIOUS and spacing.spent==null and now-float(spacing.since)<StanceRules.CAUTIOUS_FIRST_WAIT:return
 		if decide_initiative(u,enemy,r.randf_range(2.3,3.1)):spacing.probe=commit_until+r.randf_range(1,3);spacing.mode="counter"
 		else:spacing.probe=next_initiative_at;spacing.mode="space"
 	elif now>=next_initiative_at:decide_initiative(u,enemy,r.randf_range(1.7,2.8))
@@ -125,6 +133,8 @@ func released(u) -> void:
 	last_attack=u.battle.clock.elapsed;commit_until=0;attack_decision.clear();hold=u.battle.rng.randf_range(.7,1.4)
 	disengage_until=0 if u.state_value("shadowTime")>0 else last_attack+u.battle.rng.randf_range(1.1,1.7) if defensive(u) else last_attack+u.battle.rng.randf_range(.6,1.3)
 	mode="shadow" if u.state_value("shadowTime")>0 else "retreat"
+	# Rush stance: no step back, straight on to the next attack.
+	if u.stance==CombatStance.RUSH:disengage_until=0;mode="approach";return
 	if u.data.tags.has("호위형"):return_until=last_attack+u.battle.rng.randf_range(.8,1.4)
 func steer(u,direction: Vector2,dt: float,factor: float=1,style: String="archetype") -> void:
 	desired_direction=direction;movement_style=style
@@ -150,38 +160,45 @@ func move_precommit(u,enemy,dt: float) -> bool:
 	if enemy==null or u.combat_state!=CombatController.State.IDLE or not u.ultimate.cast.is_empty() or u.state_value("shadowTime")>0 or u.stance==CombatStance.RUSH or u.taunted_until>now or u.data.type_id in [6,11] or not u.friends().is_empty() and (u.data.tags.has("호위형") or u.data.type_id==5) or not u.lost_sword.is_empty() or u.command_retreat_until>now or u.threat_response.response.get("mode",&"")==&"counter" or now<commit_until or now<punish_until:return false
 	var due: float=float(spacing.get("probe",next_initiative_at)) if defensive(u) else next_initiative_at
 	if now>=due:return false
-	var d: float=u.position.distance_to(enemy.position);var f: Vector2=(enemy.position-u.position).normalized();var l: Vector2=-f.orthogonal()*side
+	var cautious: bool=u.stance==CombatStance.CAUTIOUS
+	var d: float=u.position.distance_to(enemy.position);var f: Vector2=(enemy.position-u.position).normalized();var l: Vector2=-f.orthogonal()*(flank_side(u,enemy) if cautious else side)
 	desired_distance=minf(u.data.attack_range*.9,310) if u.data.attack_range>100 else standoff
 	var close: bool=d<desired_distance
 	# Far from the fight, pre-engagement still closes in; it only lingers near its spacing ring.
 	var far: bool=d>desired_distance+140 and u.stance!=CombatStance.CAUTIOUS
 	var radial: float=clampf((d-desired_distance)/90,-1,0) if close else .85 if far else sin(now*2.5+phase)*.14 if entry_plan=="feint" else 0
-	var direction: Vector2=f*radial+l*(.15 if entry_plan=="observe" else .8 if entry_plan=="flank" else .5)
+	var direction: Vector2=f*radial+l*(StanceRules.CAUTIOUS_FLANK if cautious else .15 if entry_plan=="observe" else .8 if entry_plan=="flank" else .5)
+	if cautious:direction+=formation_pull(u,enemy)
 	var incoming: Dictionary=u.threat_response.projectile_threat(u)
 	if not incoming.is_empty():direction+=-incoming.arrow.velocity.normalized().orthogonal()*side*.7
 	movement_override="precommit_"+entry_plan;steer(u,direction,dt,1 if close or far else .5 if entry_plan=="observe" else .8);return true
 func move_defensive(u,enemy,dt: float) -> bool:
 	if enemy==null or not defensive(u) or u.combat_state!=CombatController.State.IDLE or not u.ultimate.cast.is_empty() or spacing.is_empty() or not u.lost_sword.is_empty() or u.command_retreat_until>u.battle.clock.elapsed:return false
-	var f: Vector2=(enemy.position-u.position).normalized();var l: Vector2=-f.orthogonal()*side;var d: float=u.position.distance_to(enemy.position)
+	var cautious: bool=u.stance==CombatStance.CAUTIOUS
 	var counter: bool=spacing.get("mode","")=="counter" and u.combat.cooldown<=.15 and not spacing.get("threatening",false)
+	var f: Vector2=(enemy.position-u.position).normalized();var l: Vector2=-f.orthogonal()*(flank_side(u,enemy) if cautious and counter else side);var d: float=u.position.distance_to(enemy.position)
 	var closing: bool=float(spacing.get("closing",0))>22
 	desired_distance=u.data.attack_profile.reach*.65 if counter and u.data.attack_range<100 else minf(u.data.attack_range*.78,230) if counter else 320 if u.data.type_id==7 and u.state_value("reloadRemaining")>0 else 180 if u.data.attack_range<100 else clampf(u.data.attack_range*.94,190,310)
-	var direction: Vector2=f*clampf((d-desired_distance-(45 if closing and not counter else 0))/65,-1.2,.9)+l*(.22 if counter else .4)
+	var direction: Vector2=f*clampf((d-desired_distance-(45 if closing and not counter else 0))/65,-1.2,.9)+l*((StanceRules.CAUTIOUS_COUNTER_FLANK if cautious else .22) if counter else .4)
+	if cautious and not counter and spacing.get("mode","")!="withdraw":direction+=formation_pull(u,enemy)
+	# Cautious hit-and-run: right after its own attack it steps straight back.
+	if cautious and not counter and u.battle.clock.elapsed<disengage_until:direction-=f*StanceRules.CAUTIOUS_SHOT_STEP
 	var nearest=CharacterAbility.nearest(u,u.enemies());var near: float=u.position.distance_to(nearest.position) if nearest!=null else d
 	if not counter and nearest!=null and nearest!=enemy and near<190:direction+=(u.position-nearest.position).normalized()*1.3
 	var incoming: Dictionary=u.threat_response.projectile_threat(u)
-	if not incoming.is_empty() and incoming.time<reaction*(1.2 if u.stance==CombatStance.CAUTIOUS else 1) and not counter:direction=direction*.45-incoming.arrow.velocity.normalized().orthogonal()*side
+	if not incoming.is_empty() and incoming.time<reaction*StanceRules.pick(u,1,StanceRules.CAUTIOUS_DEFENSIVE_SIDESTEP,1) and not counter:direction=direction*.45-incoming.arrow.velocity.normalized().orthogonal()*side
 	if u.position.x<65 and direction.x<0 or u.position.x>735 and direction.x>0 or u.position.y<65 and direction.y<0 or u.position.y>735 and direction.y>0:
 		var options: Array[Vector2]=[-f.orthogonal(),f.orthogonal()]
 		options.sort_custom(func(a,b):return wall_clearance(u.position+a*100)>wall_clearance(u.position+b*100));direction=options[0]
 	if u.data.type_id==5 and not u.friends().is_empty() and not counter and near>155:
 		var friend=u.ability.support_anchor(u)
 		if friend!=null and u.position.distance_to(friend.position)>130:direction+=(friend.position-u.position).normalized()*.7
-	movement_override="defensive_"+String(spacing.get("mode","space"));steer(u,direction,dt,1.45 if counter else 1.12 if closing or spacing.get("mode","")=="withdraw" else 1);return true
+	movement_override="defensive_"+String(spacing.get("mode","space"));var withdraw: bool=spacing.get("mode","")=="withdraw"
+	steer(u,direction,dt,1.45 if counter else StanceRules.CAUTIOUS_BACKPEDAL if cautious and withdraw and not closing else 1.12 if closing or withdraw else 1);return true
 static func wall_clearance(p: Vector2) -> float:return minf(minf(p.x,800-p.x),minf(p.y,800-p.y))
 func rear_station(u,enemy) -> Dictionary:
 	var friend=u.ability.support_anchor(u) if u.data.tags.has("의존형") else null
-	var preferred: float=u.data.attack_range*(.92 if u.stance==CombatStance.CAUTIOUS else .86)
+	var preferred: float=u.data.attack_range*StanceRules.pick(u,StanceRules.REAR_RANGE,StanceRules.CAUTIOUS_REAR_RANGE,StanceRules.REAR_RANGE)
 	var options: Array[Vector2]=[u.position];var support_angle: float=0
 	if friend!=null:
 		var threat=CharacterAbility.nearest(friend,u.enemies());if threat==null:threat=enemy
@@ -201,6 +218,11 @@ func rear_station(u,enemy) -> Dictionary:
 		if friend!=null:
 			var behind: float=(point-friend.position).dot(Vector2.from_angle(support_angle))
 			score-=maxf(0,90-behind)*1.5+absf(point.distance_to(friend.position)-125)*.7+maxf(0,point.distance_to(friend.position)-210)*2
+		# Cautious back line keeps formation: stations far from every ally score lower.
+		if u.stance==CombatStance.CAUTIOUS and not u.friends().is_empty():
+			var mate: float=INF
+			for a in u.friends():mate=minf(mate,point.distance_to(a.position))
+			score-=maxf(0,mate-StanceRules.CAUTIOUS_COHESION)*StanceRules.CAUTIOUS_REAR_COHESION
 		if score>best_score:best_score=score;best=point
 	return {"point":best,"friend":friend.actor_id() if friend!=null else ""}
 func move_rear(u,enemy,dt: float) -> bool:
@@ -216,9 +238,11 @@ func move_rear(u,enemy,dt: float) -> bool:
 	# Settled at the station: a slow side-to-side sway instead of standing frozen.
 	if d<30 and enemy!=null:direction+=(enemy.position-u.position).normalized().orthogonal()*sin(now*1.3+phase)*.35
 	if close:direction+=(u.position-nearest.position).normalized()*clampf((210-u.position.distance_to(nearest.position))/85,0,1.4)
+	# Cautious back line: shoot, step back, shoot again.
+	if u.stance==CombatStance.CAUTIOUS and enemy!=null and now<disengage_until:direction+=(u.position-enemy.position).normalized()*StanceRules.CAUTIOUS_SHOT_STEP
 	var incoming: Dictionary=u.threat_response.projectile_threat(u)
-	if not incoming.is_empty() and incoming.time<reaction*(1.2 if u.stance==CombatStance.CAUTIOUS else 1) and u.combat_state==CombatController.State.IDLE:direction=direction*.4-incoming.arrow.velocity.normalized().orthogonal()*side
-	desired_distance=u.data.attack_range*(.92 if u.stance==CombatStance.CAUTIOUS else .86);movement_override="rear_station"
+	if not incoming.is_empty() and incoming.time<reaction*StanceRules.pick(u,1,StanceRules.CAUTIOUS_DEFENSIVE_SIDESTEP,1) and u.combat_state==CombatController.State.IDLE:direction=direction*.4-incoming.arrow.velocity.normalized().orthogonal()*side
+	desired_distance=u.data.attack_range*StanceRules.pick(u,StanceRules.REAR_RANGE,StanceRules.CAUTIOUS_REAR_RANGE,StanceRules.REAR_RANGE);movement_override="rear_station"
 	steer(u,direction,dt,.3 if u.combat_state==CombatController.State.WINDUP else .55 if u.combat_state!=CombatController.State.IDLE else 1.1 if close else 1);return true
 func cover_position(u,enemy) -> Vector2:
 	var friends: Array=u.friends();var friend=u.battle.find_actor(u.cover_actor_id)
@@ -235,9 +259,41 @@ func cover_position(u,enemy) -> Vector2:
 	if threat!=null:return (anchor.position+(threat.position-anchor.position).normalized()*minf(60,anchor.position.distance_to(threat.position)*.45)).clamp(Vector2(35,35),Vector2(765,765))
 	if enemy!=null and not friends.is_empty() and friends.all(func(a):return a.stance==CombatStance.COVER) and u.battle.clock.elapsed<commit_until:return (anchor.position+(enemy.position-anchor.position).normalized()*65).clamp(Vector2(35,35),Vector2(765,765))
 	return best
+## Cautious stance: the side that curves the approach toward the target's flank (away from the
+## direction it faces); beside or behind it, the unit keeps its own side.
+func flank_side(u,enemy) -> float:
+	var ahead: Vector2=Vector2.from_angle(enemy.facing)
+	if (u.position-enemy.position).dot(ahead)<=0:return side
+	var tangent: Vector2=-(enemy.position-u.position).normalized().orthogonal()
+	return -1.0 if tangent.dot(ahead)>0 else 1.0
+## Cautious stance: drift back toward the nearest ally beyond formation distance, and away from
+## other enemies when two or more cover the spot. No bodyblocking (that is cover's job).
+func formation_pull(u,enemy) -> Vector2:
+	var pull: Vector2=Vector2.ZERO
+	var friend=CharacterAbility.nearest(u,u.friends())
+	if friend!=null:
+		var gap: float=u.position.distance_to(friend.position)
+		if gap>StanceRules.CAUTIOUS_COHESION:pull+=(friend.position-u.position).normalized()*minf(1,(gap-StanceRules.CAUTIOUS_COHESION)/100)*StanceRules.CAUTIOUS_COHESION_PULL
+	if enemy!=null and enemy.position.distance_to(u.position)<StanceRules.CAUTIOUS_EXPOSURE:
+		for e in u.enemies():
+			if e!=enemy and e.position.distance_to(u.position)<StanceRules.CAUTIOUS_EXPOSURE:pull+=(u.position-e.position).normalized()*StanceRules.CAUTIOUS_EXPOSURE_PUSH
+	return pull
+## Cautious stance: a target that runs beyond reach + leash is not chased. The unit walks back
+## to where it last fought and waits there; after a while it closes in again.
+func move_home(u,enemy,dt: float) -> bool:
+	var now: float=u.battle.clock.elapsed
+	if enemy==null or u.taunted_until>now or u.command_retreat_until>now or u.combat_state!=CombatController.State.IDLE:return false
+	var d: float=u.position.distance_to(enemy.position);var reach: float=u.data.attack_range+30*u.combat_scale()
+	if d<=reach:home=u.position;home_set=true;home_since=-1;return false
+	if not home_set or d<=reach+StanceRules.CAUTIOUS_LEASH:return false
+	if home_since<0:home_since=now;commit_until=0;attack_decision.clear()
+	if now-home_since>StanceRules.CAUTIOUS_HOME_TIME:home_set=false;home_since=-1;return false
+	var gap: float=u.position.distance_to(home)
+	var direction: Vector2=(home-u.position).normalized()*minf(1,gap/40) if gap>12 else Vector2.ZERO
+	movement_override="cautious_return";steer(u,direction,dt,StanceRules.CAUTIOUS_BACKPEDAL,"strategy");return true
 func move_stance(u,enemy,dt: float) -> bool:
 	var now: float=u.battle.clock.elapsed
-	if u.stance==CombatStance.CAUTIOUS and (move_rear(u,enemy,dt) or move_precommit(u,enemy,dt) or move_defensive(u,enemy,dt)):return true
+	if u.stance==CombatStance.CAUTIOUS and (move_home(u,enemy,dt) or move_rear(u,enemy,dt) or move_precommit(u,enemy,dt) or move_defensive(u,enemy,dt)):return true
 	var taunting: bool=u.taunted_until>now and enemy!=null and enemy.source_member_id==u.taunted_member_id
 	if u.stance==CombatStance.NORMAL and not taunting:return false
 	if not u.lost_sword.is_empty() or u.data.type_id==6 and u.combat_state!=CombatController.State.IDLE:return false
@@ -251,15 +307,17 @@ func move_stance(u,enemy,dt: float) -> bool:
 	elif enemy!=null:
 		var f: Vector2=(enemy.position-u.position).normalized();var l: Vector2=-f.orthogonal();var d: float=u.position.distance_to(enemy.position);var reloading: bool=u.data.type_id==7 and u.state_value("reloadRemaining")>0
 		if (u.stance==CombatStance.RUSH or taunting) and not reloading:
-			desired_distance=minf(110,u.data.attack_range*.5) if u.data.attack_range>100 else u.data.attack_range*.65
-			direction=f*(1 if d>desired_distance else .12)+l*(side*.25+sin(now*3+u.movement_phase)*.35);disengage_until=0;return_until=0;mode="approach";factor=1.07;movement_override="rush"
+			desired_distance=minf(StanceRules.RUSH_RANGED_DISTANCE,u.data.attack_range*.5) if u.data.attack_range>100 else u.data.attack_range*.65
+			# Straight at the target: only a faint sway (taunted units keep their weave).
+			var sway: Vector2=l*(side*StanceRules.RUSH_SIDE+sin(now*3+u.movement_phase)*StanceRules.RUSH_SWAY) if u.stance==CombatStance.RUSH else l*(side*.25+sin(now*3+u.movement_phase)*.35)
+			direction=f*(1 if d>desired_distance else .12)+sway;disengage_until=0;return_until=0;mode="approach";factor=StanceRules.RUSH_SPEED;movement_override="rush"
 		else:
 			var opening: bool=u.combat.cooldown<=0 and (now<commit_until or now<punish_until)
 			desired_distance=330 if reloading else u.data.attack_range*.75 if opening else maxf(155,u.data.attack_range*.98);direction=f*clampf((d-desired_distance)/95,-1,1)+l*side*.6;movement_override="stance_spacing"
 	else:direction=(goal-u.position).normalized()*.45
 	if u.stance!=CombatStance.COVER:
 		var incoming: Dictionary=u.threat_response.projectile_threat(u)
-		if not incoming.is_empty() and u.combat_state==CombatController.State.IDLE and incoming.time<reaction*(1.35 if u.stance==CombatStance.CAUTIOUS else .65 if u.stance==CombatStance.RUSH else 1):
+		if not incoming.is_empty() and u.combat_state==CombatController.State.IDLE and incoming.time<reaction*StanceRules.pick(u,1,StanceRules.CAUTIOUS_SIDESTEP,StanceRules.RUSH_SIDESTEP):
 			var normal: Vector2=-incoming.arrow.velocity.normalized().orthogonal();var escape_side: float=signf((u.position-incoming.arrow.position).dot(normal));if escape_side==0:escape_side=side
 			direction=direction*.2+normal*escape_side;factor=1.12
 	if u.combat_state!=CombatController.State.IDLE:factor*=.25 if u.combat_state==CombatController.State.WINDUP else .5
@@ -351,7 +409,7 @@ func reset_clash(u,winner: bool) -> void:
 	if not spacing.is_empty():spacing.exit=disengage_until;spacing.probe=next_initiative_at;spacing.opening=0
 
 func stance_changed(u) -> void:
-	hold=0;think=0;disengage_until=0;return_until=0;commit_until=0;punish_until=0;attack_decision.clear();u.threat_response.response.clear();next_initiative_at=u.battle.clock.elapsed+u.battle.rng.randf_range(.2,1.1)
+	home_set=false;home_since=-1;hold=0;think=0;disengage_until=0;return_until=0;commit_until=0;punish_until=0;attack_decision.clear();u.threat_response.response.clear();next_initiative_at=u.battle.clock.elapsed+u.battle.rng.randf_range(.2,1.1)
 
 func move_bomb_escape(u,dt: float) -> bool:
 	if u.combat_state!=CombatController.State.IDLE or not u.ultimate.cast.is_empty() or u.state_value("shadowTime")>0 or u.stance==CombatStance.COVER:return false
@@ -360,6 +418,6 @@ func move_bomb_escape(u,dt: float) -> bool:
 	if threats.is_empty():return false
 	var bomb=threats[0]
 	if not u.threat_response.projectile_notices.has(bomb.projectile_id):u.threat_response.projectile_notices[bomb.projectile_id]=u.battle.rng.randf()
-	if u.threat_response.projectile_notices[bomb.projectile_id]>(.8 if u.stance==CombatStance.CAUTIOUS else .35 if u.stance==CombatStance.RUSH else .62):return false
+	if u.threat_response.projectile_notices[bomb.projectile_id]>StanceRules.pick(u,StanceRules.BOMB_NOTICE,StanceRules.CAUTIOUS_BOMB_NOTICE,StanceRules.RUSH_BOMB_NOTICE):return false
 	var direction: Vector2=Vector2.from_angle(u.facing+PI) if u.position.distance_to(bomb.position)<1 else (u.position-bomb.position).normalized()
 	movement_override="bomb_escape";steer(u,direction,dt);return true

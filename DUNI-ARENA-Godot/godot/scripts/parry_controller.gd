@@ -10,7 +10,7 @@ static func available(unit) -> bool:
 	if unit.battle.full_characters_enabled and (unit.unavailable() or not unit.frog_action.is_empty() or not unit.hero_rescue.is_empty() or not unit.machine_dash.is_empty() or not unit.ultimate.cast.is_empty() or not unit.duel.is_empty()):return false
 	return unit.alive and not unit.battle.finished and unit.stun_remaining <= 0 and unit.parry_cooldown <= 0 and unit.parry_remaining <= 0 and unit.evade_remaining <= 0 and unit.dodge_state.is_empty() and unit.strategy_dash.is_empty() and unit.combat_state in [CombatController.State.IDLE, CombatController.State.WINDUP]
 static func success_chance(unit, power: float) -> float:
-	return minf(1, clampf(pow(CombatRules.defense(unit) / maxf(1, power), 1.2), .08, 1) * (1.25 if unit.stance == CombatStance.CAUTIOUS else 1))
+	return minf(1, clampf(pow(CombatRules.defense(unit) / maxf(1, power), 1.2), .08, 1) * StanceRules.pick(unit, 1.0, StanceRules.CAUTIOUS_PARRY_SUCCESS, 1.0))
 func start(unit, source = null) -> bool:
 	if not available(unit) or unit.battle.clock.is_turning_paused(): return false
 	unit.combat.cancel(unit)

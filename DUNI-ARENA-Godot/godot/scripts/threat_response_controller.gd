@@ -13,11 +13,10 @@ func initialize(rng: RandomNumberGenerator) -> void:
 static func chances(unit) -> Dictionary:
 	var low: float = 1-clampf(unit.current_hp/unit.max_hp, 0, 1)
 	var ready: bool = ParryController.available(unit)
-	var cautious: bool = unit.stance == CombatStance.CAUTIOUS
-	var rush: bool = unit.stance == CombatStance.RUSH
-	var p: float = clampf(.36+low*.32+(.09 if cautious else -.12 if rush else .05 if unit.stance==CombatStance.COVER else 0), .12, .66) if ready else 0
-	var d: float = clampf((.12 if ready else .18)+low*(.12 if ready else .2)+(.05 if cautious else -.07 if rush else 0), .04, .26 if ready else .42)
-	var c: float = minf(1-p-d, clampf((.42 if ready else .68)-low*.28+(.12 if rush else -.12 if cautious else 0), .05, .8))
+	var shift: Vector3 = StanceRules.reaction(unit)
+	var p: float = clampf(.36+low*.32+shift.x, .12, .66) if ready else 0
+	var d: float = clampf((.12 if ready else .18)+low*(.12 if ready else .2)+shift.y, .04, .26 if ready else .42)
+	var c: float = minf(1-p-d, clampf((.42 if ready else .68)-low*.28+shift.z, .05, .8))
 	return {"parry": p, "dodge": d, "counter": c, "hold": maxf(0,1-p-d-c)}
 static func windup_threat(unit):
 	var nearby: Array = []
@@ -41,7 +40,7 @@ static func impact_delay(unit, enemy) -> float:
 static func timing(unit, delay: float) -> Dictionary:
 	var rng: RandomNumberGenerator = unit.battle.rng
 	var lead: float = rng.randf_range(.17,.31)
-	var mistake: bool = rng.randf() < unit.mind.parry_mistake(unit,.15 if unit.stance==CombatStance.CAUTIOUS else .3)
+	var mistake: bool = rng.randf() < unit.mind.parry_mistake(unit,StanceRules.pick(unit,StanceRules.PARRY_MISTAKE,StanceRules.CAUTIOUS_PARRY_MISTAKE,StanceRules.PARRY_MISTAKE))
 	var mode: String = ("early" if delay > .6 and rng.randf()<.5 else "late") if mistake else "normal"
 	var wait: float = delay-lead
 	if mode=="early": wait-=rng.randf_range(.45,.95)
@@ -74,7 +73,7 @@ func advance(unit) -> void:
 	if source==null: return
 	var key: String = "%d:%d"%[source.battle_id,reaction_serial(source)]
 	if not read_attacks.has(key):
-		var factor: float = .72 if unit.stance==CombatStance.CAUTIOUS else 1.45 if unit.stance==CombatStance.RUSH else 1.0
+		var factor: float = StanceRules.pick(unit,1.0,StanceRules.CAUTIOUS_READ,StanceRules.RUSH_READ)
 		read_attacks[key]={"at":now+battle.rng.randf_range(.09,.26)*factor,"roll":battle.rng.randf(),"done":false}
 	var read: Dictionary = read_attacks[key]
 	if read.done or now<read.at: return
@@ -109,8 +108,8 @@ func projectile_threat(unit) -> Dictionary:
 		var time: float = -relative.dot(speed)/speed.length_squared()
 		if time<0 or time>.65 or time>arrow.lifetime: continue
 		if not projectile_notices.has(arrow.projectile_id): projectile_notices[arrow.projectile_id]=unit.battle.rng.randf()
-		var chance: float = .93 if unit.stance==CombatStance.CAUTIOUS else .50 if unit.stance==CombatStance.RUSH else .84
-		var horizon: float = .56 if unit.stance==CombatStance.CAUTIOUS else .28 if unit.stance==CombatStance.RUSH else .46
+		var chance: float = StanceRules.pick(unit,StanceRules.NOTICE,StanceRules.CAUTIOUS_NOTICE,StanceRules.RUSH_NOTICE)
+		var horizon: float = StanceRules.pick(unit,StanceRules.HORIZON,StanceRules.CAUTIOUS_HORIZON,StanceRules.RUSH_HORIZON)
 		if projectile_notices[arrow.projectile_id]>chance or time>horizon: continue
 		var miss: float = (relative+speed*time).length()
 		if miss>arrow.hit_radius: continue
@@ -139,7 +138,7 @@ func movement(unit, delta: float) -> bool:
 	elif response.mode==&"dodge" and unit.combat_state==CombatController.State.IDLE:
 		var away: Vector2 = (unit.position-source.position).normalized()
 		direction=Vector2.from_angle(source.combat.aim_angle+PI/2)*response.side if source.data.attack_range>100 else away*.8-away.orthogonal()*response.side
-		direction=direction.limit_length(1)*(1.1 if unit.stance==CombatStance.CAUTIOUS else 1.0)
+		direction=direction.limit_length(1)*StanceRules.pick(unit,1.0,StanceRules.CAUTIOUS_DODGE_SPEED,1.0)
 	else: return false
 	if unit.battle.full_characters_enabled:
 		unit.brain.movement_override="reaction_"+String(response.mode)

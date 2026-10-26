@@ -56,12 +56,12 @@ func advance_minimal(unit, delta: float) -> bool:
 			var low: float = 1-unit.current_hp/unit.max_hp
 			var alone: bool = not unit.battle.units.any(func(v): return v.alive and v!=unit and v.team==unit.team)
 			var opening: bool = is_instance_valid(unit.target) and (unit.target.current_hp/unit.target.max_hp < .2 or unit.target.combat_state == CombatController.State.RECOVERY) and unit.position.distance_to(unit.target.position) < 150
-			var fight: float = 1+boldness+(1.4 if opening else 0)+(1.4 if low<.35 else 0)+(1.4 if alone and risk.crowd > 0 else 0)+(1.6 if unit.stance==CombatStance.RUSH else 0)
+			var fight: float = 1+boldness+(1.4 if opening else 0)+(1.4 if low<.35 else 0)+(1.4 if alone and risk.crowd > 0 else 0)+(StanceRules.RUSH_FIGHT if unit.stance==CombatStance.RUSH else 0)
 			var support_gain: float=unit.battle.zones.support(unit,best) if unit.battle.full_characters_enabled else 0
-			var escape: float = (.25+risk.total*(.7+low*1.6)+(.9 if unit.stance==CombatStance.CAUTIOUS else 0))*(.5 if unit.stance==CombatStance.RUSH else 1) if risk.total-evaluate(unit,best).total>.2 else 0
+			var escape: float = (.25+risk.total*(.7+low*1.6)+(StanceRules.CAUTIOUS_ESCAPE if unit.stance==CombatStance.CAUTIOUS else 0))*(StanceRules.RUSH_ESCAPE if unit.stance==CombatStance.RUSH else 1) if risk.total-evaluate(unit,best).total>.2 else 0
 			if unit.battle.full_characters_enabled:
 				fight+=(.8 if unit.battle.clock.elapsed<unit.brain.commit_until else 0)+(2 if unit.state_value("shadowTime")>0 else 0)
-			var support_weight: float=support_gain*(.5+low*2)*(.6 if unit.stance==CombatStance.RUSH else 1) if support_gain>.65 else 0
+			var support_weight: float=support_gain*(.5+low*2)*(StanceRules.RUSH_SUPPORT if unit.stance==CombatStance.RUSH else 1) if support_gain>.65 else 0
 			var roll: float=unit.battle.rng.randf()*(fight+escape+support_weight)
 			if roll>=fight:
 				supporting=roll>=fight+escape and support_weight>0
@@ -143,9 +143,9 @@ func advance(u,delta: float) -> bool:
 		var useful: bool=u.battle.zones.safe_areas(u).any(func(a):return support_value(u,a,CharacterPersistence.vector(a.point))>.65)
 		if risk.total>.2 or ahead>.75 or useful:
 			var choices: Dictionary=goals(u);var low: float=1-u.current_hp/u.max_hp;var target=u.target;var opening: bool=target!=null and (target.current_hp/target.max_hp<.2 or target.combat_state==CombatController.State.RECOVERY) and u.position.distance_to(target.position)<150
-			var fight: float=1+u.brain.boldness+(1.4 if low<.35 else 0)+(1.4 if u.friends().is_empty() and risk.crowd>0 else 0)+(1.4 if opening else 0)+(.8 if now<u.brain.commit_until else 0)+(1.6 if u.stance==CombatStance.RUSH else 0)+(2 if u.state_value("shadowTime")>0 else 0)
-			var escape: float=(.25+maxf(risk.total,ahead)*(.7+low*1.6)+(.9 if u.stance==CombatStance.CAUTIOUS else 0))*(.5 if u.stance==CombatStance.RUSH else 1) if choices.improvement>.2 or ahead>risk.total+.6 else 0
-			var support: float=choices.benefit*(.5+low*2)*(.6 if u.stance==CombatStance.RUSH else 1) if not choices.refuge.is_empty() and choices.benefit>.65 else 0
+			var fight: float=1+u.brain.boldness+(1.4 if low<.35 else 0)+(1.4 if u.friends().is_empty() and risk.crowd>0 else 0)+(1.4 if opening else 0)+(.8 if now<u.brain.commit_until else 0)+(StanceRules.RUSH_FIGHT if u.stance==CombatStance.RUSH else 0)+(2 if u.state_value("shadowTime")>0 else 0)
+			var escape: float=(.25+maxf(risk.total,ahead)*(.7+low*1.6)+(StanceRules.CAUTIOUS_ESCAPE if u.stance==CombatStance.CAUTIOUS else 0))*(StanceRules.RUSH_ESCAPE if u.stance==CombatStance.RUSH else 1) if choices.improvement>.2 or ahead>risk.total+.6 else 0
+			var support: float=choices.benefit*(.5+low*2)*(StanceRules.RUSH_SUPPORT if u.stance==CombatStance.RUSH else 1) if not choices.refuge.is_empty() and choices.benefit>.65 else 0
 			var roll: float=u.battle.rng.randf()*(fight+escape+support)
 			if roll<fight:reset_plan(u,u.battle.rng.randf_range(.8,1.7));decision_counts.fight+=1
 			else:

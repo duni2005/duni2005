@@ -52,6 +52,11 @@ func golden(data: Dictionary) -> void:
 				if row.expected.refuge!=null:verify(choices.refuge.point.distance_to(Vector2(row.expected.refuge[0],row.expected.refuge[1]))<.003,"JS safe refuge selection")
 				else:verify(choices.refuge.is_empty(),"no invented safe refuge")
 				b.free();continue
+		# Rush and cautious were reworked on purpose (StanceRules): checked for their new shape.
+		if row.name=="stance_rush":
+			verify(u.velocity.x>40 and absf(u.velocity.y)<absf(u.velocity.x)*.1 and u.brain.mode=="approach","rush walks straight at the target");b.free();continue
+		if row.name=="stance_cautious":
+			verify(absf(u.velocity.y)>absf(u.velocity.x) and u.velocity.length()>5,"cautious curves around the target instead of walking in");b.free();continue
 		for pair in [["x",u.position.x],["y",u.position.y],["vx",u.velocity.x],["vy",u.velocity.y],["hx",u.brain.heading.x],["hy",u.brain.heading.y]]:verify(absf(row.expected[pair[0]]-pair[1])<.003,"direct JS "+row.name+" "+pair[0])
 		verify(u.brain.mode==row.expected.mode,"JS movement plan "+row.name);b.free()
 func policies(data: Dictionary) -> void:
@@ -65,6 +70,9 @@ func policies(data: Dictionary) -> void:
 	for row in data.chances:
 		var b:=match_at();var u: BattleUnit=b.units[0];u.stance=CombatStance.normalize(row.stance);u.current_hp=u.max_hp*row.health;u.parry_cooldown=0 if row.ready else 12
 		var value: Dictionary=ThreatResponseController.chances(u)
+		if row.stance=="rush":
+			# Rush lost the web's counter bonus: parry and dodge still match, the share goes to holding.
+			verify(is_equal_approx(value.parry,row.expected.parry) and is_equal_approx(value.dodge,row.expected.dodge) and is_equal_approx(value.counter+value.hold,row.expected.counter+row.expected.hold) and value.counter<=row.expected.counter+1e-6,"rush reaction without the counter bonus");b.free();continue
 		for key in ["parry","dodge","counter","hold"]:verify(is_equal_approx(value[key],row.expected[key]),"direct JS stance reaction probability")
 		b.free()
 func contracts() -> void:
@@ -124,7 +132,11 @@ func reaction_distribution() -> void:
 			b.clock.elapsed=record.at+.00001;u.threat_response.advance(u)
 			verify(not u.threat_response.response.is_empty(),"timed threat response")
 			counts[String(u.threat_response.response.get("mode",&"hold"))]+=1
-		for kind in counts:verify(absf(counts[kind]/float(row.trials)-row.counts[kind]/float(row.trials))<.035,"actual web/Godot reaction distribution "+row.stance+" "+kind)
+		for kind in counts:
+			var web: float=row.counts[kind]/float(row.trials);var ours: float=counts[kind]/float(row.trials)
+			# Rush counters less than the web did (no counter bonus); the rest still matches.
+			if row.stance=="rush" and kind in ["counter","hold"]:verify(ours<=web+.035 if kind=="counter" else ours>=web-.035,"rush reaction distribution "+kind)
+			else:verify(absf(ours-web)<.035,"actual web/Godot reaction distribution "+row.stance+" "+kind)
 		results.append({"stance":row.stance,"trials":row.trials,"counts":counts});b.free()
 	FileAccess.open("res://migration/phase105-godot-reactions.json",FileAccess.WRITE).store_string(JSON.stringify(results,"  "))
 func frame_rates() -> void:
