@@ -1,16 +1,16 @@
 class_name GuildMemberCombatStats
 extends RefCounted
-## towerMemberStats: linear level, multiplicative gear, additive fang kills. Stars add no stats
-## (promotion pays out in experience instead); they only add equipment slots.
+## Linear level growth (HP +12%, physical/magic damage +8%, defense +8%, move speed +2% per
+## level), multiplicative gear, attack % growth from fang kills. Stars add no stats (promotion
+## pays out in experience instead); they only add equipment slots.
 static func assemble(data: UnitData,member: GuildMemberState,inventory: InventoryService) -> UnitCombatStats:
-	var stats:=UnitCombatStats.new()
 	var level: int=member.level
-	stats.max_hp=data.max_hp*(1+level*.12);stats.attack=data.attack*(1+level*.08)
-	stats.defense=data.defense_power*(1+level*.08);stats.speed=data.move_speed*(1+level*.02)
+	var stats:=UnitCombatStats.from_table(data,1+level*.12,1+level*.08,1+level*.08,1+level*.02)
 	for instance in inventory.equipped(member.member_id):
 		var item: ItemData=ItemCatalog.get_item(instance.kind)
 		if item==null:continue
 		stats.apply_item(item)
+	stats.finish_items()
 	stats.max_hp=floorf(stats.max_hp+.5)
 	stats.equipment_attack_without_growth=stats.attack
 	stats.attack*=1+member.fang_kills*stats.fang_rate()
@@ -19,7 +19,7 @@ static func equipment_limit(member: GuildMemberState) -> int:return 2+clampi(mem
 static func heal(guild: GuildManager,member: GuildMemberState,base: float,revive: bool=false) -> float:
 	if member==null or base<=0 or not is_finite(base) or not member.is_alive() and not revive:return 0
 	var stats: UnitCombatStats=guild.member_stats(member)
-	var gain: float=minf(maxf(0,stats.max_hp-member.current_hp),base*stats.healing_power)
+	var gain: float=minf(maxf(0,stats.max_hp-member.current_hp),base*stats.healing_received)
 	member.current_hp+=gain
 	return gain
 static func reset_bomber(member: GuildMemberState) -> void:

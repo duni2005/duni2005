@@ -76,8 +76,11 @@ func encounters() -> void:
 				total+=entry.level
 				var enemy: EnemyRoomState=room.enemy_state[entry.enemy_id];var stats: UnitCombatStats=enemy.combat_stats;var data: UnitData=types[entry.unit_type_id]
 				verify(stats.max_hp==floorf(data.max_hp*.8*(1+entry.level*.12)*entry.hp_multiplier+.5),"actual enemy HP formula")
-				verify(is_equal_approx(stats.attack,data.attack*.8*(1+entry.level*.08)*entry.damage_multiplier),"actual enemy attack formula")
-				verify(is_equal_approx(stats.defense,data.defense_power*.8*(1+entry.level*.08)*entry.defense_multiplier),"actual enemy defense formula")
+				var grow: float=.8*(1+entry.level*.08);var kind_type: int=entry.unit_type_id
+				verify(is_equal_approx(stats.attack,entry.damage_multiplier),"actual enemy attack % formula")
+				verify(is_equal_approx(stats.physical_damage,UnitStatTable.base_physical(kind_type)*grow) and is_equal_approx(stats.magic_damage,UnitStatTable.base_magic(kind_type)*grow),"actual enemy damage stat formula")
+				verify(is_equal_approx(stats.defense,UnitStatTable.base_defense(kind_type)*grow*entry.defense_multiplier),"actual enemy defense formula")
+				verify(is_equal_approx(stats.magic_defense,UnitStatTable.base_magic_defense(kind_type)*entry.defense_multiplier),"actual enemy kind defense formula")
 				verify(is_equal_approx(stats.speed,data.move_speed*.8*(1+entry.level*.02)*entry.speed_multiplier),"actual enemy speed formula")
 				verify(entry.initial_position.is_finite() and entry.initial_position.x>=415+27*entry.body_scale,"enemy placement zone /radius")
 				verify(enemy.current_hp==stats.max_hp and enemy.spawn==entry,"initial spawn/persistent state separated")
@@ -105,7 +108,9 @@ func golden_web_rules() -> void:
 	for row in web.samples:
 		var entry:=EnemySpawnEntry.new();entry.level=row.level;entry.set_rank(StringName(row.rank))
 		var stats:=TowerEnemyStatsAssembler.assemble(CharacterCatalog.all()[int(row.type)],entry)
-		for pair in [["max_hp","hp"],["attack","dmg"],["defense","defensePower"],["speed","speed"],["scale","scale"]]:verify(is_equal_approx(stats.get(pair[0]),row.stats[pair[1]]),"executed JS stats golden")
+		# Attack and defense left the web formula with the stat rework (phase9 enemy formula test).
+		for pair in [["max_hp","hp"],["speed","speed"],["scale","scale"]]:verify(is_equal_approx(stats.get(pair[0]),row.stats[pair[1]]),"executed JS stats golden")
+		verify(is_equal_approx(stats.attack,entry.damage_multiplier),"rank damage multiplier is attack %")
 	# Invalid per-spawn stats must be rejected before any Unit creation.
 	var stats:=UnitCombatStats.new();stats.max_hp=NAN;stats.attack=2;stats.defense=2;stats.speed=2
 	verify(not BattleUnitFactory.validate_placements([{"data":BattleManager.WARRIOR,"position":Vector2(500,500),"combat_stats":stats}]).ok,"invalid calculated stats rejected")

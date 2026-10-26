@@ -29,9 +29,11 @@ func ultimate_target(u):return u.target if is_instance_valid(u.target) and u.tar
 func release_basic(u) -> void:
 	var p: AttackData=u.combat.profile(u)
 	if p.kind==AttackData.Kind.MELEE:
-		u.battle.spawn_melee_strike(u,p,CombatRules.attack(u)*(1.25 if u.combat.counter else 1))
+		var key: StringName=&"counter" if u.combat.counter else &"basic"
+		var strike: AttackInstance=u.battle.spawn_melee_strike(u,p,UnitStatTable.raw(u,key))
+		if strike!=null:strike.metadata["dmg"]=key
 		u.knockback_velocity+=Vector2.from_angle(u.combat.aim_angle)*90
-	else:shoot(u,u.combat.aim_angle,CombatRules.attack(u))
+	else:shoot(u,u.combat.aim_angle,UnitStatTable.raw(u,&"basic"),{"dmg":&"basic"})
 func attack_tick(_u,_dt: float) -> bool:return false
 func release_ultimate(_u,_cast: Dictionary,_dt: float) -> bool:return true
 func projectile_hit(_u,_p,_target) -> bool:return false
@@ -41,7 +43,7 @@ static func nearest(u,list: Array):
 	var sorted: Array=list.duplicate();sorted.sort_custom(func(a,b):return u.position.distance_to(a.position)<u.position.distance_to(b.position));return sorted[0] if not sorted.is_empty() else null
 static func restore_hp(target, base: float, source=null) -> float:
 	if target==null or not target.alive or base<=0:return 0
-	var gain: float=minf(target.max_hp-target.current_hp,base*(source.healing_power if source!=null else 1)*target.healing_power)
+	var gain: float=minf(target.max_hp-target.current_hp,base*(source.healing_power if source!=null else 1)*target.healing_received)
 	target.current_hp+=gain;return gain
 static func shoot(u,angle: float,damage: float,settings: Dictionary={}) -> BattleProjectile:
 	var p:=u.battle.PROJECTILE_SCENE.instantiate() as BattleProjectile

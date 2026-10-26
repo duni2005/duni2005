@@ -14,7 +14,7 @@ func can_attack(u,_t) -> bool:return u.state_value("ammo")>0 and u.state_value("
 func release_basic(u) -> void:
 	if u.state_value("ammo")<=0:return
 	var r: RandomNumberGenerator=u.battle.rng
-	shoot(u,u.combat.aim_angle+.3*(r.randf_range(-1,1)*.75+r.randf_range(-1,1)*.25),CombatRules.attack(u),{"kind":"machineBullet","speed":4200,"radius":14,"offset":55,"life":.35,"impulse":115})
+	shoot(u,u.combat.aim_angle+.3*(r.randf_range(-1,1)*.75+r.randf_range(-1,1)*.25),UnitStatTable.raw(u,&"basic"),{"dmg":&"basic","kind":"machineBullet","speed":4200,"radius":14,"offset":55,"life":.35,"impulse":115})
 	u.set_state("ammo",u.state_value("ammo")-1);u.set_state("shotsFired",u.state_value("shotsFired")+1);u.knockback_velocity-=Vector2.from_angle(u.combat.aim_angle)*30
 	if u.state_value("ammo")==0:u.set_state("reloadRemaining",4)
 func attack_tick(u,_dt: float) -> bool:

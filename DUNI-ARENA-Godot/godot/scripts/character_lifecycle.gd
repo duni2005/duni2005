@@ -53,7 +53,7 @@ static func advance_rescue(hero,dt: float) -> void:
 	friend.shield_hp=maxf(friend.shield_hp,60);friend.shield_remaining=maxf(friend.shield_remaining,10)
 	for enemy in hero.enemies(false):
 		if enemy.position.distance_to(friend.position)>220*hero.combat_scale()+24*enemy.combat_scale():continue
-		var out: DamageOutcome=hero.battle.damage_resolver.resolve(hero,enemy,CombatRules.attack(hero)*1.6,{"critical":true,"impulse":650,"attack_origin":friend.position,"visible_hazard":true,"attack_token":hero.actor_id()+":rescue"})
+		var out: DamageOutcome=hero.battle.damage_resolver.resolve(hero,enemy,UnitStatTable.raw(hero,&"rescue"),{"dmg":&"rescue","critical":true,"impulse":650,"attack_origin":friend.position,"visible_hazard":true,"attack_token":hero.actor_id()+":rescue"})
 		if out.hp_damage>0 and enemy.alive:StatusController.stun(enemy,2)
 	friend.hero_rescue_owner="";hero.hero_rescue.clear();hero.combat.cooldown=maxf(hero.combat.cooldown,.6);hero.brain.disengage_until=hero.battle.clock.elapsed+.7
 	hero.battle.emit_combat_event(&"hero_rescue",friend.position,{"hero":hero.actor_id()})
@@ -86,7 +86,7 @@ static func advance_duel(master,dt: float) -> void:
 		elif ms!=ts:
 			var winner=master if (ms-ts+3)%3==1 else target;var loser=target if winner==master else master
 			CharacterAbility.restore_hp(winner,winner.max_hp*.05,winner)
-			master.battle.damage_resolver.resolve(winner,loser,loser.max_hp*(.5 if d.ultimate else .35),{"duel_result":true,"critical":false,"impulse":0})
+			master.battle.damage_resolver.resolve(winner,loser,UnitStatTable.raw(master,&"ult" if d.ultimate else &"basic"),{"dmg":&"ult" if d.ultimate else &"basic","dmg_type":master.data.type_id,"duel_result":true,"critical":false,"impulse":0})
 	if float(d.time)>=2.2:cancel_duel(master)
 static func capture(frog,v,rescue: bool=false) -> bool:
 	if not frog.alive or not v.alive or not frog.frog_action.is_empty() or v.unavailable() or protected(v) or not v.hero_rescue.is_empty() or (not v.duel.is_empty() and not rescue):return false
@@ -142,7 +142,7 @@ static func spit(frog,v,rescue: bool) -> void:
 	var goal: Vector2=safest(v) if rescue else enemy.position if enemy!=null else Vector2(400,400)
 	var angle: float=(goal-frog.position).angle();var speed: float=850 if rescue else 650
 	var travel: float=maxf(1,frog.position.distance_to(goal)) if rescue else maxf(150,frog.position.distance_to(goal)+100 if enemy!=null else 230)
-	var p: BattleProjectile=CharacterAbility.shoot(frog,angle,CombatRules.attack(frog)*(1+floorf(v.max_hp/60)*.1),{"kind":"frogBody","offset":0,"speed":speed,"radius":36*v.combat_scale()/frog.combat_scale(),"life":minf(1.3 if rescue else 1.15,travel/speed),"cargo":v.actor_id(),"rescue":rescue,"visual_scale":v.combat_scale(),"impulse":390})
+	var p: BattleProjectile=CharacterAbility.shoot(frog,angle,UnitStatTable.raw(frog,&"spit")*(1+floorf(v.max_hp/60)*.1),{"dmg":&"spit","kind":"frogBody","offset":0,"speed":speed,"radius":36*v.combat_scale()/frog.combat_scale(),"life":minf(1.3 if rescue else 1.15,travel/speed),"cargo":v.actor_id(),"rescue":rescue,"visual_scale":v.combat_scale(),"impulse":390})
 	v.frog_carrier="";v.frog_flight=p.projectile_id;v.frog_rescue_guard=rescue;frog.frog_action={}
 	if rescue:CharacterAbility.restore_hp(v,v.max_hp*.1,frog)
 	frog.combat.cooldown=maxf(frog.combat.cooldown,frog.data.attack_interval)
@@ -153,7 +153,7 @@ static func finish_body(p,damage: bool=true) -> void:
 	if v==null or v.frog_flight!=p.projectile_id:return
 	v.position=MovementController.clamp_position(p.position);clear_cargo(v)
 	if p.metadata.get("rescue",false):v.invincible_remaining=maxf(v.invincible_remaining,.4)
-	elif damage and v.alive:p.source.battle.damage_resolver.resolve(p.source,v,p.damage*.7,{"critical":true,"impulse":150,"attack_origin":p.position,"visible_hazard":true})
+	elif damage and v.alive:p.source.battle.damage_resolver.resolve(p.source,v,p.damage*.7,{"dmg":&"spit_landing","critical":true,"impulse":150,"attack_origin":p.position,"visible_hazard":true})
 	v.combat.cooldown=maxf(v.combat.cooldown,.4)
 static func release_cargo(battle) -> void:
 	for u in battle.units:release_action(u)

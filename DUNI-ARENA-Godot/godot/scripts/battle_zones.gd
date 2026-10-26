@@ -97,7 +97,7 @@ func advance(battle,dt: float) -> void:
 			for enemy in u.enemies(false):
 				if enemy.unavailable() or z.hits.has(enemy.actor_id()) or point.distance_to(enemy.position)>radius+24*enemy.combat_scale():continue
 				z.hits[enemy.actor_id()]=true
-				battle.damage_resolver.resolve(u,enemy,z.damage,{"critical":true,"impulse":320,"attack_origin":point,"visible_hazard":true,"shock_stacks":2,"attack_token":z.source+"discharge"})
+				battle.damage_resolver.resolve(u,enemy,z.damage,{"dmg":&"ult","critical":true,"impulse":320,"attack_origin":point,"visible_hazard":true,"shock_stacks":2,"attack_token":z.source+"discharge"})
 		elif z.kind=="ring":
 			for enemy in u.enemies(false):
 				if enemy.unavailable():continue
@@ -107,7 +107,7 @@ func advance(battle,dt: float) -> void:
 				var next: float=z.contacts.get(enemy.actor_id(),-INF)
 				if contact and battle.clock.elapsed>=next and enemy.invincible_remaining<=0:
 					z.contacts[enemy.actor_id()]=battle.clock.elapsed+.6
-					var out: DamageOutcome=battle.damage_resolver.resolve(u,enemy,14,{"critical":false,"impulse":650,"angle":(-diff).angle(),"attack_origin":enemy.position-diff.normalized()*35})
+					var out: DamageOutcome=battle.damage_resolver.resolve(u,enemy,UnitStatTable.raw(u,&"ring"),{"dmg":&"ring","critical":false,"impulse":650,"angle":(-diff).angle(),"attack_origin":enemy.position-diff.normalized()*35})
 					if out.hp_damage>0 and enemy.alive:KnockbackController.apply(enemy,-diff.normalized()*760,u)
 		if z.kind=="bomb" and float(z.life)<=0:
 			CharacterAbility.area_damage(u,point,float(z.radius),float(z.damage),float(z.impulse),{"critical":true,"attack_token":z.get("token","bomb")})
@@ -117,5 +117,5 @@ func advance(battle,dt: float) -> void:
 				if not actor.alive or point.distance_to(actor.position)>float(z.radius):continue
 				if z.kind=="healing" and actor.team==u.team:CharacterAbility.restore_hp(actor,1.75 if actor==u else 2.5,u)
 				elif z.kind in ["blackhole","tankFire"] and actor.team!=u.team:
-					battle.damage_resolver.resolve(u,actor,4 if z.kind=="blackhole" else float(z.get("damage",0)),{"critical":false,"impulse":0,"attack_origin":point,"visible_hazard":true,"attack_token":z.source+z.kind})
+					battle.damage_resolver.resolve(u,actor,UnitStatTable.raw(u,&"ult") if z.kind=="blackhole" else float(z.get("damage",0)),{"dmg":&"ult" if z.kind=="blackhole" else &"fire_zone","critical":false,"impulse":0,"attack_origin":point,"visible_hazard":true,"attack_token":z.source+z.kind})
 		if float(z.life)<=0:entries.erase(z)

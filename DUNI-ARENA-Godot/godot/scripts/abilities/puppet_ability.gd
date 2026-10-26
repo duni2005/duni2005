@@ -2,7 +2,7 @@ extends CharacterAbility
 func on_spawn(u) -> void:
 	var friends: Array=u.friends();friends.sort_custom(func(a,b):return u.position.distance_to(a.position)<u.position.distance_to(b.position));u.puppet_links.assign(friends.slice(0,2).map(func(a):return a.actor_id()))
 func thread(u,angle: float,control: bool=false) -> void:
-	shoot(u,angle,0 if control else CombatRules.attack(u),{"kind":"controlThread" if control else "sharpThread","speed":540 if control else 660,"radius":25 if control else 18,"offset":35,"life":1.5 if control else 1.2,"power":CombatRules.attack(u)*3.5 if control else CombatRules.attack(u),"impulse":145});u.set_state("shotsFired",u.state_value("shotsFired")+1)
+	shoot(u,angle,0 if control else UnitStatTable.raw(u,&"basic"),{"dmg":&"basic","kind":"controlThread" if control else "sharpThread","speed":540 if control else 660,"radius":25 if control else 18,"offset":35,"life":1.5 if control else 1.2,"power":CombatRules.attack(u)*3.5 if control else CombatRules.attack(u),"impulse":145});u.set_state("shotsFired",u.state_value("shotsFired")+1)
 func release_basic(u) -> void:
 	for off in [-.16,0,.16]:thread(u,u.combat.aim_angle+off)
 	u.knockback_velocity-=Vector2.from_angle(u.combat.aim_angle)*35

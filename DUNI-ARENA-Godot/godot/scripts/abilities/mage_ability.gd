@@ -5,7 +5,7 @@ func projectile_hit(u,p,t) -> bool:
 	if p.kind!="":return false
 	u.battle.damage_resolver.resolve(u,t,p.damage,p.attack_instance.options(t.position-p.velocity*.08))
 	for enemy in u.enemies(false):
-		if enemy!=t and p.position.distance_to(enemy.position)<110*float(p.metadata.get("scale",1)):u.battle.damage_resolver.resolve(u,enemy,p.damage*.5,{"critical":false,"impulse":260,"attack_origin":p.position,"hidden_launch":p.hidden_launch})
+		if enemy!=t and p.position.distance_to(enemy.position)<110*float(p.metadata.get("scale",1)):u.battle.damage_resolver.resolve(u,enemy,UnitStatTable.raw(u,&"splash"),{"dmg":&"splash","critical":false,"impulse":260,"attack_origin":p.position,"hidden_launch":p.hidden_launch})
 	p.live=false;return true
 func can_ultimate(u,t) -> bool:return t!=null and (u.enemies().filter(func(e):return e.position.distance_to(t.position)<210).size()>=2 or u.current_hp/u.max_hp<.55 or u.state_value("ultReadyAge")>4)
 func release_ultimate(u,a,_dt: float) -> bool:

@@ -5,7 +5,6 @@ extends CharacterAbility
 const TRAIN_SPEED: float = 1400
 const TRAIN_LENGTH: float = 270
 const TRACK_HALF_WIDTH: float = 58
-const ENEMY_DAMAGE: float = 85
 const ALLY_DAMAGE: float = 6
 func can_attack(_u,_t) -> bool:return false
 func tick(u,dt: float) -> void:
@@ -49,7 +48,7 @@ func release_ultimate(u,a,dt: float) -> bool:
 			u.battle.damage_resolver.resolve(u,v,ALLY_DAMAGE,{"collision":true,"impulse":0})
 			KnockbackController.apply(v,side*520+dir*180,u)
 		else:
-			u.battle.damage_resolver.resolve(u,v,ENEMY_DAMAGE,{"impulse":0,"visible_hazard":true})
+			u.battle.damage_resolver.resolve(u,v,UnitStatTable.raw(u,&"ult"),{"dmg":&"ult","impulse":0,"visible_hazard":true})
 			KnockbackController.apply(v,side*760+dir*320,u)
 	if float(a.s)<float(track.to)+TRAIN_LENGTH:return false
 	u.set_state("trainFx",0);return true

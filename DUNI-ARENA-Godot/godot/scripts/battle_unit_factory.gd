@@ -65,7 +65,7 @@ func create(placement: Dictionary, battle_id: int, battle, rng: RandomNumberGene
 		unit.combat_stats = placement.combat_stats
 		unit.move_speed *= unit.combat_stats.speed / unit.data.move_speed
 		unit.current_hp = unit.max_hp
-		unit.healing_power=unit.combat_stats.healing_power
+		unit.healing_power=unit.combat_stats.healing_power;unit.healing_received=unit.combat_stats.healing_received
 		unit.vigor_totem_count=unit.combat_stats.vigor_totem_count
 		unit.charge_totem_count=unit.combat_stats.charge_totem_count
 		unit.fang_count=unit.combat_stats.fang_count

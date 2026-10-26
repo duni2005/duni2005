@@ -15,7 +15,7 @@ func modify_movement(u,t,dt: float) -> bool:
 	if not incoming.is_empty():direction=direction*.5-incoming.arrow.velocity.normalized().orthogonal()*u.brain.side*.65
 	u.brain.steer(u,direction,dt);return true
 func release_basic(u) -> void:
-	melee(u,CombatRules.attack(u)*(1.15 if u.combat.attack_metadata.get("ultimate",false) else 1),{"reach":64,"cone":.18,"headbutt":true})
+	melee(u,UnitStatTable.raw(u,&"ult" if u.combat.attack_metadata.get("ultimate",false) else &"basic"),{"dmg":&"ult" if u.combat.attack_metadata.get("ultimate",false) else &"basic","reach":64,"cone":.18,"headbutt":true})
 	u.knockback_velocity=Vector2.ZERO
 func attack_tick(u,dt: float) -> bool:
 	if u.combat_state==CombatController.State.ACTIVE and not u.combat.attack_metadata.get("landed",false):

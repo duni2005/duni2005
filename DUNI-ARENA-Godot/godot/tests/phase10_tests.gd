@@ -46,7 +46,11 @@ func golden() -> void:
 		var member: GuildMemberState=g.create_member(row.type);member.level=row.level;member.stars=row.stars;member.fang_kills=row.kills
 		for kind in row.gear:inv.give(StringName(kind)).equipped_to_member_id=member.member_id
 		var stats: UnitCombatStats=g.member_stats(member)
-		for pair in [["max_hp","hp"],["attack","dmg"],["defense","defensePower"],["speed","speed"],["healing_power","healingPower"],["victory_gold","victoryGold"],["vigor_totem_count","totemCount"],["charge_totem_count","chargeTotemCount"],["fang_count","fangCount"],["opening_awl_count","openingAwlCount"]]:verify(is_equal_approx(stats.get(pair[0]),row.stats[pair[1]]),"executed JS growth/gear golden")
+		# Attack is now attack % (gear x fang growth): the web damage divided by its level-grown base.
+		var grow: float=1+row.level*.08
+		verify(is_equal_approx(stats.attack,row.stats.dmg/(g.definition(row.type).attack*grow)),"executed JS gear/fang attack golden as attack %")
+		verify(is_equal_approx(stats.physical_damage,UnitStatTable.base_physical(row.type)*grow*stats.physical_power) and is_equal_approx(stats.defense,UnitStatTable.base_defense(row.type)*grow),"table damage/defense with level growth")
+		for pair in [["max_hp","hp"],["speed","speed"],["healing_power","healingPower"],["victory_gold","victoryGold"],["vigor_totem_count","totemCount"],["charge_totem_count","chargeTotemCount"],["fang_count","fangCount"],["opening_awl_count","openingAwlCount"]]:verify(is_equal_approx(stats.get(pair[0]),row.stats[pair[1]]),"executed JS growth/gear golden")
 	var plain: GuildMemberState=g.create_member(0);var starred: GuildMemberState=g.create_member(0);plain.level=4;starred.level=4;starred.stars=2
 	verify(g.member_stats(plain).max_hp==g.member_stats(starred).max_hp and g.member_stats(plain).attack==g.member_stats(starred).attack,"stars add no stat bonus")
 	for type in range(26):verify(base[type]==[g.definition(type).max_hp,g.definition(type).attack,g.definition(type).defense_power,g.definition(type).move_speed],"shared UnitData immutable")
@@ -99,7 +103,7 @@ func equipment_growth() -> void:
 	var vital: ItemInstance=give(t,&"vital",member)
 	verify(t.guild.member_stats(member).max_hp==180 and member.current_hp==40,"vital20% no free equip heal")
 	var fang: ItemInstance=give(t,&"fang",member)
-	verify(is_equal_approx(t.guild.member_stats(member).attack,base.attack*1.15),"fang15%")
+	verify(is_equal_approx(t.guild.member_stats(member).attack,1.15),"fang15% attack")
 	var boots: ItemInstance=t.content.inventory.give(&"boots")
 	verify(not t.content_action(&"equip",{"item_id":boots.item_id,"member_id":member.member_id}).ok and boots.equipped_to_member_id.is_empty(),"two slots enforce")
 	verify(not t.content_action(&"equip",{"item_id":vital.item_id,"member_id":t.guild.all_members()[1].member_id}).ok,"no move/double equip")
@@ -120,7 +124,7 @@ func equipment_growth() -> void:
 	while member.level<10:verify(t.content_action(&"level_up",{"member_id":member.member_id}).ok,"level-up repeats")
 	verify(member.level==10 and 10000-t.guild.state.gold==member.total_exp and member.total_exp>=1700 and member.total_exp<1800,"gold buys EXP 1:1 in 100 packs; overshoot stays as progress")
 	var stats: UnitCombatStats=t.guild.member_stats(member)
-	verify(stats.max_hp==330 and is_equal_approx(stats.attack,base.attack*1.8) and is_equal_approx(stats.defense,base.defense_power*1.8) and is_equal_approx(stats.speed,base.move_speed*1.2),"linear growth hp12/atk8/def8/speed2")
+	verify(stats.max_hp==330 and is_equal_approx(stats.attack,1) and is_equal_approx(stats.physical_damage,UnitStatTable.base_physical(0)*1.8) and is_equal_approx(stats.magic_damage,UnitStatTable.base_magic(0)*1.8) and is_equal_approx(stats.defense,UnitStatTable.base_defense(0)*1.8) and is_equal_approx(stats.speed,base.move_speed*1.2),"linear growth hp12/atk8/def8/speed2")
 	var gold: int=t.guild.state.gold;var packs: int=GrowthRules.packs_to_level(member.total_exp)
 	verify(t.content_action(&"level_up",{"member_id":member.member_id}).ok and member.level==11 and gold-t.guild.state.gold==packs*100,"no level cap; level-up spends packs x 100 G")
 	verify(t.guild.member_stats(member).max_hp==348,"growth keeps scaling past 10 (hp +12%/level)")
@@ -280,7 +284,7 @@ func combat() -> void:
 	var t:=tower();var members: Array=t.guild.all_members();var m: GuildMemberState=members[0];var friend: GuildMemberState=members[1]
 	m.level=2;m.stars=1;give(t,&"greenNecklace",m);give(t,&"vigorTotem",m);give(t,&"greenNecklace",friend)
 	t.select_room("0:3");var b:=create_battle(t,[m.member_id,friend.member_id]);var u: BattleUnit=b.units[0];var a: BattleUnit=b.units[1];var stats: UnitCombatStats=t.guild.member_stats(m)
-	verify(u.max_hp==stats.max_hp and u.attack_power==stats.attack and u.defense_power==stats.defense and u.data==t.guild.definition(0),"level/star/gear derived Unit stats")
+	verify(u.max_hp==stats.max_hp and is_equal_approx(u.attack_power,stats.physical_damage*stats.attack) and u.defense_power==stats.defense and u.data==t.guild.definition(0),"level/star/gear derived Unit stats")
 	u.current_hp=100;a.current_hp=50;u.position=Vector2(100,300);a.position=Vector2(200,300)
 	EquipmentCombatEffects.advance(u,5)
 	verify(is_equal_approx(u.current_hp,100+3.6*1.1*1.1) and is_equal_approx(a.current_hp,50+6*1.1*1.1),"totem self/outgoing/incoming math")

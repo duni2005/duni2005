@@ -16,4 +16,4 @@ func tick(u,_dt: float) -> void:
 	u.character_specific_state["refractFrom"]=CharacterPersistence.point(from)
 	u.set_state("refractFx",.8)
 func release_basic(u) -> void:
-	shoot(u,u.combat.aim_angle,CombatRules.attack(u),{"kind":"light","speed":900,"radius":22,"impulse":300})
+	shoot(u,u.combat.aim_angle,UnitStatTable.raw(u,&"basic"),{"dmg":&"basic","kind":"light","speed":900,"radius":22,"impulse":300})

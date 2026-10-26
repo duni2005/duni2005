@@ -37,7 +37,8 @@ static func plan(enemy: BattleUnit, p: float, rng: RandomNumberGenerator) -> Ene
 		if roll < 0:kind = key;break
 	var result := EnemyTurningPlan.new()
 	result.plan_type = kind
-	var power: float = enemy.attack_power
+	# Damage before 공격력%, which the resolver applies.
+	var power: float = UnitStatTable.damage_stat(enemy, UnitStatTable.main_kind(enemy.data.type_id))
 	match kind:
 		EnemyTurningPlan.HEAL:result.metadata = {"amount": snappedf(.2 + .1 * p, .01)}
 		EnemyTurningPlan.CHARGE:result.metadata = {"gauge": roundf(20 + 10 * p)}

@@ -77,7 +77,7 @@ static func advance(unit: BattleUnit, delta: float) -> bool:
 		for foe in battle.units.filter(func(u): return u.alive and u.team != unit.team):
 			var offset: Vector2 = foe.position - unit.position
 			if offset.length() <= reach + 20 * foe.combat_scale() and absf(forward.angle_to(offset)) <= SMASH_ARC:
-				battle.damage_resolver.resolve(unit, foe, damage, {"impulse": 260, "visible_hazard": true})
+				battle.damage_resolver.resolve(unit, foe, damage, {"impulse": 260, "visible_hazard": true, "dmg": &"strategy_smash"})
 				if foe.alive:StatusController.stun(foe, stun)
 		battle.emit_combat_event(&"ult_impact", unit.position + forward * reach * .5, {"actor": unit.actor_id(), "type": unit.data.type_id, "radius": reach})
 		return true
@@ -93,7 +93,7 @@ static func advance(unit: BattleUnit, delta: float) -> bool:
 	for foe in battle.units.filter(func(u): return u.alive and u.team != unit.team and u.battle_id not in hit):
 		if foe.position.distance_to(unit.position) <= half + 25 * foe.combat_scale():
 			hit.append(foe.battle_id)
-			battle.damage_resolver.resolve(unit, foe, damage, {"impulse": 320, "visible_hazard": true})
+			battle.damage_resolver.resolve(unit, foe, damage, {"impulse": 320, "visible_hazard": true, "dmg": &"strategy_cleave"})
 	if unit.strategy_dash.is_empty() or cast.is_empty():
 		unit.strategy_cast = {}
 	return true

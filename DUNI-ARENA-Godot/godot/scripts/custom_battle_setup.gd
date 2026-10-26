@@ -110,12 +110,12 @@ func validate() -> String:
 func stats_for(entry: Dictionary) -> UnitCombatStats:
 	# Level 0 stats with the same multiplicative item rules as guild members.
 	var data: UnitData = CharacterCatalog.all()[int(entry.type)]
-	var stats := UnitCombatStats.new()
-	stats.max_hp = data.max_hp;stats.attack = data.attack;stats.defense = data.defense_power;stats.speed = data.move_speed
+	var stats := UnitCombatStats.from_table(data)
 	for kind in entry.items:
 		var item: ItemData = ItemCatalog.get_item(kind)
 		if item == null:continue
 		stats.apply_item(item)
+	stats.finish_items()
 	stats.max_hp = floorf(stats.max_hp + .5)
 	stats.equipment_attack_without_growth = stats.attack
 	return stats

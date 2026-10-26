@@ -1,11 +1,24 @@
 class_name UnitCombatStats
 extends RefCounted
 ## Per-spawn calculated stats, never the shared character Resource.
+## Base stats: max HP, defense (all damage), physical/magic defense (that kind only), attack %
+## (multiplies all damage), physical/magic damage (the stat each damage instance scales with).
 var max_hp: float
-var attack: float
+var attack: float = 1
 var defense: float
+var physical_defense: float = 0
+var magic_defense: float = 0
+var physical_damage: float = 0
+var magic_damage: float = 0
 var speed: float
 var scale: float = 1
+var crit_damage: float = UnitStatTable.CRIT_DAMAGE
+## Special stats: healing received, ultimate damage %, and bonuses per element / damage tag
+## (UnitStatTable.ELEMENTS, DAMAGE_TAGS); healing_power is healing given.
+var healing_received: float = 1
+var ult_damage: float = 1
+var element_bonus: Dictionary = {}
+var tag_bonus: Dictionary = {}
 
 var healing_power: float = 1
 var victory_gold: int = 0
@@ -14,7 +27,8 @@ var charge_totem_count: int = 0
 var fang_count: int = 0
 var opening_awl_count: int = 0
 var equipment_attack_without_growth: float = 0
-## Item stat lines (see ItemCatalog). Powers multiply; armor/crit add.
+## Item stat lines (see ItemCatalog). Powers multiply; armor/crit add. element_power is the
+## "element damage %" special stat, ultimate_power the "ultimate charge %" one.
 var physical_power: float = 1
 var magic_power: float = 1
 var element_power: float = 1
@@ -31,10 +45,18 @@ var phoenix_count: int = 0
 var hourglass_count: int = 0
 var dragon_heart_count: int = 0
 
+## Base stats of a character from UnitStatTable, with level-style growth factors.
+static func from_table(data: UnitData,hp_factor: float=1,damage_factor: float=1,defense_factor: float=1,speed_factor: float=1) -> UnitCombatStats:
+	var stats:=UnitCombatStats.new();var t: int=data.type_id
+	stats.max_hp=data.max_hp*hp_factor;stats.speed=data.move_speed*speed_factor
+	stats.physical_damage=UnitStatTable.base_physical(t)*damage_factor;stats.magic_damage=UnitStatTable.base_magic(t)*damage_factor
+	stats.defense=UnitStatTable.base_defense(t)*defense_factor
+	stats.physical_defense=UnitStatTable.base_physical_defense(t);stats.magic_defense=UnitStatTable.base_magic_defense(t)
+	return stats
 ## Gear rules shared by guild members and custom battle entries.
 func apply_item(item: ItemData) -> void:
 	max_hp*=item.max_hp_multiplier;attack*=item.attack_multiplier;speed*=item.speed_multiplier
-	healing_power*=item.healing_multiplier;victory_gold+=item.victory_gold
+	healing_power*=item.healing_multiplier;healing_received*=item.healing_multiplier;victory_gold+=item.victory_gold
 	vigor_totem_count+=int(item.vigor_totem);charge_totem_count+=int(item.charge_totem)
 	fang_count+=int(item.kill_growth);opening_awl_count+=int(item.opening_awl)
 	if item.vigor_totem:vigor_totem_power+=item.ability_power
@@ -44,6 +66,9 @@ func apply_item(item: ItemData) -> void:
 	physical_power+=item.physical_bonus;magic_power+=item.magic_bonus;element_power+=item.element_bonus
 	ultimate_power+=item.ultimate_bonus;armor+=item.armor_bonus;attack_speed+=item.attack_speed_bonus;crit+=item.crit_bonus
 	phoenix_count+=int(item.phoenix);hourglass_count+=int(item.hourglass);dragon_heart_count+=int(item.dragon_heart)
+## Item damage powers scale the physical / magic damage stats; call once after all items.
+func finish_items() -> void:
+	physical_damage*=physical_power;magic_damage*=magic_power
 ## Attack growth per kill: .015 per legacy fang, stronger on the combined item.
 func fang_rate() -> float:
 	return .015*fang_power/fang_count if fang_count>0 else .015

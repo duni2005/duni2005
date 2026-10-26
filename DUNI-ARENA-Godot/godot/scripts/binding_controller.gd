@@ -67,7 +67,7 @@ static func _advance_magnet(battle, u, dt: float) -> void:
 			u.set_state("magnetPull", 0);partner.set_state("magnetPull", 0)
 			if source != null:
 				# The slam: both magnetised units take a heavy hit.
-				for v in [u, partner]:battle.damage_resolver.resolve(source, v, 30, {"critical": false, "impulse": 0, "visible_hazard": true})
+				for v in [u, partner]:battle.damage_resolver.resolve(source, v, UnitStatTable.raw(source, &"slam"), {"dmg": &"slam", "critical": false, "impulse": 0, "visible_hazard": true})
 		else:
 			for v in [[u, axis.normalized()], [partner, -axis.normalized()]]:
 				var mover = v[0]
@@ -88,7 +88,7 @@ static func _path_hits(battle, source, owner, mover) -> void:
 		if enemy.character_specific_state.get("magnetPartner", "") != "" and enemy.state_value("magnetTime") > 0:continue
 		if enemy.position.distance_to(mover.position) < 40 * enemy.combat_scale() + 20:
 			hits[enemy.actor_id()] = true
-			battle.damage_resolver.resolve(source, enemy, 20, {"critical": false, "impulse": 420, "angle": (enemy.position - mover.position).angle(), "visible_hazard": true})
+			battle.damage_resolver.resolve(source, enemy, UnitStatTable.raw(source, &"sweep"), {"dmg": &"sweep", "critical": false, "impulse": 420, "angle": (enemy.position - mover.position).angle(), "visible_hazard": true})
 	owner.character_specific_state["magnetHits"] = hits
 
 static func _unlink(u) -> void:

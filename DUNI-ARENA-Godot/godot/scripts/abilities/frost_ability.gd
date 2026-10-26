@@ -4,17 +4,15 @@ extends CharacterAbility
 ## Any enemy reaching FREEZE_STACKS frost stacks is frozen solid (stunned) for FREEZE_TIME.
 const FREEZE_STACKS: int = 10
 const FREEZE_TIME: float = 4
-const CRYSTAL_SHARE: float = .5
 const STORM_RADIUS: float = 115
 const STORM_SPEED: float = 75
 const STORM_LIFE: float = 7
 const STORM_TICK: float = .5
-const STORM_SHARE: float = .6
 const STORM_STACKS: int = 2
 func release_basic(u) -> void:
 	# Three crystals leave together but at rising speeds, so they land one after another.
 	for i in range(3):
-		shoot(u,u.combat.aim_angle+(i-1)*.07,CombatRules.attack(u)*CRYSTAL_SHARE,{"kind":"iceShard","speed":560+i*90,"radius":16,"impulse":70})
+		shoot(u,u.combat.aim_angle+(i-1)*.07,UnitStatTable.raw(u,&"basic"),{"dmg":&"basic","kind":"iceShard","speed":560+i*90,"radius":16,"impulse":70})
 func dealt_damage(u,target,_actual: float,options: Dictionary) -> void:
 	# Storm hits carry frost_stacks; the only projectile this unit fires is an ice crystal.
 	var stacks: int=int(options.get("frost_stacks",1 if options.get("melee",true)==false else 0))
@@ -36,7 +34,7 @@ func advance_storm(u,dt: float) -> void:
 	storm.x=at.x;storm.y=at.y;storm.life=float(storm.life)-dt;storm.tick=float(storm.tick)-dt
 	if float(storm.tick)<=0:
 		storm.tick=STORM_TICK
-		area_damage(u,at,STORM_RADIUS*u.combat_scale(),CombatRules.attack(u)*STORM_SHARE,40,{"critical":false,"frost_stacks":STORM_STACKS})
+		area_damage(u,at,STORM_RADIUS*u.combat_scale(),UnitStatTable.raw(u,&"ult"),40,{"dmg":&"ult","critical":false,"frost_stacks":STORM_STACKS})
 	if float(storm.life)<=0:u.character_specific_state.erase("storm")
 func release_ultimate(u,a,_dt: float) -> bool:
 	var angle: float=float(a.angle);var start: Vector2=u.position+Vector2.from_angle(angle)*70*u.combat_scale()

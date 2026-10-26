@@ -13,6 +13,6 @@ func release_ultimate(u,a,dt: float) -> bool:
 	a.punch_time=float(a.punch_time)+dt
 	if float(a.punch_time)<.15:a.angle=(t.position-u.position).angle()
 	if float(a.punch_time)<.25:return false
-	u.combat.aim_angle=a.angle;melee(u,CombatRules.attack(u)*4.2,{"reach":155,"cone":.25,"active":.2,"impulse":720,"independent":true,"punch":true});return true
+	u.combat.aim_angle=a.angle;melee(u,UnitStatTable.raw(u,&"ult"),{"dmg":&"ult","reach":155,"cone":.25,"active":.2,"impulse":720,"independent":true,"punch":true});return true
 func ultimate_danger(u,observer,a: Dictionary) -> bool:return observer.position.distance_to(u.position)<170 or PhysicalAttackSystem.point_distance(observer.position,u.position,CharacterPersistence.vector(a.point))<100
 func debug_state(u) -> String:return "Rescue %s" % u.hero_rescue_used

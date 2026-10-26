@@ -29,7 +29,7 @@ func modify_movement(u,t,dt: float) -> bool:
 	return steer_override(u,move,dt,movement_rate(u))
 func release_basic(u) -> void:
 	var enhanced: bool=u.character_specific_state.get("tankFlameReady",false);u.set_state("tankFlameReady",false)
-	shoot(u,u.facing,CombatRules.attack(u)*(1.7 if enhanced else 1),{"kind":"tankShell","speed":620,"life":2,"radius":25,"offset":64,"blast_radius":(160 if enhanced else 130)*u.combat_scale(),"impulse":560 if enhanced else 440,"enhanced":enhanced})
+	shoot(u,u.facing,UnitStatTable.raw(u,&"enhanced" if enhanced else &"basic"),{"dmg":&"enhanced" if enhanced else &"basic","kind":"tankShell","speed":620,"life":2,"radius":25,"offset":64,"blast_radius":(160 if enhanced else 130)*u.combat_scale(),"impulse":560 if enhanced else 440,"enhanced":enhanced})
 	KnockbackController.apply(u,-Vector2.from_angle(u.facing)*140,u);u.set_state("shotsFired",u.state_value("shotsFired")+1)
 func projectile_hit(u,p,_t) -> bool:
 	if p.kind!="tankShell":return false

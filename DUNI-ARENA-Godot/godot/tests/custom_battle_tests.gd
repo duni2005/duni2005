@@ -114,7 +114,7 @@ func new_characters(tree: SceneTree) -> void:
 	verify(b.units[1].position.distance_to(b.units[2].position)<BindingController.MAGNET_GAP+12,"linked enemies are pulled together")
 	var partner_hp: float=b.units[2].current_hp
 	var hit: DamageOutcome=b.damage_resolver.resolve(magnet,b.units[1],100,{"critical":false,"impulse":0})
-	verify(hit.hp_damage>0 and is_equal_approx(partner_hp-b.units[2].current_hp,float(CombatRules.js_round(hit.hp_damage*.1))),"linked partner takes 10% of the damage")
+	verify(hit.hp_damage>0 and is_equal_approx(partner_hp-b.units[2].current_hp,CombatRules.js_round(CombatRules.js_round(hit.hp_damage*.1)*CombatRules.mitigation(b.units[2],&"magic"))),"linked partner takes 10% of the damage, after its own defense")
 	b.queue_free()
 	# 기관사: the train hits enemies on the line hard and shoves allies lightly.
 	b=duel(tree,[[27,0,Vector2(100,400)],[4,0,Vector2(250,400)],[1,1,Vector2(500,400)],[1,1,Vector2(650,400)]])

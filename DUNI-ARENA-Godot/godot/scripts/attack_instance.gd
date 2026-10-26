@@ -37,4 +37,8 @@ func blade(origin: Vector2, offset: float = 0) -> Array[Vector2]:
 	var direction := Vector2.from_angle(a)
 	return [origin + direction * 25*float(metadata.get("scale",1)), origin + direction * reach]
 func options(origin: Vector2) -> Dictionary:
-	return {"attack_token": attack_id, "angle": angle, "impulse": impulse, "hidden_launch": hidden_launch, "attack_origin": origin}
+	var out: Dictionary = {"attack_token": attack_id, "angle": angle, "impulse": impulse, "hidden_launch": hidden_launch, "attack_origin": origin}
+	# The damage instance (UnitStatTable) this attack carries.
+	for key in ["dmg", "dmg_type"]:
+		if metadata.has(key):out[key] = metadata[key]
+	return out

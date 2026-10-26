@@ -215,7 +215,7 @@ func _refresh_revive() -> void:
 	for member in controller.guild.all_members():
 		if member.is_alive():continue
 		var maximum: float=controller.guild.member_max_hp(member)
-		var hp: float=maximum*.2*controller.guild.member_stats(member).healing_power
+		var hp: float=maximum*.2*controller.guild.member_stats(member).healing_received
 		var c:=ArenaCard.new();c.name=member.member_id;c.card_type="revival_member";c.type_id=member.unit_type_id;c.title=controller.guild.definition(member.unit_type_id).display_name;c.stats_summary="Lv.%d"%member.level;c.description="HP %s / %s"%[ArenaUI.number(hp),ArenaUI.number(maximum)];c.custom_minimum_size=Vector2(108,156);c.show_member(controller.guild,member);c.selected=member.member_id in revive_selection;c.disabled=revive_selection.size()>=2 and not c.selected;ArenaUI.bind(c,_toggle_revive.bind(member.member_id));revival_units.add_child(c)
 	revival_count.text="%d / 2명 선택"%revive_selection.size();revive_confirm.disabled=revive_selection.is_empty()
 func _toggle_revive(id: String) -> void:

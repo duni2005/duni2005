@@ -17,7 +17,7 @@ static func advance(u,dt: float) -> void:
 			u.set_state("dragonClock",4)
 			var radius: float=130*u.combat_scale()
 			u.battle.emit_combat_event(&"dragon_heart",u.position,{"radius":radius,"actor_id":u.battle_id})
-			CharacterAbility.area_damage(u,u.position,radius,CombatRules.attack(u)*.6*_stat(u,&"dragon_heart_count",0),60,{"critical":false,"damage_kind":&"magic","element":&"fire"})
+			CharacterAbility.area_damage(u,u.position,radius,UnitStatTable.raw(u,&"dragon_heart")*_stat(u,&"dragon_heart_count",0),60,{"dmg":&"dragon_heart","critical":false,"damage_kind":&"magic","element":&"fire"})
 	if u.charge_totem_count>0:
 		u.set_state("chargeTotemClock",u.state_value("chargeTotemClock",4)-dt)
 		while u.state_value("chargeTotemClock")<=1e-8:

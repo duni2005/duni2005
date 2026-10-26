@@ -26,7 +26,7 @@ func modify_movement(u,_t,dt: float) -> bool:
 func round_fire(u,burst: bool=false) -> void:
 	var spread: float=.018 if burst else PI/72
 	var angle: float=u.combat.aim_angle+u.battle.rng.randf_range(-spread,spread)
-	shoot(u,angle,CombatRules.attack(u),{"kind":"sniper","speed":4700,"life":.45,"radius":25,"offset":43,"piercing":true,"impulse":350})
+	shoot(u,angle,UnitStatTable.raw(u,&"ult" if burst else &"basic"),{"dmg":&"ult" if burst else &"basic","kind":"sniper","speed":4700,"life":.45,"radius":25,"offset":43,"piercing":true,"impulse":350})
 	u.knockback_velocity-=Vector2.from_angle(angle)*230
 func release_basic(u) -> void:
 	var burst: bool=u.character_specific_state.get("sniperBurstReady",false)

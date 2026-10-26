@@ -4,7 +4,7 @@ func target_priority(_u,t,seen: Array) -> float:return 1 if seen.any(func(e):ret
 func next_profile(u,index: int) -> AttackData:
 	var p: AttackData=u.data.attack_profile.duplicate();p.windup=.36 if index==2 else .2;p.active=.24 if index==2 else .22;p.reach=205 if index==2 else 122;p.cone=PI if index==2 else 1.4;p.impulse=450 if index==2 else 110;return p
 func release_basic(u) -> void:
-	var index: int=int(u.combat.attack_metadata.get("combo",0));melee(u,CombatRules.attack(u)*(3 if index==2 else 1.1 if index==1 else 1),{"sword_combo":true})
+	var index: int=int(u.combat.attack_metadata.get("combo",0));var key: StringName=&"basic_3" if index==2 else &"basic_2" if index==1 else &"basic";melee(u,UnitStatTable.raw(u,key),{"dmg":key,"sword_combo":true})
 func attack_tick(u,dt: float) -> bool:
 	if u.combat_state==CombatController.State.ACTIVE:dash_to(u,u.position+Vector2.from_angle(u.combat.aim_angle)*1000,100 if int(u.combat.attack_metadata.get("combo",0))==2 else 210,dt)
 	return false
@@ -31,7 +31,7 @@ func release_ultimate(u,a,dt: float) -> bool:
 	a.remaining=maxf(0,float(a.remaining)-before.distance_to(u.position))
 	if float(a.remaining)>.001:return false
 	u.combat.aim_angle=a.angle
-	var strike: AttackInstance=melee(u,CombatRules.attack(u)*3.6,{"reach":115,"cone":0,"active":.1,"impulse":540,"independent":true})
+	var strike: AttackInstance=melee(u,UnitStatTable.raw(u,&"ult"),{"dmg":&"ult","reach":115,"cone":0,"active":.1,"impulse":540,"independent":true})
 	if strike!=null:strike.shape=&"path";strike.path_width=95*u.combat_scale();strike.start_position=CharacterPersistence.vector(a.origin);strike.end_position=u.position;strike.metadata.dash_hits=a.get("dashHits",[])
 	return true
 func ultimate_danger(u,observer,a: Dictionary) -> bool:return PhysicalAttackSystem.point_distance(observer.position,CharacterPersistence.vector(a.get("origin",CharacterPersistence.point(u.position))),CharacterPersistence.vector(a.get("dashEnd",a.point)))<120 and observer.position.distance_to(u.position)<750

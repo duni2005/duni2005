@@ -6,6 +6,11 @@ extends RefCounted
 ## Rules emit outcomes/events; drawing belongs to the debug presentation.
 ## MIGRATION_NOTE: only additional armor reduces general damage; base defense
 ## contributes to parry strength. This preserves the web's current behavior.
+## Full-character battles (tower, custom) use the stat system instead: each hit names a damage
+## instance ("dmg", optionally "dmg_type") in UnitStatTable, which gives its kind and tags; the
+## raw value is scaled by attack %, the summed tag bonuses, element %, critical damage and
+## ultimate damage, then mitigated by defense + physical/magic defense. Reflected and shared
+## damage keeps the original kind but only gets mitigated.
 
 signal damage_applied(source, target, amount: float, critical: bool)
 signal damage_resolved(source, target, outcome: DamageOutcome)
@@ -62,9 +67,20 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	var recoil: bool = options.get("parry_recoil", false) or options.get("clash_recoil", false) or options.get("mirror_shard",false)
 	var transcend: bool=options.get("transcendent",false)
 	var duel_result: bool=options.get("duel_result",false)
+	var full: bool=battle.full_characters_enabled
+	var spec: Dictionary=UnitStatTable.spec(int(options.get("dmg_type",source.data.type_id if is_instance_valid(source) else -1)),StringName(options.get("dmg",&"basic"))) if full else {}
+	var kind: StringName=spec.get("kind",&"physical")
+	var plain: bool=recoil or options.get("mirror_raw",false)
 	if not collision:
-		out.critical = options.get("critical", true) and rng.randf() < clampf(source.data.critical_chance+EquipmentCombatEffects.crit(source)+(source.ability.critical_bonus(source,target) if battle.full_characters_enabled else 0),0,1)
-		damage *= (CRITICAL_MULTIPLIER if out.critical else 1.0)*EquipmentCombatEffects.damage_factor(source,options)
+		var chance: float=(EquipmentCombatEffects.crit(source)+source.ability.critical_bonus(source,target)) if full else source.data.critical_chance+EquipmentCombatEffects.crit(source)
+		out.critical = options.get("critical", true) and rng.randf() < clampf(chance,0,1)
+		if not full:damage *= (CRITICAL_MULTIPLIER if out.critical else 1.0)*EquipmentCombatEffects.damage_factor(source,options)
+		elif not plain:
+			var stats: UnitCombatStats=source.combat_stats
+			damage*=CombatRules.attack_factor(source)*(1+UnitStatTable.tag_bonus(stats,spec.tags))
+			if UnitStatTable.has_element(spec.tags):damage*=stats.element_power if stats!=null else 1.0
+			if out.critical:damage*=stats.crit_damage if stats!=null else UnitStatTable.CRIT_DAMAGE
+			if out.ultimate or spec.skill==&"ultimate":out.ultimate=true;damage*=stats.ult_damage if stats!=null else 1.0
 	if battle.full_characters_enabled:
 		if not collision and options.get("critical",true):damage*=CharacterCombat.champion_factor(source)
 		if source!=null and not collision:
@@ -85,17 +101,18 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 		out.avoided = not out.invulnerable
 		return complete(source, target, out)
 	var amount: float = CombatRules.js_round(damage * CombatRules.taken(target)*100/(100+CombatRules.armor(target))*(1 if collision else 1+maxf(0,battle.clock.elapsed-60)/70))
-	if battle.full_characters_enabled:
-		if options.get("mirror_shard",false):amount=CombatRules.js_round(damage)
-		elif duel_result:amount=CombatRules.js_round(damage*CombatRules.taken(target))
+	if full:
+		var mitigation: float=CombatRules.mitigation(target,kind)
+		if options.get("mirror_shard",false):amount=CombatRules.js_round(damage*mitigation)
+		elif duel_result:amount=CombatRules.js_round(damage*CombatRules.taken(target)*mitigation)
 		else:
-			amount=CombatRules.js_round(damage*CombatRules.taken(target)*target.ability.incoming_reduction(target)*100/(100+CombatRules.armor(target))*(1 if collision else 1+maxf(0,battle.clock.elapsed-60)/70))
+			amount=CombatRules.js_round(damage*CombatRules.taken(target)*target.ability.incoming_reduction(target)*mitigation*(1 if collision else 1+maxf(0,battle.clock.elapsed-60)/70))
 			if not target.duel.is_empty() and source!=null and source.actor_id() not in [target.duel.master,target.duel.target]:amount=CombatRules.js_round(amount*(.2 if target.duel.master==target.actor_id() else .35))
 	var impulse: float = options.get("impulse", source.data.attack_profile.impulse if is_instance_valid(source) else 0)
 	var angle: float = options.get("angle", (target.position-source.position).angle() if is_instance_valid(source) else 0)
 	if collision:
 		# Collision has its own pipeline; perfect-window factor is deterministic.
-		amount = CombatRules.js_round(damage*ParryController.factor(target)*CombatRules.taken(target)*100/(100+CombatRules.armor(target)))
+		amount = CombatRules.js_round(damage*ParryController.factor(target)*CombatRules.taken(target)*(CombatRules.mitigation(target,&"physical") if full else 100/(100+CombatRules.armor(target))))
 	elif reducing:
 		amount = CombatRules.js_round(amount*.4)
 		impulse *= .4
@@ -133,7 +150,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	var shares: Array[Dictionary]=[]
 	var executed: bool=false
 	if battle.full_characters_enabled:
-		shares=CharacterCombat.plan_share(target,maxf(0,amount-target.shield_hp),source,options)
+		shares=CharacterCombat.plan_share(target,maxf(0,amount-target.shield_hp),source,options,kind)
 		for share in shares:
 			if not share.get("extra",false):amount-=float(share.damage)
 		var threshold: float=float(options.get("execute_threshold",0))

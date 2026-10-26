@@ -86,22 +86,26 @@ func characters() -> void:
 func golden_damage() -> void:
 	groups+=1
 	var b:=fixture([0,4,4],[0,1,1]);var w=b.units[0];var g=b.units[1]
-	verify(CombatRules.defense(g)==62,"guardian aura22 non stacking")
+	verify(CombatRules.defense(g)==UnitStatTable.base_defense(4)+22,"guardian aura22 non stacking")
 	g.defense_cooldown=0
 	var out:=hit(b,w,g,100)
-	verify(out.hp_damage==30,"guardian .8 * armor100/122 then unique .45 ceil")
+	verify(out.hp_damage==ceilf(CombatRules.js_round(100*.8*CombatRules.mitigation(g,&"physical"))*.45),"guardian .8 x mitigation then unique .45 ceil")
 	b.free()
 	b=fixture([25,1,0,0],[0,0,0,1],[Vector2(300,400),Vector2(260,400),Vector2(220,400),Vector2(380,400)])
 	var puppet=b.units[0];var attacker=b.units[3];puppet.shield_hp=10;puppet.shield_remaining=8
 	var hp1: float=b.units[1].current_hp;var hp2: float=b.units[2].current_hp
 	out=hit(b,attacker,puppet,50)
-	verify(out.shield_absorbed==10 and out.hp_damage==28,"puppet post shield40 share12 -> owner28")
-	verify(b.units[1].current_hp==hp1-6 and b.units[2].current_hp==hp2-6,"share two independently")
+	# 50 -> mitigated, 10 into the shield, 30% of the rest split between the two links; shared
+	# damage then only meets each receiver's own defense.
+	var left: float=CombatRules.js_round(50*CombatRules.mitigation(puppet,&"physical"))-10;var share: int=int(CombatRules.js_round(left*.3))
+	verify(out.shield_absorbed==10 and out.hp_damage==left-share,"puppet post shield, 30% shared -> owner keeps the rest")
+	verify(b.units[1].current_hp==hp1-CombatRules.js_round((share/2+share%2)*CombatRules.mitigation(b.units[1],&"physical")) and b.units[2].current_hp==hp2-CombatRules.js_round(share/2*CombatRules.mitigation(b.units[2],&"physical")),"share two independently, mitigation only")
 	b.free()
 	b=fixture([21,21]);var mirror=b.units[1];var source=b.units[0]
 	source.shield_hp=100;source.shield_remaining=8
 	out=hit(b,source,mirror,30)
-	verify(out.hp_damage==30 and source.shield_hp==97,"mirror10% shard shield no recursive shards")
+	var dealt: float=CombatRules.js_round(30*CombatRules.mitigation(mirror,&"magic"))
+	verify(out.hp_damage==dealt and source.shield_hp==100-CombatRules.js_round(CombatRules.js_round(dealt*.1)*CombatRules.mitigation(source,&"magic")),"mirror10% shard keeps the hit's kind, mitigation only, no recursive shards")
 	mirror.set_state("mirrorReflectTime",3);mirror.invincible_remaining=2
 	out=hit(b,source,mirror,40)
 	verify(out.hp_damage==0 and out.reflected_damage==40 and b.projectiles.size()==1,"reflection before invincible creates raw40")
@@ -130,7 +134,7 @@ func golden_states() -> void:
 	verify(CharacterPersistence.vector(clone.lost_sword.point)==Vector2(220,280),"lost sword restore relative new deployment")
 	clone.free();b.free()
 	b=fixture([11,0]);u=b.units[0];e=b.units[1]
-	hit(b,e,u,15.5);verify(u.state_value("dolphinStacks")==1 and is_equal_approx(u.combat_scale(),.94),"dolphin totalHP10% shrinking")
+	hit(b,e,u,22);verify(u.state_value("dolphinStacks")==1 and is_equal_approx(u.combat_scale(),.94),"dolphin totalHP10% shrinking")
 	u.set_state("curseTime",6);verify(is_equal_approx(u.combat_scale(),.94*.65),"curse multiplicative scale")
 	CharacterLifecycle.advance(b,6);verify(u.state_value("curseTime")==0,"curse expires")
 	b.free()
@@ -143,7 +147,7 @@ func golden_states() -> void:
 	verify(CharacterLifecycle.begin_duel(u,e),"duel begins lock")
 	verify(StatusController.skill_charge_blocked(u),"duel locks charge")
 	CharacterLifecycle.advance_duel(u,1.7)
-	verify(u.state_value("duelRounds")==3 and e.current_hp==e.data.max_hp-roundf(e.data.max_hp*.35),"third duel guarantees master win35%")
+	verify(u.state_value("duelRounds")==3 and e.current_hp==e.data.max_hp-CombatRules.js_round(UnitStatTable.raw(u,&"basic")*CombatRules.mitigation(e,&"physical")),"third duel guarantees master win (basic duel damage)")
 	CharacterLifecycle.advance_duel(u,.5);verify(u.duel.is_empty() and e.duel.is_empty(),"duel ends both locks")
 	b.free()
 func outcome_execute(b,u,e) -> void:hit(b,u,e,4,{"execute_threshold":.13})
@@ -207,7 +211,7 @@ func transcendence() -> void:
 	b.clock.state=BattleClock.State.TURNING_PAUSED
 	verify(b.transcendence.begin(u,Vector2(100,100)),"web allows transcendence during TP hold")
 	b.transcendence.update(Vector2(160,100));verify(b.transcendence.release() and u.transcendence_gauge==0,"direction manual cast pays gauge")
-	b.simulate(.38);verify(b.units[1].current_hp==10,"transcend hit140 skips parry crit")
+	b.simulate(.38);verify(b.units[1].current_hp==b.units[1].max_hp-CombatRules.js_round(UnitStatTable.raw(u,&"transcend")*CombatRules.mitigation(b.units[1],&"physical")),"transcend 60+500% hit skips parry crit")
 	verify(b.clock.elapsed==old[0],"trans uses real clock, simulation frozen")
 	verify(u.transcendence_gauge==0,"own transcendence cannot refill own gauge")
 	b.simulate(.8);verify(b.clock.state==BattleClock.State.TURNING_PAUSED,"returns previous TP hold")
@@ -250,7 +254,7 @@ func projectile_goldens() -> void:
 	b.free()
 	b=fixture([21,0],[0,1],[Vector2(740,200),Vector2(500,700)]);u=b.units[0];u.combat.aim_angle=0;u.ability.release_basic(u)
 	arrow=b.projectiles[0];arrow.position=Vector2(780,200);arrow.velocity=Vector2(620,0);ProjectileRules.boundary(arrow)
-	verify(is_equal_approx(arrow.damage,21.6) and arrow.bounces==3,"mirror bounce20%")
+	verify(is_equal_approx(arrow.damage,UnitStatTable.raw(u,&"basic")*1.2) and arrow.bounces==3,"mirror bounce20%")
 	b.free()
 	b=fixture([7,0]);u=b.units[0];u.combat.aim_angle=0;u.ability.release_basic(u);u.ability.release_basic(u)
 	verify(b.projectiles.size()==14 and u.state_value("ammo")==0 and u.state_value("reloadRemaining")==4,"shotgun 14 pellets then reload4")
@@ -318,8 +322,8 @@ func room_persistence_and_cards() -> void:
 	verify(StrategyCardExecutor.apply(b.turning,charge.card_id,member.member_id,"stunned").code==StrategyCardExecutor.Code.NO_EFFECT and charge.ready_floor==0,"charge rejects stun without record")
 	u.stun_remaining=0;u.ultimate.cast.clear();u.ultimate_gauge=0
 	verify(StrategyCardExecutor.apply(b.turning,charge.card_id,member.member_id,"charge").code==StrategyCardExecutor.Code.OK and u.ultimate_gauge==50,"charge actual gain50")
-	var mango: StrategyCardInstance=guild.state.give_strategy_card(&"mango");u.current_hp=1;u.healing_power=1.1
-	verify(StrategyCardExecutor.apply(b.turning,mango.card_id,member.member_id,"mango").code==StrategyCardExecutor.Code.OK and is_equal_approx(u.current_hp,1+u.data.max_hp*.3*1.1),"mango receiving healingPower")
+	var mango: StrategyCardInstance=guild.state.give_strategy_card(&"mango");u.current_hp=1;u.healing_received=1.1
+	verify(StrategyCardExecutor.apply(b.turning,mango.card_id,member.member_id,"mango").code==StrategyCardExecutor.Code.OK and is_equal_approx(u.current_hp,1+u.data.max_hp*.3*1.1),"mango uses healing received")
 	b.finish_with_reason(BattleEndReason.Value.RETREAT,-1);b.free()
 	verify(reserve.is_alive(),"reserve unaffected")
 func extra_interactions() -> void:
@@ -333,7 +337,7 @@ func extra_interactions() -> void:
 	b.free()
 	b=fixture([15,0]);var satellite=b.units[0];var attacker=b.units[1]
 	hit(b,attacker,satellite,10);verify(satellite.character_specific_state.satelliteBursts.size()==1,"satellite .16 queued burst")
-	satellite.ability.tick(satellite,.16);verify(b.projectiles.size()==4 and b.projectiles.all(func(p):return is_equal_approx(p.damage,2.8)),"satellite actual four20% missiles")
+	satellite.ability.tick(satellite,.16);verify(b.projectiles.size()==4 and b.projectiles.all(func(p):return is_equal_approx(p.damage,UnitStatTable.raw(satellite,&"counter"))),"satellite actual four20% missiles")
 	b.free()
 	b=fixture([14,0],[0,1],[Vector2(300,400),Vector2(500,400)])
 	var blade=b.units[0];blade.target=b.units[1];blade.ultimate_gauge=100;blade.ultimate.request(blade,blade.target)
@@ -371,7 +375,7 @@ func persistence_whitelist() -> void:
 	verify(u.parry.start(u,b.units[1]),"parry available against multihit")
 	var before: float=b.units[1].current_hp
 	hit(b,b.units[1],u,5,{"attack_token":"fist0"});hit(b,b.units[1],u,5,{"attack_token":"fist1"})
-	verify(is_equal_approx(before-b.units[1].current_hp,10),"one reprisal per attacking source across distinct hits")
+	verify(is_equal_approx(before-b.units[1].current_hp,CombatRules.js_round(CombatRules.js_round(clampf(CombatRules.attack(u)*.65+.5,10,30))*CombatRules.mitigation(b.units[1],&"physical"))),"one reprisal per attacking source across distinct hits")
 	b.free()
 func all_character_cards_and_plans() -> void:
 	groups+=1

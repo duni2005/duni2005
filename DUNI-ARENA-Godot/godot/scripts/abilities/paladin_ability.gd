@@ -28,7 +28,7 @@ func profile(u) -> AttackData:
 	return p
 func release_basic(u) -> void:
 	var bash: bool=int(u.state_value("paladinSwings"))%2==0;u.set_state("paladinSwings",u.state_value("paladinSwings")+1)
-	melee(u,CombatRules.attack(u)*(.65 if bash else 1.25),{"shield_bash":bash,"collision_stun":1 if bash else 0})
+	melee(u,UnitStatTable.raw(u,&"bash" if bash else &"basic"),{"dmg":&"bash" if bash else &"basic","shield_bash":bash,"collision_stun":1 if bash else 0})
 func can_ultimate(u,_t) -> bool:return not needs_rally(u) and (([u]+u.friends()).any(func(a):return u.position.distance_to(a.position)<280*u.combat_scale() and (a.current_hp/a.max_hp<.8 or u.enemies().any(func(e):return e.position.distance_to(a.position)<200))) or u.state_value("ultReadyAge")>4)
 func release_ultimate(u,_a,_dt: float) -> bool:
 	u.battle.zones.add(u,"holy",u.position,280*u.combat_scale(),10)

@@ -38,7 +38,7 @@ func advance(dt: float) -> bool:
 		for enemy in u.enemies(false):
 			var d: Vector2=enemy.position-u.position
 			if enemy.unavailable() or d.length()>310*u.combat_scale()+27*enemy.combat_scale() or absf(wrapf(d.angle()-float(cast.angle),-PI,PI))>1.08:continue
-			battle.damage_resolver.resolve(u,enemy,CombatRules.attack(u)*5+60,{"transcendent":true,"critical":false,"impulse":380,"angle":cast.angle,"attack_origin":u.position})
+			battle.damage_resolver.resolve(u,enemy,UnitStatTable.raw(u,&"transcend"),{"dmg":&"transcend","transcendent":true,"critical":false,"impulse":380,"angle":cast.angle,"attack_origin":u.position})
 	if float(cast.time)>=1.15:reset();battle.check_outcome()
 	u.queue_redraw();battle.queue_redraw();return true
 func reset() -> void:

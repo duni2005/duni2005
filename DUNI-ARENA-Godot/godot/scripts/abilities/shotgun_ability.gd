@@ -14,7 +14,7 @@ func modify_movement(u,t,dt: float) -> bool:
 	u.brain.steer(u,dir*radial-dir.orthogonal()*(u.brain.side*.45+sin(u.battle.clock.elapsed*2.3+u.brain.phase)*.4),dt,.45 if u.combat_state!=CombatController.State.IDLE else 1);return true
 func release_basic(u) -> void:
 	u.set_state("ammo",u.state_value("ammo")-1);u.set_state("shotsFired",u.state_value("shotsFired")+1)
-	for i in range(7):shoot(u,u.combat.aim_angle+(i-3)*.125+u.battle.rng.randf_range(-.012,.012),CombatRules.attack(u),{"kind":"pellet","speed":720,"life":.46,"radius":22,"offset":43,"impulse":115})
+	for i in range(7):shoot(u,u.combat.aim_angle+(i-3)*.125+u.battle.rng.randf_range(-.012,.012),UnitStatTable.raw(u,&"basic"),{"dmg":&"basic","kind":"pellet","speed":720,"life":.46,"radius":22,"offset":43,"impulse":115})
 	u.knockback_velocity-=Vector2.from_angle(u.combat.aim_angle)*340
 	if u.state_value("ammo")==0:u.set_state("reloadRemaining",4)
 func projectile_hit(u,p,t) -> bool:

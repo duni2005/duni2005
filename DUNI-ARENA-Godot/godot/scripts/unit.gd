@@ -52,6 +52,7 @@ var ultimate := UltimateController.new()
 var original_team: int = 0
 var deployment_position: Vector2 = Vector2.ZERO
 var healing_power: float = 1
+var healing_received: float = 1
 var vigor_totem_count: int = 0
 var charge_totem_count: int = 0
 var last_damage_time: float = -10
@@ -84,10 +85,15 @@ var data: UnitData
 var combat_stats: UnitCombatStats
 var max_hp: float:
 	get: return combat_stats.max_hp if combat_stats != null else data.max_hp
+## Representative attack strength for AI, knockback and parry checks. Full-character battles use
+## the main damage stat x attack %; the golden harnesses keep the original attack number.
 var attack_power: float:
-	get: return combat_stats.attack if combat_stats != null else data.attack
+	get:
+		if not _new_stats():return data.attack
+		return UnitStatTable.damage_stat(self, UnitStatTable.main_kind(data.type_id)) * (combat_stats.attack if combat_stats != null else 1.0)
 var defense_power: float:
-	get: return combat_stats.defense if combat_stats != null else data.defense_power
+	get: return combat_stats.defense if combat_stats != null else UnitStatTable.base_defense(data.type_id) if _new_stats() else data.defense_power
+func _new_stats() -> bool:return combat_stats != null or battle != null and battle.full_characters_enabled
 var base_body_scale: float:
 	get: return data.body_scale * (combat_stats.scale if combat_stats != null else 1)
 var current_hp: float
