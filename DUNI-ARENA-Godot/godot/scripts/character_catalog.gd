@@ -17,7 +17,7 @@ const DAMAGE = {
 	"predator":[&"physical",&""],"bomber":[&"physical",&"fire"],"swordsman":[&"physical",&""],"satellite":[&"physical",&"fire"],
 	"paladin":[&"physical",&"light"],"hero":[&"physical",&""],"tank":[&"physical",&"fire"],"fanatic":[&"magic",&"light"],
 	"lightning":[&"magic",&"lightning"],"mirror":[&"magic",&"light"],"galaxy":[&"magic",&""],"machine_gun":[&"physical",&""],
-	"frog":[&"physical",&""],"puppet":[&"magic",&""],"stake":[&"physical",&""],"conductor":[&"physical",&"fire"],
+	"frog":[&"physical",&""],"puppet":[&"magic",&""],"stake":[&"physical",&""],"conductor":[&"physical",&""],
 	"refraction":[&"magic",&"light"],"courier":[&"physical",&""],"magnet":[&"magic",&"lightning"],"frost":[&"magic",&"ice"],
 }
 const ELEMENT_NAMES = {&"fire":"화염",&"ice":"얼음",&"lightning":"번개",&"light":"빛"}

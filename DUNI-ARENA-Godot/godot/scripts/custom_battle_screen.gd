@@ -213,7 +213,7 @@ func _render_unit() -> void:
 				var s:=_button(slots,item.display_name+"  ×",func():setup.unequip(unit_id,i);_render_unit();board.queue_redraw());s.size_flags_horizontal=Control.SIZE_EXPAND_FILL;s.add_theme_font_size_override("font_size",12);ArenaUI.with_icon(s,String(entry.items[i]),18)
 			else:
 				var empty:=Label.new();empty.text="＋ 빈 슬롯";empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;empty.custom_minimum_size.y=44;empty.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;empty.add_theme_color_override("font_color",ArenaUI.MUTED);slots.add_child(empty)
-		var stat_line:=Label.new();stat_line.text="%s 피해 · HP %d · 공격력 %s · 이동 %s%s"%[CharacterCatalog.damage_label(int(entry.type)),int(stats.max_hp),ArenaUI.number(stats.attack),ArenaUI.number(stats.speed)," · 치유 +%d%%"%int(round((stats.healing_power-1)*100)) if stats.healing_power>1 else ""];stat_line.add_theme_font_size_override("font_size",12);stat_line.add_theme_color_override("font_color",ArenaUI.HP);unit_body.add_child(stat_line)
+		var stat_line:=Label.new();stat_line.text="%s 피해 · HP %d · 공격력 %d%% · 물리 %s · 마법 %s · 방어 %s%s"%[CharacterCatalog.damage_label(int(entry.type)),int(stats.max_hp),roundi(stats.attack*100),ArenaUI.number(stats.physical_damage),ArenaUI.number(stats.magic_damage),ArenaUI.number(stats.defense+stats.armor)," · 치유 +%d%%"%int(round((stats.healing_power-1)*100)) if stats.healing_power>1 else ""];stat_line.add_theme_font_size_override("font_size",12);stat_line.add_theme_color_override("font_color",ArenaUI.HP);unit_body.add_child(stat_line)
 		var grid:=GridContainer.new();grid.columns=4;unit_body.add_child(grid)
 		for kind in CustomBattleSetup.equippable_items():
 			var item: ItemData=ItemCatalog.get_item(kind)

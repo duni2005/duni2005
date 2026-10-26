@@ -1,8 +1,10 @@
 class_name UnitInfoSheet
 extends Control
-## Unit description sheet that slides up from the bottom: portrait, name, a one-line story, every
-## stat as a small icon and value, the unit's traits, basic attack, passive, ultimate and
-## transcendence. Opened by tapping an already selected unit; closes on the backdrop or ✕.
+## Unit description sheet that slides up from the bottom: portrait, name, a one-line story, base
+## and special stats as small icon + value chips, the unit's traits, basic attack, passive,
+## ultimate and transcendence. Each skill can unfold its damage instances (kind, tags, base +
+## ratio and the damage expected from the current stats). Opened by tapping an already selected
+## unit; closes on the backdrop or ✕.
 var type_id: int
 var stats: UnitCombatStats
 var member: GuildMemberState
@@ -52,6 +54,7 @@ func close() -> void:
 
 func _build(column: VBoxContainer) -> void:
 	var data: UnitData = CharacterCatalog.all()[type_id]
+	if stats == null:stats = UnitCombatStats.from_table(data)
 	# Grab handle and close button.
 	var top := HBoxContainer.new();column.add_child(top)
 	var handle := Control.new();handle.size_flags_horizontal = Control.SIZE_EXPAND_FILL;handle.custom_minimum_size.y = 8
@@ -76,32 +79,48 @@ func _build(column: VBoxContainer) -> void:
 	# Everything below the header scrolls.
 	var scroll := ScrollContainer.new();scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL;scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER;column.add_child(scroll)
 	var body := VBoxContainer.new();body.size_flags_horizontal = Control.SIZE_EXPAND_FILL;body.add_theme_constant_override("separation", 10);scroll.add_child(body)
-	body.add_child(_stats_grid(data))
+	_stat_sections(body, data)
 	var traits: Array = TacticalMind.trait_names(data).filter(func(t):return UnitLore.TRAITS.has(t))
 	var trait_text: String = "\n".join(traits.map(func(t):return "[b]%s[/b]  %s" % [t, UnitLore.TRAITS[t]]))
 	if member != null:trait_text += "\n[color=#8fe3ff]현재 성향 · %s[/color]  %s" % [ArenaUI.stance(member.stance), ArenaUI.STANCE_HELP.get(member.stance, "")]
 	body.add_child(_section("guild", "행동성향", trait_text, Color("8fe3ff")))
-	body.add_child(_section("battle", "기본공격", UnitLore.attack(type_id), Color("f3d48e")))
-	body.add_child(_section("evade", "패시브", UnitLore.passive(type_id), Color("9fe08a")))
-	body.add_child(_section("charge", "궁극기", UnitLore.ultimate(type_id), Color("c49dff")))
-	body.add_child(_section("star", "초월 스킬", UnitLore.TRANSCENDENCE, Color("ff9ec4")))
+	body.add_child(_section("battle", "기본공격", UnitLore.attack(type_id), Color("f3d48e"), _instances(&"basic")))
+	body.add_child(_section("evade", "패시브", UnitLore.passive(type_id), Color("9fe08a"), _instances(&"passive")))
+	body.add_child(_section("charge", "궁극기", UnitLore.ultimate(type_id), Color("c49dff"), _instances(&"ultimate")))
+	body.add_child(_section("star", "초월 스킬", UnitLore.TRANSCENDENCE, Color("ff9ec4"), _instances(&"transcend")))
+func _instances(skill: StringName) -> Array:
+	return UnitStatTable.instances(type_id).filter(func(d):return d.skill == skill)
 
-## All stats as small icon + value chips, four to a row.
-func _stats_grid(data: UnitData) -> GridContainer:
-	var grid := GridContainer.new();grid.columns = 4;grid.add_theme_constant_override("h_separation", 6);grid.add_theme_constant_override("v_separation", 6)
-	var hp: float = stats.max_hp if stats != null else data.max_hp
-	var attack: float = stats.attack if stats != null else data.attack
-	var defense: float = stats.defense if stats != null else data.defense_power
-	var speed: float = stats.speed if stats != null else data.move_speed
-	var interval: float = data.attack_interval / (stats.attack_speed if stats != null else 1.0)
-	var crit: float = data.critical_chance + (stats.crit if stats != null else 0.0)
-	var magic: bool = CharacterCatalog.damage_kind(type_id) == &"magic"
-	var rows: Array = [
-		["heart", "HP", ArenaUI.number(hp)], ["woodSword", "공격력", ArenaUI.number(attack)], ["shield", "방어력", ArenaUI.number(defense)], ["boots", "이동속도", ArenaUI.number(speed)],
-		["flag", "사거리", "—" if data.attack_interval <= 0 or data.attack_range <= 0 else ArenaUI.number(data.attack_range)], ["hawkFeather", "공격 간격", "—" if data.attack_interval <= 0 else "%.2f초" % interval],
-		["redThorn", "치명타", "%d%%" % roundi(crit * 100)], ["staff" if magic else "woodSword", "피해 유형" if CharacterCatalog.element(type_id) == &"" else "피해 · " + CharacterCatalog.ELEMENT_NAMES[CharacterCatalog.element(type_id)], "마법" if magic else "물리"],
+## Base stats, then special stats. Bonuses still at 0% stay folded behind "전체 보기".
+func _stat_sections(body: VBoxContainer, data: UnitData) -> void:
+	var interval: float = data.attack_interval / stats.attack_speed
+	var none: bool = data.attack_interval <= 0 or data.attack_range <= 0
+	var base: Array = [
+		["heart", "최대 HP", ArenaUI.number(stats.max_hp)], ["woodSword", "공격력", _pct(stats.attack)], ["woodSword", "물리 피해", ArenaUI.number(stats.physical_damage)], ["staff", "마법 피해", ArenaUI.number(stats.magic_damage)],
+		["shield", "방어력", ArenaUI.number(stats.defense + stats.armor)], ["leatherArmor", "물리 방어력", ArenaUI.number(stats.physical_defense)], ["defense", "마법 방어력", ArenaUI.number(stats.magic_defense)], ["boots", "이동속도", ArenaUI.number(stats.speed)],
+		["hawkFeather", "공격속도", "—" if none else String.num(1.0 / interval, 2)], ["flag", "사거리", "—" if none else ArenaUI.number(data.attack_range)], ["redThorn", "치명타 확률", _pct(stats.crit)], ["fang", "치명타 피해량", _pct(stats.crit_damage)],
 	]
-	if stats != null:rows.append_array([["currentOrb", "궁극 위력", "%d%%" % roundi(stats.ultimate_power * 100)], ["leatherArmor", "추가 방어", ArenaUI.number(stats.armor)], ["warmNecklace", "치유량", "%d%%" % roundi(stats.healing_power * 100)], ["ether", "원소 위력", "%d%%" % roundi(stats.element_power * 100)]])
+	body.add_child(_heading("기본 스탯", null))
+	body.add_child(_grid(base))
+	var special: Array = [["warmNecklace", "주는 치유량", _pct(stats.healing_power)], ["greenNecklace", "받는 치유량", _pct(stats.healing_received)], ["charge", "궁극기 피해량", _pct(stats.ult_damage)], ["currentOrb", "궁극기 충전률", _pct(stats.ultimate_power)], ["ether", "속성 피해", _pct(stats.element_power)]]
+	var folded: Array = []
+	for tag in UnitStatTable.ELEMENTS + UnitStatTable.DAMAGE_TAGS:
+		var value: float = float(stats.element_bonus.get(tag, 0)) + float(stats.tag_bonus.get(tag, 0))
+		(special if not is_zero_approx(value) else folded).append(["ether" if tag in UnitStatTable.ELEMENTS else "dragonHeart", UnitStatTable.TAG_NAMES[tag] + " 피해", "+" + _pct(value)])
+	var rest := _grid(folded);rest.visible = false
+	var more := Button.new();more.text = "전체 보기";more.flat = true;more.custom_minimum_size = Vector2(88, 36);more.add_theme_font_size_override("font_size", 12);more.add_theme_color_override("font_color", Color("8fe3ff"))
+	more.pressed.connect(func():rest.visible = not rest.visible;more.text = "접기" if rest.visible else "전체 보기")
+	body.add_child(_heading("특수 스탯", more))
+	body.add_child(_grid(special));body.add_child(rest)
+func _pct(value: float) -> String:return "%d%%" % roundi(value * 100)
+func _heading(text: String, side: Control) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	var label := Label.new();label.text = text;label.size_flags_horizontal = Control.SIZE_EXPAND_FILL;label.add_theme_font_override("font", ArenaUI.heading_font());label.add_theme_font_size_override("font_size", 14);label.add_theme_color_override("font_color", ArenaUI.MUTED);row.add_child(label)
+	if side != null:row.add_child(side)
+	return row
+## Icon + value chips, three to a row so full stat names fit on a phone.
+func _grid(rows: Array) -> GridContainer:
+	var grid := GridContainer.new();grid.columns = 3;grid.add_theme_constant_override("h_separation", 6);grid.add_theme_constant_override("v_separation", 6)
 	for row in rows:grid.add_child(_stat_chip(row[0], row[1], row[2]))
 	return grid
 func _stat_chip(icon: String, caption: String, value: String) -> Control:
@@ -112,8 +131,9 @@ func _stat_chip(icon: String, caption: String, value: String) -> Control:
 		chip.draw_string(get_theme_default_font(), Vector2(28, 17), caption, HORIZONTAL_ALIGNMENT_LEFT, chip.size.x - 30, 10, ArenaUI.MUTED)
 		chip.draw_string(ArenaUI.numbers_font(), Vector2(28, 36), value, HORIZONTAL_ALIGNMENT_LEFT, chip.size.x - 30, 15, Color("eef1fa")))
 	return chip
-## A titled card: icon, coloured title, wrapped text (BBCode allowed).
-func _section(icon: String, title: String, text: String, tint: Color) -> PanelContainer:
+## A titled card: icon, coloured title, wrapped text (BBCode allowed); with damage instances, a
+## "자세히 보기" toggle unfolds one row per instance.
+func _section(icon: String, title: String, text: String, tint: Color, instances: Array = []) -> PanelContainer:
 	var card := PanelContainer.new()
 	var style: StyleBoxFlat = ArenaUI.box(Color("0c1322"), Color(tint, .35));style.border_width_left = 3;style.content_margin_left = 12;style.content_margin_right = 10;style.content_margin_top = 8;style.content_margin_bottom = 10
 	card.add_theme_stylebox_override("panel", style)
@@ -123,4 +143,33 @@ func _section(icon: String, title: String, text: String, tint: Color) -> PanelCo
 	var heading := Label.new();heading.text = title;heading.add_theme_font_override("font", ArenaUI.heading_font());heading.add_theme_font_size_override("font_size", 15);heading.add_theme_color_override("font_color", tint);row.add_child(heading)
 	var label := RichTextLabel.new();label.bbcode_enabled = true;label.fit_content = true;label.scroll_active = false;label.text = text;label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.add_theme_font_size_override("normal_font_size", 13);label.add_theme_font_size_override("bold_font_size", 13);label.add_theme_color_override("default_color", Color("dfe6f7"));column.add_child(label)
+	if instances.is_empty():return card
+	var heading_spacer := Control.new();heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL;row.add_child(heading_spacer)
+	var list := VBoxContainer.new();list.visible = false;list.add_theme_constant_override("separation", 6);column.add_child(list)
+	for d in instances:list.add_child(_instance_row(d))
+	var more := Button.new();more.text = "자세히 보기";more.flat = true;more.custom_minimum_size = Vector2(88, 32);more.add_theme_font_size_override("font_size", 12);more.add_theme_color_override("font_color", tint)
+	more.pressed.connect(func():list.visible = not list.visible;more.text = "접기" if list.visible else "자세히 보기")
+	row.add_child(more)
 	return card
+## One damage instance: name, kind and tag chips, "base + N% of the damage stat" and the damage
+## expected from the current stats before the target's defense.
+func _instance_row(d: Dictionary) -> Control:
+	var box := VBoxContainer.new();box.add_theme_constant_override("separation", 3)
+	var line := HFlowContainer.new();line.add_theme_constant_override("h_separation", 4);line.add_theme_constant_override("v_separation", 4);box.add_child(line)
+	var title := Label.new();title.text = d.label;title.add_theme_font_size_override("font_size", 13);title.add_theme_color_override("font_color", Color("eef1fa"));line.add_child(title)
+	line.add_child(_chip(UnitStatTable.KIND_NAMES[d.kind], Color("ff9f68") if d.kind == &"physical" else Color("7fb2ff")))
+	for tag in d.tags:line.add_child(_chip(UnitStatTable.TAG_NAMES[tag], Color("ffd36b") if tag in UnitStatTable.ELEMENTS else Color("a9b6d6")))
+	var stat_name: String = UnitStatTable.KIND_NAMES[d.kind] + " 피해"
+	var parts: Array = []
+	if d.base > 0:parts.append(ArenaUI.number(d.base))
+	if d.ratio > 0:parts.append("%s의 %d%%" % [stat_name, roundi(d.ratio * 100)])
+	var formula := Label.new();formula.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;formula.add_theme_font_size_override("font_size", 12);formula.add_theme_color_override("font_color", ArenaUI.MUTED)
+	formula.text = "%s  →  예상 %d" % [" + ".join(parts), roundi(UnitStatTable.estimate(d, stats, stats.physical_damage, stats.magic_damage))]
+	box.add_child(formula)
+	return box
+func _chip(text: String, tint: Color) -> PanelContainer:
+	var chip := PanelContainer.new()
+	var style: StyleBoxFlat = ArenaUI.box(Color(tint, .14), Color(tint, .6));style.content_margin_left = 6;style.content_margin_right = 6;style.content_margin_top = 1;style.content_margin_bottom = 1
+	chip.add_theme_stylebox_override("panel", style)
+	var label := Label.new();label.text = text;label.add_theme_font_size_override("font_size", 11);label.add_theme_color_override("font_color", tint);chip.add_child(label)
+	return chip

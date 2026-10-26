@@ -55,6 +55,7 @@ func run(tree: SceneTree) -> void:
 	multikill(tree)
 	stairs()
 	await unit_sheet(tree)
+	stat_damage(tree)
 	tactical_mind(tree)
 	await map_wallet_return(tree)
 	ai_health(tree)
@@ -297,8 +298,59 @@ func unit_sheet(tree: SceneTree) -> void:
 	var host:=Control.new();tree.root.add_child(host)
 	var sheet:=UnitInfoSheet.open(host,m.unit_type_id,t.guild.member_stats(m),m);await tree.process_frame
 	var titles: Array=sheet.find_children("*","Label",true,false).map(func(l):return l.text)
-	verify(["행동성향","기본공격","패시브","궁극기","초월 스킬"].all(func(x):return x in titles),"unit sheet shows every section")
+	verify(["행동성향","기본공격","패시브","궁극기","초월 스킬","기본 스탯","특수 스탯"].all(func(x):return x in titles),"unit sheet shows every section")
+	var buttons: Array=sheet.find_children("*","Button",true,false)
+	var more: Array=buttons.filter(func(x):return x.text=="자세히 보기")
+	verify(buttons.any(func(x):return x.text=="전체 보기") and more.size()==4,"stats fold behind 전체 보기; each warrior skill unfolds its damage")
+	more[0].pressed.emit()
+	verify(more[0].text=="접기" and sheet.find_children("*","Label",true,false).any(func(l):return l.is_visible_in_tree() and l.text.begins_with("물리 피해의 100%  →  예상 ")),"basic attack detail lists base + ratio and the estimate")
+	sheet.queue_free()
+	# Without a member the sheet shows the table's base numbers.
+	sheet=UnitInfoSheet.open(host,30);await tree.process_frame
+	verify(sheet.stats.magic_damage==UnitStatTable.base_magic(30) and sheet.find_children("*","Label",true,false).any(func(l):return l.text=="10 + 마법 피해의 85%  →  예상 30"),"base sheet: magnet's pole hit is 10 + 85% of 24 magic damage")
 	sheet.queue_free();host.queue_free()
+## Stat table coverage and the damage formula on live custom-battle units.
+func stat_damage(tree: SceneTree) -> void:
+	var tagged: bool=true
+	for id in range(CharacterCatalog.NAMES.size()):
+		var unit_name: String=CharacterCatalog.NAMES[id]
+		if not UnitStatTable.STATS.has(unit_name) or not UnitStatTable.DAMAGE.has(unit_name):tagged=false
+		for d in UnitStatTable.instances(id):
+			if not UnitStatTable.KIND_NAMES.has(d.kind) or not d.tags.all(func(t):return t in UnitStatTable.ELEMENTS+UnitStatTable.DAMAGE_TAGS):tagged=false
+	verify(tagged and CharacterCatalog.NAMES.size()==32,"all 32 units have base stats and exactly one kind plus known tags per damage instance")
+	verify(UnitStatTable.mitigation(0)==1 and UnitStatTable.mitigation(100)==.5 and is_equal_approx(UnitStatTable.mitigation(-100),1.5),"mitigation 100/(100+def), 2-100/(100-def) below zero")
+	# Bomber (fire · explosion · area) hits a mage.
+	var b:=duel(tree,[[13,0,Vector2(300,400)],[2,1,Vector2(380,400)]]);var src: BattleUnit=b.units[0];var tgt: BattleUnit=b.units[1];b.started=true
+	# Stunned: no dodge, parry or unique defense gets in the way of the numbers.
+	tgt.stun_remaining=1000;tgt.combat_stats.max_hp=10000;tgt.current_hp=10000
+	var st: UnitCombatStats=src.combat_stats
+	st.tag_bonus={&"explosion":.2,&"area":.1};st.element_bonus={&"fire":.3,&"ice":5.0};st.element_power=1.5;st.crit_damage=2;st.ult_damage=3
+	var expect:=func(raw: float,factor: float,kind: StringName) -> float:return CombatRules.js_round(raw*CombatRules.attack_factor(src)*factor*CombatRules.taken(tgt)*CombatRules.mitigation(tgt,kind))
+	var hp: float=tgt.current_hp
+	var out: DamageOutcome=b.damage_resolver.resolve(src,tgt,100,{"dmg":&"basic","critical":false,"impulse":0})
+	verify(out.hp_damage==expect.call(100,1.6*1.5,&"physical") and hp-tgt.current_hp==out.hp_damage,"matching tag and element bonuses add up, element % multiplies, unrelated element ignored")
+	tgt.current_hp=tgt.max_hp;st.crit=1
+	out=b.damage_resolver.resolve(src,tgt,100,{"dmg":&"basic","impulse":0})
+	verify(out.critical and out.hp_damage==expect.call(100,1.6*1.5*2,&"physical"),"critical hits use crit damage")
+	tgt.current_hp=tgt.max_hp;st.crit=0
+	out=b.damage_resolver.resolve(src,tgt,100,{"dmg":&"ult","critical":false,"impulse":0})
+	verify(out.ultimate and out.hp_damage==expect.call(100,1.6*1.5*3,&"physical"),"ultimate damage % on ultimate instances")
+	tgt.current_hp=tgt.max_hp
+	out=b.damage_resolver.resolve(src,tgt,100,{"dmg":&"basic","mirror_raw":true,"critical":false,"impulse":0})
+	verify(out.hp_damage==CombatRules.js_round(100*CombatRules.taken(tgt)*CombatRules.mitigation(tgt,&"physical")),"reflected damage meets only the target's defense")
+	tgt.current_hp=tgt.max_hp;tgt.combat_stats.physical_defense=-300
+	out=b.damage_resolver.resolve(src,tgt,100,{"dmg":&"basic","mirror_raw":true,"critical":false,"impulse":0})
+	verify(out.hp_damage>100 and out.hp_damage==CombatRules.js_round(100*CombatRules.taken(tgt)*(2-100.0/(100-(CombatRules.defense_sum(tgt)-300)))),"negative defense increases damage")
+	tgt.combat_stats.physical_defense=0
+	verify(is_equal_approx(UnitStatTable.raw(src,&"self_destruct"),st.physical_damage*2.5) and is_equal_approx(UnitStatTable.raw(b.units[1],&"basic"),tgt.combat_stats.magic_damage),"raw = base + kind damage x ratio")
+	b.queue_free()
+	# Level growth: HP 12%, damage and defense 8% per level; elites scale attack %.
+	var g:=GuildManager.new();g.state.tower=TowerRunState.new();var m: GuildMemberState=g.create_member(2);m.total_exp=GrowthRules.exp_for_level(5)
+	var grown: UnitCombatStats=g.member_stats(m)
+	verify(is_equal_approx(grown.magic_damage,45*1.4) and is_equal_approx(grown.defense,35*1.4) and grown.magic_defense==10 and grown.attack==1,"growth raises damage stats and defense, attack % stays 100%")
+	var entry:=EnemySpawnEntry.new();entry.level=0;entry.set_rank(&"elite")
+	var elite: UnitCombatStats=TowerEnemyStatsAssembler.assemble(CharacterCatalog.all()[2],entry)
+	verify(elite.attack==entry.damage_multiplier and elite.attack>1 and is_equal_approx(elite.magic_damage,45*.8),"elite damage multiplier becomes attack %")
 func tactical_mind(tree: SceneTree) -> void:
 	# Every unit has a base role, shown first among its traits.
 	var roles: bool=true
