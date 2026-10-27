@@ -1,6 +1,8 @@
 class_name RoomBattleScreen
 extends DeploymentScreen
 ## Phase8 debug room, all type creation and manual transcendence; no tower map.
+## The run ended with this battle (player HP 0 or no living guild member): no defeat cinematic.
+signal run_failed
 @export var full_character_debug: bool = true
 var character_select: OptionButton
 var character_debug_row: Control
@@ -177,13 +179,17 @@ func _room_finished(result: BattleResult, applied: BattleSettlement.Status) -> v
 	if result.result_id!=last_end_id:
 		last_end_id=result.result_id
 		if board.presentation.battle!=battle:board.presentation.attach(battle)
-		end_sequence=board.presentation.ensure_cinematic(result.end_reason)
-		end_board_height=board.custom_minimum_size.y
-		end_presenting=end_sequence.active
-		end_overlay.begin(end_sequence,board)
-		# The battle music fades out completely, then the victory or defeat music starts.
-		if result.end_reason==BattleEndReason.Value.VICTORY:BackgroundMusic.play_after_silence(&"victory")
-		elif result.end_reason in [BattleEndReason.Value.DEFEAT,BattleEndReason.Value.RUN_ENDED]:BackgroundMusic.play_after_silence(&"defeat")
+		if guild.state.game_over:
+			# The tower run is lost: skip the battle's defeat and go straight to the tower failure.
+			run_failed.emit.call_deferred()
+		else:
+			end_sequence=board.presentation.ensure_cinematic(result.end_reason)
+			end_board_height=board.custom_minimum_size.y
+			end_presenting=end_sequence.active
+			end_overlay.begin(end_sequence,board)
+			# The battle music fades out completely, then the victory or defeat music starts.
+			if result.end_reason==BattleEndReason.Value.VICTORY:BackgroundMusic.play_after_silence(&"victory")
+			elif result.end_reason in [BattleEndReason.Value.DEFEAT,BattleEndReason.Value.RUN_ENDED]:BackgroundMusic.play_after_silence(&"defeat")
 	settlement_status = applied
 	var names: Dictionary={BattleEndReason.Value.VICTORY:"승리",BattleEndReason.Value.DEFEAT:"패배",BattleEndReason.Value.RETREAT:"후퇴",BattleEndReason.Value.DRAW:"무승부",BattleEndReason.Value.RUN_ENDED:"탐험 종료"}
 	status.text="%s · %.1f초"%[names[result.end_reason],result.elapsed]

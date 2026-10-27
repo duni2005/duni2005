@@ -25,6 +25,8 @@ const DANGER=Color("ff8088")
 const HP=Color("86e3a4")
 const STANCE_NAMES={&"normal":"기본",&"cautious":"신중함",&"rush":"저돌적",&"cover":"엄호"}
 const STANCE_HELP={&"normal":"균형 잡힌 기본 전투 성향",&"cautious":"거리를 유지하며 적의 공격이 빠질 때를 노리고, 패링을 더 잘 씁니다.",&"rush":"적에게 다가가 빠르게 공격합니다. 패링 성공률은 낮아집니다.",&"cover":"아군을 엄호하는 위치를 선택합니다."}
+## Game font: Bithumb Gothic Original (Korean and Latin); numbers use Barlow Condensed.
+const BODY_FONT := "res://assets/ui/fonts/bithumb_gothic_original.ttf"
 static var shared_theme: Theme
 static var pip_on: StyleBoxFlat
 static var pip_off: StyleBoxFlat
@@ -33,7 +35,7 @@ static var title_font: Font
 static var condensed_font: Font
 static func heading_font() -> Font:
 	if title_font==null:
-		var f:=FontVariation.new();f.base_font=load("res://assets/ui/fonts/korean.otf");f.variation_embolden=.45;title_font=f
+		var f:=FontVariation.new();f.base_font=load(BODY_FONT);f.variation_embolden=.1;title_font=f
 	return title_font
 static func numbers_font() -> Font:
 	if condensed_font==null:condensed_font=load("res://assets/ui/fonts/BarlowCondensed-ExtraBold.ttf")
@@ -152,7 +154,7 @@ static func box(color: Color,border: Color=Color("36446a")) -> StyleBoxFlat:
 static func get_theme() -> Theme:
 	if shared_theme!=null:return shared_theme
 	shared_theme=Theme.new();shared_theme.default_font_size=14
-	body_font=load("res://assets/ui/fonts/korean.otf");shared_theme.default_font=body_font
+	body_font=load(BODY_FONT);shared_theme.default_font=body_font
 	# Cards: flat. Windows (dialogs) and their embedded frames: framed with a deep shadow.
 	shared_theme.set_stylebox("panel","PanelContainer",card_style())
 	# A dialog's panel fills its own window, so a shadow would only be clipped there.

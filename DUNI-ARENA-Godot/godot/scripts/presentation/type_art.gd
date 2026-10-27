@@ -75,12 +75,19 @@ static func letters_time(text: String) -> float:return maxi(0, text.length() - 1
 
 ## A slanted light streak crossing `rect` once as `k` runs 0..1, clipped to the rectangle.
 static func sweep(canvas: CanvasItem, rect: Rect2, k: float, strength: float = .22, width: float = 26) -> void:
-	if k <= 0 or k >= 1:return
+	if k <= 0 or k >= 1 or rect.size.x < 2 or rect.size.y < 2:return
 	var slant: float = rect.size.y * .6;var x: float = lerpf(rect.position.x - width - slant, rect.end.x, k)
 	var streak := PackedVector2Array([Vector2(x + slant, rect.position.y), Vector2(x + slant + width, rect.position.y), Vector2(x + width, rect.end.y), Vector2(x, rect.end.y)])
 	var box := PackedVector2Array([rect.position, Vector2(rect.end.x, rect.position.y), rect.end, Vector2(rect.position.x, rect.end.y)])
 	var a: float = strength * sin(k * PI)
-	for piece in Geometry2D.intersect_polygons(streak, box):canvas.draw_colored_polygon(piece, Color(1, .97, .88, a))
+	for piece in Geometry2D.intersect_polygons(streak, box):
+		# Slivers at the rectangle's edge cannot be triangulated; they would be invisible anyway.
+		if piece.size() >= 3 and absf(_area(piece)) > 2:canvas.draw_colored_polygon(piece, Color(1, .97, .88, a))
+
+static func _area(points: PackedVector2Array) -> float:
+	var sum: float = 0
+	for i in range(points.size()):sum += points[i].cross(points[(i + 1) % points.size()])
+	return sum * .5
 
 ## A rule drawn out from its centre to both sides as `k` runs 0..1.
 static func rule(canvas: CanvasItem, center: Vector2, half_width: float, k: float, color: Color, width: float = 1) -> void:

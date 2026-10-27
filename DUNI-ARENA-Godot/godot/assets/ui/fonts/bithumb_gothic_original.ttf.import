@@ -2,13 +2,13 @@
 
 importer="font_data_dynamic"
 type="FontFile"
-uid="uid://crvp8djxoteam"
-path="res://.godot/imported/korean.otf-94cfdfb4133bd88ce5a755721f00eda7.fontdata"
+uid="uid://hhguoe8bihgs"
+path="res://.godot/imported/bithumb_gothic_original.ttf-b6a01800a3ee70e81a9a2615a777df02.fontdata"
 
 [deps]
 
-source_file="res://assets/ui/fonts/korean.otf"
-dest_files=["res://.godot/imported/korean.otf-94cfdfb4133bd88ce5a755721f00eda7.fontdata"]
+source_file="res://assets/ui/fonts/bithumb_gothic_original.ttf"
+dest_files=["res://.godot/imported/bithumb_gothic_original.ttf-b6a01800a3ee70e81a9a2615a777df02.fontdata"]
 
 [params]
 

@@ -23,6 +23,9 @@ var guild_panel: GuildManagementPanel
 var revive_selection: Array[String] = []
 var selecting_revive: bool = false
 var board: DeploymentBoard
+## Watch speed for the prediction battle (1×/2×/4×), shown under its field while it runs.
+var speed_row: HBoxContainer
+var speed_buttons: Dictionary={}
 var battle: BattleManager
 var rendered_prediction_finished: bool = false
 var content_tab: String="equipment"
@@ -291,6 +294,12 @@ func _start_prediction() -> void:
 	board=DeploymentBoard.new();board.editing=false;board.size_flags_vertical=Control.SIZE_EXPAND_FILL;board.custom_minimum_size.y=240;column.add_child(board);board.add_child(battle)
 	if not controller.start_prediction(battle):column.remove_child(board);board.queue_free();board=null;battle=null;status.text="예측 시작 불가";return
 	board.battle=battle;room_frame.hide();scroll.hide();refresh_wallet();map_button.disabled=true;abandon_button.disabled=true
+	speed_row=HBoxContainer.new();speed_row.alignment=BoxContainer.ALIGNMENT_END;speed_row.add_theme_constant_override("separation",4);column.add_child(speed_row);column.move_child(speed_row,board.get_index()+1)
+	var label:=Label.new();label.text="배속";label.add_theme_font_size_override("font_size",12);label.add_theme_color_override("font_color",ArenaUI.MUTED);speed_row.add_child(label)
+	speed_buttons.clear()
+	for speed in [1,2,4]:
+		var choice:=Button.new();choice.name="Speed%d"%speed;choice.text="%d×"%speed;choice.toggle_mode=true;choice.custom_minimum_size=Vector2(44,40);choice.add_theme_font_size_override("font_size",13)
+		ArenaUI.bind(choice,func():if is_instance_valid(battle):battle.clock.set_speed(float(speed)));ArenaUI.quiet(choice);speed_row.add_child(choice);speed_buttons[speed]=choice
 	if battle_cue==null:battle_cue=BattleCueOverlay.new();add_child(battle_cue)
 	battle_cue.board=board
 	presentation_requested.emit({"point":get_tree().root.get_meta("action_point",get_viewport_rect().size*.5)})
@@ -301,6 +310,10 @@ func _process(_delta: float) -> void:
 	guild_button.disabled=watching;menu_button.disabled=watching
 	map_footer.visible=map_button.visible and not watching;footer_gap.visible=map_footer.visible
 	if battle_cue!=null:battle_cue.observe(battle,_delta)
+	for speed in speed_buttons:
+		var choice: Button=speed_buttons[speed]
+		choice.disabled=not is_instance_valid(battle) or battle.finished or battle.clock.state!=BattleClock.State.NORMAL
+		choice.set_pressed_no_signal(is_instance_valid(battle) and int(battle.clock.speed)==speed)
 	if is_instance_valid(battle) and battle.finished and not rendered_prediction_finished:
 		if prediction_end==null:
 			if board.presentation.battle!=battle:board.presentation.attach(battle)
@@ -314,6 +327,7 @@ func _process(_delta: float) -> void:
 		rendered_prediction_finished=true;map_button.disabled=false;room_frame.show();scroll.show()
 		presentation_requested.emit({"title":"승부예측 완료","icon":"gold","point":ArenaUI.control_center(board)})
 		if is_instance_valid(board):column.remove_child(board);board.queue_free();board=null
+		if is_instance_valid(speed_row):speed_row.queue_free();speed_row=null;speed_buttons.clear()
 		call_deferred("render")
 func _return_map() -> void:
 	if controller.return_map():map_requested.emit()

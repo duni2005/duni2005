@@ -33,34 +33,43 @@ func _ready() -> void:
 	for side in ["left","right","top","bottom"]:margin.add_theme_constant_override("margin_"+side,24)
 	ArenaUI.safe_margin(margin)
 	menu=VBoxContainer.new();margin.add_child(menu);menu.add_theme_constant_override("separation",12)
-	var top:=Control.new();top.custom_minimum_size.y=28;menu.add_child(top)
+	var top:=Control.new();top.custom_minimum_size.y=72;menu.add_child(top)
 	menu.add_child(_wordmark())
-	var open:=Control.new();open.size_flags_vertical=Control.SIZE_EXPAND_FILL;menu.add_child(open)
+	# The buttons sit about two thirds of the way down, clear of the bottom edge.
+	var open:=Control.new();open.size_flags_vertical=Control.SIZE_EXPAND_FILL;open.size_flags_stretch_ratio=2.6;menu.add_child(open)
 	tower_button=_menu_button("타워 입장","crown",enter_tower,true)
 	custom_button=_menu_button("커스텀 전투","battle",open_custom,false)
 	settings_button=_menu_button("설정","settings",open_settings,false)
+	var below:=Control.new();below.size_flags_vertical=Control.SIZE_EXPAND_FILL;menu.add_child(below)
 	version_label=Label.new();version_label.text="v"+str(ProjectSettings.get_setting("application/config/version","dev"));version_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;version_label.add_theme_font_size_override("font_size",10);version_label.add_theme_color_override("font_color",Color(1,1,1,.55));menu.add_child(version_label)
 	_build_tower_dialog()
 	_build_settings()
-	overwrite_dialog=ConfirmationDialog.new();overwrite_dialog.dialog_text="저장된 탐험을 새 게임으로 교체하겠습니까?";add_child(overwrite_dialog);overwrite_dialog.confirmed.connect(new_game)
+	overwrite_dialog=ConfirmationDialog.new();overwrite_dialog.title="새로하기";overwrite_dialog.dialog_text="저장된 탐험을 새 게임으로 교체하겠습니까?";add_child(overwrite_dialog);overwrite_dialog.confirmed.connect(new_game)
 	get_window().size_changed.connect(_fit_menu);_fit_menu()
 	refresh()
 	if not splash_shown and get_tree().current_scene==self and DisplayServer.get_name()!="headless":
 		splash_shown=true;scenery.entry=0;menu.modulate.a=0
 		var splash:=SplashOverlay.new();add_child(splash);splash.fading.connect(_reveal)
 	else:_reveal()
-## "DUNI ARENA" in the condensed display font, ARENA in the accent colour.
-func _wordmark() -> HBoxContainer:
-	var row:=HBoxContainer.new();row.alignment=BoxContainer.ALIGNMENT_CENTER;row.add_theme_constant_override("separation",14)
-	for part in [["DUNI",Color("f4f6ff")],["ARENA",ArenaUI.ACCENT]]:
-		var label:=Label.new();label.text=part[0];label.add_theme_font_override("font",ArenaUI.numbers_font());label.add_theme_font_size_override("font_size",68)
-		label.add_theme_color_override("font_color",part[1]);label.add_theme_color_override("font_outline_color",Color("10203a"));label.add_theme_constant_override("outline_size",12)
-		label.add_theme_color_override("font_shadow_color",Color(0,0,0,.35));label.add_theme_constant_override("shadow_offset_y",5);label.add_theme_constant_override("shadow_offset_x",0)
+## "DUNI ARENA" in the condensed display font, ARENA in the accent colour, a slim outline and a
+## soft shadow, with a thin gold rule and diamond underneath.
+func _wordmark() -> VBoxContainer:
+	var lockup:=VBoxContainer.new();lockup.add_theme_constant_override("separation",2)
+	var row:=HBoxContainer.new();row.alignment=BoxContainer.ALIGNMENT_CENTER;row.add_theme_constant_override("separation",10);lockup.add_child(row)
+	for part in [["DUNI",Color("f4f6ff")],["ARENA",Color("ffb867")]]:
+		var label:=Label.new();label.text=part[0];label.add_theme_font_override("font",ArenaUI.numbers_font());label.add_theme_font_size_override("font_size",54)
+		label.add_theme_color_override("font_color",part[1]);label.add_theme_color_override("font_outline_color",Color("13213d"));label.add_theme_constant_override("outline_size",7)
+		label.add_theme_color_override("font_shadow_color",Color(.02,.05,.14,.32));label.add_theme_constant_override("shadow_offset_y",4);label.add_theme_constant_override("shadow_offset_x",0);label.add_theme_constant_override("shadow_outline_size",7)
 		row.add_child(label)
-	return row
+	var rule:=Control.new();rule.custom_minimum_size.y=12;rule.mouse_filter=Control.MOUSE_FILTER_IGNORE;lockup.add_child(rule)
+	rule.draw.connect(func():
+		var c:=Vector2(rule.size.x*.5,rule.size.y*.5);var reach: float=minf(120,rule.size.x*.36)
+		for side in [-1,1]:rule.draw_line(c+Vector2(side*9,0),c+Vector2(side*reach,0),Color(ArenaUI.GOLD,.85),1.5,true)
+		rule.draw_colored_polygon(PackedVector2Array([c+Vector2(0,-5),c+Vector2(5,0),c+Vector2(0,5),c+Vector2(-5,0)]),ArenaUI.GOLD))
+	return lockup
 func _menu_button(text: String,icon: String,callback: Callable,primary: bool) -> Button:
-	var button:=Button.new();button.text=text;button.custom_minimum_size.y=58;button.add_theme_font_override("font",ArenaUI.heading_font());button.add_theme_font_size_override("font_size",18)
-	ArenaUI.with_icon(button,icon,20);menu.add_child(button);ArenaUI.bind(button,callback)
+	var button:=Button.new();button.text=text;button.custom_minimum_size.y=48;button.add_theme_font_override("font",ArenaUI.heading_font());button.add_theme_font_size_override("font_size",16)
+	ArenaUI.with_icon(button,icon,18);menu.add_child(button);ArenaUI.bind(button,callback)
 	if primary:
 		ArenaUI.primary(button)
 	else:ArenaUI.style_button(button,Color("1b2644",.94))
@@ -79,9 +88,9 @@ func _fit_menu() -> void:
 	if menu_margin!=null:
 		ArenaUI.safe_margin(menu_margin)
 		# Portrait: a centred column. Wide screens move it to the left so the tower stays clear.
-		var inset: int=maxi(24,(logical.x-340)/2)
+		var inset: int=maxi(36,(logical.x-300)/2)
 		var left: int=inset if logical.x<=logical.y else maxi(24,logical.x/16)
-		menu_margin.add_theme_constant_override("margin_left",left);menu_margin.add_theme_constant_override("margin_right",maxi(24,logical.x-left-340))
+		menu_margin.add_theme_constant_override("margin_left",left);menu_margin.add_theme_constant_override("margin_right",maxi(36,logical.x-left-300))
 ## Scenery rises in and the menu fades in after it.
 func _reveal() -> void:
 	scenery.play_entry()
@@ -94,7 +103,12 @@ func refresh() -> void:
 func _validate_preview() -> void:
 	var saved: SaveLoadResult=save_manager.metadata();continue_button.disabled=not saved.ok()
 	_show_metadata(saved)
-func has_save() -> bool:return FileAccess.file_exists(save_manager.path) or FileAccess.file_exists(save_manager.path+".backup")
+func has_save() -> bool:
+	if not (FileAccess.file_exists(save_manager.path) or FileAccess.file_exists(save_manager.path+".backup")):return false
+	# A failed run has nothing to continue: its save is cleared the first time the menu looks.
+	var header: SaveLoadResult=SaveMenuPreview.read(save_manager.path)
+	if header.ok() and String(header.metadata.get("phase",""))=="gameover":save_manager.discard();return false
+	return true
 func enter_tower() -> void:
 	if is_instance_valid(tower_screen):return
 	if has_save():refresh();tower_dialog.popup_centered(Vector2i(mini(360,int(get_viewport_rect().size.x)-28),0))

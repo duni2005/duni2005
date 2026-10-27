@@ -78,6 +78,12 @@ func wait_for_idle() -> SaveLoadResult:
 		if _worker==null:_dispatch_autosave()
 		if _worker!=null:await tree.process_frame
 	return last_result
+## Removes the slot: a failed run leaves nothing to continue. Pending writes are dropped first.
+func discard() -> void:
+	_pending={};_scheduled=false;_finish_write()
+	for suffix in ["",".backup",".tmp",".backup.tmp"]:
+		if FileAccess.file_exists(path+suffix):DirAccess.remove_absolute(ProjectSettings.globalize_path(path+suffix))
+	_verified_text=""
 func flush_autosave() -> SaveLoadResult:
 	_scheduled=false
 	_finish_write()

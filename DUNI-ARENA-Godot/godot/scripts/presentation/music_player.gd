@@ -8,6 +8,8 @@ const TRACKS := {
 	&"menu":"res://assets/audio/music/lobby_chill_plucks.ogg",
 	&"tower":"res://assets/audio/music/ready_to_play.ogg",
 	&"battle":"res://assets/audio/music/decisive_button_battle_protocol.ogg",
+	&"miniboss":"res://assets/audio/music/midboss_battle.ogg",
+	&"boss":"res://assets/audio/music/chapter_boss_battle.ogg",
 	&"victory":"res://assets/audio/music/victory_chiptune.ogg",
 	&"defeat":"res://assets/audio/music/deeper_shade_of_defeat.ogg",
 }
@@ -41,11 +43,14 @@ func _ready() -> void:
 static func _node() -> BackgroundMusic:
 	var tree := Engine.get_main_loop() as SceneTree
 	return tree.root.get_node_or_null("MusicPlayer") if tree != null else null
-## Switches to `track` (menu / tower / battle / victory / defeat). Asking for the playing track
+## Switches to `track` (menu / tower / battle / miniboss / boss / victory / defeat). Asking for the playing track
 ## keeps it going. `fade` overrides the crossfade length.
 static func play(track: StringName, fade: float = -1) -> void:
 	var node := _node()
 	if node != null:node.switch_to(track, fade)
+## The battle track for a room: miniboss and chapter boss rooms have their own.
+static func battle_track(room_type: StringName) -> StringName:
+	return room_type if room_type in [RoomType.MINIBOSS, RoomType.BOSS] else &"battle"
 ## Fades the current music out completely, then starts `track` (victory / defeat after battle).
 static func play_after_silence(track: StringName, out_time: float = RESULT_FADE) -> void:
 	var node := _node()

@@ -13,6 +13,7 @@ var guild_dialog: AcceptDialog
 var guild_panel: GuildManagementPanel
 var battle_screen: TowerBattleScreen
 var confirm_abandon: ConfirmationDialog
+var failure: TowerFailure
 var reward_dialog: AcceptDialog
 var reward_panel: ConquestRewardPanel
 var reward_title: Label
@@ -64,14 +65,14 @@ func _ready() -> void:
 	var cinematic_layer:=CanvasLayer.new();cinematic_layer.layer=1050;add_child(cinematic_layer)
 	cinematic=TowerCinematic.new();cinematic.theme=ArenaUI.get_theme();cinematic_layer.add_child(cinematic);cinematic.finished.connect(_cinematic_done)
 	notice=Label.new();notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.add_child(notice);notice.add_theme_font_size_override("font_size",12);notice.hide()
-	confirm_abandon=ConfirmationDialog.new();confirm_abandon.dialog_text="이번 탐험을 포기하겠습니까?";add_child(confirm_abandon)
+	confirm_abandon=ConfirmationDialog.new();confirm_abandon.title="탐험 포기";confirm_abandon.dialog_text="탐험을 포기하면 바로 타워 정복 실패로 처리되고,\n지금까지의 진행은 이어할 수 없습니다.\n정말 포기하겠습니까?";confirm_abandon.ok_button_text="포기하기";confirm_abandon.cancel_button_text="계속 탐험";add_child(confirm_abandon)
 	confirm_abandon.confirmed.connect(func():if controller.abandon(true):show_map())
 	reward_dialog=AcceptDialog.new();reward_dialog.title="층 정복 보상";add_child(reward_dialog)
 	var reward_column:=VBoxContainer.new();reward_column.add_theme_constant_override("separation",18);reward_dialog.add_child(reward_column)
 	ArenaUI.dialog_header(reward_dialog,reward_column,"층 정복 보상");reward_title=reward_column.get_child(0).get_child(0)
 	reward_panel=ConquestRewardPanel.new();reward_panel.custom_minimum_size.x=280;reward_column.add_child(reward_panel)
 	ArenaModalBackdrop.new().connect_window(reward_dialog,self)
-	confirm_new=ConfirmationDialog.new();confirm_new.dialog_text="저장된 탐험을 새 런으로 교체하겠습니까?";add_child(confirm_new);confirm_new.confirmed.connect(new_run)
+	confirm_new=ConfirmationDialog.new();confirm_new.title="새 런";confirm_new.dialog_text="저장된 탐험을 새 런으로 교체하겠습니까?";add_child(confirm_new);confirm_new.confirmed.connect(new_run)
 	if not resume_saved:new_run()
 	guild_dialog=AcceptDialog.new();guild_dialog.title="유닛";guild_dialog.get_ok_button().text="닫기";add_child(guild_dialog)
 	guild_panel=GuildManagementPanel.new();guild_panel.controller=controller;guild_dialog.add_child(guild_panel);guild_panel.modified.connect(_refresh_wallet);guild_panel.promoted.connect(func(e):guild_dialog.hide();_present_content(e))
@@ -97,6 +98,16 @@ func route_loaded() -> void:
 		show_map()
 		if phase==&"result":make_button(body,"정산 완료 · 지도로 계속",func():if controller.return_map():show_map())
 	else:_show_selected_room()
+## The run is over: the tower failure screen takes over. Leaving it to the main menu deletes the
+## save (nothing to continue); 다시하기 starts a fresh run in its place.
+func show_failure() -> void:
+	if is_instance_valid(failure) or not controller.guild.state.game_over:return
+	failure=TowerFailure.new();add_child(failure);failure.open(controller)
+	failure.main_menu.connect(func():
+		if controller.save_manager!=null:controller.save_manager.discard()
+		main_menu_requested.emit())
+	failure.retry.connect(func():
+		BackgroundMusic.reset(&"tower");new_run())
 func show_notice(text: String) -> void:
 	if notice!=null:notice.text=text;notice.modulate=ArenaUI.GOLD;notice.visible=not text.is_empty()
 func make_nav_button(parent: Node,kind: String,callback: Callable) -> Button:
@@ -108,6 +119,7 @@ func make_button(parent: Node,text: String,callback: Callable) -> Button:
 func new_run() -> void:
 	# Active attempts cannot be disposed via an unrelated navigation button.
 	if controller.guild!=null and controller.guild.state.tower.phase in [&"deploy",&"battle",&"event_active"]:return
+	if is_instance_valid(failure):failure.queue_free();failure=null
 	if is_instance_valid(battle_screen):remove_child(battle_screen);battle_screen.queue_free();battle_screen=null
 	var seed_value: int=Time.get_ticks_usec()
 	controller.new_run(seed_value,seed_value^0x35a921)
@@ -136,6 +148,7 @@ func show_map() -> void:
 	wallet.text+="\n챕터 %d · 최고 해금 %d층"%[state.current_chapter,state.unlocked_floor+1]
 	if run.game_over:show_notice("게임오버 · "+("탐험 포기" if String(state.result)=="abandon" else "플레이어 HP 소진" if run.player_hp<=0 else "생존 길드원 없음"))
 	if run.game_over:wallet.text+="\n"+ ("탐험을 포기했습니다." if String(state.result)=="abandon" else "플레이어 HP가 소진되었습니다." if run.player_hp<=0 else "생존 길드원이 없습니다.")
+	if run.game_over:call_deferred("show_failure")
 	abandon_button.disabled=run.game_over
 	if map_rendered_run!=run.run_id or room_buttons.size()!=state.map.rooms.size():
 		for card in room_buttons.values():card.queue_free()
@@ -203,14 +216,16 @@ func _show_selected_room() -> void:
 	if is_instance_valid(battle_screen) or is_instance_valid(content_screen):return
 	var room: RoomState=controller.current_room()
 	UiTransition.play("forward",TypeArt.word(room.room_type) if room!=null else "")
-	# Battle rooms have their own music; every other room keeps the tower theme.
-	BackgroundMusic.play(&"battle" if controller.guild.state.tower.phase==&"deploy" else &"tower")
+	# Battle rooms have their own music (miniboss and chapter boss rooms their own again); every
+	# other room keeps the tower theme.
+	BackgroundMusic.play(BackgroundMusic.battle_track(room.room_type) if controller.guild.state.tower.phase==&"deploy" else &"tower")
 	if controller.guild.state.tower.phase==&"deploy":
 		body.get_parent().hide()
 		battle_screen=TowerBattleScreen.new();battle_screen.tower_controller=controller;add_child(battle_screen);battle_screen.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		battle_screen.map_requested.connect(func():call_deferred("show_map"))
 		battle_screen.presentation_requested.connect(_present_content)
 		battle_screen.main_menu_requested.connect(_main_menu)
+		battle_screen.run_failed.connect(show_failure)
 	else:
 		body.get_parent().hide()
 		content_screen=TowerContentScreen.new();content_screen.controller=controller;add_child(content_screen)
