@@ -50,7 +50,7 @@ func _ready() -> void:
 	var column:=VBoxContainer.new();column.add_theme_constant_override("separation",8);margin.add_child(column)
 	# Setup header: title, settings summary, back to the main menu.
 	setup_header=HBoxContainer.new();setup_header.custom_minimum_size.y=44;column.add_child(setup_header)
-	title_label=Label.new();title_label.text="커스텀 전투";title_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;title_label.add_theme_font_override("font",ArenaUI.heading_font());title_label.add_theme_font_size_override("font_size",20);title_label.add_theme_color_override("font_color",ArenaUI.GOLD);setup_header.add_child(title_label)
+	title_label=Label.new();title_label.text="커스텀 전투";title_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;title_label.add_theme_font_override("font",ArenaUI.heading_font());title_label.add_theme_font_size_override("font_size",20);title_label.add_theme_color_override("font_color",ArenaUI.GOLD);setup_header.add_child(title_label);TitleFx.attach(title_label,TypeArt.word(&"custom")).play()
 	var info:=_button(setup_header,"ⓘ 맵 · 모드",_show_settings);ArenaUI.quiet(info)
 	var home:=_button(setup_header,"메인으로",func():closed.emit());ArenaUI.quiet(home)
 	# Battle header: back to setup, mode label, records.
@@ -261,7 +261,7 @@ func _dispose_battle() -> void:
 		battle.queue_free()
 	battle=null;board.battle=null;winner_panel.hide()
 func return_setup() -> void:
-	UiTransition.play("back")
+	UiTransition.play("back",TypeArt.word(&"custom"))
 	_dispose_battle();board.editing=true;trans_press.clear();_set_phase(false);refresh()
 func _set_phase(fighting: bool) -> void:
 	setup_header.visible=not fighting;cost_row.visible=not fighting;setup_controls.visible=not fighting

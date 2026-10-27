@@ -145,17 +145,17 @@ func open_custom() -> void:
 		custom_screen.closed.connect(func():call_deferred("close_custom"))
 		BackgroundMusic.play(&"battle"))
 func close_custom() -> void:
-	UiTransition.play("back");BackgroundMusic.play(&"menu")
+	UiTransition.play("back",TypeArt.word(&"menu"));BackgroundMusic.play(&"menu")
 	if is_instance_valid(custom_screen):remove_child(custom_screen);custom_screen.queue_free();custom_screen=null
 	menu.get_parent().show();scenery.show();_reveal()
 func open_tower(controller: TowerController) -> void:
-	UiTransition.play("forward");BackgroundMusic.play(&"tower")
+	UiTransition.play("forward",TypeArt.word(&"tower"));BackgroundMusic.play(&"tower")
 	menu.get_parent().hide();scenery.hide()
 	if is_instance_valid(tower_screen):remove_child(tower_screen);tower_screen.queue_free()
 	tower_screen=load("res://scenes/tower.tscn").instantiate();tower_screen.controller=controller;tower_screen.resume_saved=true;add_child(tower_screen)
 	tower_screen.main_menu_requested.connect(func():call_deferred("return_menu"))
 func return_menu() -> void:
-	UiTransition.play("back");BackgroundMusic.play(&"menu")
+	UiTransition.play("back",TypeArt.word(&"menu"));BackgroundMusic.play(&"menu")
 	if is_instance_valid(tower_screen):remove_child(tower_screen);tower_screen.queue_free();tower_screen=null
 	menu.get_parent().show();scenery.show();_set_menu_disabled(false);refresh();_reveal()
 func _build_settings() -> void:

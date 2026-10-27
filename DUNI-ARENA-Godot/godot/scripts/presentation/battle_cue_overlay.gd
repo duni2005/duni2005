@@ -43,12 +43,13 @@ func _draw() -> void:
 		return
 	# Strategy phase: the panel below says it all, nothing is drawn over the field.
 	if cue=="hold":return
-	var center: Vector2=rect.get_center();var width: float=minf(420,rect.size.x-20);var band:=Rect2(center-Vector2(width*.5,38),Vector2(width,76))
-	draw_style_box(ArenaUI.box(Color(.03,.04,.08,alpha*.9),Color(tint,alpha*.8)),band)
-	for side_index in [-1,1]:
-		var at: Vector2=band.get_center()+Vector2(side_index*(width*.5-12),0)
-		draw_polyline(PackedVector2Array([at+Vector2(-side_index*8,-12),at,at+Vector2(-side_index*8,12)]),Color(tint,alpha),2,true)
-	var title: String={"start":"전투 시작"}.get(cue,"")
-	var subtitle: String="길드원의 전투가 시작됩니다"
-	draw_string(get_theme_default_font(),band.position+Vector2(12,32),title,HORIZONTAL_ALIGNMENT_CENTER,width-24,22,Color(tint,alpha))
-	draw_string(get_theme_default_font(),band.position+Vector2(12,56),subtitle,HORIZONTAL_ALIGNMENT_CENTER,width-24,12,Color("e2e7f5",alpha))
+	# Battle start: slanted panels sweep across the field, the title rises letter by letter and the
+	# panels sweep off again within the cue's life.
+	var center: Vector2=rect.get_center();var strip:=Rect2(rect.position.x,center.y-38,rect.size.x,76)
+	var k: float=age/life if UiMotion.enabled else 99.0;var a: float=alpha if not UiMotion.enabled else 1-Motion.phase(k,.62,.25)
+	if UiMotion.enabled:TypeArt.panels(self,strip,k,false,[TypeArt.NAVY,TypeArt.INDIGO,Color(.03,.04,.08,.94)],.6,tint)
+	else:draw_rect(strip,Color(.03,.04,.08,.92*alpha))
+	var font: Font=ArenaUI.heading_font();var title: String={"start":"전투 시작"}.get(cue,"")
+	var title_w: float=font.get_string_size(title,HORIZONTAL_ALIGNMENT_LEFT,-1,24).x
+	TypeArt.letters(self,font,title,Vector2(center.x-title_w*.5,center.y+2),24,Color(tint,a),age-.12 if UiMotion.enabled else 99.0,14)
+	draw_string(get_theme_default_font(),Vector2(strip.position.x,center.y+26),"길드원의 전투가 시작됩니다",HORIZONTAL_ALIGNMENT_CENTER,strip.size.x,12,Color("e2e7f5",a*Motion.phase(age,.25,.2)))

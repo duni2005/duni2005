@@ -34,6 +34,10 @@ var owner_type: int=-1
 var rarity: Color=Color(0,0,0,0)
 const SLOT_COLORS={"equipment":["1b2440","5a7ad0","장비"],"consumable":["1a2e2a","5fb592","소모품"],"equipped":["1c3438","4fc6c0","장착"],"strategy":["2a2142","a07ad8","전략"],"cooldown":["1a1826","5a4f72","대기"]}
 var cached_style: StyleBoxFlat
+## Entrance (UiMotion.enter): seconds since the card's mask started opening (negative while it
+## waits its turn). The mask opens bottom to top as the content rises into place, then a light
+## streak crosses the face once.
+var reveal_age: float=99
 # Visual tiers: units read as information, choices as warm actions, inventory as slots.
 const UNIT_TYPES: Array=["member","deploy_member","mini_member","party","revival_member","promotion_member","ally","library"]
 const ACTION_TYPES: Array=["event_option","product","choice","recruit","stake","prediction_team","item"]
@@ -117,10 +121,24 @@ func _ready() -> void:
 	cached_style=ArenaUI.box(Color("1b2338"),Color("36446a"));cached_style.shadow_size=1
 	if card_type=="nav":cached_style.set_corner_radius_all(22)
 	mouse_entered.connect(queue_redraw);mouse_exited.connect(queue_redraw);toggled.connect(func(_v):queue_redraw())
+func reveal(delay: float=0) -> void:
+	if not UiMotion.enabled:return
+	reveal_age=-delay;set_process(true);queue_redraw()
+func _revealing() -> bool:return reveal_age<Motion.ENTER+.45
+func _process(dt: float) -> void:
+	reveal_age+=dt;queue_redraw()
+	# Keep running only for the entrance and for the selected card's travelling rim light.
+	if not _revealing() and not ((selected or button_pressed) and UiMotion.enabled):set_process(false)
 func write(at: Vector2,value: String,font_size: int=14,color: Color=Color("eef1fa"),width: float=-1,center: bool=false) -> void:
 	draw_string(get_theme_default_font(),at,ArenaUI.plain(value),HORIZONTAL_ALIGNMENT_CENTER if center else HORIZONTAL_ALIGNMENT_LEFT,width,font_size,color)
 func _draw() -> void:
 	if cached_style==null:return
+	var opened: float=Motion.out_expo(Motion.phase(reveal_age,0,Motion.ENTER))
+	if opened<1:
+		# Mask: only the opened part (growing from the bottom edge, lip included) is drawn.
+		RenderingServer.canvas_item_set_custom_rect(get_canvas_item(),true,Rect2(-4,size.y*(1-opened),size.x+8,size.y*opened+ArenaUI.LIP+4))
+		RenderingServer.canvas_item_set_clip(get_canvas_item(),true)
+		draw_set_transform(Vector2(0,(1-opened)*12))
 	if card_type=="hand_card":
 		# Strategy card in the turning-point hand: drawn as a real card.
 		var state: String="selected" if button_pressed else ("waiting" if status_text!="사용함" else "used") if disabled else "ready"
@@ -136,7 +154,7 @@ func _draw() -> void:
 	# Touch screens have no hover, and a tap leaves focus behind; neither may stay lit.
 	var hovered: bool=is_hovered() and not ArenaUI.touch_ui();var focused: bool=has_focus() and not ArenaUI.touch_ui()
 	var held: bool=ArenaUI.is_held(self)
-	if held:draw_set_transform(size*.015,0,Vector2.ONE*.97)
+	if held:draw_set_transform(size*.015+Vector2(0,(1-opened)*12),0,Vector2.ONE*.97)
 	cached_style.bg_color=Color("51432d") if active else Color("26314e") if hovered and not disabled else Color("171b28") if disabled else ArenaUI.SURFACE
 	cached_style.border_color=ArenaUI.GOLD if active or focused else Color("d7bd7a") if hovered else Color("36446a")
 	if active or focused:cached_style.border_color=ArenaUI.ACCENT
@@ -178,6 +196,10 @@ func _draw() -> void:
 		# Thin top sheen catches the light on the raised face.
 		var r: float=cached_style.corner_radius_top_left
 		draw_line(Vector2(r,2.5),Vector2(size.x-r,2.5),Color(1,1,1,.1),1)
+	if UiMotion.enabled:
+		TypeArt.sweep(self,Rect2(Vector2(3,3),size-Vector2(6,6)),Motion.phase(reveal_age,Motion.ENTER*.5,.4),.2,minf(30,size.x*.25))
+		if active and card_type!="nav":_rim_light(cached_style.corner_radius_top_left)
+		if (active or _revealing()) and not is_processing():set_process(true)
 	var muted: Color=Color("9aa5c2");var gold: Color=ArenaUI.GOLD
 	if dead or (disabled and card_type not in ["room","nav","promotion_slot"]):muted=ArenaUI.DANGER;gold=ArenaUI.DANGER
 	if sold and card_type in SHOP_TYPES:muted=Color("8d8a85");gold=Color("8d8a85")
@@ -345,6 +367,14 @@ func _draw() -> void:
 			for j in range(10):points.append(at+Vector2.from_angle(-PI/2+j*PI/5)*(6 if j%2==0 else 2.5))
 			draw_colored_polygon(points,gold)
 
+## A short bright segment of light running around the selected card's border.
+func _rim_light(radius: float) -> void:
+	var rect:=Rect2(Vector2.ONE,size-Vector2.ONE*2);var head: float=Time.get_ticks_msec()/1000.0*.42
+	var points:=PackedVector2Array();var colors:=PackedColorArray()
+	for i in range(13):
+		var k: float=i/12.0
+		points.append(Motion.perimeter_point(rect,radius,head-.16*(1-k)));colors.append(Color(1,.95,.78,k*k*.95))
+	draw_polyline_colors(points,colors,2.5,true)
 ## Turning-point ally chip: unit icon in a ring (gold and glowing when selected), HP bar, stance.
 func _draw_tp_member() -> void:
 	# Compact chip: icon ring, HP bar, and a small stance badge on the ring.

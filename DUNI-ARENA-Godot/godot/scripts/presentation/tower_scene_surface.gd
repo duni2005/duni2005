@@ -49,24 +49,37 @@ func _draw() -> void:
 	if kind=="recruit":text(Vector2(x,center.y+151),"터치하여 계속",11,Color(.66,.73,.82,alpha*.8),width)
 
 	_draw_flights()
-## Room entry: a cinematic band slides in from the left, holds, then slides out to the right.
+## Room entry (Motion.CINEMATIC long, never blocks input): slanted panels sweep in from the left
+## one after another, the room's English word drifts in behind against them, the icon pops, the
+## Korean name rises letter by letter, a light streak crosses the band, then everything sweeps off
+## to the right. With UI motion off it is a short plain fade.
 func _draw_entry(s: Dictionary,t: float,screen: Vector2) -> void:
-	var duration: float=float(s.duration);var enter: float=1-pow(1-clampf(t/.35,0,1),3);var leave: float=pow(clampf((t-(duration-.45))/.45,0,1),3)
-	var alpha: float=clampf(t/.15,0,1)*(1-leave)
-	draw_rect(Rect2(Vector2.ZERO,screen),Color(.02,.025,.055,.42*alpha))
-	var band_h: float=104;var y: float=screen.y*.4-band_h*.5;var shift: float=(enter-1)*screen.x+leave*screen.x
-	var band:=Rect2(Vector2(shift,y),Vector2(screen.x,band_h))
-	draw_rect(band,Color(.03,.04,.08,.94))
-	var sheen: float=fposmod(t*.6,1.4)-.2
-	draw_colored_polygon(PackedVector2Array([band.position+Vector2(screen.x*sheen,0),band.position+Vector2(screen.x*sheen+60,0),band.position+Vector2(screen.x*sheen+20,band_h),band.position+Vector2(screen.x*sheen-40,band_h)]),Color(1,.95,.8,.05))
-	for edge in [y,y+band_h-2]:draw_rect(Rect2(shift,edge,screen.x,2),Color("f0d490"))
-	draw_rect(Rect2(shift,y+6,screen.x,1),Color("f0d490",.35));draw_rect(Rect2(shift,y+band_h-7,screen.x,1),Color("f0d490",.35))
-	var left: float=shift+maxf(20,(screen.x-420)*.5)
-	VfxArt.glow(self,Vector2(left+38,y+band_h*.5),60,Color("f0d490"),.22)
-	ArenaIcon.draw(self,Vector2(left+38,y+band_h*.5),s.get("icon","crown"),54,Color.WHITE)
-	var font: Font=ArenaUI.heading_font()
-	draw_string(font,Vector2(left+84,y+50),s.get("title",""),HORIZONTAL_ALIGNMENT_LEFT,screen.x-left-100,30 if screen.x<600 else 38,Color("fff2cf"))
-	draw_string(get_theme_default_font(),Vector2(left+86,y+78),s.get("detail",""),HORIZONTAL_ALIGNMENT_LEFT,screen.x-left-100,14 if screen.x<600 else 18,Color("c4cdbb"))
+	var duration: float=float(s.duration);var k: float=t/duration
+	var band_h: float=112;var y: float=screen.y*.4-band_h*.5;var strip:=Rect2(0,y,screen.x,band_h)
+	var left: float=maxf(20,(screen.x-420)*.5);var font: Font=ArenaUI.heading_font();var title: String=s.get("title","")
+	var title_size: int=30 if screen.x<600 else 38;var detail_size: int=14 if screen.x<600 else 18
+	if not UiMotion.enabled:
+		var a: float=minf(Motion.phase(t,0,.15),1-Motion.phase(t,duration-.2,.2))
+		draw_rect(strip,Color(.03,.04,.08,.94*a));ArenaIcon.draw(self,Vector2(left+38,y+band_h*.5),s.get("icon","crown"),54,Color(1,1,1,a))
+		draw_string(font,Vector2(left+84,y+50),title,HORIZONTAL_ALIGNMENT_LEFT,-1,title_size,Color("fff2cf",a))
+		draw_string(get_theme_default_font(),Vector2(left+86,y+78),s.get("detail",""),HORIZONTAL_ALIGNMENT_LEFT,-1,detail_size,Color("c4cdbb",a))
+		return
+	var shown: float=minf(Motion.phase(t,0,.12),1-Motion.phase(k,.55,.25))
+	draw_rect(Rect2(Vector2.ZERO,screen),Color(.02,.025,.055,.32*shown))
+	TypeArt.panels(self,strip,k,false,[TypeArt.NAVY,TypeArt.INDIGO,Color(.03,.04,.08,.96)],.55)
+	# Content leaves with the panels: it slides right and fades as they go.
+	var leave: float=Motion.in_cubic(Motion.phase(k,.55,.3));var shift: float=leave*screen.x*.35;var a: float=1-leave
+	var drift: float=Motion.out_quint(Motion.phase(t,.1,.9))
+	TypeArt.watermark(self,s.get("word",""),Vector2(screen.x*.62+40*(1-drift)+shift*.6,y+band_h*.52),int(band_h*.9),Color(1,1,1,.08*a*drift),-.22,10*(1-drift))
+	var pop: float=Motion.emphasis(Motion.phase(t,.1,Motion.ENTER));var icon_at:=Vector2(left+38+shift,y+band_h*.5)
+	if pop>0:
+		VfxArt.glow(self,icon_at,60,Color("f0d490"),.22*a)
+		ArenaIcon.draw(self,icon_at,s.get("icon","crown"),54*pop,Color(1,1,1,a))
+	TypeArt.letters(self,font,title,Vector2(left+84+shift,y+50),title_size,Color("fff2cf",a),t-.14,18,Color(.02,.04,.1,.6*a))
+	var detail_in: float=Motion.out_expo(Motion.phase(t,.3,Motion.ENTER))
+	draw_string(get_theme_default_font(),Vector2(left+86+shift+12*(1-detail_in),y+78),s.get("detail",""),HORIZONTAL_ALIGNMENT_LEFT,-1,detail_size,Color("c4cdbb",a*detail_in))
+	TypeArt.rule(self,Vector2(left+84+shift+90,y+60),90,Motion.phase(t,.3,Motion.ENTER),Color(ArenaUI.GOLD,.5*a))
+	TypeArt.sweep(self,strip,Motion.phase(k,.32,.3),.16,40)
 func _draw_flights() -> void:
 	for flight in director.flights:
 		if flight.age<0:continue

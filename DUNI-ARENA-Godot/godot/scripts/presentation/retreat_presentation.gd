@@ -12,6 +12,10 @@ func _ready() -> void:
 func begin(value: BattleCinematicState,arena_board: DeploymentBoard) -> void:
 	sequence=value;board=arena_board;show();queue_redraw()
 func _process(_dt: float) -> void:queue_redraw()
+## A tap skips straight to the end of the cinematic (the result appears).
+func _gui_input(event: InputEvent) -> void:
+	if sequence!=null and sequence.active and ((event is InputEventMouseButton or event is InputEventScreenTouch) and event.pressed):
+		sequence.advance(DURATION);accept_event()
 func _draw() -> void:
 	if sequence==null or not sequence.started or not is_instance_valid(board):return
 	var rect: Rect2=board.board_rect();rect.position+=board.global_position-global_position

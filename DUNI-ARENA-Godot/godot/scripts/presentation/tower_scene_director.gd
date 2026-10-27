@@ -1,7 +1,7 @@
 class_name TowerSceneDirector
 extends CanvasLayer
 ## Transient real-time presentation queue. Never applies a reward/transaction.
-const DURATIONS={"entry":2.1,"recruit":2.5,"promotion":3.0,"conquest":2.8}
+const DURATIONS={"entry":Motion.CINEMATIC,"recruit":2.5,"promotion":3.0,"conquest":2.8}
 const CHAPTER_NAMES={1:"무너진 회랑",2:"붉은 첨탑",3:"망고의 정상"}
 const LIMIT=8
 var active: Dictionary={}

@@ -37,7 +37,9 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 </div>
 <script>
 // Artifact hosting serves neither .pck nor .gz, so both ship as base64 text.
-// Hand Godot the original bytes (the engine binary is also gunzipped).
+// Hand Godot the original bytes (the engine binary is also gunzipped). The pack is larger
+// than one hosted file may be, so it ships in PCK_PARTS pieces joined back in order.
+const PCK_PARTS = 3;
 (function () {
   const realFetch = window.fetch.bind(window);
   function bytes(name) {
@@ -60,8 +62,10 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
       });
     }
     if (/(^|\/)index\.pck(\?|$)/.test(url)) {
-      return bytes('index-pck.txt').then(function (pck) {
-        return new Response(pck, { status: 200, headers: { 'Content-Type': 'application/octet-stream' } });
+      const parts = [];
+      for (let i = 0; i < PCK_PARTS; i++) parts.push(bytes('index-pck-' + i + '.txt'));
+      return Promise.all(parts).then(function (pieces) {
+        return new Response(new Blob(pieces), { status: 200, headers: { 'Content-Type': 'application/octet-stream' } });
       });
     }
     return realFetch(input, init);
@@ -70,7 +74,7 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
 </script>
 <script src="index.js"></script>
 <script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":5475700,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":false,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":27283252,"index.wasm":37700666},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 (function () {
   const bar = document.getElementById('bar');
   const msg = document.getElementById('msg');

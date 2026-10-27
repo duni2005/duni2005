@@ -40,7 +40,7 @@ func _ready() -> void:
 	retreat_scene=end_overlay
 	var title: Label=status.get_parent().get_child(0);title.text="";title.custom_minimum_size.y=44
 	navigation_row=HBoxContainer.new();title.add_child(navigation_row);navigation_row.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE);navigation_row.offset_top=0;navigation_row.offset_bottom=44
-	navigation_title=Label.new();navigation_title.text=ArenaUI.room_title(room);navigation_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;navigation_title.add_theme_font_override("font",ArenaUI.heading_font());navigation_title.add_theme_font_size_override("font_size",19);navigation_title.clip_text=true;navigation_row.add_child(navigation_title)
+	navigation_title=Label.new();navigation_title.text=ArenaUI.room_title(room);navigation_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;navigation_title.add_theme_font_override("font",ArenaUI.heading_font());navigation_title.add_theme_font_size_override("font_size",19);navigation_title.clip_text=true;navigation_row.add_child(navigation_title);TitleFx.attach(navigation_title,TypeArt.word(&"battle")).play()
 	next_button.pressed.disconnect(next_button.get_meta("bound_action"))
 	ArenaUI.bind(next_button,_return_map)
 	next_button.text="탐험 지도로"
@@ -105,7 +105,10 @@ func _process(delta: float) -> void:
 		result_overlay.hide();next_button.disabled=true
 	elif is_instance_valid(battle) and battle.finished and not result_revealed:
 		result_revealed=true;room_hud.updates_suspended=false;result_wallet.updates_suspended=false
-		if result_column!=null:UiMotion.pop(result_column,0,.9,.4)
+		if result_column!=null:
+			UiMotion.pop(result_column,0,.94,Motion.ENTER)
+			var outcome: StringName=&"victory" if room.cleared else &"retreat" if battle.result.end_reason==BattleEndReason.Value.RETREAT else &"defeat"
+			TitleFx.attach(result_heading,TypeArt.word(outcome)).play(.08)
 		if battle.result.end_reason==BattleEndReason.Value.RETREAT:
 			if not retreat_routed:retreat_routed=true;call_deferred("_finish_retreat_presentation")
 		else:

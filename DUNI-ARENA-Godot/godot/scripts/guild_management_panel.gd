@@ -61,6 +61,7 @@ func _ready() -> void:
   var heading:=HBoxContainer.new();heading.custom_minimum_size.y=44;column.add_child(heading)
   var context_room: RoomState=prebattle_room if prebattle_room!=null else header_room
   page_title=Label.new();page_title.text=ArenaUI.room_title(context_room) if context_room!=null else "길드 관리";page_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;page_title.add_theme_font_override("font",ArenaUI.heading_font());page_title.add_theme_font_size_override("font_size",19);page_title.clip_text=true;heading.add_child(page_title)
+  var title_fx:=TitleFx.attach(page_title,TypeArt.word(&"guild"));window.about_to_popup.connect(func():title_fx.play())
   close_button=ArenaUI.nav_button("close",window.hide);close_button.tooltip_text="배치로 돌아가기" if prebattle_room!=null else "유닛 창 닫기";heading.add_child(close_button)
   menu_button=ArenaUI.nav_button("menu",_open_page_menu);heading.add_child(menu_button)
   var wallet:=WalletBar.new();wallet.guild=controller.guild;column.add_child(wallet)

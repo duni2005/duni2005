@@ -114,7 +114,7 @@ func new_run() -> void:
 	show_map()
 func show_map() -> void:
 	BackgroundMusic.play(&"tower")
-	if is_instance_valid(content_screen) or is_instance_valid(battle_screen):UiTransition.play("back")
+	if is_instance_valid(content_screen) or is_instance_valid(battle_screen):UiTransition.play("back",TypeArt.word(&"map"))
 	if is_instance_valid(content_screen):remove_child(content_screen);content_screen.queue_free();content_screen=null
 	if is_instance_valid(battle_screen):remove_child(battle_screen);battle_screen.queue_free();battle_screen=null
 	body.get_parent().show();map_scroll.show()
@@ -124,6 +124,8 @@ func show_map() -> void:
 	wallet.guild=controller.guild
 	# Room transactions were already animated in the room's own wallet.
 	wallet.snap();UiMotion.enter.call_deferred(self)
+	var heading: Label=body.find_child("TowerHeading",true,false)
+	if heading!=null:TitleFx.attach(heading,TypeArt.word(&"tower")).play()
 	if body.find_child("TowerHeading",true,false)!=null:body.find_child("TowerHeading",true,false).text="두니 타워 · 탐험 지도"
 	# Prior transactions were already shown in their room. Do not leak raw IDs
 	# or prediction enum strings as a permanent footer over the map.
@@ -190,12 +192,12 @@ func select_room(id: String) -> void:
 	_show_selected_room()
 	if discovered and target!=null:
 		_update_fx_context()
-		fx.enqueue({"kind":"entry","room_id":id,"key":"entry:"+id,"icon":String(target.room_type) if target.room_type!=RoomType.EVENT else String(target.event_type),"title":RoomType.LABELS[target.room_type],"detail":"%d층 · %d번 방"%[target.floor_index+1,target.lane+1]})
+		fx.enqueue({"kind":"entry","room_id":id,"key":"entry:"+id,"icon":String(target.room_type) if target.room_type!=RoomType.EVENT else String(target.event_type),"title":RoomType.LABELS[target.room_type],"word":TypeArt.word(target.room_type),"detail":"%d층 · %d번 방"%[target.floor_index+1,target.lane+1]})
 		_discovery_flight(id,origin)
 func _show_selected_room() -> void:
 	if is_instance_valid(battle_screen) or is_instance_valid(content_screen):return
-	UiTransition.play("forward")
 	var room: RoomState=controller.current_room()
+	UiTransition.play("forward",TypeArt.word(room.room_type) if room!=null else "")
 	# Battle rooms have their own music; every other room keeps the tower theme.
 	BackgroundMusic.play(&"battle" if controller.guild.state.tower.phase==&"deploy" else &"tower")
 	if controller.guild.state.tower.phase==&"deploy":

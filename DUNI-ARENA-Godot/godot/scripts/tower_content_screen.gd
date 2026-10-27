@@ -54,7 +54,7 @@ func _ready() -> void:
 	ArenaUI.safe_margin(margin)
 	column=VBoxContainer.new();margin.add_child(column)
 	var top:=HBoxContainer.new();top.custom_minimum_size.y=44;column.add_child(top)
-	heading=Label.new();heading.add_theme_font_override("font",ArenaUI.heading_font());heading.add_theme_font_size_override("font_size",19);heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.clip_text=true;top.add_child(heading)
+	heading=Label.new();heading.add_theme_font_override("font",ArenaUI.heading_font());heading.add_theme_font_size_override("font_size",19);heading.size_flags_horizontal=Control.SIZE_EXPAND_FILL;heading.clip_text=true;top.add_child(heading);TitleFx.attach(heading).play()
 	guild_button=ArenaUI.nav_button("guild",_open_guild);top.add_child(guild_button)
 	menu_button=ArenaUI.nav_button("menu",_open_menu);top.add_child(menu_button)
 	wallet=WalletBar.new();wallet.guild=controller.guild;column.add_child(wallet)
@@ -64,7 +64,9 @@ func _ready() -> void:
 	var room_column:=VBoxContainer.new();room_frame.add_child(room_column)
 	var actions:=HBoxContainer.new();room_column.add_child(actions)
 	room_title=Label.new();room_title.text=RoomType.LABELS[controller.current_room().room_type];room_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;room_title.add_theme_font_override("font",ArenaUI.heading_font());room_title.add_theme_font_size_override("font_size",20);room_title.add_theme_color_override("font_color",ArenaUI.GOLD);actions.add_child(room_title)
-	var rule:=StyleBoxFlat.new();rule.bg_color=Color.TRANSPARENT;rule.border_color=Color(ArenaUI.GOLD,.28);rule.border_width_bottom=1;rule.content_margin_bottom=5;room_title.add_theme_stylebox_override("normal",rule)
+	var rule:=StyleBoxFlat.new();rule.bg_color=Color.TRANSPARENT;rule.content_margin_bottom=5;room_title.add_theme_stylebox_override("normal",rule)
+	# The gold rule under the title is drawn by its TitleFx, out from the centre.
+	TitleFx.attach(room_title,TypeArt.word(controller.current_room().room_type),true).play(.1)
 	map_footer=CenterContainer.new();column.add_child(map_footer)
 	map_button=button(map_footer,"지도로",_return_map);map_button.custom_minimum_size.y=48;ArenaUI.primary(map_button);ArenaUI.with_icon(map_button,"play",12,true)
 	# Lift the footer to the deploy screen's "전투 시작" height.

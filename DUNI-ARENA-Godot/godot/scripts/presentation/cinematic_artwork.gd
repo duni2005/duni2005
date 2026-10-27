@@ -12,8 +12,10 @@ static func paint(canvas: Control,arena: Rect2,kind: String,age: float) -> void:
 	var tint: Color={"turning":Color("8fe3ff"),"victory":Color("ffd36b"),"defeat":Color("ff8a8a"),"retreat":Color("ffb27a")}.get(motif,Color("d9d7d0"))
 	var shade: float=darkness(kind,age);var alpha: float=title_alpha(kind,age)
 	# Colour grade: cold blue for frozen time, warm/neutral for endings.
-	var grade: Color=Color(.02,.05,.11,shade*1.35) if kind=="turning" else Color(.02,.02,.04,shade*1.15) if motif!="defeat" else Color(.08,.01,.02,shade*1.25)
+	var grade: Color=Color(.02,.05,.11,shade*1.35) if kind=="turning" else Color(.02,.02,.04,shade*1.15) if motif!="defeat" else Color(.05,.055,.07,shade*1.5)
 	canvas.draw_rect(Rect2(Vector2.ZERO,canvas.size),grade)
+	# Defeat drains the colour: a grey wash over the darkened field.
+	if motif=="defeat":canvas.draw_rect(Rect2(Vector2.ZERO,canvas.size),Color(.42,.42,.45,shade*.42))
 	# The field fills the whole screen, so the vignette frame and the letterbox bars sit on the
 	# screen's own edges.
 	var screen:=Rect2(Vector2.ZERO,canvas.size)
@@ -36,36 +38,35 @@ static func paint(canvas: Control,arena: Rect2,kind: String,age: float) -> void:
 		_paint_turning(canvas,arena,center,tint,alpha,age)
 	else:
 		_paint_ending(canvas,arena,center,motif,tint,alpha,t,pop)
-	# Title on a ribbon, with a short English kicker above it.
-	var font: Font=ArenaUI.heading_font();var kicker_font: Font=ArenaUI.numbers_font()
+	# Title: slanted panels open behind it, the English word drifts large behind the panels, the
+	# Korean title lands letter by letter. Victory rises; defeat comes down heavily and sinks.
+	var font: Font=ArenaUI.heading_font();var motion: bool=UiMotion.enabled
 	var font_size: int=(26 if mobile else 36) if kind=="turning" else (44 if mobile else 62)
 	var title: String={"turning":"터닝포인트","victory":"승리","defeat":"패배","retreat":"후퇴","prediction_success":"예측 성공","prediction_failure":"예측 실패","prediction_draw":"무승부"}.get(kind,"전투 종료")
-	var kicker: String={"turning":"TURNING POINT","victory":"VICTORY","defeat":"DEFEAT","retreat":"RETREAT"}.get(motif,"")
+	var english: String=TypeArt.word(&"turning" if kind=="turning" else StringName(motif)) if motif in ["turning","victory","defeat","retreat"] else ""
 	var width: float=font.get_string_size(title,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x
-	var settle: float=1+.35*(1-pop) if kind!="turning" else 1+.08*(1-ramp(age,0,.7))
-	canvas.draw_set_transform_matrix(Transform2D(0,Vector2.ONE*settle,0,center*(1-settle)))
-	var ribbon_w: float=minf(arena.size.x*.92,width+(150 if kind=="turning" else 120));var ribbon_h: float=font_size*1.5
-	var ribbon:=Rect2(center-Vector2(ribbon_w,ribbon_h)*.5,Vector2(ribbon_w,ribbon_h))
-	var notch: float=ribbon_h*.5
-	var shape:=PackedVector2Array([ribbon.position,ribbon.position+Vector2(ribbon_w,0),ribbon.position+Vector2(ribbon_w-notch*.6,notch),ribbon.end,ribbon.position+Vector2(0,ribbon_h),ribbon.position+Vector2(notch*.6,notch)])
-	canvas.draw_colored_polygon(shape,Color(.03,.04,.08,.78*alpha))
-	canvas.draw_line(ribbon.position+Vector2(notch,2),ribbon.position+Vector2(ribbon_w-notch,2),Color(tint,.85*alpha),2)
-	canvas.draw_line(ribbon.position+Vector2(notch,ribbon_h-2),ribbon.position+Vector2(ribbon_w-notch,ribbon_h-2),Color(tint,.85*alpha),2)
+	var tt: float=t if motion else 99.0
+	var sink: float=Motion.out_quint(Motion.phase(tt,.35,.9))*8 if motif=="defeat" else -Motion.out_quint(Motion.phase(tt,.2,.8))*6 if motif=="victory" else 0.0
+	var band_h: float=font_size*1.7;var strip:=Rect2(arena.position.x,center.y-band_h*.5+sink,arena.size.x,band_h)
+	var edge: Color=Color(tint,.9) if kind!="turning" else Color(tint,.8)
+	var panel_colors: Array=[Color(.02,.03,.07,.6*alpha),Color(tint.darkened(.75),.55*alpha),Color(.03,.04,.08,.82*alpha)]
+	TypeArt.panels(canvas,strip,tt,false,panel_colors,99.0,Color(edge,edge.a*alpha))
+	if not english.is_empty():
+		var drift: float=Motion.out_quint(Motion.phase(tt,.08,.9))
+		TypeArt.watermark(canvas,english,center+Vector2(30*(1-drift),sink-font_size*.05),int(font_size*(1.5 if kind=="turning" else 1.75)),Color(tint,.16*alpha*drift),-.22,12*(1-drift))
 	var offset: float=34 if kind=="turning" else 0
-	var text_at: Vector2=center+Vector2(-(width+offset)*.5+offset,font_size*.36)
-	for d in [Vector2(0,3),Vector2(2,2),Vector2(-2,2)]:canvas.draw_string(font,text_at+d,title,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size,Color(0,0,0,.55*alpha))
-	canvas.draw_string(font,text_at,title,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size,Color(tint,alpha))
-	canvas.draw_string(font,text_at+Vector2(0,-1),title,HORIZONTAL_ALIGNMENT_LEFT,-1,font_size,Color(1,1,1,.25*alpha))
-	if not kicker.is_empty():
-		var ks: int=12 if mobile else 15;var kw: float=kicker_font.get_string_size(kicker,HORIZONTAL_ALIGNMENT_LEFT,-1,ks).x
-		canvas.draw_string(kicker_font,center+Vector2(-kw*.5,-ribbon_h*.5-8),kicker,HORIZONTAL_ALIGNMENT_LEFT,-1,ks,Color(tint,.9*alpha))
+	var text_at: Vector2=center+Vector2(-(width+offset)*.5+offset,font_size*.36+sink)
+	var rise: float=-font_size*.6 if motif=="defeat" else font_size*.6
+	TypeArt.letters(canvas,font,title,text_at+Vector2(0,3),font_size,Color(0,0,0,.55*alpha),tt-.1,rise)
+	TypeArt.letters(canvas,font,title,text_at,font_size,Color(tint.lightened(.15),alpha),tt-.1,rise,Color(.02,.03,.08,.7*alpha))
+	TypeArt.rule(canvas,center+Vector2(0,band_h*.5+sink-6),width*.6+20,Motion.phase(tt,.25,Motion.ENTER),Color(tint,.7*alpha),2)
+	if motion:TypeArt.sweep(canvas,strip,Motion.phase(tt,.35,.4),.18,50)
 	if kind=="turning":
-		var clock: Vector2=center+Vector2(-(width+offset)*.5+12,0)
+		var clock: Vector2=center+Vector2(-(width+offset)*.5+12,sink)
 		canvas.draw_circle(clock,14,Color(tint,.15*alpha));canvas.draw_arc(clock,13,0,TAU,40,Color(tint,alpha),2,true)
 		var angle: float=-PI/2+ramp(age,0,.8)*TAU+age*.6
 		canvas.draw_line(clock,clock+Vector2.from_angle(angle)*9,Color(tint,alpha),2,true)
 		canvas.draw_line(clock,clock+Vector2(5,-3),Color(tint,alpha),2,true)
-	canvas.draw_set_transform(Vector2.ZERO)
 static func _paint_turning(canvas: Control,arena: Rect2,center: Vector2,tint: Color,alpha: float,age: float) -> void:
 	# A translucent clock dial with counter-rotating rings reads as time stopping.
 	var radius: float=arena.size.x*.31
@@ -91,7 +92,8 @@ static func _paint_turning(canvas: Control,arena: Rect2,center: Vector2,tint: Co
 static func _paint_ending(canvas: Control,arena: Rect2,center: Vector2,motif: String,tint: Color,alpha: float,t: float,pop: float) -> void:
 	var victory: bool=motif=="victory"
 	# Light burst: rotating wedges behind the title.
-	var rays: int=16 if victory else 10;var reach: float=arena.size.x*(.5 if victory else .4)*pop
+	# Defeat gets no burst at all: no rays, no ring, only weight.
+	var rays: int=16 if victory else 0 if motif=="defeat" else 10;var reach: float=arena.size.x*(.5 if victory else .4)*pop
 	for i in range(rays if reach>4 else 0):
 		var a: float=i*TAU/rays+t*(.25 if victory else .08)
 		var side: Vector2=Vector2.from_angle(a+PI/2)*reach*.09
@@ -99,7 +101,7 @@ static func _paint_ending(canvas: Control,arena: Rect2,center: Vector2,motif: St
 		canvas.draw_colored_polygon(PackedVector2Array([center,tip+side,tip-side]),Color(tint,alpha*(.09 if victory else .05)))
 	canvas.draw_circle(center,arena.size.x*.22*pop,Color(tint,alpha*.07))
 	# Shockwave ring at the reveal.
-	if t>=0 and t<.7:
+	if t>=0 and t<.7 and motif!="defeat":
 		var k: float=t/.7
 		canvas.draw_arc(center,arena.size.x*(.1+.45*k),0,TAU,72,Color(tint,(1-k)*.8*alpha),3*(1-k)+1,true)
 		canvas.draw_circle(center,arena.size.x*.12*(1-k),Color(1,1,1,(1-k)*.25*alpha))
@@ -115,21 +117,15 @@ static func _paint_ending(canvas: Control,arena: Rect2,center: Vector2,motif: St
 			var points:=PackedVector2Array()
 			for j in range(10):points.append(at+Vector2.from_angle(-PI/2+j*PI/5)*(r if j%2==0 else r*.45))
 			canvas.draw_colored_polygon(points,Color(tint,alpha*star_pop))
-		# Confetti: deterministic pieces falling with a slow spin.
-		var colors: Array=[Color("ffd36b"),Color("ffb15c"),Color("8fe3ff"),Color("86e3a4"),Color("ff8fb0")]
-		for i in range(48):
-			var sx: float=sin(i*12.98+3.14)*.5+.5;var speed: float=.35+(sin(i*4.1)*.5+.5)*.4
-			var fall: float=fposmod(t*speed+sin(i*7.7)*.5+.5,1.0)
-			var at: Vector2=Vector2(arena.position.x+sx*arena.size.x+sin(t*2+i)*10,arena.position.y+fall*arena.size.y)
-			var spin: float=t*3+i;var len: float=5+i%3*2
-			var dir: Vector2=Vector2(cos(spin),sin(spin)*.4)*len
-			canvas.draw_line(at-dir,at+dir,Color(colors[i%colors.size()],alpha*.9*clampf(t*3,0,1)),3)
+		# Gold motes and thin light streaks rising through the field.
+		TypeArt.motes(canvas,arena,t,Color(tint,alpha*.9),36,true,.32)
+		for i in range(7):
+			var x: float=arena.position.x+(sin(i*9.1+1.3)*.5+.5)*arena.size.x
+			var y: float=arena.end.y-fposmod(t*(arena.size.y*.55)+i*arena.size.y/7,arena.size.y*1.2)
+			canvas.draw_line(Vector2(x,y),Vector2(x,y+40+i%3*18),Color(1,.92,.7,alpha*.22),2,true)
 	elif motif=="defeat":
-		# Ash drifting down.
-		for i in range(30):
-			var sx: float=sin(i*12.98+3.14)*.5+.5
-			var fall: float=fposmod(t*.15+sin(i*5.3)*.5+.5,1.0)
-			canvas.draw_circle(Vector2(arena.position.x+sx*arena.size.x,arena.position.y+fall*arena.size.y),1.5+i%3,Color(.6,.55,.55,alpha*.35))
+		# Grey ash drifting down slowly.
+		TypeArt.motes(canvas,arena,t,Color(.7,.7,.72,alpha*.45),30,false,.12)
 	else:
 		# Retreat: horizontal speed streaks.
 		for i in range(9):
