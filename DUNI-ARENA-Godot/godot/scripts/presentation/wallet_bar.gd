@@ -20,8 +20,8 @@ var shown_tokens: float=-1
 var tracks: Dictionary={}
 var pulses: Dictionary={}
 ## Number rolls: seconds of rolling; when one lands the figure pops and flashes for LAND seconds.
-const ROLL: float=.5
-const LAND: float=.22
+const ROLL: float=.7
+const LAND: float=.3
 ## A gain at least this big also floats a "+N" next to the figure.
 const BIG_GAIN: Dictionary={"gold":100,"gem":2}
 var lands: Dictionary={}
@@ -76,7 +76,7 @@ func advance_view(dt: float) -> void:
 		if lands[kind]>=LAND:lands.erase(kind)
 	for i in range(floats.size()-1,-1,-1):
 		floats[i].age+=dt
-		if floats[i].age>=.8:floats.remove_at(i)
+		if floats[i].age>=1.2:floats.remove_at(i)
 	var state: Array=[shown_gold,shown_tokens,guild.state.player_hp,guild.state.player_max_hp,size,pulses.duplicate(),lands.duplicate(),floats.size()]
 	if not lands.is_empty() or not floats.is_empty():_paint_state=[]
 	if state!=_paint_state:_paint_state=state;queue_redraw()
@@ -131,7 +131,7 @@ func _figure(font: Font,at: Vector2,text: String,font_size: int,kind: String) ->
 func _draw_floats(font: Font,anchors: Dictionary) -> void:
 	for item in floats:
 		if item.age<0:continue
-		var k: float=clampf(item.age/.8,0,1);var at: Vector2=anchors[item.kind]+Vector2(0,-16*Motion.out_expo(k))
+		var k: float=clampf(item.age/1.2,0,1);var at: Vector2=anchors[item.kind]+Vector2(0,-16*Motion.out_expo(k))
 		var c: Color=Color("ffdb75") if item.kind=="gold" else Color("92e6ff")
 		draw_string_outline(font,at,"+%d"%item.value,HORIZONTAL_ALIGNMENT_LEFT,-1,16,3,Color(.03,.05,.1,(1-k)*.8))
 		draw_string(font,at,"+%d"%item.value,HORIZONTAL_ALIGNMENT_LEFT,-1,16,Color(c,minf(1,(1-k)*2)))

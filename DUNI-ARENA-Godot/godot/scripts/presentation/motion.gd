@@ -7,21 +7,21 @@ extends RefCounted
 ## Button press-in and the smallest reactions.
 const TAP: float = .12
 ## Button release, toggles, hover and other small reactions.
-const REACT: float = .18
+const REACT: float = .2
 ## Elements appearing.
-const ENTER: float = .3
+const ENTER: float = .42
 ## Elements leaving.
-const EXIT: float = .25
+const EXIT: float = .3
 ## Screen transitions.
-const SCREEN: float = .52
+const SCREEN: float = .8
 ## The battle-start transition, the strongest one.
-const SCREEN_BATTLE: float = .6
-## Typography cinematics (room entry, chapter, turning point, results) stay within this; a tap skips.
-const CINEMATIC: float = 1.2
+const SCREEN_BATTLE: float = 1.0
+## Typography cinematics (room entry banner) last this long; a tap skips the ones that block.
+const CINEMATIC: float = 2.0
 ## Gap between items that appear one after another.
-const STAGGER: float = .04
+const STAGGER: float = .06
 ## Gap between the letters of a title.
-const LETTER: float = .035
+const LETTER: float = .05
 ## The longest any motion may keep input from the player.
 const INPUT_LOCK: float = .5
 ## Strength of the soft overshoot used only on emphasised elements (Godot's TRANS_BACK uses 1.70158).

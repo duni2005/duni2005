@@ -27,14 +27,14 @@ func observe(value,dt: float) -> void:
 	previous_state=value.clock.state
 	if cue in ["turning","hold"]:
 		queue_redraw();return
-	if age>(2.0 if cue=="turning" else 1.15):cue=""
+	if age>(2.0 if cue=="turning" else 1.8):cue=""
 	queue_redraw()
 func _draw() -> void:
 	if cue.is_empty() or not is_instance_valid(board):return
 	var rect: Rect2=board.get_global_rect();rect.position-=global_position
 	var side: float=minf(rect.size.x,rect.size.y);rect=Rect2(rect.get_center()-Vector2.ONE*side*.5,Vector2.ONE*side)
 	var tint:=Color("8fe3ff") if cue in ["turning","hold","resume"] else Color("f3d48e") if cue in ["start","victory"] else Color("ea9a88")
-	var life: float=2 if cue=="turning" else 1.15
+	var life: float=2 if cue=="turning" else 1.8
 	var alpha: float=minf(clampf(age/.12,0,1),clampf((life-age)/.35,0,1))
 	if cue in ["victory","defeat"]:
 		draw_rect(Rect2(Vector2.ZERO,size),Color(tint,alpha*.16));return

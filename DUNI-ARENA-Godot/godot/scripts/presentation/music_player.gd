@@ -13,6 +13,8 @@ const TRACKS := {
 }
 ## Tracks that resume from where they were stopped instead of starting over.
 const RESUME := [&"tower"]
+## Result tracks: whatever follows them waits until they have faded out completely.
+const RESULTS := [&"victory", &"defeat"]
 ## Seconds of crossfade between two tracks, from silence at start, into a track's own start,
 ## of silence-first fade-out before the victory / defeat music, and out when a loading screen opens.
 const CHANGE_FADE: float = 1.2
@@ -68,6 +70,7 @@ static func reset(track: StringName) -> void:
 func switch_to(track: StringName, fade: float = -1) -> void:
 	if held:pending = track;return
 	if track == current or not TRACKS.has(track):return
+	if current in RESULTS and not track in RESULTS:switch_after(track, CHANGE_FADE);return
 	if delayed != null:delayed.kill();delayed = null
 	_remember()
 	var first: bool = current == &"" and not players.any(func(p):return p.playing)
@@ -82,7 +85,8 @@ func switch_after(track: StringName, out_time: float) -> void:
 	current = track
 	for i in range(2):_fade(i, 0, out_time, true)
 	delayed = create_tween();delayed.tween_interval(out_time)
-	delayed.tween_callback(func():delayed = null;_crossfade(load(TRACKS[track]), START_FADE))
+	var from: float = float(positions.get(track, 0.0)) if track in RESUME else 0.0
+	delayed.tween_callback(func():delayed = null;_crossfade(load(TRACKS[track]), START_FADE, from))
 
 func fade_out(time: float = CHANGE_FADE) -> void:
 	if delayed != null:delayed.kill();delayed = null

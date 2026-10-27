@@ -6,7 +6,7 @@ extends Control
 ## under the title. When the letters land the Label draws its own text again, so it ends crisp.
 ## The watermark and the rule stay; with UI motion off everything is shown at once.
 const WATERMARK_DELAY: float = .08
-const WATERMARK_TIME: float = .9
+const WATERMARK_TIME: float = 1.3
 var label: Label
 var word: String = ""
 var rule: bool = false

@@ -80,6 +80,8 @@ class Wipe extends Control:
 			TypeArt.rule(self, Vector2(x, h * .5 + size_px * .62), size_px * 1.2, Motion.phase(k, .22, .3), Color(ArenaUI.GOLD, .8 * sin(q * PI)), 2)
 
 	func _split() -> void:
+		# Timings below are authored for a 0.6 s split and stretched to the configured length.
+		var t: float = self.t * .6 / duration
 		var w: float = size.x;var h: float = size.y;var c: Vector2 = size * .5
 		# Diagonal cut through the centre, from the lower left to the upper right.
 		var cut := Vector2(w, -h * .55).normalized();var normal := Vector2(cut.y, -cut.x)

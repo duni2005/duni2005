@@ -2,24 +2,27 @@ class_name LoadingScreen
 extends CanvasLayer
 ## Short loading cover for entering the tower, the next floor and custom battle: a dark gradient,
 ## a small tower whose floors light up one by one under a pulsing crystal, and a loading bar.
-## The music fades out as it opens; music asked for while it is up starts once it lifts.
+## The music fades out as it opens (unless kept, as when climbing to the next floor); music asked
+## for while it is up starts once it lifts.
 const FADE_IN: float = .3
 const FADE_OUT: float = .4
 const MIN_TIME: float = 1.2
 var progress: float = 0
+var keep_music: bool = false
 var time: float = 0
 var cover: Control
 var background: GradientTexture2D
 
 ## Covers the screen, runs `work` behind the cover, then lifts and runs `done`.
-## Without UI motion both run at once.
-static func run(host: Node, work: Callable, done: Callable = Callable()) -> void:
-	BackgroundMusic.hold()
+## Without UI motion both run at once. With `keep_music` the music plays on underneath.
+static func run(host: Node, work: Callable, done: Callable = Callable(), keep_music: bool = false) -> void:
+	if not keep_music:BackgroundMusic.hold()
 	if not UiMotion.enabled:
-		work.call();BackgroundMusic.release()
+		work.call()
+		if not keep_music:BackgroundMusic.release()
 		if done.is_valid():done.call()
 		return
-	var screen := LoadingScreen.new();host.get_tree().root.add_child(screen);screen._start(work, done)
+	var screen := LoadingScreen.new();screen.keep_music = keep_music;host.get_tree().root.add_child(screen);screen._start(work, done)
 
 func _ready() -> void:
 	layer = 1200
@@ -38,7 +41,7 @@ func _start(work: Callable, done: Callable) -> void:
 	t.parallel().tween_property(self, "progress", .15, FADE_IN)
 	t.tween_callback(work)
 	t.tween_property(self, "progress", 1.0, MIN_TIME).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	t.tween_callback(BackgroundMusic.release)
+	if not keep_music:t.tween_callback(BackgroundMusic.release)
 	t.tween_property(cover, "modulate:a", 0.0, FADE_OUT)
 	t.tween_callback(func():
 		if done.is_valid():done.call()

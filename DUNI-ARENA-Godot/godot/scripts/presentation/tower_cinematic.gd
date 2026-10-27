@@ -510,18 +510,20 @@ func _titles() -> void:
 		var a: float = minf(clampf((t - .9) / .6, 0, 1), clampf((3.9 - t) / .5, 0, 1))
 		var size: float = clampf(view.x * .15, 40, 80);var y: float = view.y * .19 - (1 - a) * 8
 		VfxArt.glow(self, Vector2(view.x * .5, y - size * .3), view.x * .5, Color(.02, .08, .2), .35 * a, .45)
-		_kicker(numbers, "DUNI ARENA", y - size * .95, Color(1, .86, .52), a)
-		_rising_title(font, "두니 타워", Vector2(view.x * .5, y), size, Color(1, .98, .9, a), t - .9, true)
+		_rising_title(numbers, "DUNI ARENA", Vector2(view.x * .5, y - size * .95), 18, Color(1, .86, .52, a), t - .9)
+		TypeArt.rule(self, Vector2(view.x * .5, y - size * .95 + 8), 70, Motion.phase(t, 1.0, Motion.ENTER), Color(1, .86, .52, .8 * a), 2)
+		_rising_title(font, "두니 타워", Vector2(view.x * .5, y), size, Color(1, .98, .9, a), t - 1.05)
 		_text(font, "끝없이 하늘로 뻗은 탑", Vector2(view.x * .5, y + size * .6), 16, Color(.94, .97, 1, .95 * a), a)
 	if mode == "clear" and t > 2.45 and t < 4.6:
-		# "CHAPTER N CLEAR" is stamped hard (slight overshoot) over a huge "CLEAR" and rising sparks.
+		# "CHAPTER N CLEAR" rises letter by letter over a huge drifting "CLEAR" and rising sparks.
 		var lt: float = t - 2.45;var a: float = minf(Motion.phase(lt, 0, .12), clampf((4.6 - t) / .4, 0, 1))
-		var stamp: float = lerpf(1.6, 1.0, Motion.emphasis(Motion.phase(lt, 0, .2)));var y: float = view.y * .2
+		var y: float = view.y * .2
 		VfxArt.glow(self, Vector2(view.x * .5, y), view.x * .55, Color(.02, .06, .16), .4 * a, .5)
 		TypeArt.panels(self, Rect2(0, y - 44, view.x, 92), lt, false, [Color(.02, .04, .1, .5 * a), Color(.06, .1, .2, .55 * a), Color(.03, .05, .12, .75 * a)], (4.2 - 2.45 - .45))
 		TypeArt.watermark(self, TypeArt.word(&"clear"), Vector2(view.x * .5 + 30 * (1 - Motion.out_quint(Motion.phase(lt, .05, .9))), y), int(clampf(view.x * .3, 90, 200)), Color(1, .9, .6, .14 * a), -.22, 14 * (1 - Motion.phase(lt, .05, .9)))
-		_text(numbers, "CHAPTER %d CLEAR" % (chapter - 1), Vector2(view.x * .5, y + 4), clampf(view.x * .1, 28, 60) * stamp, Color(1, .88, .5, a), a, true)
-		_rising_title(font, "%s 정복" % TowerSceneDirector.CHAPTER_NAMES.get(chapter - 1, ""), Vector2(view.x * .5, y + 40), 18, Color(1, 1, 1, a), lt - .15)
+		_rising_title(numbers, "CHAPTER %d CLEAR" % (chapter - 1), Vector2(view.x * .5, y + 8), clampf(view.x * .1, 28, 60), Color(1, .88, .5, a), lt)
+		TypeArt.rule(self, Vector2(view.x * .5, y + 20), minf(150, view.x * .32), Motion.phase(lt, .3, Motion.ENTER), Color(1, .88, .5, .8 * a), 2)
+		_rising_title(font, "%s 정복" % TowerSceneDirector.CHAPTER_NAMES.get(chapter - 1, ""), Vector2(view.x * .5, y + 44), 18, Color(1, 1, 1, a), lt - .35)
 		TypeArt.motes(self, Rect2(0, y - 60, view.x, 160), lt, Color(1, .9, .6, .8 * a), 22, true, .5)
 	var title_at: float = {"intro":5.1, "clear":6.1, "enter":.3}.get(mode, 0.0)
 	if t > title_at and t < fade_at + .6:
@@ -534,21 +536,13 @@ func _titles() -> void:
 		TypeArt.panels(self, Rect2(0, y - 22, view.x, 128), lt, false, [Color(.03, .05, .1, .55), Color(tint.darkened(.7), .6), Color(.04, .07, .13, .8)], hold, tint)
 		var drift: float = Motion.out_quint(Motion.phase(lt, .08, .9))
 		TypeArt.watermark(self, "%s %d" % [TypeArt.word(&"chapter"), chapter], Vector2(view.x * .5 + 36 * (1 - drift), y + 44), int(clampf(view.x * .2, 64, 150)), Color(tint, .16 * a * drift), -.22, 12 * (1 - drift))
-		_kicker(numbers, "CHAPTER %d" % chapter, y - 2, tint, a)
-		_rising_title(font, TowerSceneDirector.CHAPTER_NAMES.get(chapter, ""), Vector2(view.x * .5, y + 52), clampf(view.x * .11, 32, 62), Color(1, .98, .92, a), lt - .1, true)
+		_rising_title(numbers, "CHAPTER %d" % chapter, Vector2(view.x * .5, y + 4), 18, Color(tint, a), lt)
+		_rising_title(font, TowerSceneDirector.CHAPTER_NAMES.get(chapter, ""), Vector2(view.x * .5, y + 52), clampf(view.x * .11, 32, 62), Color(1, .98, .92, a), lt - .15)
 		TypeArt.rule(self, Vector2(view.x * .5, y + 66), minf(140, view.x * .3), Motion.phase(lt, .25, Motion.ENTER), Color(tint, .8 * a), 2)
 		var sub_in: float = Motion.out_expo(Motion.phase(lt, .35, Motion.ENTER))
 		_text(font, "%d층 – %d층" % [first, first + 4], Vector2(view.x * .5, y + 90 + 8 * (1 - sub_in)), 15, Color(.85, .9, 1, .9 * a * sub_in), a * sub_in)
 	if t < fade_at:draw_string(get_theme_default_font(), Vector2(0, view.y - 18), "화면을 누르면 건너뜁니다  ", HORIZONTAL_ALIGNMENT_RIGHT, view.x, 11, Color(1, 1, 1, .5))
 
-## Small spaced caption between two ornamented rules.
-func _kicker(font: Font, text: String, y: float, tint: Color, a: float) -> void:
-	_text(font, text, Vector2(view.x * .5, y), 16, Color(tint, a), a)
-	var half: float = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x * .5 + 12;var line_w: float = minf(90, view.x * .2) * a
-	for side in [-1, 1]:
-		var from := Vector2(view.x * .5 + side * half, y - 6);draw_line(from, from + Vector2(side * line_w, 0), Color(tint, .8 * a), 1.5)
-		var tip: Vector2 = from + Vector2(side * line_w, 0)
-		draw_colored_polygon(PackedVector2Array([tip + Vector2(0, -3), tip + Vector2(side * 4, 0), tip + Vector2(0, 3), tip + Vector2(-side * 4, 0)]), Color(tint, a))
 ## A centred title whose letters rise into place one by one (UI motion off: all at once).
 func _rising_title(font: Font, text: String, center: Vector2, size: float, color: Color, age: float, gilded: bool = false) -> void:
 	if not UiMotion.enabled:age = 99

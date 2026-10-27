@@ -178,9 +178,14 @@ func _ascend() -> void:
 	var before: int=controller.guild.state.tower.current_chapter
 	if not controller.ascend():return
 	var after: int=controller.guild.state.tower.current_chapter
-	# A loading screen covers the climb; the chapter-clear cinematic plays once it lifts.
-	LoadingScreen.run(self,show_map,func():if after>before and TowerCinematic.auto_play():cinematic.play("clear",after))
+	# A loading screen covers the climb with the tower theme playing on; the chapter-clear cinematic
+	# (with the victory music for now) plays once it lifts.
+	var clear_chapter:=func():
+		if after>before and TowerCinematic.auto_play():cinematic.play("clear",after);BackgroundMusic.play(&"victory")
+	LoadingScreen.run(self,show_map,clear_chapter,true)
 func _cinematic_done() -> void:
+	# After a chapter clear the victory music fades out fully, then the tower theme resumes.
+	if cinematic.mode=="clear":BackgroundMusic.play(&"tower")
 	map_scroll.play_unfold()
 func select_room(id: String) -> void:
 	if is_instance_valid(battle_screen) or is_instance_valid(content_screen):return
