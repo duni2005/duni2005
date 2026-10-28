@@ -151,7 +151,7 @@ func promotion() -> void:
 	groups+=1
 	for seed in range(12):
 		var e:=TowerController.new();e.new_run(seed+3,seed+5);e.select_room("0:4")
-		verify(e.current_room().event_type in [&"prediction",&"hotSpring",&"supply"],"promotion is no longer an event room")
+		verify(e.current_room().event_type in TowerController.EVENT_TYPES,"promotion is no longer an event room")
 	var t:=tower();t.guild.state.gold=10000
 	var members: Array=[t.guild.all_members()[0],t.guild.all_members()[1],t.guild.create_member(0)]
 	var lead: GuildMemberState=members[0]
@@ -239,6 +239,35 @@ func rest_events() -> void:
 			&"gold":verify(t.guild.state.gold==1550 and t.guild.state.tokens==6,"supply300/1 + discovery50")
 			&"loot":verify(t.content.inventory.available().any(func(i):return i.kind==selected) if kind==&"item" else t.guild.state.strategy_cards.any(func(c):return c.kind==selected),"preselected loot actual pool")
 	t=tower();enter_event(t,&"supply");verify(t.abandon(true) and t.guild.state.game_over,"web allows abandon from active event before prediction battle")
+func token_shop() -> void:
+	groups+=1
+	var t:=tower();var dead: Array=[t.guild.all_members()[0],t.guild.all_members()[1],t.guild.all_members()[2]]
+	for m in dead:m.current_hp=0
+	t.select_room("0:2")
+	verify(t.content_action(&"rest",{"choice":&"revive","members":dead.map(func(m):return m.member_id)}).ok and dead.all(func(m):return m.is_alive()),"rest revives three")
+	t=tower();for m in t.guild.all_members():m.current_hp=0
+	t.select_room("0:2");verify(not t.content_action(&"rest",{"choice":&"revive","members":t.guild.all_members().map(func(m):return m.member_id)}).ok,"rest revive caps at three")
+	t=tower();t.guild.state.tokens=30;var down: GuildMemberState=t.guild.all_members()[0];var hurt: GuildMemberState=t.guild.all_members()[1];down.current_hp=0;hurt.current_hp=10
+	verify(not t.content_action(&"token_shop",{"choice":&"heal"}).ok,"token shop needs its event")
+	enter_event(t,&"tokenShop");verify(not t.return_map(),"active token shop locks map")
+	verify(not t.content_action(&"token_shop",{"choice":&"revive","member_id":hurt.member_id}).ok and t.guild.state.tokens==30,"revive needs a dead member")
+	verify(t.content_action(&"token_shop",{"choice":&"revive","member_id":down.member_id}).ok and down.current_hp==30 and t.guild.state.tokens==28,"revive 2 tokens 20%")
+	verify(t.content_action(&"token_shop",{"choice":&"restore","member_id":hurt.member_id}).ok and hurt.current_hp==t.guild.member_stats(hurt).max_hp and t.guild.state.tokens==23,"restore 5 tokens full HP")
+	verify(not t.content_action(&"token_shop",{"choice":&"restore","member_id":hurt.member_id}).ok and t.guild.state.tokens==23,"restore needs a hurt member")
+	var before: float=down.current_hp
+	verify(t.content_action(&"token_shop",{"choice":&"heal"}).ok and is_equal_approx(down.current_hp,before+150*.05) and t.guild.state.tokens==22,"heal 1 token all living 5%")
+	var items: int=t.content.inventory.available().size()
+	verify(t.content_action(&"token_shop",{"choice":&"item"}).ok and t.content.inventory.available().size()==items+1 and ItemCatalog.BASIC.has(t.content.inventory.available().back().kind) and t.guild.state.tokens==20,"item 2 tokens basic")
+	var cards: int=t.guild.state.strategy_cards.size()
+	verify(t.content_action(&"token_shop",{"choice":&"card"}).ok and t.guild.state.strategy_cards.size()==cards+1 and t.guild.state.tokens==18,"card 2 tokens")
+	for i in range(2):t.content_action(&"token_shop",{"choice":&"item"})
+	verify(not t.content_action(&"token_shop",{"choice":&"item"}).ok and t.guild.state.tokens==14 and t.current_room().event.purchases["item"]==3,"item sold out after three")
+	t.guild.state.tokens=1;verify(not t.content_action(&"token_shop",{"choice":&"card"}).ok and t.guild.state.tokens==1,"insufficient tokens refuse")
+	verify(t.content_action(&"event",{"choice":&"leave"}).ok and t.current_room().cleared and t.return_map(),"leave clears shop")
+	verify(not t.content_action(&"token_shop",{"choice":&"heal"}).ok,"left shop sells nothing")
+	t=tower();t.guild.state.tokens=30;enter_event(t,&"tokenShop")
+	for i in range(10):t.content_action(&"token_shop",{"choice":&"heal"})
+	verify(not t.content_action(&"token_shop",{"choice":&"heal"}).ok and t.guild.state.tokens==20,"heal ten times max")
 func rewards_transactions() -> void:
 	groups+=1
 	var t:=tower();var member: GuildMemberState=t.guild.all_members()[0];give(t,&"greenNecklace",member);member.current_hp=0;member.energy=0
@@ -354,5 +383,5 @@ func invalid_operations() -> void:
 	for member in t.guild.all_members():member.current_hp=0
 	verify(not t.content_action(&"upgrade",{"member_id":t.guild.all_members()[0].member_id}).ok and t.guild.state.game_over,"content does not revive a gameover guild")
 func run(tree: SceneTree) -> void:
-	host=tree;golden();recruit_shop();equipment_growth();growth_rules();promotion();rest_events();rewards_transactions();prediction();combat();invalid_operations()
+	host=tree;golden();recruit_shop();equipment_growth();growth_rules();promotion();rest_events();token_shop();rewards_transactions();prediction();combat();invalid_operations()
 	print("PHASE 10 RESULT: ",groups," groups; ",checks," checks; ",failures," failures")

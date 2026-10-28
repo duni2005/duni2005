@@ -23,6 +23,7 @@ const GOLD=Color("ffd98c")
 const MUTED=Color("9aa5c2")
 const DANGER=Color("ff8088")
 const HP=Color("86e3a4")
+const EVENT_NAMES={&"hotSpring":"온천",&"supply":"보물상자",&"prediction":"전투 예측",&"tokenShop":"토큰 상점"}
 const STANCE_NAMES={&"normal":"기본",&"cautious":"신중함",&"rush":"저돌적",&"cover":"엄호"}
 const STANCE_HELP={&"normal":"균형 잡힌 기본 전투 성향",&"cautious":"거리를 유지하며 적의 공격이 빠질 때를 노리고, 패링을 더 잘 씁니다.",&"rush":"적에게 다가가 빠르게 공격합니다. 패링 성공률은 낮아집니다.",&"cover":"아군을 엄호하는 위치를 선택합니다."}
 ## Game font: Bithumb Gothic Original (Korean and Latin); numbers use Barlow Condensed.
@@ -226,7 +227,7 @@ static func nav_button(kind: String,callback: Callable) -> ArenaCard:
 	button.tooltip_text=button.text;button.custom_minimum_size=Vector2(44,44)
 	bind(button,callback);return button
 static func room_title(room: RoomState) -> String:
-	var label: String={&"hotSpring":"온천",&"supply":"보물상자",&"prediction":"전투 예측"}.get(room.event_type,RoomType.LABELS[room.room_type])
+	var label: String=EVENT_NAMES.get(room.event_type,RoomType.LABELS[room.room_type])
 	return "%d층 · %d번 방 · %s"%[room.floor_index+1,room.lane+1,label]
 static func bind(button: Button,callback: Callable) -> void:
 	button.custom_minimum_size.y=maxf(44,button.custom_minimum_size.y)

@@ -61,7 +61,7 @@ func shot(name: String) -> void:
 func pick(kind: StringName, touch: bool = false) -> void:
 	var card: StrategyCardInstance
 	for copy in screen.guild.state.strategy_cards:
-		if copy.kind == kind: card = copy; break
+		if copy.kind == kind and screen.turning_panel.card_buttons.has(copy.card_id): card = copy; break
 	var button: Button = screen.turning_panel.card_buttons[card.card_id]
 	var scroll: ScrollContainer = screen.turning_panel.card_row.get_parent()
 	scroll.scroll_horizontal = maxi(0, int(button.position.x - 8))
@@ -96,7 +96,7 @@ func run() -> void:
 	await pick(&"mango")
 	await click(center(screen.turning_panel.use_button))
 	verify(screen.battle.units[0].current_hp == 85 and screen.guild.state.strategy_cards[0].consumed, "mouse recovery exact")
-	verify(screen.turning_panel.card_buttons[1].disabled, "usedcopy unavailable")
+	verify(not screen.turning_panel.card_buttons.has(screen.guild.state.strategy_cards[0].card_id), "used one-off card leaves the hand")
 	await click(center(screen.turning_panel.use_button))
 	verify(screen.battle.units[0].current_hp == 85, "repeatedclick no heal")
 	await pick(&"evade")

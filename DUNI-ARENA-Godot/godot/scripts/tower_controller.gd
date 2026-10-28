@@ -2,6 +2,8 @@ class_name TowerController
 extends RefCounted
 ## Progression orchestrator; combat mechanics remain RoomBattleSession's concern.
 signal changed
+## Event rooms roll one of these when first discovered (types already met weigh less).
+const EVENT_TYPES: Array=[&"prediction",&"hotSpring",&"supply",&"tokenShop"]
 var guild: GuildManager
 var generator := TowerMapGenerator.new()
 var combat_rng := RandomNumberGenerator.new()
@@ -44,11 +46,11 @@ func select_room(id: String) -> TowerNavigationPolicy.Code:
 	if code!=TowerNavigationPolicy.Code.OK:return code
 	var room: RoomState=guild.state.tower.map.get_room(id)
 	if not room.discovered:
-		if room.room_type==RoomType.EVENT and room.event_type not in [&"prediction",&"hotSpring",&"supply"]:
+		if room.room_type==RoomType.EVENT and room.event_type not in EVENT_TYPES:
 			var encountered: Array=[]
 			for other in guild.state.tower.map.rooms.values():
 				if other.discovered and other.room_type==RoomType.EVENT:encountered.append(other.event_type)
-			var options: Array=[&"prediction",&"hotSpring",&"supply"];var total: int=0
+			var options: Array=EVENT_TYPES;var total: int=0
 			for type in options:total+=1 if type in encountered else 4
 			var roll: float=generator.rng.randf()*total
 			for type in options:

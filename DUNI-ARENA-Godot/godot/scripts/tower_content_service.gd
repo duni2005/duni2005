@@ -3,6 +3,18 @@ extends RefCounted
 ## Pure content operations. UI sends IDs; no Nodes stored in content state.
 const REROLL_COST = 200
 const HOT_SPRING_COST = 200
+## Guild rest: how many dead members one revive brings back (at 20% HP).
+const REST_REVIVE_LIMIT = 3
+## Token shop event offers: token price and how many times each can be bought in one visit
+## (0 = no limit). revive: one chosen dead member at 20% HP; heal: every living member +5% HP;
+## item: a random basic item; card: a random strategy card; restore: one chosen living member to full.
+const TOKEN_SHOP = {
+	&"revive":{"tokens":2,"limit":3},
+	&"heal":{"tokens":1,"limit":10},
+	&"item":{"tokens":2,"limit":3},
+	&"card":{"tokens":2,"limit":0},
+	&"restore":{"tokens":5,"limit":2},
+}
 var guild: GuildManager
 var rng: RandomNumberGenerator
 var inventory: InventoryService
@@ -51,6 +63,8 @@ func ensure_event(node: RoomState) -> void:
 			var pool: Array=ItemCatalog.KINDS.duplicate() if event.treasure_kind==&"item" else StrategyCardCatalog.DEFINITIONS.keys()
 			event.treasure_reward=pool[rng.randi_range(0,pool.size()-1)]
 		&"prediction":event.prediction=PredictionRules.create(rng)
+		# The token shop stays open for any number of purchases; leaving ends the event.
+		&"tokenShop":event.choices=[&"leave"]
 func completion(choice: StringName,outcome: Dictionary={},stay: bool=false) -> Dictionary:
 	var node: RoomState=room();var result:=RoomContentResult.new();result.room_id=node.room_id;result.choice=choice;result.outcome=outcome.duplicate(true);result.stay_for_result=stay
 	result.receipt="%s:visit:%d:complete"%[node.room_id,node.content_visits]
@@ -168,7 +182,7 @@ func rest(choice: StringName,members: Array=[]) -> Dictionary:
 		&"guild":
 			for member in guild.living_members():GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*.35)
 		&"revive":
-			if members.size()<1 or members.size()>2:return failure(&"invalid_selection")
+			if members.size()<1 or members.size()>REST_REVIVE_LIMIT:return failure(&"invalid_selection")
 			var seen: Dictionary={}
 			for id in members:
 				var member: GuildMemberState=guild.get_member(id)
@@ -179,6 +193,38 @@ func rest(choice: StringName,members: Array=[]) -> Dictionary:
 			out["revived"]=members.duplicate()
 		_:return failure(&"invalid_choice")
 	return completion(choice,out)
+## Token shop: one purchase. `member_id` names the member for revive / restore.
+func token_shop(choice: StringName,member_id: String="") -> Dictionary:
+	if not live() or room()==null or guild.state.tower.phase!=&"event_active" or room().event==null or room().event.event_type!=&"tokenShop" or room().event.resolved:return failure(&"wrong_event")
+	if not TOKEN_SHOP.has(choice):return failure(&"invalid_choice")
+	var e: EventState=room().event;var offer: Dictionary=TOKEN_SHOP[choice];var bought: int=int(e.purchases.get(String(choice),0))
+	if int(offer.limit)>0 and bought>=int(offer.limit):return failure(&"sold_out")
+	var member: GuildMemberState=guild.get_member(member_id) if not member_id.is_empty() else null
+	match choice:
+		&"revive":
+			if member==null or member.is_alive():return failure(&"invalid_target")
+		&"restore":
+			if member==null or not member.is_alive() or member.current_hp>=guild.member_stats(member).max_hp:return failure(&"invalid_target")
+		&"heal":
+			if guild.living_members().is_empty():return failure(&"no_effect")
+		_:
+			if not inventory.valid():return failure(&"invalid_inventory")
+	var receipt: String="%s:token:%s:%d"%[room().room_id,choice,bought]
+	if not ResourceTransaction.can_spend(guild.state,0,int(offer.tokens),receipt):return failure(&"insufficient_tokens")
+	ResourceTransaction.spend(guild.state,0,int(offer.tokens),receipt)
+	var outcome: Dictionary={"choice":choice,"tokens_spent":int(offer.tokens)}
+	match choice:
+		&"revive":
+			GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*.2,true);GuildMemberCombatStats.reset_bomber(member);outcome["revived"]=[member.member_id]
+		&"restore":
+			outcome["hp_gained"]=GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp);outcome["member_id"]=member.member_id
+		&"heal":
+			for living in guild.living_members():GuildMemberCombatStats.heal(guild,living,guild.member_stats(living).max_hp*.05)
+		&"item":outcome["item_id"]=inventory.give(ItemCatalog.BASIC[rng.randi_range(0,ItemCatalog.BASIC.size()-1)]).item_id
+		&"card":
+			var kinds: Array=StrategyCardCatalog.DEFINITIONS.keys();outcome["card_id"]=guild.state.give_strategy_card(kinds[rng.randi_range(0,kinds.size()-1)]).card_id
+	e.purchases[String(choice)]=bought+1
+	return success(outcome)
 func event(choice: StringName) -> Dictionary:
 	if not live() or room()==null or guild.state.tower.phase!=&"event_active" or room().cleared or room().event==null or room().event.resolved:return failure(&"wrong_event")
 	var e: EventState=room().event;var outcome: Dictionary={"choice":choice}
@@ -203,6 +249,7 @@ func event(choice: StringName) -> Dictionary:
 				&"unit":outcome["member_id"]=guild.create_member(rng.randi_range(0,25)).member_id
 				&"tokens":guild.state.tokens+=3;outcome["tokens"]=3
 				_:var gold: int=int(String(reward).trim_prefix("gold"));guild.state.gold+=gold;outcome["gold"]=gold
+	elif e.event_type==&"tokenShop":outcome["purchases"]=e.purchases.duplicate()
 	elif e.event_type==&"supply":
 		match choice:
 			&"heal":guild.state.player_hp+=10
@@ -265,6 +312,7 @@ func execute(action: StringName,options: Dictionary={}) -> Dictionary:
 		&"finish":return finish()
 		&"rest":return rest(options.get("choice",&""),options.get("members",[]))
 		&"event":return event(options.get("choice",&""))
+		&"token_shop":return token_shop(options.get("choice",&""),options.get("member_id",""))
 		&"sortie_upgrade":return upgrade_sortie()
 		&"promote":return promote(options.get("member_id",""),options.get("materials",[]))
 	return failure(&"invalid_action")

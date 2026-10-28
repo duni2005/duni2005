@@ -312,20 +312,17 @@ func _rebuild_cards() -> void:
 	card_buttons.clear();pads.clear()
 	if manager == null or not manager.is_paused(): return
 	var lead:=Control.new();lead.mouse_filter=Control.MOUSE_FILTER_IGNORE;card_row.add_child(lead);pads.append(lead)
+	# Only cards usable now are in the hand: used one-off cards and cards on cooldown stay out.
 	for card in manager.guild.state.strategy_cards:
+		if not StrategyCardExecutor.availability(card, manager.guild.state.strategy_progress):continue
 		var data: StrategyCardData = StrategyCardCatalog.get_card(card.kind)
 		var button := ArenaCard.new()
-		var available: bool = StrategyCardExecutor.availability(card, manager.guild.state.strategy_progress)
-		var note: String = ""
-		if not available:
-			note = "사용함" if card.consumed or data.usage_rule == StrategyCardData.Usage.FLOOR else "%d층부터" % (card.ready_floor + 1)
-		button.card_type="hand_card";button.kind=String(card.kind);button.title=data.display_name;button.description=_rule(data);button.status_text=note
-		button.text = data.display_name + "\n" + (note if not available else _rule(data))
+		button.card_type="hand_card";button.kind=String(card.kind);button.title=data.display_name;button.description=_rule(data)
+		button.text = data.display_name + "\n" + _rule(data)
 		button.tooltip_text=data.description
 		button.custom_minimum_size = CARD_SIZE
 		button.toggle_mode = true
 		button.button_pressed = manager.current.selected_card_id == card.card_id
-		button.disabled = not available
 		var id: int = card.card_id
 		ArenaUI.bind(button,func():
 			if manager != null: manager.select_card(id))

@@ -9,3 +9,5 @@ var outcome: Dictionary = {}
 var treasure_kind: StringName = &""
 var treasure_reward: StringName = &""
 var prediction: PredictionState
+## Token shop: purchases so far this visit, offer name -> count.
+var purchases: Dictionary = {}

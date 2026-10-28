@@ -17,7 +17,7 @@ const SCALARS = {
 	"enemy":{"enemy_id":"s","unit_type_id":"i","current_hp":"f","position":"v","ultimate_gauge":"f","stance":"n","persistent_state":"d"},
 	"recruit":{"revision":"i"},"recruit_offer":{"offer_id":"s","unit_type_id":"i","gold_price":"i","token_price":"i","purchased":"b"},
 	"shop":{},"shop_offer":{"offer_id":"s","category":"n","kind":"n","gold_price":"i","purchased":"b"},
-	"event":{"event_type":"n","choices":"an","selected_choice":"n","resolved":"b","reward_receipt":"s","outcome":"d","treasure_kind":"n","treasure_reward":"n"},
+	"event":{"event_type":"n","choices":"an","selected_choice":"n","resolved":"b","reward_receipt":"s","outcome":"d","treasure_kind":"n","treasure_reward":"n","purchases":"d"},
 	"prediction":{"teams":"ad","picked_team":"i","stake":"i","status":"n","result":"n","payout":"i","tokens":"i"},
 	"reward":{"reward_id":"s","kind":"n","item_kind":"n","fulfilled":"b"}}
 const CHILDREN = {"run":{"tower":"tower","strategy_progress":"progress","last_formation":"formation"},"tower":{"map":"map"},"room":{"encounter":"encounter","recruit":"recruit","shop":"shop","event":"event"},"event":{"prediction":"prediction"}}

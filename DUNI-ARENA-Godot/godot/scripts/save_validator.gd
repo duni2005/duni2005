@@ -196,6 +196,10 @@ static func validate_room(room: RoomState) -> String:
 	if room.event!=null:
 		var event: EventState=room.event
 		if room.room_type!=RoomType.EVENT or event.event_type!=room.event_type:return "event"
-		if event.event_type not in [&"prediction",&"supply",&"hotSpring"]:return "event_type"
+		if event.event_type not in [&"prediction",&"supply",&"hotSpring",&"tokenShop"]:return "event_type"
+		for key in event.purchases:
+			var offer=TowerContentService.TOKEN_SHOP.get(StringName(key))
+			var count=event.purchases[key]
+			if offer==null or not (count is int or count is float) or int(count)<0 or int(offer.limit)>0 and int(count)>int(offer.limit):return "token_shop_purchases"
 		if event.prediction!=null and (not PredictionRules.valid(event.prediction) or event.prediction.status not in [&"ready",&"resolved"]):return "prediction_state"
 	return ""

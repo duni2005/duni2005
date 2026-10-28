@@ -129,7 +129,7 @@ func migration() -> void:
 	var v1: Dictionary=JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/save_v1.json"))
 	var untouched: String=JSON.stringify(v1)
 	var prepared: SaveLoadResult=SaveMigrator.prepare(v1)
-	verify(prepared.ok() and prepared.document.schema_version==2 and JSON.stringify(v1)==untouched,"v1 migrates on a copy")
+	verify(prepared.ok() and prepared.document.schema_version==SaveMigrator.CURRENT_VERSION and JSON.stringify(v1)==untouched,"v1 migrates on a copy")
 	var loaded: SaveLoadResult=SaveSnapshotLoader.restore(v1)
 	verify(loaded.ok() and loaded.document.schema_version==SaveMigrator.CURRENT_VERSION,"v1 fixture loads as v2")
 	if not loaded.ok():return
@@ -146,6 +146,22 @@ func migration() -> void:
 	var room: RoomState=loaded.run.tower.map.get_room("1:5") if loaded.ok() else null
 	verify(room!=null and room.event_type==&"supply" and room.event.event_type==&"supply" and room.event.choices.size()==4 and ItemCatalog.get_item(room.event.treasure_reward)!=null,"a promotion room becomes a supply room")
 	verify(loaded.ok() and SaveValidator.validate(SaveSnapshotBuilder.capture(loaded.controller,"save_migrated",1).document).ok(),"a migrated run saves again as v2")
+	verify(loaded.run.tower.map.rooms.values().all(func(r):return r.event==null or r.event.purchases.is_empty()),"v1 events gain empty purchases")
+	# Token shop purchases survive a save; a v2 document (no purchases) still loads; over-limit counts reject.
+	var shop: TowerController=TowerController.new();shop.new_run(19,73);shop.guild.state.tokens=10
+	var node: RoomState=shop.guild.state.tower.map.get_room("0:4");node.event_type=&"tokenShop";shop.select_room("0:4")
+	verify(shop.content_action(&"token_shop",{"choice":&"heal"}).ok and shop.content_action(&"token_shop",{"choice":&"card"}).ok,"token shop purchases for save")
+	var doc: Dictionary=SaveSnapshotBuilder.capture(shop,"save_shop",1).document
+	var back: SaveLoadResult=SaveSnapshotLoader.restore(JSON.parse_string(JSON.stringify(doc)))
+	verify(back.ok() and back.run.tower.map.get_room("0:4").event.purchases=={"heal":1,"card":1},"purchases round trip")
+	var v2: Dictionary=JSON.parse_string(JSON.stringify(doc));v2.schema_version=2
+	for r in v2.run.tower.map.rooms:
+		if r.event!=null:r.event.erase("purchases")
+	verify(SaveSnapshotLoader.restore(v2).ok(),"v2 save loads as v3")
+	var over: Dictionary=JSON.parse_string(JSON.stringify(doc))
+	for r in over.run.tower.map.rooms:
+		if r.room_id=="0:4":r.event.purchases={"restore":3}
+	verify(not SaveSnapshotLoader.restore(over).ok(),"over-limit purchases reject")
 func run(host: SceneTree) -> void:
 	tree=host;location="user://phase11-tests/"+Crypto.new().generate_random_bytes(8).hex_encode();round_trip();invalid_saves();migration()
 	var fixture: Variant=JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/save_v1.json"));verify(fixture is Dictionary and SaveSnapshotLoader.restore(fixture).ok(),"fixed v1 compatibility fixture")

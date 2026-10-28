@@ -17,7 +17,8 @@ static func read_header(path: String) -> SaveLoadResult:
 	if parser.parse(source)!=OK:return SaveLoadResult.failure(SaveLoadResult.Code.PARSE_ERROR,"header_parse")
 	if not parser.data is Dictionary:return SaveLoadResult.failure(SaveLoadResult.Code.VALIDATION_ERROR,"header_required")
 	var doc: Dictionary=parser.data
-	if doc.get("schema_version")!=1:return SaveLoadResult.failure(SaveLoadResult.Code.UNSUPPORTED_VERSION,"schema")
+	var version=doc.get("schema_version")
+	if not (version is float or version is int) or int(version)<1 or int(version)>SaveMigrator.CURRENT_VERSION:return SaveLoadResult.failure(SaveLoadResult.Code.UNSUPPORTED_VERSION,"schema")
 	if not doc.get("metadata") is Dictionary:return SaveLoadResult.failure(SaveLoadResult.Code.VALIDATION_ERROR,"metadata_required")
 	var m: Dictionary=doc.metadata
 	for key in ["chapter","floor","player_hp","gold","tokens","guild_count","living_guild_count","timestamp"]:

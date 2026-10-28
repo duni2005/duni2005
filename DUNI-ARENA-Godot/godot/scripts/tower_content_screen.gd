@@ -22,6 +22,9 @@ var guild_dialog: AcceptDialog
 var guild_panel: GuildManagementPanel
 var revive_selection: Array[String] = []
 var selecting_revive: bool = false
+## What the member picker is choosing for: &"rest" (up to REST_REVIVE_LIMIT dead members),
+## &"revive" (one dead member, token shop) or &"restore" (one hurt living member, token shop).
+var pick_mode: StringName = &"rest"
 var board: DeploymentBoard
 ## Watch speed for the prediction battle (1×/2×/4×), shown under its field while it runs.
 var speed_row: HBoxContainer
@@ -147,10 +150,10 @@ func render() -> void:
 	refresh_wallet();clear(content_box)
 	event_grid=null
 	var current: RoomState=controller.current_room()
-	room_title.text={&"hotSpring":"온천",&"supply":"보물상자",&"prediction":"전투 예측"}.get(current.event_type,RoomType.LABELS[current.room_type])
+	room_title.text=ArenaUI.EVENT_NAMES.get(current.event_type,RoomType.LABELS[current.room_type])
 	emblem.icon=String(current.room_type) if current.room_type!=RoomType.EVENT else String(current.event_type)
 	emblem.caption="%d층 · %d번 방"%[current.floor_index+1,current.lane+1];emblem.visible=current.room_type!=RoomType.SHOP or content_tab!="inventory"
-	party_strip.visible=current.room_type==RoomType.REST or current.event_type in [&"hotSpring",&"supply"]
+	party_strip.visible=current.room_type==RoomType.REST or current.event_type in [&"hotSpring",&"supply",&"tokenShop"]
 	if party_strip.visible:_refresh_party()
 	status.visible=not status.text.is_empty()
 	content_tabs.visible=controller.current_room().room_type==RoomType.SHOP
@@ -160,6 +163,8 @@ func render() -> void:
 	# The original hides the map action until an event has actually resolved.
 	map_button.visible=node.room_type!=RoomType.EVENT or node.cleared
 	map_button.text="지도로"
+	# The token shop is left like a shop: its button ends the event and returns to the map.
+	if node.event_type==&"tokenShop" and not node.cleared and phase==&"event_active":map_button.visible=true;map_button.disabled=false;map_button.text="상점 나가기"
 	map_footer.visible=map_button.visible;footer_gap.visible=map_footer.visible
 	abandon_button.disabled=controller.guild.state.game_over or is_instance_valid(battle) and not battle.finished
 	if content_tabs.visible and motion_tab!=content_tab:
@@ -208,26 +213,55 @@ func render_rest() -> void:
 	_choice(grid,"player","플레이어 회복","HP +15","heart",_action.bind(&"rest",{"choice":&"player"}))
 	_choice(grid,"resources","자원 획득","골드 +350 · 토큰 +1","gold",_action.bind(&"rest",{"choice":&"resources"}))
 	_choice(grid,"guild","생존 유닛 회복","HP +35%","rest",_action.bind(&"rest",{"choice":&"guild"}))
-	var revive:=_choice(grid,"Revival","사망 유닛 부활","최대 2명 · HP 20%","star",_show_revive)
+	var revive:=_choice(grid,"Revival","사망 유닛 부활","최대 %d명 · HP 20%%"%TowerContentService.REST_REVIVE_LIMIT,"star",_show_revive.bind(&"rest"))
 	revive.disabled=controller.guild.all_members().all(func(m):return m.is_alive())
-func _show_revive() -> void:
-	selecting_revive=true;revive_selection.clear();_refresh_revive()
+func _pick_limit() -> int:return TowerContentService.REST_REVIVE_LIMIT if pick_mode==&"rest" else 1
+func _show_revive(mode: StringName=&"rest") -> void:
+	pick_mode=mode;selecting_revive=true;revive_selection.clear()
+	var title: String="유닛 HP 전부 회복" if mode==&"restore" else "사망 유닛 부활"
+	revive_dialog.title=title;revive_confirm.text="회복" if mode==&"restore" else "부활"
+	var heading: Label=revive_dialog.get_child(0).get_child(0).get_child(0) if revive_dialog.get_child(0).get_child_count()>0 else null
+	if heading!=null:heading.text=title
+	_refresh_revive()
 	revive_dialog.popup_centered(Vector2i(mini(520,int(get_viewport_rect().size.x)-32),300))
 func _confirm_revive() -> void:
-	_action(&"rest",{"choice":&"revive","members":revive_selection.duplicate()});revive_dialog.hide()
+	if pick_mode==&"rest":_action(&"rest",{"choice":&"revive","members":revive_selection.duplicate()})
+	elif not revive_selection.is_empty():_action(&"token_shop",{"choice":pick_mode,"member_id":revive_selection[0]})
+	revive_dialog.hide()
 func _refresh_revive() -> void:
 	clear(revival_units)
 	for member in controller.guild.all_members():
+		if pick_mode==&"restore":
+			# Living members who are missing HP.
+			if not member.is_alive() or member.current_hp>=controller.guild.member_max_hp(member):continue
+			var card:=ArenaCard.new();card.name=member.member_id;card.card_type="member";card.custom_minimum_size=Vector2(108,156);card.show_member(controller.guild,member);card.subtitle="Lv.%d"%member.level;card.selected=member.member_id in revive_selection;ArenaUI.bind(card,_toggle_revive.bind(member.member_id));revival_units.add_child(card)
+			continue
 		if member.is_alive():continue
 		var maximum: float=controller.guild.member_max_hp(member)
 		var hp: float=maximum*.2*controller.guild.member_stats(member).healing_received
 		var c:=ArenaCard.new();c.name=member.member_id;c.card_type="revival_member";c.type_id=member.unit_type_id;c.title=controller.guild.definition(member.unit_type_id).display_name;c.stats_summary="Lv.%d"%member.level;c.description="HP %s / %s"%[ArenaUI.number(hp),ArenaUI.number(maximum)];c.custom_minimum_size=Vector2(108,156);c.show_member(controller.guild,member);c.selected=member.member_id in revive_selection;c.disabled=revive_selection.size()>=2 and not c.selected;ArenaUI.bind(c,_toggle_revive.bind(member.member_id));revival_units.add_child(c)
-	revival_count.text="%d / 2명 선택"%revive_selection.size();revive_confirm.disabled=revive_selection.is_empty()
+	revival_count.text="%d / %d명 선택"%[revive_selection.size(),_pick_limit()];revive_confirm.disabled=revive_selection.is_empty()
 func _toggle_revive(id: String) -> void:
 	if id in revive_selection:revive_selection.erase(id)
-	elif revive_selection.size()<2:revive_selection.append(id)
+	elif _pick_limit()==1:revive_selection=[id]
+	elif revive_selection.size()<_pick_limit():revive_selection.append(id)
 	call_deferred("_refresh_revive")
+## Token shop: five offers bought with tokens, each up to its limit; 상점 나가기 ends the event.
+func render_token_shop(node: RoomState) -> void:
+	var grid: GridContainer=_event_choices();var guild: GuildManager=controller.guild;var tokens: int=guild.state.tokens
+	var offers: Array=[[&"revive","유닛 부활","사망 유닛 1명 · HP 20%","star"],[&"heal","전체 회복","모든 유닛 HP +5%","rest"],[&"item","일반 아이템","무작위 1개","supply"],[&"card","전략카드","무작위 1장","event"],[&"restore","완전 회복","생존 유닛 1명 HP 전부","heart"]]
+	for row in offers:
+		var choice: StringName=row[0];var offer: Dictionary=TowerContentService.TOKEN_SHOP[choice];var bought: int=int(node.event.purchases.get(String(choice),0));var limit: int=int(offer.limit)
+		var left: String="남은 구매 %d / %d"%[limit-bought,limit] if limit>0 else "구매 제한 없음"
+		var callback: Callable=_show_revive.bind(choice) if choice in [&"revive",&"restore"] else _action.bind(&"token_shop",{"choice":choice})
+		var card: ArenaCard=_choice(grid,"Token_"+String(choice),row[1],"%s\n%s"%[row[2],left],row[3],callback,"토큰 %d"%int(offer.tokens))
+		var target: bool=true
+		if choice==&"revive":target=guild.all_members().any(func(m):return not m.is_alive())
+		elif choice==&"restore":target=guild.living_members().any(func(m):return m.current_hp<guild.member_max_hp(m))
+		elif choice==&"heal":target=not guild.living_members().is_empty()
+		card.disabled=(limit>0 and bought>=limit) or tokens<int(offer.tokens) or not target
 func render_event(node: RoomState) -> void:
+	if node.event_type==&"tokenShop":render_token_shop(node);return
 	if node.event.resolved:
 		if node.event.selected_choice==&"bathe":_result("hotSpring","온천욕 완료","따뜻한 온천에서 생존 유닛들이 회복했습니다.",Color("7fd8e8"),["HP +10%"])
 		else:_result("gold","복권 당첨","온천 복권에서 보상을 얻었습니다.",ArenaUI.GOLD,[_event_reward_text(node.event.outcome)])
@@ -330,6 +364,9 @@ func _process(_delta: float) -> void:
 		if is_instance_valid(speed_row):speed_row.queue_free();speed_row=null;speed_buttons.clear()
 		call_deferred("render")
 func _return_map() -> void:
+	var node: RoomState=controller.current_room()
+	if node!=null and node.event_type==&"tokenShop" and not node.cleared and controller.guild.state.tower.phase==&"event_active":
+		if not controller.content_action(&"event",{"choice":&"leave"}).ok:return
 	if controller.return_map():map_requested.emit()
 
 func _present_action(action: StringName,outcome: Dictionary) -> void:
@@ -342,5 +379,12 @@ func _present_action(action: StringName,outcome: Dictionary) -> void:
 		var gained: Dictionary=outcome.duplicate();gained.erase("gold_spent");gained.erase("tokens_spent")
 		event.merge({"title":"구매 완료","icon":"shop","detail":outcome_text(gained)})
 	elif action==&"reroll":event.merge({"title":"새로운 모집 후보","icon":"recruit","detail":"리롤 완료"})
+	elif action==&"token_shop":event.merge({"title":"토큰 상점","icon":"gem","detail":_token_detail(outcome)})
 	elif action in [&"rest",&"event"]:event.merge({"title":"휴식 완료" if action==&"rest" else "이벤트 완료","icon":"rest" if action==&"rest" else "event","detail":outcome_text(outcome)})
 	presentation_requested.emit(event)
+func _token_detail(outcome: Dictionary) -> String:
+	match StringName(outcome.get("choice",&"")):
+		&"revive":return "유닛 부활"
+		&"heal":return "모든 유닛 HP +5%"
+		&"restore":return "HP 전부 회복"
+	return _event_reward_text(outcome)
