@@ -176,6 +176,12 @@ func migration() -> void:
 	var v4: Dictionary=saved.duplicate(true);v4.schema_version=4;v4.run.erase("mango_faith")
 	reloaded=SaveSnapshotLoader.restore(v4);verify(reloaded.ok() and reloaded.run.mango_faith==0,"v4 save loads as v5 without faith")
 	var negative: Dictionary=saved.duplicate(true);negative.run.mango_faith=-1;verify(not SaveSnapshotLoader.restore(negative).ok(),"negative faith rejects")
+	var gamble: TowerController=TowerController.new();gamble.new_run(19,73);gamble.guild.state.gold=1000
+	gamble.guild.state.tower.map.get_room("0:4").event_type=&"gambler";gamble.select_room("0:4")
+	verify(gamble.content_action(&"gamble",{"choice":&"roulette"}).ok and gamble.content_action(&"gamble",{"choice":&"dice"}).ok,"gambler games for save")
+	var played: SaveLoadResult=SaveSnapshotLoader.restore(JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(gamble,"save_gamble",1).document)))
+	var kept: EventState=played.run.tower.map.get_room("0:4").event if played.ok() else null
+	verify(kept!=null and semantic_equal(kept.outcome,gamble.current_room().event.outcome) and kept.purchases=={"roulette":1,"dice":1},"gambler results and plays survive a save")
 	for bad in [[gear.item_id,6],[gear.item_id+1,1]]:
 		var broken: Dictionary=saved.duplicate(true)
 		for item in broken.run.inventory:

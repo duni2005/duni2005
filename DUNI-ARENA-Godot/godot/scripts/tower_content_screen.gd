@@ -38,6 +38,10 @@ const BLACKSMITH_TABS=[["enhance","강화"],["trade","교환"],["sell","판매"]
 ## Blacksmith: the rare item chosen on the 강화 tab and the basic items put in for a trade.
 var forge_pick: int=0
 var trade_pick: Array[int]=[]
+## Gambler's room: the game just played (its result animates once) and its toast, held until the
+## animation ends so the wallet and toast do not give the result away.
+var gamble_fresh: StringName=&""
+var gamble_toast: Dictionary={}
 var motion_tab: String=""
 var emblem: PanelEmblem
 var deal_cards: bool=false
@@ -172,7 +176,7 @@ func render() -> void:
 	map_button.visible=node.room_type!=RoomType.EVENT or node.cleared
 	map_button.text="지도로"
 	# The token shop and the blacksmith are left like a shop: the button ends the event and returns to the map.
-	if node.event_type in [&"tokenShop",TowerController.BLACKSMITH,&"mangoSapling"] and not node.cleared and phase==&"event_active":map_button.visible=true;map_button.disabled=false;map_button.text="상점 나가기" if node.event_type==&"tokenShop" else "지도로"
+	if node.event_type in [&"tokenShop",TowerController.BLACKSMITH,&"mangoSapling",&"gambler"] and not node.cleared and phase==&"event_active":map_button.visible=true;map_button.disabled=false;map_button.text="상점 나가기" if node.event_type==&"tokenShop" else "지도로"
 	map_footer.visible=map_button.visible;footer_gap.visible=map_footer.visible
 	abandon_button.disabled=controller.guild.state.game_over or is_instance_valid(battle) and not battle.finished
 	if content_tabs.visible and motion_tab!=content_tab:
@@ -284,10 +288,36 @@ func render_mango(node: RoomState) -> void:
 		var bless: ArenaCard=_choice(grid,"MangoBless","망고 나무의 축복","사용 완료" if left.call(&"bless")<=0 else "신앙 %d 모두 소모\n+%s G"%[faith,ArenaUI.grouped(TowerContentService.blessing_gold(faith))],"gold",_action.bind(&"mango",{"choice":&"bless"}))
 		bless.disabled=left.call(&"bless")<=0 or faith<=0
 	_hint("축복 보상 (신앙 1 · 2 · 3 · 4 · 5)\n%s G\n신앙을 가진 채 들어오면 축복을 받을 수 있습니다."%" · ".join([1,2,3,4,5].map(func(n):return ArenaUI.grouped(TowerContentService.blessing_gold(n)))))
+## Gambler's room: roulette and dice, GAMBLE_COST each, once per visit; results stay on show.
+func render_gambler(node: RoomState) -> void:
+	var run: RunState=controller.guild.state;var cost: int=TowerContentService.GAMBLE_COST
+	var grid: GridContainer=_event_choices()
+	var rows: Array=[[&"roulette","룰렛","8칸 중 무작위 보상\n꽝 · 골드 · 토큰 · 아이템 · 카드","event"],[&"dice","주사위","주사위 3개 합이 도박꾼보다\n높으면 2배 · 같으면 반환","dice"]]
+	for row in rows:
+		var played: bool=int(node.event.purchases.get(String(row[0]),0))>=int(TowerContentService.GAMBLE_LIMITS[row[0]].limit)
+		var card: ArenaCard=_choice(grid,"Gamble_"+String(row[0]),row[1],"사용 완료" if played else row[2],row[3],_action.bind(&"gamble",{"choice":row[0]}),"%d G"%cost)
+		card.disabled=played or run.gold<cost
+	for row in rows:
+		var result: Dictionary=node.event.outcome.get(String(row[0]),{})
+		if result.is_empty():continue
+		_section(row[1]+" 결과")
+		var show:=GambleShow.new();show.game=row[0];show.outcome=result;content_box.add_child(show)
+		# A re-render while it plays starts it over; the flag clears only when it has been seen.
+		var fresh: bool=gamble_fresh==row[0];show.finished.connect(_gamble_shown.bind(fresh));show.play(fresh)
+		if fresh:_scroll_to.call_deferred(show)
+## Brings a freshly added control into view once the scroll has laid it out.
+func _scroll_to(target: Control) -> void:
+	await get_tree().process_frame
+	if is_instance_valid(target):scroll.ensure_control_visible(target)
+func _gamble_shown(fresh: bool) -> void:
+	if not fresh:return
+	gamble_fresh=&"";wallet.updates_suspended=false
+	if not gamble_toast.is_empty():presentation_requested.emit(gamble_toast);gamble_toast={}
 func render_event(node: RoomState) -> void:
 	if node.event_type==&"tokenShop":render_token_shop(node);return
 	if node.event_type==TowerController.BLACKSMITH:render_blacksmith(node);return
 	if node.event_type==&"mangoSapling":render_mango(node);return
+	if node.event_type==&"gambler":render_gambler(node);return
 	if node.event.resolved:
 		if node.event.selected_choice==&"bathe":_result("hotSpring","온천욕 완료","따뜻한 온천에서 생존 유닛들이 회복했습니다.",Color("7fd8e8"),["HP +10%"])
 		else:_result("gold","복권 당첨","온천 복권에서 보상을 얻었습니다.",ArenaUI.GOLD,[_event_reward_text(node.event.outcome)])
@@ -391,7 +421,7 @@ func _process(_delta: float) -> void:
 		call_deferred("render")
 func _return_map() -> void:
 	var node: RoomState=controller.current_room()
-	if node!=null and node.event_type in [&"tokenShop",TowerController.BLACKSMITH,&"mangoSapling"] and not node.cleared and controller.guild.state.tower.phase==&"event_active":
+	if node!=null and node.event_type in [&"tokenShop",TowerController.BLACKSMITH,&"mangoSapling",&"gambler"] and not node.cleared and controller.guild.state.tower.phase==&"event_active":
 		if not controller.content_action(&"event",{"choice":&"leave"}).ok:return
 	if controller.return_map():map_requested.emit()
 
@@ -408,6 +438,12 @@ func _present_action(action: StringName,outcome: Dictionary) -> void:
 	elif action==&"token_shop":event.merge({"title":"토큰 상점","icon":"gem","detail":_token_detail(outcome)})
 	elif action==&"enhance":event.merge({"title":"강화 성공","icon":"anvil","detail":_item_name(outcome.item_id)})
 	elif action==&"trade":trade_pick.clear();event.merge({"title":"교환 완료","icon":"anvil","detail":_item_name(outcome.item_id)})
+	elif action==&"gamble":
+		# Shown when the wheel or the dice stop.
+		gamble_fresh=StringName(outcome.choice);wallet.updates_suspended=true
+		var reward: String=GambleShow.SLOT_LABELS.get(outcome.get("reward",&""),"") if outcome.choice==&"roulette" else {&"win":"승리",&"draw":"무승부",&"lose":"패배"}[outcome.result]
+		if outcome.has("item_id") or outcome.has("card_id"):reward=_event_reward_text(outcome)
+		gamble_toast=event.merged({"title":"룰렛" if outcome.choice==&"roulette" else "주사위","icon":"dice","detail":reward});return
 	elif action==&"mango":
 		match StringName(outcome.get("choice",&"")):
 			&"revive":event.merge({"title":"유닛 부활","icon":"mango","detail":"망고나무 아래에서 되살아났습니다"})

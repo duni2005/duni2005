@@ -3,7 +3,7 @@ extends RefCounted
 ## Local vector pictograms. No emoji font, no dependency on OS glyph rendering.
 static var textures: Dictionary={}
 static func texture(kind: String) -> Texture2D:
-	var key: String={"boss":"crown","miniboss":"skull","heal":"heart","vital":"heart","conquest":"crown","chapterConquest":"crown","promotion":"star","ironDefense":"iron","lightning":"charge","tokens":"gem","token":"gem","tokenShop":"gem","blacksmith":"anvil","enhance":"anvil","mangoSapling":"mango"}.get(kind,kind)
+	var key: String={"boss":"crown","miniboss":"skull","heal":"heart","vital":"heart","conquest":"crown","chapterConquest":"crown","promotion":"star","ironDefense":"iron","lightning":"charge","tokens":"gem","token":"gem","tokenShop":"gem","blacksmith":"anvil","enhance":"anvil","mangoSapling":"mango","gambler":"dice"}.get(kind,kind)
 	if not textures.has(key):
 		if "+" in key:textures[key]=_combined(key.get_slice("+",0),key.get_slice("+",1));return textures[key]
 		var path: String="res://assets/ui/symbols/"+key+".svg"

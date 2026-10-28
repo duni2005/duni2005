@@ -17,12 +17,19 @@ const MANGO_OFFERING = 200
 const MANGO_LIMITS = {&"revive":{"limit":1},&"offer":{"limit":1},&"bless":{"limit":1}}
 ## Blessing gold for `faith` stacks: 500, 700, 1000, 1400, 1900... (each step 100 more than the last).
 static func blessing_gold(faith: int) -> int:return 400+50*faith*(faith+1) if faith>0 else 0
+## Gambler's room: each game once per room for GAMBLE_COST gold. The roulette lands on one of
+## ROULETTE's equal slots; at dice, three dice against the gambler's three, the higher total
+## pays double the stake and a tie returns it.
+const GAMBLE_COST = 200
+const GAMBLE_LIMITS = {&"roulette":{"limit":1},&"dice":{"limit":1}}
+const ROULETTE = [&"miss",&"gold100",&"gold300",&"gold600",&"gold1000",&"tokens2",&"item",&"card"]
 ## Per-visit purchase limits of the open events, offer name -> {"limit"}.
 static func purchase_limits(event_type: StringName) -> Dictionary:
 	match event_type:
 		&"tokenShop":return TOKEN_SHOP
 		&"blacksmith":return {&"trade":{"limit":BLACKSMITH_TRADES}}
 		&"mangoSapling":return MANGO_LIMITS
+		&"gambler":return GAMBLE_LIMITS
 	return {}
 const TOKEN_SHOP = {
 	&"revive":{"tokens":2,"limit":3},
@@ -84,6 +91,7 @@ func ensure_event(node: RoomState) -> void:
 		# The blacksmith likewise stays open until 지도로.
 		&"blacksmith":event.choices=[&"leave"]
 		# The blessing is offered only to a party that arrives with faith.
+		&"gambler":event.choices=[&"leave"]
 		&"mangoSapling":
 			event.choices=[&"leave"]
 			if guild.state.mango_faith>0:event.choices.append(&"bless")
@@ -321,6 +329,37 @@ func mango(choice: StringName,member_id: String="") -> Dictionary:
 			guild.state.mango_faith=0;guild.state.gold+=gold
 	e.purchases[String(choice)]=used+1
 	return success(outcome)
+## Gambler's room: plays &"roulette" or &"dice" once. The result is kept on the event so the room
+## can show it again.
+func gamble(choice: StringName) -> Dictionary:
+	if not live() or room()==null or guild.state.tower.phase!=&"event_active" or room().event==null or room().event.event_type!=&"gambler" or room().event.resolved:return failure(&"wrong_event")
+	if not GAMBLE_LIMITS.has(choice):return failure(&"invalid_choice")
+	var e: EventState=room().event;var played: int=int(e.purchases.get(String(choice),0))
+	if played>=int(GAMBLE_LIMITS[choice].limit):return failure(&"sold_out")
+	if choice==&"roulette" and not inventory.valid():return failure(&"invalid_inventory")
+	var receipt: String="%s:gamble:%s"%[room().room_id,choice]
+	if not ResourceTransaction.can_spend(guild.state,GAMBLE_COST,0,receipt):return failure(&"funds")
+	ResourceTransaction.spend(guild.state,GAMBLE_COST,0,receipt)
+	var outcome: Dictionary={"choice":choice,"gold_spent":GAMBLE_COST}
+	if choice==&"roulette":
+		var slot: int=rng.randi_range(0,ROULETTE.size()-1);var reward: StringName=ROULETTE[slot];outcome["slot"]=slot;outcome["reward"]=reward
+		match reward:
+			&"miss":pass
+			&"tokens2":guild.state.tokens+=2;outcome["tokens"]=2
+			&"item":outcome["item_id"]=inventory.give(ItemCatalog.BASIC[rng.randi_range(0,ItemCatalog.BASIC.size()-1)]).item_id
+			&"card":
+				var kinds: Array=StrategyCardCatalog.DEFINITIONS.keys();outcome["card_id"]=guild.state.give_strategy_card(kinds[rng.randi_range(0,kinds.size()-1)]).card_id
+			_:var gold: int=int(String(reward).trim_prefix("gold"));guild.state.gold+=gold;outcome["gold"]=gold
+	else:
+		var mine: Array=[];var theirs: Array=[]
+		for i in range(3):mine.append(rng.randi_range(1,6))
+		for i in range(3):theirs.append(rng.randi_range(1,6))
+		var a: int=mine.reduce(func(s,v):return s+v,0);var b: int=theirs.reduce(func(s,v):return s+v,0)
+		var result: StringName=&"win" if a>b else &"draw" if a==b else &"lose";var payout: int={&"win":GAMBLE_COST*2,&"draw":GAMBLE_COST,&"lose":0}[result]
+		guild.state.gold+=payout;outcome.merge({"player":mine,"gambler":theirs,"result":result,"payout":payout})
+		if payout>0:outcome["gold"]=payout
+	e.outcome[String(choice)]=outcome.duplicate(true);e.purchases[String(choice)]=played+1
+	return success(outcome)
 func event(choice: StringName) -> Dictionary:
 	if not live() or room()==null or guild.state.tower.phase!=&"event_active" or room().cleared or room().event==null or room().event.resolved:return failure(&"wrong_event")
 	var e: EventState=room().event;var outcome: Dictionary={"choice":choice}
@@ -345,7 +384,7 @@ func event(choice: StringName) -> Dictionary:
 				&"unit":outcome["member_id"]=guild.create_member(rng.randi_range(0,25)).member_id
 				&"tokens":guild.state.tokens+=3;outcome["tokens"]=3
 				_:var gold: int=int(String(reward).trim_prefix("gold"));guild.state.gold+=gold;outcome["gold"]=gold
-	elif e.event_type in [&"tokenShop",TowerController.BLACKSMITH,&"mangoSapling"]:
+	elif e.event_type in [&"tokenShop",TowerController.BLACKSMITH,&"mangoSapling",&"gambler"]:
 		# Open events end only by leaving; their offers have their own actions.
 		if choice!=&"leave":return failure(&"invalid_choice")
 		outcome["purchases"]=e.purchases.duplicate()
@@ -416,6 +455,7 @@ func execute(action: StringName,options: Dictionary={}) -> Dictionary:
 		&"trade":return blacksmith_trade(options.get("items",[]),options.get("kind",&""))
 		&"sell":return blacksmith_sell(options.get("item_id",0))
 		&"mango":return mango(options.get("choice",&""),options.get("member_id",""))
+		&"gamble":return gamble(options.get("choice",&""))
 		&"sortie_upgrade":return upgrade_sortie()
 		&"promote":return promote(options.get("member_id",""),options.get("materials",[]))
 	return failure(&"invalid_action")

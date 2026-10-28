@@ -335,6 +335,31 @@ func mango_sapling() -> void:
 		verify(not t.content_action(&"mango",{"choice":&"bless"}).ok and t.content_action(&"mango",{"choice":&"offer"}).ok and t.guild.state.mango_faith==1,"bless once, then a new offering starts over")
 	t=tower();t.guild.state.gold=150;enter_event(t,&"mangoSapling");t.guild.state.gold=150
 	verify(not t.content_action(&"mango",{"choice":&"offer"}).ok and t.guild.state.mango_faith==0 and t.guild.state.gold==150,"offering needs 200 G")
+func gambler() -> void:
+	groups+=1
+	var rewards: Dictionary={};var results: Dictionary={}
+	for seed_value in range(60):
+		var t:=tower();t.guild.state.gold=1000;enter_event(t,&"gambler");t.content_rng.seed=seed_value
+		var gold: int=t.guild.state.gold;var tokens: int=t.guild.state.tokens;var items: int=t.content.inventory.available().size();var cards: int=t.guild.state.strategy_cards.size()
+		var spin: Dictionary=t.content_action(&"gamble",{"choice":&"roulette"});var reward: StringName=spin.outcome.reward;rewards[reward]=true
+		verify(spin.ok and TowerContentService.ROULETTE[int(spin.outcome.slot)]==reward,"roulette lands on a slot")
+		match reward:
+			&"miss":verify(t.guild.state.gold==gold-200,"roulette miss")
+			&"tokens2":verify(t.guild.state.gold==gold-200 and t.guild.state.tokens==tokens+2,"roulette tokens")
+			&"item":verify(t.content.inventory.available().size()==items+1 and t.content.inventory.available().back().kind in ItemCatalog.BASIC,"roulette basic item")
+			&"card":verify(t.guild.state.strategy_cards.size()==cards+1,"roulette card")
+			_:verify(t.guild.state.gold==gold-200+int(String(reward).trim_prefix("gold")),"roulette gold")
+		verify(not t.content_action(&"gamble",{"choice":&"roulette"}).ok and t.current_room().event.outcome.roulette.reward==reward,"roulette once per room, result kept")
+		gold=t.guild.state.gold;var dice: Dictionary=t.content_action(&"gamble",{"choice":&"dice"})
+		var a: int=dice.outcome.player.reduce(func(s,v):return s+v,0);var b: int=dice.outcome.gambler.reduce(func(s,v):return s+v,0)
+		verify(dice.ok and dice.outcome.player.size()==3 and dice.outcome.gambler.size()==3 and dice.outcome.player.all(func(v):return v>=1 and v<=6),"three dice each")
+		var expected: StringName=&"win" if a>b else &"draw" if a==b else &"lose";results[expected]=true
+		verify(dice.outcome.result==expected and t.guild.state.gold==gold-200+{&"win":400,&"draw":200,&"lose":0}[expected],"higher total wins double, tie refunds")
+		verify(not t.content_action(&"gamble",{"choice":&"dice"}).ok,"dice once per room")
+	verify(rewards.size()==8 and results.size()==3,"every roulette slot and dice result occurs")
+	var t:=tower();enter_event(t,&"gambler");t.guild.state.gold=199
+	verify(not t.content_action(&"gamble",{"choice":&"dice"}).ok and t.guild.state.gold==199,"games need 200 G")
+	verify(not t.content_action(&"event",{"choice":&"roulette"}).ok and t.content_action(&"event",{"choice":&"leave"}).ok and t.return_map(),"지도로 ends the gambler's room")
 func rewards_transactions() -> void:
 	groups+=1
 	var t:=tower();var member: GuildMemberState=t.guild.all_members()[0];give(t,&"greenNecklace",member);member.current_hp=0;member.energy=0
@@ -450,5 +475,5 @@ func invalid_operations() -> void:
 	for member in t.guild.all_members():member.current_hp=0
 	verify(not t.content_action(&"upgrade",{"member_id":t.guild.all_members()[0].member_id}).ok and t.guild.state.game_over,"content does not revive a gameover guild")
 func run(tree: SceneTree) -> void:
-	host=tree;golden();recruit_shop();equipment_growth();growth_rules();promotion();rest_events();token_shop();blacksmith();mango_sapling();rewards_transactions();prediction();combat();invalid_operations()
+	host=tree;golden();recruit_shop();equipment_growth();growth_rules();promotion();rest_events();token_shop();blacksmith();mango_sapling();gambler();rewards_transactions();prediction();combat();invalid_operations()
 	print("PHASE 10 RESULT: ",groups," groups; ",checks," checks; ",failures," failures")
