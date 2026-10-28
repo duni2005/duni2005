@@ -9,6 +9,14 @@ const ANCIENT = [&"phoenixFeather",&"hourglass",&"dragonHeart"]
 const KINDS = [&"warmNecklace",&"woodSword",&"currentOrb",&"ether",&"leatherArmor",&"hawkFeather",&"staff",&"verdantStone",&"redThorn",&"reengrave"]
 ## A combined item gets both components' bonuses, each this much stronger.
 const COMBINE_FACTOR: float = 1.25
+## Basic item prices: cheap for the stats everyone uses, dearer for strong or two-stat items.
+const BASIC_PRICES = {&"leatherArmor":120,&"verdantStone":120,&"warmNecklace":120,&"woodSword":130,&"staff":130,&"ether":140,&"redThorn":140,&"currentOrb":160,&"hawkFeather":160}
+## Blacksmith: basic items sell for half their price.
+const SELL_RATE: float = .5
+## Blacksmith enhancement of rare items: cost of reaching +1..+5 and the stat boost at +0..+5.
+const ENHANCE_COSTS = [200,330,530,800,1200]
+const ENHANCE_BOOST = [0.0,.1,.2,.3,.4,.6]
+const MAX_ENHANCE: int = 5
 const GRADE_NAMES = {&"common":"일반",&"rare":"희귀",&"ancient":"고대",&"legacy":"구형"}
 const GRADE_COLORS = {&"common":Color("c9d0e6"),&"rare":Color("6fb6ff"),&"ancient":Color("ffb347"),&"legacy":Color("b48cf0")}
 const BASIC_DEFS = {
@@ -49,11 +57,12 @@ const ANCIENT_DEFS = {
 const BONUS_FIELDS = ["physical_bonus","magic_bonus","element_bonus","ultimate_bonus","armor_bonus","attack_speed_bonus","crit_bonus"]
 const MULTIPLIER_FIELDS = ["max_hp_multiplier","attack_multiplier","speed_multiplier","healing_multiplier"]
 static var _definitions: Dictionary = {}
+static var _enhanced: Dictionary = {}
 
 static func all() -> Dictionary:
 	if _definitions.is_empty():
 		for kind in LEGACY:_definitions[kind]=load("res://data/items/%s.tres"%kind)
-		for kind in BASIC:_definitions[kind]=_make(kind,BASIC_DEFS[kind][0],&"common",BASIC_DEFS[kind][1],90)
+		for kind in BASIC:_definitions[kind]=_make(kind,BASIC_DEFS[kind][0],&"common",BASIC_DEFS[kind][1],BASIC_PRICES[kind])
 		for i in range(BASIC.size()):
 			for j in range(i,BASIC.size()):
 				var kind: StringName=combined_kind(BASIC[i],BASIC[j]);var fields: Dictionary=RARE_ABILITIES.get(String(kind),{}).duplicate()
@@ -67,6 +76,27 @@ static func all() -> Dictionary:
 		for kind in ANCIENT:_definitions[kind]=_make(kind,ANCIENT_DEFS[kind][0],&"ancient",ANCIENT_DEFS[kind][1],600)
 	return _definitions.duplicate()
 static func get_item(kind: StringName) -> ItemData:return all().get(kind)
+## The item as owned: a rare item at +N has every stat it raises boosted by ENHANCE_BOOST[N]
+## (abilities stay as they are) and "+N" after its name.
+static func of(instance: ItemInstance) -> ItemData:return enhanced(instance.kind,instance.enhance)
+static func enhanced(kind: StringName,level: int) -> ItemData:
+	var base: ItemData=get_item(kind)
+	if base==null or level<=0:return base
+	var key: String="%s@%d"%[kind,level]
+	if not _enhanced.has(key):
+		var item: ItemData=base.duplicate();var boost: float=1+ENHANCE_BOOST[clampi(level,0,MAX_ENHANCE)]
+		for field in BONUS_FIELDS:item.set(field,float(base.get(field))*boost)
+		for field in MULTIPLIER_FIELDS:item.set(field,1+(float(base.get(field))-1)*boost)
+		item.display_name="%s +%d"%[base.display_name,level];item.description=describe(item);_enhanced[key]=item
+	return _enhanced[key]
+static func can_enhance(instance: ItemInstance) -> bool:
+	var item: ItemData=get_item(instance.kind) if instance!=null else null
+	return item!=null and item.grade==&"rare" and instance.enhance<MAX_ENHANCE
+## Grade colour of an owned item; a rare item at +MAX_ENHANCE shows gold.
+static func instance_color(instance: ItemInstance) -> Color:
+	return Color("ffd54a") if instance.enhance>=MAX_ENHANCE else grade_color(instance.kind)
+static func sell_price(kind: StringName) -> int:
+	var item: ItemData=get_item(kind);return int(item.gold_price*SELL_RATE) if item!=null and item.grade==&"common" else 0
 
 ## Canonical kind of the item made from two basics, in BASIC order ("woodSword+staff").
 static func combined_kind(a: StringName,b: StringName) -> StringName:

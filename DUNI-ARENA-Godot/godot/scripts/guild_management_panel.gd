@@ -195,8 +195,8 @@ func render() -> void:
   for instance in group[0]:
    var key: String="item_%d"%instance.item_id;var button: ArenaCard=pool.get(key);pool.erase(key)
    if button==null:button=ArenaCard.new();button.name=key;ArenaUI.bind(button,_inspect.bind(instance.item_id))
-   var data: ItemData=ItemCatalog.get_item(instance.kind);button.kind=String(instance.kind);button.title=data.display_name;button.description=data.description;button.text="%s %s · 설명 / %s"%[data.emoji,data.display_name,"사용" if data.consumable else "장착"]
-   button.status_text="아이템";button.card_type="slot";button.slot_kind=group[1];button.rarity=ItemCatalog.grade_color(instance.kind) if not data.consumable else Color(0,0,0,0);button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description
+   var data: ItemData=ItemCatalog.of(instance);button.kind=String(instance.kind);button.title=data.display_name;button.description=data.description;button.text="%s %s · 설명 / %s"%[data.emoji,data.display_name,"사용" if data.consumable else "장착"]
+   button.status_text="아이템";button.card_type="slot";button.slot_kind=group[1];button.rarity=ItemCatalog.instance_color(instance) if not data.consumable else Color(0,0,0,0);button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description
    if group[1]=="equipped":
     var owner: GuildMemberState=guild.get_member(instance.equipped_to_member_id)
     button.owner_type=owner.unit_type_id if owner!=null else -1;button.price=ArenaUI.member_label(instance.equipped_to_member_id)+" 장착" if owner!=null else "장착 중"
@@ -285,7 +285,7 @@ func _settle_item_sheet(width: int) -> void:
  if not item_dialog.visible:return
  item_dialog.size=Vector2i(width,ceili(item_dialog.get_contents_minimum_size().y));item_dialog.move_to_center()
 func _inspect(id: int) -> void:
- var item: ItemInstance=controller.content.inventory.get_item(id);var data: ItemData=ItemCatalog.get_item(item.kind)
+ var item: ItemInstance=controller.content.inventory.get_item(id);var data: ItemData=ItemCatalog.of(item)
  if not item.equipped_to_member_id.is_empty():
   # Already worn: show who wears it; it cannot be equipped again from here.
   var owner: GuildMemberState=controller.guild.get_member(item.equipped_to_member_id);pending_item_id=0;item_target.visible=owner!=null
@@ -294,7 +294,7 @@ func _inspect(id: int) -> void:
    item_slots.text="장착 중";item_slots.add_theme_color_override("font_color",Color("4fc6c0"))
   item_note.text="이 장비는 장착 중입니다. 회수하려면 재각인을 사용하세요.";item_note.add_theme_color_override("font_color",ArenaUI.MUTED)
   item_dialog.get_ok_button().text="장착 중";item_dialog.get_ok_button().disabled=true
-  _show_item_sheet(String(item.kind),data.display_name,"%s 장비 · 장착 중"%ItemCatalog.grade_name(item.kind),data.description,ItemCatalog.grade_color(item.kind));return
+  _show_item_sheet(String(item.kind),data.display_name,"%s 장비 · 장착 중"%ItemCatalog.grade_name(item.kind),data.description,ItemCatalog.instance_color(item));return
  pending_item_id=id;pending_member_id=selected_member_id
  var member: GuildMemberState=controller.guild.get_member(selected_member_id)
  var used: int=controller.content.inventory.equipped(selected_member_id).size();var limit: int=GuildMemberCombatStats.equipment_limit(member) if member!=null else 0
@@ -316,7 +316,7 @@ func _inspect(id: int) -> void:
   item_note.text="장착 중인 %s와 조합되어 [희귀] %s이(가) 됩니다.\n%s"%[ItemCatalog.get_item(partner.kind).display_name,made.display_name,made.description]
  item_note.add_theme_color_override("font_color",ArenaUI.DANGER if full else ItemCatalog.GRADE_COLORS[&"rare"] if partner!=null else ArenaUI.MUTED)
  item_dialog.get_ok_button().text="사용" if data.consumable else "조합" if partner!=null else "장착";item_dialog.get_ok_button().disabled=not controller.content.can_manage() or full or member==null
- _show_item_sheet(String(item.kind),data.display_name,"소모품" if data.consumable else "%s 장비"%ItemCatalog.grade_name(item.kind),data.description,Color(0,0,0,0) if data.consumable else ItemCatalog.grade_color(item.kind))
+ _show_item_sheet(String(item.kind),data.display_name,"소모품" if data.consumable else "%s 장비"%ItemCatalog.grade_name(item.kind),data.description,Color(0,0,0,0) if data.consumable else ItemCatalog.instance_color(item))
 func _inspect_card(data: StrategyCardData,on_hold: bool=false) -> void:
  pending_item_id=0;item_target.visible=false
  item_note.text="재사용 대기 중입니다. 표시된 층에 도달하면 다시 쓸 수 있습니다." if on_hold else "전투 중 터닝포인트에서 아군을 골라 사용합니다.";item_note.add_theme_color_override("font_color",ArenaUI.MUTED)

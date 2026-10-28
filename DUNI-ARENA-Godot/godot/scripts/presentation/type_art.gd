@@ -11,9 +11,11 @@ const STEEL := Color("2c3f78")
 const WORDS := {&"guild":"GUILD", &"tower":"TOWER", &"map":"MAP", &"menu":"DUNI ARENA", &"custom":"ARENA",
 	&"battle":"BATTLE", &"recruit":"RECRUIT", &"shop":"SHOP", &"rest":"REST", &"event":"EVENT",
 	&"boss":"BOSS", &"miniboss":"ELITE", &"victory":"VICTORY", &"defeat":"DEFEAT", &"retreat":"RETREAT",
-	&"turning":"TURNING POINT", &"chapter":"CHAPTER", &"clear":"CLEAR"}
+	&"turning":"TURNING POINT", &"chapter":"CHAPTER", &"clear":"CLEAR", &"blacksmith":"FORGE"}
 
 static func word(key: StringName) -> String:return WORDS.get(key, String(key).to_upper())
+## A room's word: its event's own word when it has one (the blacksmith), else its room type's.
+static func room_word(room: RoomState) -> String:return word(room.event_type if WORDS.has(room.event_type) else room.room_type)
 
 ## A parallelogram band across `rect`, slanted by `slant` (its top edge sits `slant` further along).
 ## `lead` and `tail` are the band's leading and trailing x at the bottom edge. With `back` the band

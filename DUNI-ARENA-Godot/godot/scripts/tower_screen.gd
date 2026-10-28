@@ -210,12 +210,12 @@ func select_room(id: String) -> void:
 	_show_selected_room()
 	if discovered and target!=null:
 		_update_fx_context()
-		fx.enqueue({"kind":"entry","room_id":id,"key":"entry:"+id,"icon":String(target.room_type) if target.room_type!=RoomType.EVENT else String(target.event_type),"title":RoomType.LABELS[target.room_type],"word":TypeArt.word(target.room_type),"detail":"%d층 · %d번 방"%[target.floor_index+1,target.lane+1]})
+		fx.enqueue({"kind":"entry","room_id":id,"key":"entry:"+id,"icon":String(target.room_type) if target.room_type!=RoomType.EVENT else String(target.event_type),"title":RoomType.LABELS[target.room_type],"word":TypeArt.room_word(target),"detail":"%d층 · %d번 방"%[target.floor_index+1,target.lane+1]})
 		_discovery_flight(id,origin)
 func _show_selected_room() -> void:
 	if is_instance_valid(battle_screen) or is_instance_valid(content_screen):return
 	var room: RoomState=controller.current_room()
-	UiTransition.play("forward",TypeArt.word(room.room_type) if room!=null else "")
+	UiTransition.play("forward",TypeArt.room_word(room) if room!=null else "")
 	# Battle rooms have their own music (miniboss and chapter boss rooms their own again); every
 	# other room keeps the tower theme.
 	BackgroundMusic.play(BackgroundMusic.battle_track(room.room_type) if controller.guild.state.tower.phase==&"deploy" else &"tower")

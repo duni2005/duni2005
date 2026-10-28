@@ -10,6 +10,8 @@ const SUPPORT = [4,5,15,16,17,19,24,25,27,29]
 const BOSS_POOL = [0,2,4,7,9,10,11,12,13]
 const FORMATIONS = [&"전열", &"분산", &"쌍익", &"포위", &"밀집"]
 const ITEMS = ItemCatalog.KINDS
+## Chance that a floor's second service room is the blacksmith instead of the shop.
+const BLACKSMITH_CHANCE: float = .5
 var rng := RandomNumberGenerator.new()
 var catalog: Dictionary = CharacterCatalog.all()
 static func room_count(depth: int) -> int: return 6 + floori(maxi(0,depth)/3.0)
@@ -34,7 +36,11 @@ func kinds(depth: int) -> Array:
 	else:
 		for i in range(q.battle-int(milestone==RoomType.MINIBOSS)):list.append(RoomType.BATTLE)
 		for i in range(q.rest):list.append(RoomType.REST)
-		for i in range(q.services):list.append(RoomType.RECRUIT if i==0 else RoomType.SHOP if i==1 else RoomType.RECRUIT if rng.randf()<.5 else RoomType.SHOP)
+		# Services: a recruit, then the shop or the blacksmith, then any of the three.
+		for i in range(q.services):
+			if i==0:list.append(RoomType.RECRUIT)
+			elif i==1:list.append(TowerController.BLACKSMITH if rng.randf()<BLACKSMITH_CHANCE else RoomType.SHOP)
+			else:list.append([RoomType.RECRUIT,RoomType.SHOP,TowerController.BLACKSMITH][rng.randi_range(0,2)])
 		for i in range(q.event):list.append(RoomType.EVENT)
 	shuffle(list)
 	if milestone!=&"":list.insert(floori(count/2.0),milestone)
@@ -124,6 +130,8 @@ func generate(seed_value: int,run_id: String) -> TowerMapState:
 		floor.required_clear_count=ceili(types.size()/2.0)
 		for lane in range(types.size()):
 			var room:=RoomState.new("%d:%d"%[depth,lane]);room.source_run_id=run_id;room.floor_index=depth;room.chapter_index=floor.chapter_index;room.lane=lane;room.room_type=types[lane]
+			# The blacksmith is an event room that comes from the service slots.
+			if types[lane]==TowerController.BLACKSMITH:room.room_type=RoomType.EVENT;room.event_type=TowerController.BLACKSMITH
 			room.publicly_visible=room.room_type in [RoomType.MINIBOSS,RoomType.BOSS]
 			room.gold_reward=1000 if room.room_type==RoomType.BOSS else 700 if room.room_type==RoomType.MINIBOSS else 350+depth*50
 			room.token_reward=3 if room.room_type==RoomType.BOSS else 2 if room.room_type==RoomType.MINIBOSS else 1 if RoomType.is_combat(room.room_type) else 0

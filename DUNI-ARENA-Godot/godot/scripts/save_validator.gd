@@ -94,6 +94,8 @@ static func validate_run(run: RunState) -> SaveLoadResult:
 	if run.next_member_number<=highest or run.next_member_number<1:return reject("member_counter")
 	var inventory:=InventoryService.new(run)
 	if not inventory.valid():return reject("inventory_identity_or_ownership")
+	for item in run.inventory:
+		if item.enhance<0 or item.enhance>ItemCatalog.MAX_ENHANCE or item.enhance>0 and ItemCatalog.get_item(item.kind).grade!=&"rare":return reject("item_enhance")
 	for member in run.guild_members.values():
 		if inventory.equipped(member.member_id).size()>GuildMemberCombatStats.equipment_limit(member):return reject("equipment_slots")
 	var cards: Dictionary={};highest=0
@@ -196,9 +198,9 @@ static func validate_room(room: RoomState) -> String:
 	if room.event!=null:
 		var event: EventState=room.event
 		if room.room_type!=RoomType.EVENT or event.event_type!=room.event_type:return "event"
-		if event.event_type not in [&"prediction",&"supply",&"hotSpring",&"tokenShop"]:return "event_type"
+		if event.event_type not in TowerController.EVENT_TYPES+[TowerController.BLACKSMITH]:return "event_type"
 		for key in event.purchases:
-			var offer=TowerContentService.TOKEN_SHOP.get(StringName(key))
+			var offer=TowerContentService.TOKEN_SHOP.get(StringName(key)) if event.event_type==&"tokenShop" else {"limit":TowerContentService.BLACKSMITH_TRADES} if event.event_type==TowerController.BLACKSMITH and key=="trade" else null
 			var count=event.purchases[key]
 			if offer==null or not (count is int or count is float) or int(count)<0 or int(offer.limit)>0 and int(count)>int(offer.limit):return "token_shop_purchases"
 		if event.prediction!=null and (not PredictionRules.valid(event.prediction) or event.prediction.status not in [&"ready",&"resolved"]):return "prediction_state"

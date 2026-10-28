@@ -4,7 +4,7 @@ extends RefCounted
 const SCALARS = {
 	"run":{"run_id":"s","next_member_number":"i","settled_battle_ids":"d","player_max_hp":"f","player_hp":"f","game_over":"b","game_over_reason":"i","death_losses_by_result_id":"d","next_strategy_card_number":"i","strategy_use_receipts":"d","gold":"i","tokens":"i","next_item_number":"i","inventory_receipts":"d","transaction_receipts":"d","content_receipts":"d","sortie_level":"i"},
 	"member":{"member_id":"s","unit_type_id":"i","total_exp":"i","stars":"i","current_hp":"f","energy":"i","ultimate_gauge":"f","transcendence_gauge":"f","stance":"n","character_specific_state":"d","fang_kills":"i"},
-	"item":{"item_id":"i","kind":"n","equipped_to_member_id":"s","consumed":"b"},
+	"item":{"item_id":"i","kind":"n","equipped_to_member_id":"s","consumed":"b","enhance":"i"},
 	"card":{"card_id":"i","kind":"n","used_depth":"i","used_floors":"ai","ready_floor":"i","consumed":"b"},
 	"progress":{"current_depth":"i","unlocked_floor":"i"},
 	"tower":{"current_chapter":"i","unlocked_floor":"i","selected_room_id":"s","phase":"n","visited_rooms":"d","cleared_rooms":"d","floor_conquest":"d","chapter_progress":"d","result":"n","conquered":"b","processed_results":"d","map_scroll_y":"i","last_content_outcome":"d"},

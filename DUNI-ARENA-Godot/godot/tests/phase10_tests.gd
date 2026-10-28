@@ -268,6 +268,53 @@ func token_shop() -> void:
 	t=tower();t.guild.state.tokens=30;enter_event(t,&"tokenShop")
 	for i in range(10):t.content_action(&"token_shop",{"choice":&"heal"})
 	verify(not t.content_action(&"token_shop",{"choice":&"heal"}).ok and t.guild.state.tokens==20,"heal ten times max")
+func blacksmith() -> void:
+	groups+=1
+	verify(ItemCatalog.get_item(&"leatherArmor").gold_price==120 and ItemCatalog.get_item(&"woodSword").gold_price==130 and ItemCatalog.get_item(&"ether").gold_price==140 and ItemCatalog.get_item(&"hawkFeather").gold_price==160,"basic prices by item")
+	verify(ItemCatalog.BASIC.all(func(k):return ItemCatalog.get_item(k).gold_price>=120 and ItemCatalog.get_item(k).gold_price<=160),"basic prices 120~160")
+	verify(ItemCatalog.sell_price(&"currentOrb")==80 and ItemCatalog.sell_price(&"verdantStone")==60 and ItemCatalog.sell_price(&"woodSword+staff")==0 and ItemCatalog.sell_price(&"phoenixFeather")==0,"sell half, basics only")
+	var found: int=0
+	for seed_value in range(8):
+		var run:=TowerController.new();run.new_run(seed_value+1,seed_value+2)
+		for room in run.guild.state.tower.map.rooms.values():
+			if room.event_type==TowerController.BLACKSMITH:found+=1;verify(room.room_type==RoomType.EVENT and room.floor_index>0 and room.floor_index%5!=4,"blacksmith is a service-slot event room")
+		run.select_room("0:4");verify(run.current_room().event_type in TowerController.EVENT_TYPES,"blacksmith never rolled on discovery")
+	verify(found>=8,"blacksmith rooms generated (%d)"%found)
+	var t:=tower();t.guild.state.gold=10000;var m: GuildMemberState=t.guild.all_members()[0];var other: GuildMemberState=t.guild.all_members()[1]
+	var a: ItemInstance=t.content.inventory.give(&"woodSword");var b: ItemInstance=t.content.inventory.give(&"hawkFeather")
+	t.content_action(&"equip",{"item_id":a.item_id,"member_id":m.member_id})
+	var rare: ItemInstance=t.content.inventory.get_item(int(t.content_action(&"equip",{"item_id":b.item_id,"member_id":m.member_id}).outcome.item_id))
+	var before: float=t.guild.member_stats(m).physical_damage
+	verify(rare.equipped_to_member_id==m.member_id and not t.content_action(&"enhance",{"item_id":rare.item_id}).ok,"enhance needs the blacksmith")
+	enter_event(t,TowerController.BLACKSMITH);verify(not t.return_map(),"open blacksmith locks map")
+	var start: int=t.guild.state.gold
+	for i in range(5):verify(t.content_action(&"enhance",{"item_id":rare.item_id}).ok and rare.enhance==i+1,"equipped rare enhances to +%d"%(i+1))
+	verify(t.guild.state.gold==start-3060 and not t.content_action(&"enhance",{"item_id":rare.item_id}).ok and t.guild.state.gold==start-3060,"+5 costs 3060, then stops")
+	var base: ItemData=ItemCatalog.get_item(rare.kind);var up: ItemData=ItemCatalog.of(rare)
+	verify(is_equal_approx(up.physical_bonus,base.physical_bonus*1.6) and is_equal_approx(up.attack_speed_bonus,base.attack_speed_bonus*1.6) and is_equal_approx(up.speed_multiplier-1,(base.speed_multiplier-1)*1.6),"+5 boosts stats by 60%")
+	verify(up.opening_awl==base.opening_awl and is_equal_approx(up.ability_power,base.ability_power) and up.display_name==base.display_name+" +5" and base.display_name.find("+")<0,"abilities unchanged, name shows +5")
+	verify(t.guild.member_stats(m).physical_damage>before,"enhanced gear counts in combat stats")
+	var staff: ItemInstance=t.content.inventory.give(&"staff");var gold: int=t.guild.state.gold
+	verify(not t.content_action(&"enhance",{"item_id":staff.item_id}).ok and t.guild.state.gold==gold,"basic items cannot be enhanced")
+	verify(t.content_action(&"sell",{"item_id":staff.item_id}).ok and t.guild.state.gold==gold+65 and staff.consumed,"sell staff for 65")
+	verify(not t.content_action(&"sell",{"item_id":staff.item_id}).ok and not t.content_action(&"sell",{"item_id":rare.item_id}).ok and t.guild.state.gold==gold+65,"no resale, no rare sale")
+	var worn: ItemInstance=t.content.inventory.give(&"leatherArmor");t.content_action(&"equip",{"item_id":worn.item_id,"member_id":other.member_id})
+	verify(not t.content_action(&"sell",{"item_id":worn.item_id}).ok,"equipped basics cannot be sold")
+	var x: ItemInstance=t.content.inventory.give(&"staff");var y: ItemInstance=t.content.inventory.give(&"redThorn")
+	var offers: Array[StringName]=t.content.trade_offers([x.item_id,y.item_id])
+	verify(offers.size()==3 and offers[0]==ItemCatalog.combined_kind(&"staff",&"redThorn") and offers.all(func(k):return ItemCatalog.get_item(k).grade==&"rare") and offers[1]!=offers[2] and not offers[0] in offers.slice(1),"three rare offers led by the pair's combination")
+	verify(offers==t.content.trade_offers([y.item_id,x.item_id]),"offer fixed for the pair")
+	verify(t.content.trade_offers([x.item_id,worn.item_id]).is_empty() and not t.content_action(&"trade",{"items":[x.item_id,worn.item_id],"kind":offers[0]}).ok,"equipped items are not materials")
+	var outside: StringName=ItemCatalog.all().values().filter(func(i):return i.grade==&"rare" and not i.kind in offers)[0].kind
+	verify(not t.content_action(&"trade",{"items":[x.item_id,y.item_id],"kind":outside}).ok and not x.consumed,"only offered items")
+	var traded: Dictionary=t.content_action(&"trade",{"items":[x.item_id,y.item_id],"kind":offers[2]})
+	verify(traded.ok and x.consumed and y.consumed and t.content.inventory.get_item(int(traded.outcome.item_id)).kind==offers[2],"trade gives the picked rare")
+	var p: ItemInstance=t.content.inventory.give(&"ether");var q: ItemInstance=t.content.inventory.give(&"ether")
+	verify(t.content_action(&"trade",{"items":[p.item_id,q.item_id],"kind":t.content.trade_offers([p.item_id,q.item_id])[1]}).ok,"second trade")
+	var r: ItemInstance=t.content.inventory.give(&"staff");var u: ItemInstance=t.content.inventory.give(&"staff")
+	verify(not t.content_action(&"trade",{"items":[r.item_id,u.item_id],"kind":ItemCatalog.combined_kind(&"staff",&"staff")}).ok and not r.consumed,"two trades per visit")
+	verify(t.content_action(&"event",{"choice":&"leave"}).ok and t.current_room().cleared and t.return_map(),"지도로 clears the blacksmith")
+	verify(not t.content_action(&"sell",{"item_id":r.item_id}).ok,"closed blacksmith does nothing")
 func rewards_transactions() -> void:
 	groups+=1
 	var t:=tower();var member: GuildMemberState=t.guild.all_members()[0];give(t,&"greenNecklace",member);member.current_hp=0;member.energy=0
@@ -383,5 +430,5 @@ func invalid_operations() -> void:
 	for member in t.guild.all_members():member.current_hp=0
 	verify(not t.content_action(&"upgrade",{"member_id":t.guild.all_members()[0].member_id}).ok and t.guild.state.game_over,"content does not revive a gameover guild")
 func run(tree: SceneTree) -> void:
-	host=tree;golden();recruit_shop();equipment_growth();growth_rules();promotion();rest_events();token_shop();rewards_transactions();prediction();combat();invalid_operations()
+	host=tree;golden();recruit_shop();equipment_growth();growth_rules();promotion();rest_events();token_shop();blacksmith();rewards_transactions();prediction();combat();invalid_operations()
 	print("PHASE 10 RESULT: ",groups," groups; ",checks," checks; ",failures," failures")

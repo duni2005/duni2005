@@ -5,14 +5,16 @@ extends RefCounted
 ## v2: members store total experience instead of a level, the run stores sortie upgrades, and the
 ## promotion event room is gone.
 ## v3: events record token shop purchases.
-const CURRENT_VERSION=3
-const MIGRATION_LABEL="token-shop-v3"
+## v4: items store their blacksmith enhancement.
+const CURRENT_VERSION=4
+const MIGRATION_LABEL="blacksmith-v4"
 static func prepare(value: Variant) -> SaveLoadResult:
 	if not value is Dictionary or not SaveValueCodec.integer(value.get("schema_version")):
 		return SaveLoadResult.failure(SaveLoadResult.Code.VALIDATION_ERROR,"schema_required")
 	var document: Dictionary=value
 	if int(document.schema_version)==1:document=v1_to_v2(document)
 	if int(document.schema_version)==2:document=v2_to_v3(document)
+	if int(document.schema_version)==3:document=v3_to_v4(document)
 	if int(document.schema_version)!=CURRENT_VERSION:return SaveLoadResult.failure(SaveLoadResult.Code.UNSUPPORTED_VERSION,"unsupported_schema")
 	var result:=SaveLoadResult.new();result.document=document;return result
 ## Levels become the experience that reaches them, runs start without sortie upgrades, and a
@@ -43,4 +45,11 @@ static func v2_to_v3(source: Dictionary) -> Dictionary:
 	var run=document.get("run");var tower=run.get("tower") if run is Dictionary else null;var map=tower.get("map") if tower is Dictionary else null
 	for room in map.get("rooms",[]) if map is Dictionary and map.get("rooms") is Array else []:
 		if room is Dictionary and room.get("event") is Dictionary and not room.event.has("purchases"):room.event["purchases"]={}
+	return document
+## Every item starts unenhanced.
+static func v3_to_v4(source: Dictionary) -> Dictionary:
+	var document: Dictionary=source.duplicate(true);document.schema_version=4;document.migration_version=MIGRATION_LABEL
+	var run=document.get("run")
+	for item in run.get("inventory",[]) if run is Dictionary and run.get("inventory") is Array else []:
+		if item is Dictionary and not item.has("enhance"):item["enhance"]=0
 	return document

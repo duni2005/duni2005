@@ -8,6 +8,8 @@ const REST_REVIVE_LIMIT = 3
 ## Token shop event offers: token price and how many times each can be bought in one visit
 ## (0 = no limit). revive: one chosen dead member at 20% HP; heal: every living member +5% HP;
 ## item: a random basic item; card: a random strategy card; restore: one chosen living member to full.
+## Blacksmith: basic-pair trades allowed per visit.
+const BLACKSMITH_TRADES = 2
 const TOKEN_SHOP = {
 	&"revive":{"tokens":2,"limit":3},
 	&"heal":{"tokens":1,"limit":10},
@@ -65,6 +67,8 @@ func ensure_event(node: RoomState) -> void:
 		&"prediction":event.prediction=PredictionRules.create(rng)
 		# The token shop stays open for any number of purchases; leaving ends the event.
 		&"tokenShop":event.choices=[&"leave"]
+		# The blacksmith likewise stays open until 지도로.
+		&"blacksmith":event.choices=[&"leave"]
 func completion(choice: StringName,outcome: Dictionary={},stay: bool=false) -> Dictionary:
 	var node: RoomState=room();var result:=RoomContentResult.new();result.room_id=node.room_id;result.choice=choice;result.outcome=outcome.duplicate(true);result.stay_for_result=stay
 	result.receipt="%s:visit:%d:complete"%[node.room_id,node.content_visits]
@@ -225,6 +229,58 @@ func token_shop(choice: StringName,member_id: String="") -> Dictionary:
 			var kinds: Array=StrategyCardCatalog.DEFINITIONS.keys();outcome["card_id"]=guild.state.give_strategy_card(kinds[rng.randi_range(0,kinds.size()-1)]).card_id
 	e.purchases[String(choice)]=bought+1
 	return success(outcome)
+## The open blacksmith event of the current room, or null.
+func blacksmith_event() -> EventState:
+	if not live() or room()==null or guild.state.tower.phase!=&"event_active" or room().event==null or room().event.event_type!=TowerController.BLACKSMITH or room().event.resolved:return null
+	return room().event
+## Raises a rare item (equipped or not) one level, up to ItemCatalog.MAX_ENHANCE; always succeeds.
+func blacksmith_enhance(item_id: int) -> Dictionary:
+	if blacksmith_event()==null:return failure(&"wrong_event")
+	var instance: ItemInstance=inventory.get_item(item_id)
+	if instance==null or instance.consumed or not ItemCatalog.can_enhance(instance):return failure(&"invalid_target")
+	var cost: int=ItemCatalog.ENHANCE_COSTS[instance.enhance];var receipt: String="%s:enhance:%d:%d"%[room().room_id,item_id,instance.enhance+1]
+	if not ResourceTransaction.can_spend(guild.state,cost,0,receipt):return failure(&"funds")
+	ResourceTransaction.spend(guild.state,cost,0,receipt);instance.enhance+=1
+	return success({"item_id":item_id,"enhance":instance.enhance,"gold_spent":cost})
+## Two unequipped basic items, or [] when the ids do not name such a pair.
+func trade_materials(ids: Array) -> Array[ItemInstance]:
+	var items: Array[ItemInstance]=[]
+	if ids.size()!=2 or int(ids[0])==int(ids[1]):return items
+	for id in ids:
+		var item: ItemInstance=inventory.get_item(int(id))
+		if item==null or item.consumed or not item.equipped_to_member_id.is_empty() or ItemCatalog.get_item(item.kind).grade!=&"common":items.clear();return items
+		items.append(item)
+	return items
+## The three rare items offered for a pair: the pair's own combination first, then two others.
+## Fixed for the room, trade number and pair, so changing the pair back shows the same offer.
+func trade_offers(ids: Array) -> Array[StringName]:
+	var offers: Array[StringName]=[];var items: Array[ItemInstance]=trade_materials(ids)
+	if items.is_empty() or room()==null:return offers
+	var own: StringName=ItemCatalog.combined_kind(items[0].kind,items[1].kind);offers.append(own)
+	var pool: Array=ItemCatalog.all().values().filter(func(i):return i.grade==&"rare" and i.kind!=own).map(func(i):return i.kind)
+	var pick:=RandomNumberGenerator.new();pick.seed=hash([room().source_run_id,room().room_id,int(room().event.purchases.get("trade",0)),String(own)])
+	for i in range(2):offers.append(pool.pop_at(pick.randi_range(0,pool.size()-1)))
+	return offers
+## Trades two basic items for one of the three offered rare items (BLACKSMITH_TRADES per visit).
+func blacksmith_trade(ids: Array,kind: StringName) -> Dictionary:
+	var e: EventState=blacksmith_event()
+	if e==null:return failure(&"wrong_event")
+	var done: int=int(e.purchases.get("trade",0))
+	if done>=BLACKSMITH_TRADES:return failure(&"sold_out")
+	if not inventory.valid():return failure(&"invalid_inventory")
+	var items: Array[ItemInstance]=trade_materials(ids)
+	if items.is_empty():return failure(&"invalid_selection")
+	if not kind in trade_offers(ids):return failure(&"invalid_choice")
+	for item in items:item.consumed=true
+	var made: ItemInstance=inventory.give(kind,"%s:trade:%d"%[room().room_id,done]);e.purchases["trade"]=done+1
+	return success({"item_id":made.item_id,"components":ids.duplicate()})
+## Sells an unequipped basic item for half its price.
+func blacksmith_sell(item_id: int) -> Dictionary:
+	if blacksmith_event()==null:return failure(&"wrong_event")
+	var instance: ItemInstance=inventory.get_item(item_id)
+	if instance==null or instance.consumed or not instance.equipped_to_member_id.is_empty() or ItemCatalog.sell_price(instance.kind)<=0:return failure(&"invalid_target")
+	var gold: int=ItemCatalog.sell_price(instance.kind);instance.consumed=true;guild.state.gold+=gold
+	return success({"item_id":item_id,"gold":gold})
 func event(choice: StringName) -> Dictionary:
 	if not live() or room()==null or guild.state.tower.phase!=&"event_active" or room().cleared or room().event==null or room().event.resolved:return failure(&"wrong_event")
 	var e: EventState=room().event;var outcome: Dictionary={"choice":choice}
@@ -249,7 +305,7 @@ func event(choice: StringName) -> Dictionary:
 				&"unit":outcome["member_id"]=guild.create_member(rng.randi_range(0,25)).member_id
 				&"tokens":guild.state.tokens+=3;outcome["tokens"]=3
 				_:var gold: int=int(String(reward).trim_prefix("gold"));guild.state.gold+=gold;outcome["gold"]=gold
-	elif e.event_type==&"tokenShop":outcome["purchases"]=e.purchases.duplicate()
+	elif e.event_type in [&"tokenShop",TowerController.BLACKSMITH]:outcome["purchases"]=e.purchases.duplicate()
 	elif e.event_type==&"supply":
 		match choice:
 			&"heal":guild.state.player_hp+=10
@@ -313,6 +369,9 @@ func execute(action: StringName,options: Dictionary={}) -> Dictionary:
 		&"rest":return rest(options.get("choice",&""),options.get("members",[]))
 		&"event":return event(options.get("choice",&""))
 		&"token_shop":return token_shop(options.get("choice",&""),options.get("member_id",""))
+		&"enhance":return blacksmith_enhance(options.get("item_id",0))
+		&"trade":return blacksmith_trade(options.get("items",[]),options.get("kind",&""))
+		&"sell":return blacksmith_sell(options.get("item_id",0))
 		&"sortie_upgrade":return upgrade_sortie()
 		&"promote":return promote(options.get("member_id",""),options.get("materials",[]))
 	return failure(&"invalid_action")

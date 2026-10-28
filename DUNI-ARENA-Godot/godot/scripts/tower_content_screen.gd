@@ -32,6 +32,11 @@ var speed_buttons: Dictionary={}
 var battle: BattleManager
 var rendered_prediction_finished: bool = false
 var content_tab: String="equipment"
+const SHOP_TABS=[["equipment","장비 구매"],["card","전략카드"],["inventory","인벤토리"]]
+const BLACKSMITH_TABS=[["enhance","강화"],["trade","교환"],["sell","판매"]]
+## Blacksmith: the rare item chosen on the 강화 tab and the basic items put in for a trade.
+var forge_pick: int=0
+var trade_pick: Array[int]=[]
 var motion_tab: String=""
 var emblem: PanelEmblem
 var deal_cards: bool=false
@@ -72,7 +77,7 @@ func _ready() -> void:
 	room_title=Label.new();room_title.text=RoomType.LABELS[controller.current_room().room_type];room_title.size_flags_horizontal=Control.SIZE_EXPAND_FILL;room_title.add_theme_font_override("font",ArenaUI.heading_font());room_title.add_theme_font_size_override("font_size",20);room_title.add_theme_color_override("font_color",ArenaUI.GOLD);actions.add_child(room_title)
 	var rule:=StyleBoxFlat.new();rule.bg_color=Color.TRANSPARENT;rule.content_margin_bottom=5;room_title.add_theme_stylebox_override("normal",rule)
 	# The gold rule under the title is drawn by its TitleFx, out from the centre.
-	TitleFx.attach(room_title,TypeArt.word(controller.current_room().room_type),true).play(.1)
+	TitleFx.attach(room_title,TypeArt.room_word(controller.current_room()),true).play(.1)
 	map_footer=CenterContainer.new();column.add_child(map_footer)
 	map_button=button(map_footer,"지도로",_return_map);map_button.custom_minimum_size.y=48;ArenaUI.primary(map_button);ArenaUI.with_icon(map_button,"play",12,true)
 	# Lift the footer to the deploy screen's "전투 시작" height.
@@ -88,7 +93,9 @@ func _ready() -> void:
 		storage_status=Label.new();storage_status.text="";storage_status.add_theme_font_size_override("font_size",11);storage_status.horizontal_alignment=HORIZONTAL_ALIGNMENT_RIGHT;storage_status.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT);storage_status.offset_left=-250;storage_status.offset_top=-20;add_child(storage_status)
 		controller.save_manager.status_changed.connect(_storage_status)
 	content_tabs=HBoxContainer.new();room_column.add_child(content_tabs)
-	for pair in [["equipment","장비 구매"],["card","전략카드"],["inventory","인벤토리"]]:
+	var forge: bool=controller.current_room().event_type==TowerController.BLACKSMITH
+	if forge:content_tab="enhance"
+	for pair in BLACKSMITH_TABS if forge else SHOP_TABS:
 		var tab:=Button.new();tab.text=pair[1];tab.toggle_mode=true;tab.custom_minimum_size.y=36;tab.size_flags_horizontal=Control.SIZE_EXPAND_FILL;tab.set_meta("tab",pair[0]);ArenaUI.tab(tab);content_tabs.add_child(tab)
 		tab.pressed.connect(func():content_tab=pair[0];render())
 	scroll=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;room_column.add_child(scroll)
@@ -156,15 +163,15 @@ func render() -> void:
 	party_strip.visible=current.room_type==RoomType.REST or current.event_type in [&"hotSpring",&"supply",&"tokenShop"]
 	if party_strip.visible:_refresh_party()
 	status.visible=not status.text.is_empty()
-	content_tabs.visible=controller.current_room().room_type==RoomType.SHOP
-	for tab in content_tabs.get_children():tab.button_pressed=tab.get_meta("tab")==content_tab
 	var node: RoomState=controller.current_room();var phase: StringName=controller.guild.state.tower.phase
+	content_tabs.visible=node.room_type==RoomType.SHOP or node.event_type==TowerController.BLACKSMITH and phase==&"event_active"
+	for tab in content_tabs.get_children():tab.button_pressed=tab.get_meta("tab")==content_tab
 	map_button.disabled=not TowerNavigationPolicy.can_return(controller.guild.state)
 	# The original hides the map action until an event has actually resolved.
 	map_button.visible=node.room_type!=RoomType.EVENT or node.cleared
 	map_button.text="지도로"
-	# The token shop is left like a shop: its button ends the event and returns to the map.
-	if node.event_type==&"tokenShop" and not node.cleared and phase==&"event_active":map_button.visible=true;map_button.disabled=false;map_button.text="상점 나가기"
+	# The token shop and the blacksmith are left like a shop: the button ends the event and returns to the map.
+	if node.event_type in [&"tokenShop",TowerController.BLACKSMITH] and not node.cleared and phase==&"event_active":map_button.visible=true;map_button.disabled=false;map_button.text="상점 나가기" if node.event_type==&"tokenShop" else "지도로"
 	map_footer.visible=map_button.visible;footer_gap.visible=map_footer.visible
 	abandon_button.disabled=controller.guild.state.game_over or is_instance_valid(battle) and not battle.finished
 	if content_tabs.visible and motion_tab!=content_tab:
@@ -262,6 +269,7 @@ func render_token_shop(node: RoomState) -> void:
 		card.disabled=(limit>0 and bought>=limit) or tokens<int(offer.tokens) or not target
 func render_event(node: RoomState) -> void:
 	if node.event_type==&"tokenShop":render_token_shop(node);return
+	if node.event_type==TowerController.BLACKSMITH:render_blacksmith(node);return
 	if node.event.resolved:
 		if node.event.selected_choice==&"bathe":_result("hotSpring","온천욕 완료","따뜻한 온천에서 생존 유닛들이 회복했습니다.",Color("7fd8e8"),["HP +10%"])
 		else:_result("gold","복권 당첨","온천 복권에서 보상을 얻었습니다.",ArenaUI.GOLD,[_event_reward_text(node.event.outcome)])
@@ -365,7 +373,7 @@ func _process(_delta: float) -> void:
 		call_deferred("render")
 func _return_map() -> void:
 	var node: RoomState=controller.current_room()
-	if node!=null and node.event_type==&"tokenShop" and not node.cleared and controller.guild.state.tower.phase==&"event_active":
+	if node!=null and node.event_type in [&"tokenShop",TowerController.BLACKSMITH] and not node.cleared and controller.guild.state.tower.phase==&"event_active":
 		if not controller.content_action(&"event",{"choice":&"leave"}).ok:return
 	if controller.return_map():map_requested.emit()
 
@@ -380,8 +388,89 @@ func _present_action(action: StringName,outcome: Dictionary) -> void:
 		event.merge({"title":"구매 완료","icon":"shop","detail":outcome_text(gained)})
 	elif action==&"reroll":event.merge({"title":"새로운 모집 후보","icon":"recruit","detail":"리롤 완료"})
 	elif action==&"token_shop":event.merge({"title":"토큰 상점","icon":"gem","detail":_token_detail(outcome)})
+	elif action==&"enhance":event.merge({"title":"강화 성공","icon":"anvil","detail":_item_name(outcome.item_id)})
+	elif action==&"trade":trade_pick.clear();event.merge({"title":"교환 완료","icon":"anvil","detail":_item_name(outcome.item_id)})
+	elif action==&"sell":event.merge({"title":"판매 완료","icon":"gold","detail":"+%d G"%int(outcome.gold)})
 	elif action in [&"rest",&"event"]:event.merge({"title":"휴식 완료" if action==&"rest" else "이벤트 완료","icon":"rest" if action==&"rest" else "event","detail":outcome_text(outcome)})
 	presentation_requested.emit(event)
+func _item_name(id: int) -> String:
+	var item: ItemInstance=controller.content.inventory.get_item(id)
+	return ItemCatalog.of(item).display_name if item!=null else ""
+## Blacksmith: 강화 (rare items to +5), 교환 (two basics for one of three rares), 판매 (basics at half price).
+func render_blacksmith(node: RoomState) -> void:
+	match content_tab:
+		"trade":_render_trade(node)
+		"sell":_render_sell()
+		_:_render_enhance()
+func _hint(text: String) -> void:
+	var label:=Label.new();label.text=text;label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;label.add_theme_font_size_override("font_size",13);label.add_theme_color_override("font_color",ArenaUI.MUTED);label.custom_minimum_size.y=48;content_box.add_child(label)
+func _grid(columns: int) -> GridContainer:
+	var grid:=GridContainer.new();grid.columns=columns;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;grid.add_theme_constant_override("h_separation",6);grid.add_theme_constant_override("v_separation",6);content_box.add_child(grid);return grid
+## An inventory slot for an owned item, showing who wears it.
+func _item_slot(parent: Node,item: ItemInstance,caption: String,callback: Callable) -> ArenaCard:
+	var data: ItemData=ItemCatalog.of(item);var owner: GuildMemberState=controller.guild.get_member(item.equipped_to_member_id) if not item.equipped_to_member_id.is_empty() else null
+	var card:=ArenaCard.new();card.name="item_%d"%item.item_id;card.card_type="slot";card.slot_kind="equipped" if owner!=null else "equipment";card.kind=String(item.kind);card.title=data.display_name;card.description=data.description;card.text=data.display_name
+	card.rarity=ItemCatalog.instance_color(item);card.owner_type=owner.unit_type_id if owner!=null else -1;card.price=caption;card.tooltip_text=data.description
+	card.custom_minimum_size=Vector2(60,64);card.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ArenaUI.bind(card,callback);parent.add_child(card);return card
+func _render_enhance() -> void:
+	var rares: Array=controller.guild.state.inventory.filter(func(i):return not i.consumed and ItemCatalog.get_item(i.kind).grade==&"rare")
+	if rares.is_empty():_hint("강화할 희귀 아이템이 없습니다.\n교환 탭에서 일반 아이템 2개로 희귀 아이템을 만들 수 있습니다.");return
+	if not rares.any(func(i):return i.item_id==forge_pick):forge_pick=rares[0].item_id
+	_section("희귀 아이템 · 장착 중인 아이템도 강화할 수 있습니다")
+	var grid: GridContainer=_grid(4)
+	for item in rares:
+		var caption: String="최대" if item.enhance>=ItemCatalog.MAX_ENHANCE else "+%d → +%d"%[item.enhance,item.enhance+1]
+		var slot: ArenaCard=_item_slot(grid,item,caption,func():forge_pick=item.item_id;call_deferred("render"));slot.selected=item.item_id==forge_pick
+	var picked: ItemInstance=controller.content.inventory.get_item(forge_pick);var level: int=picked.enhance
+	var panel:=PanelContainer.new();panel.add_theme_stylebox_override("panel",ArenaUI.card_style(Color("4b5a86"),Color("121a2c")));content_box.add_child(panel)
+	var box:=VBoxContainer.new();box.add_theme_constant_override("separation",6);panel.add_child(box)
+	var heading_label:=Label.new();heading_label.text=ItemCatalog.of(picked).display_name;heading_label.add_theme_font_override("font",ArenaUI.heading_font());heading_label.add_theme_font_size_override("font_size",16);heading_label.add_theme_color_override("font_color",ItemCatalog.instance_color(picked));box.add_child(heading_label)
+	var lines: Array[String]=[]
+	if level>=ItemCatalog.MAX_ENHANCE:lines.append("최대 강화 · 스탯 +%d%%"%roundi(ItemCatalog.ENHANCE_BOOST[level]*100));lines.append(ItemCatalog.of(picked).description)
+	else:
+		lines.append("+%d → +%d · 스탯 +%d%% → +%d%%"%[level,level+1,roundi(ItemCatalog.ENHANCE_BOOST[level]*100),roundi(ItemCatalog.ENHANCE_BOOST[level+1]*100)])
+		lines.append("지금 · "+ItemCatalog.of(picked).description);lines.append("강화 후 · "+ItemCatalog.enhanced(picked.kind,level+1).description)
+	var detail:=Label.new();detail.text="\n".join(lines);detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;detail.add_theme_font_size_override("font_size",12);detail.add_theme_constant_override("line_spacing",4);box.add_child(detail)
+	var go:=Button.new();go.name="Enhance";go.custom_minimum_size.y=46;box.add_child(go)
+	if level>=ItemCatalog.MAX_ENHANCE:go.text="최대 강화";go.disabled=true
+	else:
+		var cost: int=ItemCatalog.ENHANCE_COSTS[level];ArenaUI.price_button(go,"강화","gold",cost);ArenaUI.bind(go,_action.bind(&"enhance",{"item_id":picked.item_id}));go.disabled=controller.guild.state.gold<cost
+func _render_trade(node: RoomState) -> void:
+	var left: int=TowerContentService.BLACKSMITH_TRADES-int(node.event.purchases.get("trade",0))
+	var commons: Array=controller.content.inventory.available().filter(func(i):return ItemCatalog.get_item(i.kind).grade==&"common")
+	trade_pick.assign(trade_pick.filter(func(id):return commons.any(func(i):return i.item_id==id)))
+	_section("재료 · 일반 아이템 2개   남은 교환 %d / %d"%[left,TowerContentService.BLACKSMITH_TRADES])
+	var slots: GridContainer=_grid(2)
+	for i in range(2):
+		if i<trade_pick.size():
+			var id: int=trade_pick[i];_item_slot(slots,controller.content.inventory.get_item(id),"빼기",func():trade_pick.erase(id);call_deferred("render"))
+		else:
+			var empty:=ArenaCard.new();empty.name="material_%d"%i;empty.card_type="slot";empty.kind="hidden";empty.title="재료 %d"%(i+1);empty.price="아래에서 선택";empty.custom_minimum_size=Vector2(60,64);empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.mouse_filter=Control.MOUSE_FILTER_IGNORE;slots.add_child(empty)
+	if left<=0:_hint("이번 방문의 교환을 모두 사용했습니다.");return
+	if trade_pick.size()==2:
+		_section("희귀 아이템 3개 중 1개 선택")
+		var offers: Array[StringName]=controller.content.trade_offers(trade_pick);var grid: GridContainer=_grid(3)
+		for i in range(offers.size()):
+			var data: ItemData=ItemCatalog.get_item(offers[i]);var b:=ArenaCard.new();b.name="offer_%d"%i;b.card_type="product";b.kind=String(offers[i]);b.title=data.display_name;b.text=data.display_name+" · 교환"
+			b.description=("두 재료의 조합 · " if i==0 else "")+data.description;b.rarity=ItemCatalog.grade_color(offers[i]);b.price="교환";b.custom_minimum_size=Vector2(0,168);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.tooltip_text=data.description
+			ArenaUI.bind(b,_action.bind(&"trade",{"items":trade_pick.duplicate(),"kind":offers[i]}));grid.add_child(b)
+	else:_hint("재료를 2개 넣으면 희귀 아이템 3개가 제시됩니다.\n하나는 두 재료의 조합 결과, 나머지 둘은 무작위입니다.")
+	_section("인벤토리 · 장착하지 않은 일반 아이템")
+	var pool: Array=commons.filter(func(i):return not i.item_id in trade_pick)
+	if pool.is_empty():_hint("재료로 쓸 일반 아이템이 없습니다.");return
+	var grid: GridContainer=_grid(4)
+	for item in pool:
+		var card: ArenaCard=_item_slot(grid,item,"넣기",func():if trade_pick.size()<2:trade_pick.append(item.item_id);call_deferred("render"))
+		card.disabled=trade_pick.size()>=2
+func _render_sell() -> void:
+	var commons: Array=controller.content.inventory.available().filter(func(i):return ItemCatalog.get_item(i.kind).grade==&"common")
+	_section("일반 아이템 판매 · 구매가의 50%")
+	if commons.is_empty():_hint("판매할 일반 아이템이 없습니다.\n장착 중인 아이템과 희귀·고대 아이템은 팔 수 없습니다.");return
+	var grid: GridContainer=_grid(3)
+	for item in commons:
+		var data: ItemData=ItemCatalog.get_item(item.kind);var b:=ArenaCard.new();b.name="sell_%d"%item.item_id;b.card_type="product";b.kind=String(item.kind);b.title=data.display_name;b.text=data.display_name+" · 판매"
+		b.description=data.description;b.rarity=ItemCatalog.grade_color(item.kind);b.price="+%d G"%ItemCatalog.sell_price(item.kind);b.custom_minimum_size=Vector2(0,168);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.tooltip_text=data.description
+		ArenaUI.bind(b,_action.bind(&"sell",{"item_id":item.item_id}));grid.add_child(b)
 func _token_detail(outcome: Dictionary) -> String:
 	match StringName(outcome.get("choice",&"")):
 		&"revive":return "유닛 부활"

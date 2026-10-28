@@ -7,7 +7,7 @@ static func assemble(data: UnitData,member: GuildMemberState,inventory: Inventor
 	var level: int=member.level
 	var stats:=UnitCombatStats.from_table(data,1+level*.12,1+level*.08,1+level*.08,1+level*.02)
 	for instance in inventory.equipped(member.member_id):
-		var item: ItemData=ItemCatalog.get_item(instance.kind)
+		var item: ItemData=ItemCatalog.of(instance)
 		if item==null:continue
 		stats.apply_item(item)
 	stats.finish_items()

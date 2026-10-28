@@ -162,6 +162,20 @@ func migration() -> void:
 	for r in over.run.tower.map.rooms:
 		if r.room_id=="0:4":r.event.purchases={"restore":3}
 	verify(not SaveSnapshotLoader.restore(over).ok(),"over-limit purchases reject")
+	# Item enhancement survives a save; v3 documents (no enhance) load; bad levels reject.
+	var forge: TowerController=TowerController.new();forge.new_run(19,73)
+	var gear: ItemInstance=forge.content.inventory.give(&"woodSword+staff");gear.enhance=3;forge.content.inventory.give(&"staff")
+	var saved: Dictionary=JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(forge,"save_forge",1).document))
+	var reloaded: SaveLoadResult=SaveSnapshotLoader.restore(saved.duplicate(true))
+	verify(reloaded.ok() and reloaded.controller.content.inventory.get_item(gear.item_id).enhance==3,"enhance round trip")
+	var v3: Dictionary=saved.duplicate(true);v3.schema_version=3
+	for item in v3.run.inventory:item.erase("enhance")
+	reloaded=SaveSnapshotLoader.restore(v3);verify(reloaded.ok() and reloaded.run.inventory.all(func(i):return i.enhance==0),"v3 save loads as v4, items +0")
+	for bad in [[gear.item_id,6],[gear.item_id+1,1]]:
+		var broken: Dictionary=saved.duplicate(true)
+		for item in broken.run.inventory:
+			if int(item.item_id)==bad[0]:item.enhance=bad[1]
+		verify(not SaveSnapshotLoader.restore(broken).ok(),"enhance above +5 or on a basic rejects")
 func run(host: SceneTree) -> void:
 	tree=host;location="user://phase11-tests/"+Crypto.new().generate_random_bytes(8).hex_encode();round_trip();invalid_saves();migration()
 	var fixture: Variant=JSON.parse_string(FileAccess.get_file_as_string("res://tests/fixtures/save_v1.json"));verify(fixture is Dictionary and SaveSnapshotLoader.restore(fixture).ok(),"fixed v1 compatibility fixture")

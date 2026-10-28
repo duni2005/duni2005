@@ -4,6 +4,8 @@ extends RefCounted
 signal changed
 ## Event rooms roll one of these when first discovered (types already met weigh less).
 const EVENT_TYPES: Array=[&"prediction",&"hotSpring",&"supply",&"tokenShop"]
+## The blacksmith event room is placed by the map generator, never rolled on discovery.
+const BLACKSMITH: StringName = &"blacksmith"
 var guild: GuildManager
 var generator := TowerMapGenerator.new()
 var combat_rng := RandomNumberGenerator.new()
@@ -46,7 +48,7 @@ func select_room(id: String) -> TowerNavigationPolicy.Code:
 	if code!=TowerNavigationPolicy.Code.OK:return code
 	var room: RoomState=guild.state.tower.map.get_room(id)
 	if not room.discovered:
-		if room.room_type==RoomType.EVENT and room.event_type not in EVENT_TYPES:
+		if room.room_type==RoomType.EVENT and room.event_type not in EVENT_TYPES and room.event_type!=BLACKSMITH:
 			var encountered: Array=[]
 			for other in guild.state.tower.map.rooms.values():
 				if other.discovered and other.room_type==RoomType.EVENT:encountered.append(other.event_type)
