@@ -31,6 +31,8 @@ var strategy_progress := StrategyProgressContext.new()
 var strategy_use_receipts: Dictionary = {}
 ## Sortie upgrades bought this run (see GrowthRules.sortie_limit).
 var sortie_level: int = 0
+## Mango faith stacks from offerings at mango saplings; a blessing spends them all.
+var mango_faith: int = 0
 func give_strategy_card(kind: StringName) -> StrategyCardInstance:
 	if StrategyCardCatalog.get_card(kind) == null: return null
 	var card := StrategyCardInstance.new()

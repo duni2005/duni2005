@@ -171,6 +171,11 @@ func migration() -> void:
 	var v3: Dictionary=saved.duplicate(true);v3.schema_version=3
 	for item in v3.run.inventory:item.erase("enhance")
 	reloaded=SaveSnapshotLoader.restore(v3);verify(reloaded.ok() and reloaded.run.inventory.all(func(i):return i.enhance==0),"v3 save loads as v4, items +0")
+	forge.guild.state.mango_faith=3;saved=JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(forge,"save_forge",1).document))
+	verify(SaveSnapshotLoader.restore(saved.duplicate(true)).run.mango_faith==3,"mango faith round trip")
+	var v4: Dictionary=saved.duplicate(true);v4.schema_version=4;v4.run.erase("mango_faith")
+	reloaded=SaveSnapshotLoader.restore(v4);verify(reloaded.ok() and reloaded.run.mango_faith==0,"v4 save loads as v5 without faith")
+	var negative: Dictionary=saved.duplicate(true);negative.run.mango_faith=-1;verify(not SaveSnapshotLoader.restore(negative).ok(),"negative faith rejects")
 	for bad in [[gear.item_id,6],[gear.item_id+1,1]]:
 		var broken: Dictionary=saved.duplicate(true)
 		for item in broken.run.inventory:

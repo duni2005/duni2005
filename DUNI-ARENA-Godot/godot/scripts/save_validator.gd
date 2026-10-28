@@ -82,7 +82,7 @@ static func validate(document: Dictionary) -> SaveLoadResult:
 	verified.document=document;verified.metadata=document.metadata;return verified
 static func validate_run(run: RunState) -> SaveLoadResult:
 	if not id_ok(run.run_id) or run.tower==null or run.strategy_progress==null or run.last_formation==null:return reject("run_identity")
-	if run.player_hp>run.player_max_hp or run.gold<0 or run.tokens<0:return reject("run_resources")
+	if run.player_hp>run.player_max_hp or run.gold<0 or run.tokens<0 or run.mango_faith<0:return reject("run_resources")
 	var tower: TowerRunState=run.tower
 	if tower.phase not in PHASES or tower.current_chapter<1 or tower.current_chapter>3 or tower.unlocked_floor<0 or tower.unlocked_floor>=15 or tower.map==null:return reject("tower_progress")
 	if run.strategy_progress.current_depth<0 or run.strategy_progress.current_depth>=15 or run.strategy_progress.unlocked_floor!=tower.unlocked_floor:return reject("strategy_progress")
@@ -200,7 +200,7 @@ static func validate_room(room: RoomState) -> String:
 		if room.room_type!=RoomType.EVENT or event.event_type!=room.event_type:return "event"
 		if event.event_type not in TowerController.EVENT_TYPES+[TowerController.BLACKSMITH]:return "event_type"
 		for key in event.purchases:
-			var offer=TowerContentService.TOKEN_SHOP.get(StringName(key)) if event.event_type==&"tokenShop" else {"limit":TowerContentService.BLACKSMITH_TRADES} if event.event_type==TowerController.BLACKSMITH and key=="trade" else null
+			var offer=TowerContentService.purchase_limits(event.event_type).get(StringName(key))
 			var count=event.purchases[key]
 			if offer==null or not (count is int or count is float) or int(count)<0 or int(offer.limit)>0 and int(count)>int(offer.limit):return "token_shop_purchases"
 		if event.prediction!=null and (not PredictionRules.valid(event.prediction) or event.prediction.status not in [&"ready",&"resolved"]):return "prediction_state"

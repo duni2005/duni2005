@@ -23,7 +23,8 @@ var guild_panel: GuildManagementPanel
 var revive_selection: Array[String] = []
 var selecting_revive: bool = false
 ## What the member picker is choosing for: &"rest" (up to REST_REVIVE_LIMIT dead members),
-## &"revive" (one dead member, token shop) or &"restore" (one hurt living member, token shop).
+## &"revive" (one dead member, token shop), &"restore" (one hurt living member, token shop) or
+## &"mango" (one dead member, mango sapling).
 var pick_mode: StringName = &"rest"
 var board: DeploymentBoard
 ## Watch speed for the prediction battle (1×/2×/4×), shown under its field while it runs.
@@ -160,7 +161,7 @@ func render() -> void:
 	room_title.text=ArenaUI.EVENT_NAMES.get(current.event_type,RoomType.LABELS[current.room_type])
 	emblem.icon=String(current.room_type) if current.room_type!=RoomType.EVENT else String(current.event_type)
 	emblem.caption="%d층 · %d번 방"%[current.floor_index+1,current.lane+1];emblem.visible=current.room_type!=RoomType.SHOP or content_tab!="inventory"
-	party_strip.visible=current.room_type==RoomType.REST or current.event_type in [&"hotSpring",&"supply",&"tokenShop"]
+	party_strip.visible=current.room_type==RoomType.REST or current.event_type in [&"hotSpring",&"supply",&"tokenShop",&"mangoSapling"]
 	if party_strip.visible:_refresh_party()
 	status.visible=not status.text.is_empty()
 	var node: RoomState=controller.current_room();var phase: StringName=controller.guild.state.tower.phase
@@ -171,7 +172,7 @@ func render() -> void:
 	map_button.visible=node.room_type!=RoomType.EVENT or node.cleared
 	map_button.text="지도로"
 	# The token shop and the blacksmith are left like a shop: the button ends the event and returns to the map.
-	if node.event_type in [&"tokenShop",TowerController.BLACKSMITH] and not node.cleared and phase==&"event_active":map_button.visible=true;map_button.disabled=false;map_button.text="상점 나가기" if node.event_type==&"tokenShop" else "지도로"
+	if node.event_type in [&"tokenShop",TowerController.BLACKSMITH,&"mangoSapling"] and not node.cleared and phase==&"event_active":map_button.visible=true;map_button.disabled=false;map_button.text="상점 나가기" if node.event_type==&"tokenShop" else "지도로"
 	map_footer.visible=map_button.visible;footer_gap.visible=map_footer.visible
 	abandon_button.disabled=controller.guild.state.game_over or is_instance_valid(battle) and not battle.finished
 	if content_tabs.visible and motion_tab!=content_tab:
@@ -233,6 +234,7 @@ func _show_revive(mode: StringName=&"rest") -> void:
 	revive_dialog.popup_centered(Vector2i(mini(520,int(get_viewport_rect().size.x)-32),300))
 func _confirm_revive() -> void:
 	if pick_mode==&"rest":_action(&"rest",{"choice":&"revive","members":revive_selection.duplicate()})
+	elif pick_mode==&"mango" and not revive_selection.is_empty():_action(&"mango",{"choice":&"revive","member_id":revive_selection[0]})
 	elif not revive_selection.is_empty():_action(&"token_shop",{"choice":pick_mode,"member_id":revive_selection[0]})
 	revive_dialog.hide()
 func _refresh_revive() -> void:
@@ -267,9 +269,25 @@ func render_token_shop(node: RoomState) -> void:
 		elif choice==&"restore":target=guild.living_members().any(func(m):return m.current_hp<guild.member_max_hp(m))
 		elif choice==&"heal":target=not guild.living_members().is_empty()
 		card.disabled=(limit>0 and bought>=limit) or tokens<int(offer.tokens) or not target
+## Mango sapling: a free revive, an offering for one faith stack and, when the party arrived with
+## faith, the blessing that turns all of it into gold. 지도로 ends the event.
+func render_mango(node: RoomState) -> void:
+	var run: RunState=controller.guild.state;var faith: int=run.mango_faith
+	var left:=func(choice: StringName) -> int:return int(TowerContentService.MANGO_LIMITS[choice].limit)-int(node.event.purchases.get(String(choice),0))
+	_section("망고 신앙 %d스택"%faith)
+	var grid: GridContainer=_event_choices()
+	var revive: ArenaCard=_choice(grid,"MangoRevive","아군 부활","사망 유닛 1명 · HP 20%%\n남은 사용 %d / 1"%left.call(&"revive"),"star",_show_revive.bind(&"mango"))
+	revive.disabled=left.call(&"revive")<=0 or controller.guild.all_members().all(func(m):return m.is_alive())
+	var offer: ArenaCard=_choice(grid,"MangoOffer","재물 올리기","망고 신앙 +1 · 방당 1회\n"+("사용 완료" if left.call(&"offer")<=0 else "신앙 %d → %d"%[faith,faith+1]),"mango",_action.bind(&"mango",{"choice":&"offer"}),"%d G"%TowerContentService.MANGO_OFFERING)
+	offer.disabled=left.call(&"offer")<=0 or run.gold<TowerContentService.MANGO_OFFERING
+	if &"bless" in node.event.choices:
+		var bless: ArenaCard=_choice(grid,"MangoBless","망고 나무의 축복","사용 완료" if left.call(&"bless")<=0 else "신앙 %d 모두 소모\n+%s G"%[faith,ArenaUI.grouped(TowerContentService.blessing_gold(faith))],"gold",_action.bind(&"mango",{"choice":&"bless"}))
+		bless.disabled=left.call(&"bless")<=0 or faith<=0
+	_hint("축복 보상 (신앙 1 · 2 · 3 · 4 · 5)\n%s G\n신앙을 가진 채 들어오면 축복을 받을 수 있습니다."%" · ".join([1,2,3,4,5].map(func(n):return ArenaUI.grouped(TowerContentService.blessing_gold(n)))))
 func render_event(node: RoomState) -> void:
 	if node.event_type==&"tokenShop":render_token_shop(node);return
 	if node.event_type==TowerController.BLACKSMITH:render_blacksmith(node);return
+	if node.event_type==&"mangoSapling":render_mango(node);return
 	if node.event.resolved:
 		if node.event.selected_choice==&"bathe":_result("hotSpring","온천욕 완료","따뜻한 온천에서 생존 유닛들이 회복했습니다.",Color("7fd8e8"),["HP +10%"])
 		else:_result("gold","복권 당첨","온천 복권에서 보상을 얻었습니다.",ArenaUI.GOLD,[_event_reward_text(node.event.outcome)])
@@ -373,7 +391,7 @@ func _process(_delta: float) -> void:
 		call_deferred("render")
 func _return_map() -> void:
 	var node: RoomState=controller.current_room()
-	if node!=null and node.event_type in [&"tokenShop",TowerController.BLACKSMITH] and not node.cleared and controller.guild.state.tower.phase==&"event_active":
+	if node!=null and node.event_type in [&"tokenShop",TowerController.BLACKSMITH,&"mangoSapling"] and not node.cleared and controller.guild.state.tower.phase==&"event_active":
 		if not controller.content_action(&"event",{"choice":&"leave"}).ok:return
 	if controller.return_map():map_requested.emit()
 
@@ -390,6 +408,11 @@ func _present_action(action: StringName,outcome: Dictionary) -> void:
 	elif action==&"token_shop":event.merge({"title":"토큰 상점","icon":"gem","detail":_token_detail(outcome)})
 	elif action==&"enhance":event.merge({"title":"강화 성공","icon":"anvil","detail":_item_name(outcome.item_id)})
 	elif action==&"trade":trade_pick.clear();event.merge({"title":"교환 완료","icon":"anvil","detail":_item_name(outcome.item_id)})
+	elif action==&"mango":
+		match StringName(outcome.get("choice",&"")):
+			&"revive":event.merge({"title":"유닛 부활","icon":"mango","detail":"망고나무 아래에서 되살아났습니다"})
+			&"offer":event.merge({"title":"망고 신앙 +1","icon":"mango","detail":"보유 신앙 %d"%int(outcome.faith)})
+			&"bless":event.merge({"title":"망고 나무의 축복","icon":"gold","detail":"신앙 %d · +%s G"%[int(outcome.faith_spent),ArenaUI.grouped(int(outcome.gold))]})
 	elif action==&"sell":event.merge({"title":"판매 완료","icon":"gold","detail":"+%d G"%int(outcome.gold)})
 	elif action in [&"rest",&"event"]:event.merge({"title":"휴식 완료" if action==&"rest" else "이벤트 완료","icon":"rest" if action==&"rest" else "event","detail":outcome_text(outcome)})
 	presentation_requested.emit(event)

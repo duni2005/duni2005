@@ -3,7 +3,7 @@ extends RefCounted
 ## Progression orchestrator; combat mechanics remain RoomBattleSession's concern.
 signal changed
 ## Event rooms roll one of these when first discovered (types already met weigh less).
-const EVENT_TYPES: Array=[&"prediction",&"hotSpring",&"supply",&"tokenShop"]
+const EVENT_TYPES: Array=[&"prediction",&"hotSpring",&"supply",&"tokenShop",&"mangoSapling"]
 ## The blacksmith event room is placed by the map generator, never rolled on discovery.
 const BLACKSMITH: StringName = &"blacksmith"
 var guild: GuildManager

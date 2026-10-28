@@ -10,6 +10,20 @@ const REST_REVIVE_LIMIT = 3
 ## item: a random basic item; card: a random strategy card; restore: one chosen living member to full.
 ## Blacksmith: basic-pair trades allowed per visit.
 const BLACKSMITH_TRADES = 2
+## Mango sapling: a free revive of one dead member, an offering of MANGO_OFFERING gold for one
+## faith stack, and (when faith is held on entry) a blessing that spends all faith for gold.
+## Each once per room.
+const MANGO_OFFERING = 200
+const MANGO_LIMITS = {&"revive":{"limit":1},&"offer":{"limit":1},&"bless":{"limit":1}}
+## Blessing gold for `faith` stacks: 500, 700, 1000, 1400, 1900... (each step 100 more than the last).
+static func blessing_gold(faith: int) -> int:return 400+50*faith*(faith+1) if faith>0 else 0
+## Per-visit purchase limits of the open events, offer name -> {"limit"}.
+static func purchase_limits(event_type: StringName) -> Dictionary:
+	match event_type:
+		&"tokenShop":return TOKEN_SHOP
+		&"blacksmith":return {&"trade":{"limit":BLACKSMITH_TRADES}}
+		&"mangoSapling":return MANGO_LIMITS
+	return {}
 const TOKEN_SHOP = {
 	&"revive":{"tokens":2,"limit":3},
 	&"heal":{"tokens":1,"limit":10},
@@ -69,6 +83,10 @@ func ensure_event(node: RoomState) -> void:
 		&"tokenShop":event.choices=[&"leave"]
 		# The blacksmith likewise stays open until 지도로.
 		&"blacksmith":event.choices=[&"leave"]
+		# The blessing is offered only to a party that arrives with faith.
+		&"mangoSapling":
+			event.choices=[&"leave"]
+			if guild.state.mango_faith>0:event.choices.append(&"bless")
 func completion(choice: StringName,outcome: Dictionary={},stay: bool=false) -> Dictionary:
 	var node: RoomState=room();var result:=RoomContentResult.new();result.room_id=node.room_id;result.choice=choice;result.outcome=outcome.duplicate(true);result.stay_for_result=stay
 	result.receipt="%s:visit:%d:complete"%[node.room_id,node.content_visits]
@@ -281,6 +299,28 @@ func blacksmith_sell(item_id: int) -> Dictionary:
 	if instance==null or instance.consumed or not instance.equipped_to_member_id.is_empty() or ItemCatalog.sell_price(instance.kind)<=0:return failure(&"invalid_target")
 	var gold: int=ItemCatalog.sell_price(instance.kind);instance.consumed=true;guild.state.gold+=gold
 	return success({"item_id":item_id,"gold":gold})
+## Mango sapling: one of revive (member_id), offer or bless.
+func mango(choice: StringName,member_id: String="") -> Dictionary:
+	if not live() or room()==null or guild.state.tower.phase!=&"event_active" or room().event==null or room().event.event_type!=&"mangoSapling" or room().event.resolved:return failure(&"wrong_event")
+	if not MANGO_LIMITS.has(choice):return failure(&"invalid_choice")
+	var e: EventState=room().event;var used: int=int(e.purchases.get(String(choice),0))
+	if used>=int(MANGO_LIMITS[choice].limit):return failure(&"sold_out")
+	var outcome: Dictionary={"choice":choice}
+	match choice:
+		&"revive":
+			var member: GuildMemberState=guild.get_member(member_id)
+			if member==null or member.is_alive():return failure(&"invalid_target")
+			GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*.2,true);GuildMemberCombatStats.reset_bomber(member);outcome["revived"]=[member_id]
+		&"offer":
+			var receipt: String="%s:mango:offer"%room().room_id
+			if not ResourceTransaction.can_spend(guild.state,MANGO_OFFERING,0,receipt):return failure(&"funds")
+			ResourceTransaction.spend(guild.state,MANGO_OFFERING,0,receipt);guild.state.mango_faith+=1;outcome["faith"]=guild.state.mango_faith;outcome["gold_spent"]=MANGO_OFFERING
+		&"bless":
+			if not &"bless" in e.choices or guild.state.mango_faith<=0:return failure(&"no_effect")
+			var gold: int=blessing_gold(guild.state.mango_faith);outcome["faith_spent"]=guild.state.mango_faith;outcome["gold"]=gold
+			guild.state.mango_faith=0;guild.state.gold+=gold
+	e.purchases[String(choice)]=used+1
+	return success(outcome)
 func event(choice: StringName) -> Dictionary:
 	if not live() or room()==null or guild.state.tower.phase!=&"event_active" or room().cleared or room().event==null or room().event.resolved:return failure(&"wrong_event")
 	var e: EventState=room().event;var outcome: Dictionary={"choice":choice}
@@ -305,7 +345,10 @@ func event(choice: StringName) -> Dictionary:
 				&"unit":outcome["member_id"]=guild.create_member(rng.randi_range(0,25)).member_id
 				&"tokens":guild.state.tokens+=3;outcome["tokens"]=3
 				_:var gold: int=int(String(reward).trim_prefix("gold"));guild.state.gold+=gold;outcome["gold"]=gold
-	elif e.event_type in [&"tokenShop",TowerController.BLACKSMITH]:outcome["purchases"]=e.purchases.duplicate()
+	elif e.event_type in [&"tokenShop",TowerController.BLACKSMITH,&"mangoSapling"]:
+		# Open events end only by leaving; their offers have their own actions.
+		if choice!=&"leave":return failure(&"invalid_choice")
+		outcome["purchases"]=e.purchases.duplicate()
 	elif e.event_type==&"supply":
 		match choice:
 			&"heal":guild.state.player_hp+=10
@@ -372,6 +415,7 @@ func execute(action: StringName,options: Dictionary={}) -> Dictionary:
 		&"enhance":return blacksmith_enhance(options.get("item_id",0))
 		&"trade":return blacksmith_trade(options.get("items",[]),options.get("kind",&""))
 		&"sell":return blacksmith_sell(options.get("item_id",0))
+		&"mango":return mango(options.get("choice",&""),options.get("member_id",""))
 		&"sortie_upgrade":return upgrade_sortie()
 		&"promote":return promote(options.get("member_id",""),options.get("materials",[]))
 	return failure(&"invalid_action")

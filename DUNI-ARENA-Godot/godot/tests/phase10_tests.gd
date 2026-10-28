@@ -315,6 +315,26 @@ func blacksmith() -> void:
 	verify(not t.content_action(&"trade",{"items":[r.item_id,u.item_id],"kind":ItemCatalog.combined_kind(&"staff",&"staff")}).ok and not r.consumed,"two trades per visit")
 	verify(t.content_action(&"event",{"choice":&"leave"}).ok and t.current_room().cleared and t.return_map(),"지도로 clears the blacksmith")
 	verify(not t.content_action(&"sell",{"item_id":r.item_id}).ok,"closed blacksmith does nothing")
+func mango_sapling() -> void:
+	groups+=1
+	verify([1,2,3,4,5].map(TowerContentService.blessing_gold)==[500,700,1000,1400,1900] and TowerContentService.blessing_gold(0)==0,"blessing 500/700/1000/1400/1900")
+	var t:=tower();t.guild.state.gold=1000;var dead: GuildMemberState=t.guild.all_members()[1];dead.current_hp=0
+	enter_event(t,&"mangoSapling");var gold: int=t.guild.state.gold
+	verify(not &"bless" in t.current_room().event.choices and not t.content_action(&"mango",{"choice":&"bless"}).ok,"no blessing without faith on entry")
+	verify(not t.return_map(),"open mango sapling locks map")
+	verify(t.content_action(&"mango",{"choice":&"revive","member_id":dead.member_id}).ok and dead.current_hp==30 and t.guild.state.gold==gold,"free revive at 20%")
+	dead.current_hp=0;verify(not t.content_action(&"mango",{"choice":&"revive","member_id":dead.member_id}).ok and dead.current_hp==0,"revive once per room")
+	verify(t.content_action(&"mango",{"choice":&"offer"}).ok and t.guild.state.mango_faith==1 and t.guild.state.gold==gold-200,"offering 200 G -> faith 1")
+	verify(not t.content_action(&"mango",{"choice":&"offer"}).ok and t.guild.state.mango_faith==1 and t.guild.state.gold==gold-200,"offering once per room")
+	verify(not t.content_action(&"event",{"choice":&"bless"}).ok and t.content_action(&"event",{"choice":&"leave"}).ok and t.current_room().cleared and t.return_map(),"지도로 ends the sapling")
+	for faith in [3,4]:
+		t=tower();t.guild.state.mango_faith=faith;enter_event(t,&"mangoSapling");gold=t.guild.state.gold
+		verify(&"bless" in t.current_room().event.choices,"blessing offered with faith on entry")
+		var result: Dictionary=t.content_action(&"mango",{"choice":&"bless"})
+		verify(result.ok and t.guild.state.mango_faith==0 and t.guild.state.gold==gold+TowerContentService.blessing_gold(faith) and int(result.outcome.gold)==[0,0,0,1000,1400][faith],"blessing spends all faith for gold")
+		verify(not t.content_action(&"mango",{"choice":&"bless"}).ok and t.content_action(&"mango",{"choice":&"offer"}).ok and t.guild.state.mango_faith==1,"bless once, then a new offering starts over")
+	t=tower();t.guild.state.gold=150;enter_event(t,&"mangoSapling");t.guild.state.gold=150
+	verify(not t.content_action(&"mango",{"choice":&"offer"}).ok and t.guild.state.mango_faith==0 and t.guild.state.gold==150,"offering needs 200 G")
 func rewards_transactions() -> void:
 	groups+=1
 	var t:=tower();var member: GuildMemberState=t.guild.all_members()[0];give(t,&"greenNecklace",member);member.current_hp=0;member.energy=0
@@ -430,5 +450,5 @@ func invalid_operations() -> void:
 	for member in t.guild.all_members():member.current_hp=0
 	verify(not t.content_action(&"upgrade",{"member_id":t.guild.all_members()[0].member_id}).ok and t.guild.state.game_over,"content does not revive a gameover guild")
 func run(tree: SceneTree) -> void:
-	host=tree;golden();recruit_shop();equipment_growth();growth_rules();promotion();rest_events();token_shop();blacksmith();rewards_transactions();prediction();combat();invalid_operations()
+	host=tree;golden();recruit_shop();equipment_growth();growth_rules();promotion();rest_events();token_shop();blacksmith();mango_sapling();rewards_transactions();prediction();combat();invalid_operations()
 	print("PHASE 10 RESULT: ",groups," groups; ",checks," checks; ",failures," failures")
