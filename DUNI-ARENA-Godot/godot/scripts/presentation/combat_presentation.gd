@@ -3,6 +3,7 @@ extends Control
 ## Read-only replacement renderer. Domain Nodes are hidden, never paused/rewritten.
 const MAX_EFFECTS=96
 const MAX_NUMBERS=40
+const FLAMETHROWER=preload("res://scripts/abilities/flamethrower_ability.gd")
 const ZONE_COLORS={"blackhole":Color("a878f5"),"tankFire":Color("ff934f"),"ring":Color("ffd68a"),"healing":Color("6de3ad"),"holy":Color("ffeeb3"),"cosmic":Color("80b1ff"),"galaxy":Color("a0a1ff"),"discharge":Color("b8e7ff")}
 var board: DeploymentBoard
 var battle: BattleManager
@@ -548,6 +549,11 @@ func _ability_state(u: BattleUnit) -> void:
 			if progress>.9:draw_line(p+dir*48,p+dir*1200,tint,3,true)
 			else:draw_dashed_line(p+dir*48,p+dir*1200,tint,1,8)
 		for i in range(10):draw_rect(Rect2(p+Vector2(-25+i*5,-55),Vector2.ONE*4),Color("ffd69a") if i<progress*10 else Color("3d4038"))
+	if u.data.type_id==32:
+		# Oil gauge: a thin orange bar under the unit, dimmed while it is too low to spray.
+		var oil: float=u.state_value("oil",FLAMETHROWER.OIL_MAX)/FLAMETHROWER.OIL_MAX
+		draw_rect(Rect2(p+Vector2(-15,38)*s,Vector2(30,4)*s),Color("2a2320"))
+		draw_rect(Rect2(p+Vector2(-15,38)*s,Vector2(30*oil,4)*s),Color("ff8a3d") if u.state_value("oil",FLAMETHROWER.OIL_MAX)>=FLAMETHROWER.OIL_START else Color("8a5a3b"))
 	if u.data.type_id in [7,23]:
 		var maximum: int=2 if u.data.type_id==7 else 20
 		var ammo: int=int(u.state_value("ammo",maximum))
@@ -620,6 +626,8 @@ func _new_character_state(u: BattleUnit,p: Vector2,s: float) -> void:
 		VfxArt.glow(self,p,40*s,Color("9fdcff"),.15+.1*k)
 	# 빙결술사 storm drifting across the field.
 	if u.data.type_id==31 and u.alive and u.character_specific_state.has("storm"):_frost_storm(u)
+	# 화염방사기 spraying: a flickering stream of flame from the nozzle.
+	if u.data.type_id==32 and u.alive and u.combat_state==CombatController.State.ACTIVE and u.state_value("oil")>=1:_flame_stream(u)
 	# Delivered buff: the gift icon rising over the recipient.
 	if u.state_value("deliveryFx")>0:
 		var kind: String=str(u.character_specific_state.get("deliveryKind","heal"))
@@ -796,6 +804,19 @@ func _frost_storm(u: BattleUnit) -> void:
 	for i in range(26):
 		var a: float=real_age*(1.6+VisualParticles.noise(i)*1.5)+i*2.399;var d: float=r*(.2+VisualParticles.noise(i+7)*.8)
 		VfxArt.star(self,at+Vector2.from_angle(a)*d,3+VisualParticles.noise(i+3)*4,Color("f2fbff"),.85*fade,a)
+
+func _flame_stream(u: BattleUnit) -> void:
+	var scale: float=u.combat_scale();var dir: Vector2=Vector2.from_angle(u.combat.aim_angle);var side: Vector2=dir.orthogonal()
+	var origin: Vector2=u.position+dir*34*scale;var length: float=240*scale;var k: float=clampf(u.combat.phase_time/.12,0,1)
+	VfxArt.glow(self,origin+dir*length*.45,length*.55,Color("ff7a2f"),.22*k)
+	for i in range(14):
+		var t: float=(i+fposmod(real_age*9,1.0))/14.0;var wobble: float=sin(real_age*31+i*1.7)*10*t*scale
+		var at: Vector2=origin+dir*length*t*k+side*wobble;var r: float=(6+28*t)*scale
+		draw_circle(at,r,Color(Color("ff4d1f").lerp(Color("ffb340"),1-t),.42*(1-t*.75)*k))
+		if t<.55:draw_circle(at,r*.5,Color("fff1c4",.55*(1-t/.55)*k))
+	for i in range(6):
+		var t: float=fposmod(real_age*2.3+i*.17,1.0)
+		VfxArt.star(self,origin+dir*length*t+side*sin(i*5.1+real_age*7)*18*t*scale,3+2*(1-t),Color("ffd27a"),.8*(1-t)*k,real_age*4+i)
 
 func _draw_ending() -> void:
 	var time: float=BattleCinematicState.motion_seconds(cinematic.age)

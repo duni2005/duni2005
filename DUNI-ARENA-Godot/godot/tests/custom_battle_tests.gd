@@ -72,7 +72,7 @@ func step(b: BattleManager,seconds: float) -> void:
 		if b.finished:return
 		b.simulate(1.0/60)
 func new_characters(tree: SceneTree) -> void:
-	verify(CharacterCatalog.all().size()==32,"32 characters in the catalog")
+	verify(CharacterCatalog.all().size()==33,"33 characters in the catalog")
 	# 말뚝: opening stake tethers the nearest enemy to a small circle.
 	var b:=duel(tree,[[26,0,Vector2(150,400)],[1,1,Vector2(450,400)],[1,1,Vector2(700,700)]])
 	step(b,.2)
@@ -167,6 +167,33 @@ func new_characters(tree: SceneTree) -> void:
 	var drifted: bool=frost.character_specific_state.has("storm") and CharacterPersistence.vector(frost.character_specific_state.storm).distance_to(storm_start)>50
 	verify(drifted,"the storm drifts forward slowly")
 	verify(b.units.slice(1).any(func(e):return e.state_value("frostStacks")>0 or e.state_value("frozenTime")>0),"enemies in the storm gain frost")
+	b.queue_free()
+	# 화염방사기: piercing flame puffs burn oil, oil refills while idle, the ultimate lights an oil
+	# patch and refills the tank.
+	b=duel(tree,[[32,0,Vector2(200,400)],[4,1,Vector2(330,400)],[6,1,Vector2(400,400)]])
+	var flamer: BattleUnit=b.units[0]
+	verify(flamer.state_value("oil")==30 and flamer.ability.can_attack(flamer,b.units[1]),"starts with a full tank")
+	before=b.projectiles.size();flamer.combat.aim_angle=0;flamer.ability.release_basic(flamer)
+	var puff: BattleProjectile=b.projectiles.back()
+	verify(b.projectiles.size()-before==1 and puff.kind=="flame" and puff.piercing and flamer.state_value("oil")==29,"a flame puff pierces and burns one oil")
+	flamer.set_state("oil",5);verify(not flamer.ability.can_attack(flamer,b.units[1]),"too little oil to start a spray")
+	for e in b.units.slice(1):StatusController.stun(e,10)
+	flamer.combat.cooldown=999;flamer.set_state("oil",10);step(b,1)
+	verify(flamer.state_value("oil")>12,"oil refills while not spraying")
+	# Rush stance attacks at once instead of the standoff AI's spacing and hesitation.
+	flamer.combat.cooldown=0;flamer.set_state("oil",30);flamer.stance=CombatStance.RUSH;flamer.brain.stance_changed(flamer)
+	var hp: Array=b.units.slice(1).map(func(e):return e.current_hp)
+	for i in range(60*3):step(b,1.0/60)
+	verify(b.units[1].current_hp<hp[0] and b.units[2].current_hp<hp[1],"the spray burns both enemies in a line")
+	b.queue_free()
+	b=duel(tree,[[32,0,Vector2(200,400)],[4,1,Vector2(380,400)]])
+	flamer=b.units[0];flamer.set_state("oil",2);flamer.ultimate_gauge=100;StatusController.stun(b.units[1],8)
+	for i in range(60*3):
+		step(b,1.0/60)
+		if b.zones.entries.any(func(z):return z.get("oil",false)):break
+	verify(b.zones.entries.any(func(z):return z.kind=="tankFire" and z.get("oil",false)) and flamer.state_value("oil")>=29,"ultimate lights an oil fire patch and refills the tank")
+	hp=[b.units[1].current_hp];step(b,1.5)
+	verify(b.units[1].current_hp<hp[0],"the fire patch burns an enemy standing in it")
 	b.queue_free()
 	# Tower: new types are recruitable members and fight in ordinary (non-custom) battles.
 	var guild:=GuildManager.new(RunState.new())
@@ -397,7 +424,7 @@ func stat_damage(tree: SceneTree) -> void:
 		if not UnitStatTable.STATS.has(unit_name) or not UnitStatTable.DAMAGE.has(unit_name):tagged=false
 		for d in UnitStatTable.instances(id):
 			if not UnitStatTable.KIND_NAMES.has(d.kind) or not d.tags.all(func(t):return t in UnitStatTable.ELEMENTS+UnitStatTable.DAMAGE_TAGS):tagged=false
-	verify(tagged and CharacterCatalog.NAMES.size()==32,"all 32 units have base stats and exactly one kind plus known tags per damage instance")
+	verify(tagged and CharacterCatalog.NAMES.size()==33,"all 33 units have base stats and exactly one kind plus known tags per damage instance")
 	verify(UnitStatTable.mitigation(0)==1 and UnitStatTable.mitigation(100)==.5 and is_equal_approx(UnitStatTable.mitigation(-100),1.5),"mitigation 100/(100+def), 2-100/(100-def) below zero")
 	# Bomber (fire · explosion · area) hits a mage.
 	var b:=duel(tree,[[13,0,Vector2(300,400)],[2,1,Vector2(380,400)]]);var src: BattleUnit=b.units[0];var tgt: BattleUnit=b.units[1];b.started=true

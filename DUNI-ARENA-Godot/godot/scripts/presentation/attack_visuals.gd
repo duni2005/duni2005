@@ -1,7 +1,7 @@
 class_name AttackVisuals
 extends RefCounted
 ## Source-grounded geometry. All inputs are observed; never writes to combat objects.
-const INKS=["ffd39c","e2f5ad","bca9ee","a9eee5","f3dd9e","c5f4e5","ffe6ba","f0ca83","efb1de","efa794","e5d3ae","c2faff","d3e7b5","ffbc75","dceff5","d0fff0","fff0bc","ffc1a0","ebe5ba","e9d7ff","8bdbff","b4e5e8","d5c2ff","eed18f","ffc4c3","f4c0dc","e8c48f","ffb08c","bdf0ff","ffe08a","ff9aa4","bfeaff"]
+const INKS=["ffd39c","e2f5ad","bca9ee","a9eee5","f3dd9e","c5f4e5","ffe6ba","f0ca83","efb1de","efa794","e5d3ae","c2faff","d3e7b5","ffbc75","dceff5","d0fff0","fff0bc","ffc1a0","ebe5ba","e9d7ff","8bdbff","b4e5e8","d5c2ff","eed18f","ffc4c3","f4c0dc","e8c48f","ffb08c","bdf0ff","ffe08a","ff9aa4","bfeaff","ffb36b"]
 static func ink(type: int) -> Color:return Color(INKS[type])
 static func body_visible(u: BattleUnit) -> bool:
 	if not u.alive or u.frog_flight!=0:return false
@@ -126,6 +126,13 @@ static func projectile(canvas: CanvasItem,p: BattleProjectile,trail: Array,time:
 	elif kind in ["mirrorLight","mirrorReflection"]:
 		VisualShapes.streak(canvas,at,a,45*scale,10*scale,Color("caffff"),.8)
 		var n:=dir.orthogonal()*7*scale;canvas.draw_colored_polygon(PackedVector2Array([at+dir*15*scale,at+n,at-dir*9*scale,at-n]),Color("e9ffff"))
+	elif kind=="flame":
+		# A burst of flame that swells and fades as it travels.
+		var k: float=clampf(1-p.lifetime/maxf(.01,float(p.metadata.get("life",.45))),0,1);var size: float=(10+22*k)*scale
+		VfxArt.glow(canvas,at,size*1.5,Color("ff7a2f"),.35*(1-k*.6))
+		canvas.draw_circle(at,size,Color("ff6b25",.5*(1-k)))
+		canvas.draw_circle(at+dir*size*.2,size*.62,Color("ffc35a",.7*(1-k)))
+		canvas.draw_circle(at+dir*size*.3,size*.28,Color("fff4cf",.85*(1-k)))
 	elif kind=="iceShard":
 		# Faceted ice crystal with a frosty glow.
 		VfxArt.glow(canvas,at,18*scale,Color("9fdcff"),.45)

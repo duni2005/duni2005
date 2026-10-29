@@ -68,6 +68,12 @@ static func _draw_prop(canvas: CanvasItem,type: int,index: float,alpha: float) -
 		28:
 			canvas.draw_colored_polygon(PackedVector2Array([Vector2(26,-9),Vector2(36,8),Vector2(16,8)]),Color(Color("bdf0ff"),alpha*.9))
 			canvas.draw_polyline(PackedVector2Array([Vector2(26,-9),Vector2(36,8),Vector2(16,8),Vector2(26,-9)]),Color(Color("ffffff"),alpha),1.5)
+		32:
+			# Flame nozzle on a hose, with a pilot flame at the tip.
+			canvas.draw_line(Vector2(10,10),Vector2(20,6),Color(Color("5c6066"),alpha),4)
+			canvas.draw_rect(Rect2(18,1,18,8),Color(Color("172326"),alpha));canvas.draw_rect(Rect2(19,2,16,6),Color(Color("8d949e"),alpha))
+			canvas.draw_rect(Rect2(34,0,5,10),Color(Color("3a3f45"),alpha))
+			canvas.draw_circle(Vector2(42,5),3.5,Color(Color("ff8a3d"),alpha*.9));canvas.draw_circle(Vector2(42,5),1.8,Color(Color("ffe08a"),alpha))
 		31:
 			# Staff topped with an ice crystal.
 			canvas.draw_line(Vector2(14,10),Vector2(34,-6),Color(Color("9fb7c9"),alpha),3)

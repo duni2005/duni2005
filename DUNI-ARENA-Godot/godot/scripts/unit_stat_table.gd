@@ -53,6 +53,7 @@ const STATS = {
 	"courier":[&"physical", 30, 0, 0, 0, 0],
 	"magnet":[&"magic", 35, 0, 10, 10, 24],
 	"frost":[&"magic", 25, 0, 10, 10, 30],
+	"flamethrower":[&"magic", 30, 5, 10, 10, 26],
 }
 
 const DAMAGE = {
@@ -155,6 +156,9 @@ const DAMAGE = {
 	"frost":{
 		&"basic":[&"basic", &"magic", 0, 0.5, [&"ice", &"projectile"], "얼음 수정 (3발)"],
 		&"ult":[&"ultimate", &"magic", 0, 0.6, [&"ice", &"area", &"dot"], "얼음 폭풍 (0.5초마다)"]},
+	"flamethrower":{
+		&"basic":[&"basic", &"magic", 0, 0.22, [&"fire", &"projectile"], "화염 분사 (관통, 0.1초마다)"],
+		&"fire_zone":[&"ultimate", &"magic", 4, 0.35, [&"fire", &"area", &"dot"], "기름 불장판 (0.5초마다)"]},
 }
 ## Damage every unit can deal regardless of character, using its main damage kind.
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]

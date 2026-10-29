@@ -1,6 +1,6 @@
 class_name CharacterCatalog
 extends RefCounted
-const NAMES = ["warrior", "archer", "mage", "assassin", "guardian", "healer", "sniper", "shotgun", "rps", "ufc", "greatsword", "dolphin", "predator", "bomber", "swordsman", "satellite", "paladin", "hero", "tank", "fanatic", "lightning", "mirror", "galaxy", "machine_gun", "frog", "puppet","stake", "conductor", "refraction", "courier", "magnet", "frost"]
+const NAMES = ["warrior", "archer", "mage", "assassin", "guardian", "healer", "sniper", "shotgun", "rps", "ufc", "greatsword", "dolphin", "predator", "bomber", "swordsman", "satellite", "paladin", "hero", "tank", "fanatic", "lightning", "mirror", "galaxy", "machine_gun", "frog", "puppet","stake", "conductor", "refraction", "courier", "magnet", "frost", "flamethrower"]
 static var _data: Dictionary = {}
 static func all() -> Dictionary:
 	if _data.is_empty():
@@ -18,7 +18,7 @@ const DAMAGE = {
 	"paladin":[&"physical",&"light"],"hero":[&"physical",&""],"tank":[&"physical",&"fire"],"fanatic":[&"magic",&"light"],
 	"lightning":[&"magic",&"lightning"],"mirror":[&"magic",&"light"],"galaxy":[&"magic",&""],"machine_gun":[&"physical",&""],
 	"frog":[&"physical",&""],"puppet":[&"magic",&""],"stake":[&"physical",&""],"conductor":[&"physical",&""],
-	"refraction":[&"magic",&"light"],"courier":[&"physical",&""],"magnet":[&"magic",&"lightning"],"frost":[&"magic",&"ice"],
+	"refraction":[&"magic",&"light"],"courier":[&"physical",&""],"magnet":[&"magic",&"lightning"],"frost":[&"magic",&"ice"],"flamethrower":[&"magic",&"fire"],
 }
 const ELEMENT_NAMES = {&"fire":"화염",&"ice":"얼음",&"lightning":"번개",&"light":"빛"}
 static func damage_kind(type_id: int) -> StringName:
