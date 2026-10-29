@@ -1,7 +1,7 @@
 class_name TowerSceneDirector
 extends CanvasLayer
 ## Transient real-time presentation queue. Never applies a reward/transaction.
-const DURATIONS={"entry":Motion.CINEMATIC,"recruit":2.5,"promotion":3.0,"conquest":2.8}
+const DURATIONS={"entry":Motion.CINEMATIC,"recruit":2.5,"promotion":4.2,"conquest":2.8}
 const CHAPTER_NAMES={1:"무너진 회랑",2:"붉은 첨탑",3:"망고의 정상"}
 const LIMIT=8
 var active: Dictionary={}
@@ -69,7 +69,7 @@ func enqueue(scene: Dictionary) -> bool:
 func _next() -> void:
 	if active.is_empty() and not queue.is_empty():active=queue.pop_front();shown_count+=1
 func skip_recruit() -> bool:
-	if active.get("kind","")!="recruit" or float(active.age)<0:return false
+	if active.get("kind","") not in ["recruit","promotion"] or float(active.age)<0:return false
 	active.clear();_next();return true
 func clear() -> void:
 	active.clear();queue.clear();played.clear();flights.clear();toasts.clear();sparks.clear();deltas.clear();balances.clear();targets.clear();shown_count=0
