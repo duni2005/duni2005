@@ -63,3 +63,9 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 ---
 
 **These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, and clarifying questions come before implementation rather than after mistakes.
+
+---
+
+## DUNI ARENA UI rules
+
+- **No screen scrolling.** Design every screen and dialog so it fits without scrolling on a phone (check 360×740 and 390×844) and on 1280×720. Only genuine lists may scroll: unit lists/strips, inventories, card hands, the character library. If content does not fit, change the layout (columns, compact cards, shorter text, one result at a time), never add a scroll.

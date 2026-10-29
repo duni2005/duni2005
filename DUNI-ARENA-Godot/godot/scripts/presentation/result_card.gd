@@ -10,9 +10,20 @@ var types: Array[int] = []
 var types_caption: String = ""
 var chips: Array[String] = []
 var age: float = 0
+## Room above the medallion's centre, for the medallion and its orbit.
+const ABOVE: float = 70
+
+## Height from the medallion's centre to the bottom of the last line.
+func _below() -> float:
+	var h: float = 152
+	if not detail.is_empty():h += 22 * (1 + detail.count("\n")) + 12
+	if not types.is_empty():h += 58 + (10 if not types_caption.is_empty() else 0)
+	if not chips.is_empty():h += 36
+	return h
 
 func _ready() -> void:
-	mouse_filter = Control.MOUSE_FILTER_IGNORE;custom_minimum_size.y = 330;size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# Tall enough for exactly what it shows, so a finished room never needs scrolling.
+	mouse_filter = Control.MOUSE_FILTER_IGNORE;custom_minimum_size.y = ABOVE + _below() + 8;size_flags_vertical = Control.SIZE_EXPAND_FILL
 	if not UiMotion.enabled:age = 10
 	set_process(UiMotion.enabled)
 
@@ -21,7 +32,7 @@ func _process(dt: float) -> void:
 
 func _draw() -> void:
 	var font: Font = ArenaUI.heading_font();var text_font: Font = get_theme_default_font()
-	var c := Vector2(size.x * .5, clampf(size.y * .3, 96, 190));var reach: float = maxf(size.x, size.y) * .75
+	var c := Vector2(size.x * .5, maxf(ABOVE, minf(clampf(size.y * .3, 96, 190), size.y - _below() - 8)));var reach: float = maxf(size.x, size.y) * .75
 	var pop: float = clampf(age / .5, 0, 1);var k: float = 1 + 2.2 * pow(pop - 1, 3) + 1.2 * pow(pop - 1, 2) if pop < 1 else 1.0
 	var show: float = clampf((age - .25) / .4, 0, 1)
 	# Rays and glow behind the medallion.

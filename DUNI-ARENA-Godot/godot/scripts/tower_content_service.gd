@@ -358,7 +358,7 @@ func gamble(choice: StringName) -> Dictionary:
 		var result: StringName=&"win" if a>b else &"draw" if a==b else &"lose";var payout: int={&"win":GAMBLE_COST*2,&"draw":GAMBLE_COST,&"lose":0}[result]
 		guild.state.gold+=payout;outcome.merge({"player":mine,"gambler":theirs,"result":result,"payout":payout})
 		if payout>0:outcome["gold"]=payout
-	e.outcome[String(choice)]=outcome.duplicate(true);e.purchases[String(choice)]=played+1
+	e.outcome[String(choice)]=outcome.duplicate(true);e.outcome["last"]=String(choice);e.purchases[String(choice)]=played+1
 	return success(outcome)
 func event(choice: StringName) -> Dictionary:
 	if not live() or room()==null or guild.state.tower.phase!=&"event_active" or room().cleared or room().event==null or room().event.resolved:return failure(&"wrong_event")

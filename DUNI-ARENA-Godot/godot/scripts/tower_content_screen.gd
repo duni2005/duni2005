@@ -202,7 +202,7 @@ func render_recruit(node: RoomState) -> void:
 	if deal_cards:deal_cards=false;UiMotion.deal(row.get_children())
 func render_shop(node: RoomState) -> void:
 	if content_tab=="inventory":
-		var panel:=GuildManagementPanel.new();panel.controller=controller;panel.custom_minimum_size.y=420;content_box.add_child(panel);panel.show_tab("inventory");panel.modified.connect(refresh_wallet);panel.promoted.connect(presentation_requested.emit);return
+		var panel:=GuildManagementPanel.new();panel.controller=controller;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;content_box.add_child(panel);panel.show_tab("inventory");panel.modified.connect(refresh_wallet);panel.promoted.connect(presentation_requested.emit);return
 	offers_grid=GridContainer.new();offers_grid.columns=3;offers_grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content_box.add_child(offers_grid)
 	for offer in node.shop.offers:
 		if String(offer.category)!=content_tab:continue
@@ -215,13 +215,15 @@ func _refresh_party() -> void:
 	clear(party_members)
 	for member in controller.guild.all_members():
 		var c:=ArenaCard.new();c.card_type="mini_member";c.type_id=member.unit_type_id;c.subtitle="%s · Lv.%d"%[ArenaUI.member_label(member.member_id),member.level];c.hp=member.current_hp;c.hp_max=controller.guild.member_max_hp(member);c.dead=not member.is_alive();c.custom_minimum_size=Vector2(76,90);c.show_member(controller.guild,member);party_members.add_child(c)
-func _event_choices() -> GridContainer:
-	var center:=CenterContainer.new();content_box.add_child(center)
-	event_grid=GridContainer.new();event_grid.columns=2;event_grid.add_theme_constant_override("h_separation",7);event_grid.add_theme_constant_override("v_separation",7);event_grid.custom_minimum_size.x=minf(580,get_viewport_rect().size.x-50);center.add_child(event_grid);return event_grid
+## Option grid sized so the room never needs scrolling: two columns on a phone (three for three
+## or five options), one row of up to five on a wide screen.
+func _event_choices(count: int=2) -> GridContainer:
+	var center:=CenterContainer.new();content_box.add_child(center);var width: float=get_viewport_rect().size.x;var wide: bool=width>=700
+	event_grid=GridContainer.new();event_grid.columns=mini(count,5) if wide else 3 if count in [3,5] else 2;event_grid.add_theme_constant_override("h_separation",7);event_grid.add_theme_constant_override("v_separation",7);event_grid.custom_minimum_size.x=minf(800 if wide else 580,width-50);center.add_child(event_grid);return event_grid
 func _choice(parent: Node,id: String,title: String,detail: String,icon: String,callback: Callable,price: String="") -> ArenaCard:
 	var c:=ArenaCard.new();c.name=id;c.text=title+" · "+detail;c.card_type="event_option";c.kind=icon;c.title=title;c.description=detail;c.price=price;c.size_flags_horizontal=Control.SIZE_EXPAND_FILL;c.custom_minimum_size=Vector2(0,146 if not price.is_empty() else 120);ArenaUI.bind(c,callback);parent.add_child(c);return c
 func render_rest() -> void:
-	var grid: GridContainer=_event_choices()
+	var grid: GridContainer=_event_choices(4)
 	_choice(grid,"player","플레이어 회복","HP +15","heart",_action.bind(&"rest",{"choice":&"player"}))
 	_choice(grid,"resources","자원 획득","골드 +350 · 토큰 +1","gold",_action.bind(&"rest",{"choice":&"resources"}))
 	_choice(grid,"guild","생존 유닛 회복","HP +35%","rest",_action.bind(&"rest",{"choice":&"guild"}))
@@ -261,11 +263,11 @@ func _toggle_revive(id: String) -> void:
 	call_deferred("_refresh_revive")
 ## Token shop: five offers bought with tokens, each up to its limit; 상점 나가기 ends the event.
 func render_token_shop(node: RoomState) -> void:
-	var grid: GridContainer=_event_choices();var guild: GuildManager=controller.guild;var tokens: int=guild.state.tokens
-	var offers: Array=[[&"revive","유닛 부활","사망 유닛 1명 · HP 20%","star"],[&"heal","전체 회복","모든 유닛 HP +5%","rest"],[&"item","일반 아이템","무작위 1개","supply"],[&"card","전략카드","무작위 1장","event"],[&"restore","완전 회복","생존 유닛 1명 HP 전부","heart"]]
+	var grid: GridContainer=_event_choices(5);var guild: GuildManager=controller.guild;var tokens: int=guild.state.tokens
+	var offers: Array=[[&"revive","유닛 부활","1명 · HP 20%","star"],[&"heal","전체 회복","전원 HP +5%","rest"],[&"item","일반 아이템","무작위 1개","supply"],[&"card","전략카드","무작위 1장","event"],[&"restore","완전 회복","1명 HP 전부","heart"]]
 	for row in offers:
 		var choice: StringName=row[0];var offer: Dictionary=TowerContentService.TOKEN_SHOP[choice];var bought: int=int(node.event.purchases.get(String(choice),0));var limit: int=int(offer.limit)
-		var left: String="남은 구매 %d / %d"%[limit-bought,limit] if limit>0 else "구매 제한 없음"
+		var left: String="남은 %d / %d"%[limit-bought,limit] if limit>0 else "제한 없음"
 		var callback: Callable=_show_revive.bind(choice) if choice in [&"revive",&"restore"] else _action.bind(&"token_shop",{"choice":choice})
 		var card: ArenaCard=_choice(grid,"Token_"+String(choice),row[1],"%s\n%s"%[row[2],left],row[3],callback,"토큰 %d"%int(offer.tokens))
 		var target: bool=true
@@ -279,36 +281,30 @@ func render_mango(node: RoomState) -> void:
 	var run: RunState=controller.guild.state;var faith: int=run.mango_faith
 	var left:=func(choice: StringName) -> int:return int(TowerContentService.MANGO_LIMITS[choice].limit)-int(node.event.purchases.get(String(choice),0))
 	_section("망고 신앙 %d스택"%faith)
-	var grid: GridContainer=_event_choices()
-	var revive: ArenaCard=_choice(grid,"MangoRevive","아군 부활","사망 유닛 1명 · HP 20%%\n남은 사용 %d / 1"%left.call(&"revive"),"star",_show_revive.bind(&"mango"))
+	var grid: GridContainer=_event_choices(3 if &"bless" in node.event.choices else 2)
+	var revive: ArenaCard=_choice(grid,"MangoRevive","아군 부활","1명 · HP 20%%\n남은 %d / 1"%left.call(&"revive"),"star",_show_revive.bind(&"mango"))
 	revive.disabled=left.call(&"revive")<=0 or controller.guild.all_members().all(func(m):return m.is_alive())
-	var offer: ArenaCard=_choice(grid,"MangoOffer","재물 올리기","망고 신앙 +1 · 방당 1회\n"+("사용 완료" if left.call(&"offer")<=0 else "신앙 %d → %d"%[faith,faith+1]),"mango",_action.bind(&"mango",{"choice":&"offer"}),"%d G"%TowerContentService.MANGO_OFFERING)
+	var offer: ArenaCard=_choice(grid,"MangoOffer","재물 올리기","신앙 +1\n"+("사용 완료" if left.call(&"offer")<=0 else "%d → %d"%[faith,faith+1]),"mango",_action.bind(&"mango",{"choice":&"offer"}),"%d G"%TowerContentService.MANGO_OFFERING)
 	offer.disabled=left.call(&"offer")<=0 or run.gold<TowerContentService.MANGO_OFFERING
 	if &"bless" in node.event.choices:
-		var bless: ArenaCard=_choice(grid,"MangoBless","망고 나무의 축복","사용 완료" if left.call(&"bless")<=0 else "신앙 %d 모두 소모\n+%s G"%[faith,ArenaUI.grouped(TowerContentService.blessing_gold(faith))],"gold",_action.bind(&"mango",{"choice":&"bless"}))
+		var bless: ArenaCard=_choice(grid,"MangoBless","망고 나무의 축복","사용 완료" if left.call(&"bless")<=0 else "신앙 %d 소모\n+%s G"%[faith,ArenaUI.grouped(TowerContentService.blessing_gold(faith))],"gold",_action.bind(&"mango",{"choice":&"bless"}))
 		bless.disabled=left.call(&"bless")<=0 or faith<=0
 	_hint("축복 보상 (신앙 1 · 2 · 3 · 4 · 5)\n%s G\n신앙을 가진 채 들어오면 축복을 받을 수 있습니다."%" · ".join([1,2,3,4,5].map(func(n):return ArenaUI.grouped(TowerContentService.blessing_gold(n)))))
 ## Gambler's room: roulette and dice, GAMBLE_COST each, once per visit; results stay on show.
 func render_gambler(node: RoomState) -> void:
 	var run: RunState=controller.guild.state;var cost: int=TowerContentService.GAMBLE_COST
-	var grid: GridContainer=_event_choices()
+	var grid: GridContainer=_event_choices(2)
 	var rows: Array=[[&"roulette","룰렛","8칸 중 무작위 보상\n꽝 · 골드 · 토큰 · 아이템 · 카드","event"],[&"dice","주사위","주사위 3개 합이 도박꾼보다\n높으면 2배 · 같으면 반환","dice"]]
 	for row in rows:
 		var played: bool=int(node.event.purchases.get(String(row[0]),0))>=int(TowerContentService.GAMBLE_LIMITS[row[0]].limit)
 		var card: ArenaCard=_choice(grid,"Gamble_"+String(row[0]),row[1],"사용 완료" if played else row[2],row[3],_action.bind(&"gamble",{"choice":row[0]}),"%d G"%cost)
 		card.disabled=played or run.gold<cost
-	for row in rows:
-		var result: Dictionary=node.event.outcome.get(String(row[0]),{})
-		if result.is_empty():continue
-		_section(row[1]+" 결과")
-		var show:=GambleShow.new();show.game=row[0];show.outcome=result;content_box.add_child(show)
-		# A re-render while it plays starts it over; the flag clears only when it has been seen.
-		var fresh: bool=gamble_fresh==row[0];show.finished.connect(_gamble_shown.bind(fresh));show.play(fresh)
-		if fresh:_scroll_to.call_deferred(show)
-## Brings a freshly added control into view once the scroll has laid it out.
-func _scroll_to(target: Control) -> void:
-	await get_tree().process_frame
-	if is_instance_valid(target):scroll.ensure_control_visible(target)
+	# Only the latest game's result is on show, so the room fits one screen.
+	var last: StringName=StringName(node.event.outcome.get("last",""));var result: Dictionary=node.event.outcome.get(String(last),{})
+	if result.is_empty():return
+	var show:=GambleShow.new();show.game=last;show.outcome=result;show.size_flags_vertical=Control.SIZE_EXPAND_FILL;content_box.add_child(show)
+	# A re-render while it plays starts it over; the flag clears only when it has been seen.
+	var fresh: bool=gamble_fresh==last;show.finished.connect(_gamble_shown.bind(fresh));show.play(fresh)
 func _gamble_shown(fresh: bool) -> void:
 	if not fresh:return
 	gamble_fresh=&"";wallet.updates_suspended=false
@@ -322,7 +318,7 @@ func render_event(node: RoomState) -> void:
 		if node.event.selected_choice==&"bathe":_result("hotSpring","온천욕 완료","따뜻한 온천에서 생존 유닛들이 회복했습니다.",Color("7fd8e8"),["HP +10%"])
 		else:_result("gold","복권 당첨","온천 복권에서 보상을 얻었습니다.",ArenaUI.GOLD,[_event_reward_text(node.event.outcome)])
 		return
-	var grid: GridContainer=_event_choices()
+	var grid: GridContainer=_event_choices(node.event.choices.size())
 	var options: Dictionary={&"bathe":["온천에 들어가기","생존 유닛 HP +10%","hotSpring"],&"lottery":["온천 복권 구매","무작위 보상","gold"],&"heal":["플레이어 회복","HP +10","heart"],&"guild":["생존 유닛 회복","HP +10%","rest"],&"gold":["자원 획득","골드 +300 · 토큰 +1","gold"],&"loot":["무작위 아이템" if node.event.treasure_kind==&"item" else "무작위 전략카드","아이템 1개" if node.event.treasure_kind==&"item" else "전략카드 1장","supply" if node.event.treasure_kind==&"item" else "prediction"]}
 	for choice in node.event.choices:
 		var data: Array=options[choice];var c:=_choice(grid,String(choice),data[0],data[1],data[2],_action.bind(&"event",{"choice":choice}),"200 G" if choice==&"lottery" else "")
@@ -463,6 +459,8 @@ func render_blacksmith(node: RoomState) -> void:
 		_:_render_enhance()
 func _hint(text: String) -> void:
 	var label:=Label.new();label.text=text;label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;label.add_theme_font_size_override("font_size",13);label.add_theme_color_override("font_color",ArenaUI.MUTED);label.custom_minimum_size.y=48;content_box.add_child(label)
+## Columns for a grid of item slots: as many as the width allows, four to eight.
+func _slot_columns() -> int:return clampi(int((get_viewport_rect().size.x-60)/86),4,8)
 func _grid(columns: int) -> GridContainer:
 	var grid:=GridContainer.new();grid.columns=columns;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;grid.add_theme_constant_override("h_separation",6);grid.add_theme_constant_override("v_separation",6);content_box.add_child(grid);return grid
 ## An inventory slot for an owned item, showing who wears it.
@@ -476,7 +474,7 @@ func _render_enhance() -> void:
 	if rares.is_empty():_hint("강화할 희귀 아이템이 없습니다.\n교환 탭에서 일반 아이템 2개로 희귀 아이템을 만들 수 있습니다.");return
 	if not rares.any(func(i):return i.item_id==forge_pick):forge_pick=rares[0].item_id
 	_section("희귀 아이템 · 장착 중인 아이템도 강화할 수 있습니다")
-	var grid: GridContainer=_grid(4)
+	var grid: GridContainer=_grid(_slot_columns())
 	for item in rares:
 		var caption: String="최대" if item.enhance>=ItemCatalog.MAX_ENHANCE else "+%d → +%d"%[item.enhance,item.enhance+1]
 		var slot: ArenaCard=_item_slot(grid,item,caption,func():forge_pick=item.item_id;call_deferred("render"));slot.selected=item.item_id==forge_pick
@@ -513,23 +511,20 @@ func _render_trade(node: RoomState) -> void:
 			var data: ItemData=ItemCatalog.get_item(offers[i]);var b:=ArenaCard.new();b.name="offer_%d"%i;b.card_type="product";b.kind=String(offers[i]);b.title=data.display_name;b.text=data.display_name+" · 교환"
 			b.description=("두 재료의 조합 · " if i==0 else "")+data.description;b.rarity=ItemCatalog.grade_color(offers[i]);b.price="교환";b.custom_minimum_size=Vector2(0,168);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.tooltip_text=data.description
 			ArenaUI.bind(b,_action.bind(&"trade",{"items":trade_pick.duplicate(),"kind":offers[i]}));grid.add_child(b)
-	else:_hint("재료를 2개 넣으면 희귀 아이템 3개가 제시됩니다.\n하나는 두 재료의 조합 결과, 나머지 둘은 무작위입니다.")
+		# The materials are in: the inventory list steps aside (tap a material to take it out).
+		return
+	_hint("재료를 2개 넣으면 희귀 아이템 3개가 제시됩니다.\n하나는 두 재료의 조합 결과, 나머지 둘은 무작위입니다.")
 	_section("인벤토리 · 장착하지 않은 일반 아이템")
 	var pool: Array=commons.filter(func(i):return not i.item_id in trade_pick)
 	if pool.is_empty():_hint("재료로 쓸 일반 아이템이 없습니다.");return
-	var grid: GridContainer=_grid(4)
-	for item in pool:
-		var card: ArenaCard=_item_slot(grid,item,"넣기",func():if trade_pick.size()<2:trade_pick.append(item.item_id);call_deferred("render"))
-		card.disabled=trade_pick.size()>=2
+	var grid: GridContainer=_grid(_slot_columns())
+	for item in pool:_item_slot(grid,item,"넣기",func():if trade_pick.size()<2:trade_pick.append(item.item_id);call_deferred("render"))
 func _render_sell() -> void:
 	var commons: Array=controller.content.inventory.available().filter(func(i):return ItemCatalog.get_item(i.kind).grade==&"common")
 	_section("일반 아이템 판매 · 구매가의 50%")
 	if commons.is_empty():_hint("판매할 일반 아이템이 없습니다.\n장착 중인 아이템과 희귀·고대 아이템은 팔 수 없습니다.");return
-	var grid: GridContainer=_grid(3)
-	for item in commons:
-		var data: ItemData=ItemCatalog.get_item(item.kind);var b:=ArenaCard.new();b.name="sell_%d"%item.item_id;b.card_type="product";b.kind=String(item.kind);b.title=data.display_name;b.text=data.display_name+" · 판매"
-		b.description=data.description;b.rarity=ItemCatalog.grade_color(item.kind);b.price="+%d G"%ItemCatalog.sell_price(item.kind);b.custom_minimum_size=Vector2(0,168);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.tooltip_text=data.description
-		ArenaUI.bind(b,_action.bind(&"sell",{"item_id":item.item_id}));grid.add_child(b)
+	var grid: GridContainer=_grid(_slot_columns())
+	for item in commons:_item_slot(grid,item,"판매 +%d G"%ItemCatalog.sell_price(item.kind),_action.bind(&"sell",{"item_id":item.item_id})).name="sell_%d"%item.item_id
 func _token_detail(outcome: Dictionary) -> String:
 	match StringName(outcome.get("choice",&"")):
 		&"revive":return "유닛 부활"

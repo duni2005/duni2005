@@ -18,7 +18,7 @@ func play(animate: bool) -> void:
 	if age>=_end():finished.emit.call_deferred()
 
 func _ready() -> void:
-	custom_minimum_size.y=236;mouse_filter=Control.MOUSE_FILTER_STOP;set_process(false)
+	custom_minimum_size.y=200;mouse_filter=Control.MOUSE_FILTER_STOP;set_process(false)
 	gui_input.connect(func(event):if age<_end() and (event is InputEventMouseButton or event is InputEventScreenTouch) and event.pressed:age=_end()-.001)
 
 func _end() -> float:return SPIN+.3 if game==&"roulette" else DICE_END
@@ -38,7 +38,7 @@ func _text(at: Vector2,text: String,font_size: int,color: Color,width: float=-1,
 
 func _wheel() -> void:
 	var slots: Array=TowerContentService.ROULETTE;var n: int=slots.size();var step: float=TAU/n
-	var slot: int=int(outcome.get("slot",0));var r: float=minf(size.x*.3,size.y*.4);var c:=Vector2(size.x*.5,size.y*.47)
+	var slot: int=int(outcome.get("slot",0));var r: float=minf(size.x*.3,(size.y-54)*.5);var c:=Vector2(size.x*.5,(size.y-30)*.5+6)
 	# Ends with the chosen slot's centre under the pointer at the top, after four full turns.
 	var final: float=-PI*.5-(slot+.5)*step-TAU*4
 	var k: float=Motion.out_quint(age/SPIN);var turn: float=final*k
@@ -62,7 +62,7 @@ func _wheel() -> void:
 
 func _dice() -> void:
 	var player: Array=outcome.get("player",[1,1,1]);var gambler: Array=outcome.get("gambler",[1,1,1]);var die: float=44
-	var rows: Array=[["나",player,74.0,0],["도박꾼",gambler,150.0,3]]
+	var rows: Array=[["나",player,size.y*.3,0],["도박꾼",gambler,size.y*.64,3]]
 	for row in rows:
 		var faces: Array=row[1];var y: float=row[2];var settled: bool=age>=DICE_STOP[row[3]+2]
 		_text(Vector2(16,y+6),row[0],13,Color("eef1fa"),-1,ArenaUI.heading_font())

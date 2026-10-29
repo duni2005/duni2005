@@ -245,7 +245,10 @@ func _draw() -> void:
 		# Badge, title and description each keep their own band so nothing overlaps.
 		draw_badge(Vector2(size.x*.5,31),21,gold)
 		ArenaIcon.draw(self,Vector2(size.x*.5,31),kind,26,Color.WHITE if not disabled else Color(1,1,1,.4))
-		draw_string(ArenaUI.heading_font(),Vector2(5,73),ArenaUI.plain(title),HORIZONTAL_ALIGNMENT_CENTER,size.x-10,15,muted if disabled else Color("fff3dc"))
+		# Long titles shrink to fit a narrow card instead of being cut off.
+		var heading: String=ArenaUI.plain(title);var fs: int=15
+		while fs>11 and ArenaUI.heading_font().get_string_size(heading,HORIZONTAL_ALIGNMENT_LEFT,-1,fs).x>size.x-10:fs-=1
+		draw_string(ArenaUI.heading_font(),Vector2(5,73),heading,HORIZONTAL_ALIGNMENT_CENTER,size.x-10,fs,muted if disabled else Color("fff3dc"))
 		draw_multiline_string(get_theme_default_font(),Vector2(8,93),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-16,12,2,muted)
 		if not price.is_empty():draw_price_chip(Rect2(size.x*.5-46,size.y-36,92,28),"완료")
 		return

@@ -94,6 +94,8 @@ func _ready() -> void:
  level_up_button=Button.new();level_up_button.custom_minimum_size.y=44;level_up_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ArenaUI.primary(level_up_button);ArenaUI.bind(level_up_button,_level_up);exp_row.add_child(level_up_button)
  status=Label.new();status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;status.add_theme_font_size_override("font_size",12);content.add_child(status)
  inventory_scroll=ScrollContainer.new();inventory_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;inventory_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;content.add_child(inventory_scroll)
+ # The empty-slot padding depends on the visible height.
+ inventory_scroll.resized.connect(func():if active_tab=="inventory" and is_inside_tree():render.call_deferred())
  # Guild growth, right under the member card: promotion and the guild-wide sortie upgrade, one
  # row each (icon, name, what it does, action button on the right).
  growth_frame=PanelContainer.new();growth_frame.add_theme_stylebox_override("panel",ArenaUI.card_style());content.add_child(growth_frame);content.move_child(growth_frame,upgrade_frame.get_index()+1)
@@ -210,7 +212,9 @@ func render() -> void:
   button.price=("%d층부터"%(card.ready_floor+1) if data.usage_rule==StrategyCardData.Usage.COOLDOWN else "다음 층") if on_hold else "일회성" if data.usage_rule==StrategyCardData.Usage.ONCE else "층당 1회" if data.usage_rule==StrategyCardData.Usage.FLOOR else "두 층 쿨타임"
   button.card_type="slot";button.slot_kind="cooldown" if on_hold else "strategy";button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description
   button.queue_redraw();order.append(button)
- for i in range(maxi(0,24-order.size())):
+ # Empty slots fill only the rows that fit, so the grid scrolls only when items need it.
+ var rows: int=maxi(1,int((inventory_scroll.size.y+6)/70)) if inventory_scroll.size.y>40 else 4
+ for i in range(maxi(0,maxi(rows*inventory_grid.columns,ceili(order.size()/float(inventory_grid.columns))*inventory_grid.columns)-order.size())):
   var key: String="empty_%d"%i;var empty: Control=pool.get(key);pool.erase(key)
   if empty==null:empty=PanelContainer.new();empty.name=key;empty.custom_minimum_size=Vector2(60,64);empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.mouse_filter=Control.MOUSE_FILTER_IGNORE;empty.add_theme_stylebox_override("panel",ArenaUI.box(Color("0b0f1a"),Color("1b2236")))
   order.append(empty)
