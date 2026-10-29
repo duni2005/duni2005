@@ -163,7 +163,7 @@ func _gui_input(event: InputEvent) -> void:
 		if pressed and board_rect().has_point(event.position):
 			var point: Vector2=logical_point(event.position)
 			# An enemy's strategy badge over its head counts as tapping that enemy.
-			var badge: BattleUnit=EnemyStrategyView.badge_hit(battle,presentation.parent_transform,event.position)
+			var badge: BattleUnit=EnemyStrategyView.badge_hit(battle,presentation.parent_transform,event.position,get_theme_default_font())
 			var inspected: String=strategy_actor_id;strategy_actor_id=""
 			for u in battle.units:
 				if badge!=null and u!=badge:continue

@@ -30,11 +30,11 @@ static func execute(plan: EnemyTurningPlan, battle: BattleManager) -> Dictionary
 			if not battle.common_combat_enabled or not StatusController.skill_charge_blocked(enemy):
 				if battle.full_characters_enabled:enemy.ultimate.gain(enemy, float(m.gauge))
 				else:enemy.ultimate_gauge = clampf(enemy.ultimate_gauge + float(m.gauge), 0, 100)
-		EnemyTurningPlan.MOVE:
+		EnemyTurningPlan.MOVE, EnemyTurningPlan.EVADE:
 			StrategyCommandExecutor.cancel_intent(enemy)
 			var to: Vector2 = CharacterPersistence.vector(m.to, enemy.position)
 			enemy.strategy_dash = {"direction": (to - enemy.position).normalized(), "remaining": to.distance_to(enemy.position), "speed": 720.0}
-		EnemyTurningPlan.SMASH, EnemyTurningPlan.CLEAVE:
+		EnemyTurningPlan.SMASH, EnemyTurningPlan.CLEAVE, EnemyTurningPlan.SLASH, EnemyTurningPlan.SWEEP:
 			StrategyCommandExecutor.cancel_intent(enemy)
 			m["kind"] = plan.plan_type
 			m["age"] = 0.0
@@ -58,8 +58,11 @@ static func execute(plan: EnemyTurningPlan, battle: BattleManager) -> Dictionary
 				return {"source_enemy_id": enemy.source_enemy_id, "unit_type_id": enemy.data.type_id, "request": m}
 	return {}
 
-## Runs a smash or cleave after the turning point: the unit holds still through the warning,
-## then strikes. Returns true while the strategy owns the unit this frame.
+## Seconds a cast holds its warning before it lands.
+static func windup(cast: Dictionary) -> float:return float(cast.get("windup", EnemyTurningPlan.WINDUP))
+
+## Runs a smash, cleave, slash or sweep after the turning point: the unit holds still through the
+## warning, then strikes. Returns true while the strategy owns the unit this frame.
 static func advance(unit: BattleUnit, delta: float) -> bool:
 	var cast: Dictionary = unit.strategy_cast
 	if cast.is_empty():
@@ -67,9 +70,24 @@ static func advance(unit: BattleUnit, delta: float) -> bool:
 	var battle: BattleManager = unit.battle
 	cast.age = float(cast.age) + delta
 	unit.velocity = Vector2.ZERO
+	if cast.kind in [EnemyTurningPlan.SLASH, EnemyTurningPlan.SWEEP]:
+		var center: Vector2 = CharacterPersistence.vector(cast.center, unit.position)
+		if center.distance_to(unit.position) > 1:unit.facing = (center - unit.position).angle()
+		if cast.age < windup(cast):
+			return true
+		var reach: float = float(cast.radius);var damage: float = float(cast.damage);var sweep: bool = cast.kind == EnemyTurningPlan.SWEEP
+		var gather: Vector2 = CharacterPersistence.vector(cast.get("gather", {}), center)
+		unit.strategy_cast = {}
+		for foe in battle.units.filter(func(u): return u.alive and u.team != unit.team):
+			if foe.position.distance_to(center) > reach + 20 * foe.combat_scale():continue
+			battle.damage_resolver.resolve(unit, foe, damage, {"impulse": 0 if sweep else 220, "visible_hazard": true, "dmg": &"strategy_sweep" if sweep else &"strategy_slash"})
+			# The sweep drags everyone it caught to one point (knockback slides about speed / 4.6).
+			if sweep and foe.alive:KnockbackController.apply(foe, ((gather - foe.position) * 4.6).limit_length(KnockbackController.MAX_SPEED), unit)
+		battle.emit_combat_event(&"ult_impact", center, {"actor": unit.actor_id(), "type": unit.data.type_id, "radius": reach})
+		return true
 	if cast.kind == EnemyTurningPlan.SMASH:
 		unit.facing = float(cast.angle)
-		if cast.age < EnemyTurningPlan.WINDUP:
+		if cast.age < windup(cast):
 			return true
 		# Hits can interrupt the striker (a parry, say) and clear the cast, so read it first.
 		var forward := Vector2.from_angle(float(cast.angle));var reach: float = float(cast.range);var damage: float = float(cast.damage);var stun: float = float(cast.stun)
@@ -83,7 +101,7 @@ static func advance(unit: BattleUnit, delta: float) -> bool:
 		return true
 	var from: Vector2 = CharacterPersistence.vector(cast.from, unit.position);var to: Vector2 = CharacterPersistence.vector(cast.to, unit.position)
 	unit.facing = (to - from).angle()
-	if cast.age < EnemyTurningPlan.WINDUP:
+	if cast.age < windup(cast):
 		return true
 	if not cast.has("hit"):
 		cast["hit"] = []

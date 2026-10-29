@@ -160,7 +160,7 @@ const DAMAGE = {
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]
 const ITEM = {&"dragon_heart":[&"item", &"magic", 15, 0.6, [&"fire", &"area"], "용의 심장"]}
 ## Turning-point special strategies; the ratio grows with tower progress (see EnemyStrategyPlanner).
-const STRATEGY = {&"strategy_smash":[&"system", &"", 0, 2.0, [&"area"], "특수전략 · 강타"], &"strategy_cleave":[&"system", &"", 0, 1.5, [], "특수전략 · 가르기"]}
+const STRATEGY = {&"strategy_smash":[&"system", &"", 0, 2.0, [&"area"], "특수전략 · 강타"], &"strategy_cleave":[&"system", &"", 0, 1.5, [], "특수전략 · 가르기"], &"strategy_slash":[&"system", &"", 0, 1.3, [&"area"], "특수전략 · 참격"], &"strategy_sweep":[&"system", &"", 0, 2.4, [&"area"], "특수전략 · 휩쓸어 모으기"]}
 
 static func row(type_id: int) -> Array:
 	return STATS.get(_name(type_id), [&"physical", 30, 0, 0, 20, 10])

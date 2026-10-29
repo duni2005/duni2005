@@ -51,15 +51,25 @@ func advance(real_delta: float) -> void:
 	if battle.clock.is_turning_paused() and current.remaining_real_time <= 0:
 		resolve()
 
+## Each turning point's strategies depend on the enemy count, the chapter (tower progress) and
+## the room: battle, miniboss or chapter boss.
 func build_plans() -> Array[EnemyTurningPlan]:
 	var plans: Array[EnemyTurningPlan] = []
-	var p: float = EnemyStrategyPlanner.progress(guild.state.strategy_progress.current_depth)
-	for enemy in battle.units:
-		if not enemy.alive or enemy.team != 1 or enemy.source_enemy_id.is_empty():
-			continue
-		var plan: EnemyTurningPlan = EnemyStrategyPlanner.plan(enemy, p, battle.rng)
+	var tower: TowerRunState = guild.state.tower
+	var room: RoomState = tower.map.get_room(tower.selected_room_id) if tower != null and tower.map != null else null
+	var room_type: StringName = room.room_type if room != null else RoomType.BATTLE
+	var i: float = EnemyStrategyPlanner.intensity(guild.state.strategy_progress.current_depth, room_type)
+	var enemies: Array = battle.units.filter(func(u): return u.alive and u.team == 1 and not u.source_enemy_id.is_empty())
+	var high_left: int = EnemyStrategyPlanner.high_cap(i, room_type)
+	for enemy in enemies:
+		var rank: StringName = &"normal"
+		if room != null and room.encounter != null:
+			for spawn in room.encounter.enemies:
+				if spawn.enemy_id == enemy.source_enemy_id:rank = spawn.rank
+		var plan: EnemyTurningPlan = EnemyStrategyPlanner.plan(enemy, i, battle.rng, enemies.size(), rank, high_left > 0)
 		if plan == null:
 			continue
+		if plan.tier() == EnemyTurningPlan.HIGH:high_left -= 1
 		plan.plan_id = current.turning_point_id + "_" + enemy.source_enemy_id
 		plan.source_enemy_id = enemy.source_enemy_id
 		plans.append(plan)

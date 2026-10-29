@@ -279,7 +279,7 @@ func test_overshoot_and_dead_sides() -> void:
 func test_special_strategies(legacy: bool) -> void:
 	groups += 1
 	var mode: String = " (legacy)" if legacy else " (full)"
-	verify(EnemyStrategyPlanner.progress(0) == 0 and EnemyStrategyPlanner.progress(14) == 1 and EnemyStrategyPlanner.chance(0) < EnemyStrategyPlanner.chance(1), "chance grows with tower progress")
+	verify(EnemyStrategyPlanner.progress(0) == 0 and EnemyStrategyPlanner.progress(14) == 1 and EnemyStrategyPlanner.act_chance(0) < EnemyStrategyPlanner.act_chance(1), "chance grows with tower progress")
 	var f: Dictionary = fixture(legacy)
 	pause(f)
 	var ally: BattleUnit = f.battle.units[0]
@@ -298,7 +298,7 @@ func test_special_strategies(legacy: bool) -> void:
 			used[side] += 1
 			kinds[plan.plan_type] = true
 			if side == 1 and plan.plan_type == EnemyTurningPlan.HEAL: verify(is_equal_approx(plan.metadata.amount, .3), "heal stronger on the top floor" + mode)
-	verify(used[0] > 60 and used[0] < 150 and used[1] > used[0] * 2, "not every enemy uses one; more often later" + mode)
+	verify(used[0] > 25 and used[0] < 80 and used[1] > used[0] * 3, "few enemies act early, many later" + mode)
 	verify(kinds.has(EnemyTurningPlan.HEAL) and kinds.has(EnemyTurningPlan.SMASH) and not kinds.has(EnemyTurningPlan.MOVE), "hurt melee next to a foe heals or smashes, no walk-in" + mode)
 	# Heal and charge resolve at once.
 	var heal := make_plan(f, EnemyTurningPlan.HEAL); heal.metadata = {"amount": .2}
@@ -352,6 +352,67 @@ func test_special_strategies(legacy: bool) -> void:
 	verify(enemy.strategy_cast.is_empty() and ally.stun_remaining <= 0 and ally.current_hp == hp, "stun cancels a winding-up strategy" + mode)
 	f.battle.free()
 
+## Grades, intensity and the three new strategies.
+func test_strategy_grades(legacy: bool) -> void:
+	groups += 1
+	var mode: String = " (legacy)" if legacy else " (full)"
+	verify(EnemyStrategyPlanner.intensity(4, &"boss") > EnemyStrategyPlanner.intensity(4, &"miniboss") and EnemyStrategyPlanner.intensity(4, &"miniboss") > EnemyStrategyPlanner.intensity(4) and EnemyStrategyPlanner.intensity(10) > EnemyStrategyPlanner.intensity(4), "intensity grows with chapter and room weight")
+	verify(EnemyStrategyPlanner.act_chance(.5, 2) > EnemyStrategyPlanner.act_chance(.5, 10) and EnemyStrategyPlanner.act_chance(.5, 4, &"boss") > EnemyStrategyPlanner.act_chance(.5, 4), "fewer enemies or a boss act more often")
+	verify(EnemyStrategyPlanner.tier_weights(0)[EnemyTurningPlan.HIGH] == 0 and EnemyStrategyPlanner.tier_weights(1)[EnemyTurningPlan.HIGH] > EnemyStrategyPlanner.tier_weights(.5)[EnemyTurningPlan.HIGH] and EnemyStrategyPlanner.high_cap(0) == 0 and EnemyStrategyPlanner.high_cap(1.3, &"boss") == 3, "고위험 only later, more of it in boss rooms")
+	verify(EnemyTurningPlan.TIERS[EnemyTurningPlan.EVADE] == EnemyTurningPlan.NORMAL and EnemyTurningPlan.TIERS[EnemyTurningPlan.SLASH] == EnemyTurningPlan.NORMAL and EnemyTurningPlan.TIERS[EnemyTurningPlan.SWEEP] == EnemyTurningPlan.HIGH, "grades of the new strategies")
+	var f: Dictionary = fixture(legacy)
+	pause(f)
+	var ally: BattleUnit = f.battle.units[0];var enemy: BattleUnit = f.battle.units[2]
+	ally.position = enemy.position + Vector2(-90, 0)
+	var rng := RandomNumberGenerator.new();var grades: Array = [{}, {}];var kinds: Dictionary = {}
+	for i in range(600):
+		rng.seed = i
+		for side in range(2):
+			var plan: EnemyTurningPlan = EnemyStrategyPlanner.plan(enemy, [0.0, 1.3][side], rng, 1)
+			if plan == null:continue
+			grades[side][plan.tier()] = int(grades[side].get(plan.tier(), 0)) + 1;kinds[plan.plan_type] = true
+			if plan.plan_type == EnemyTurningPlan.SWEEP:verify(plan.metadata.has("gather") and float(plan.metadata.windup) == EnemyTurningPlan.WINDUP_HIGH, "sweep has a gather point and a longer warning" + mode)
+	verify(not grades[0].has(EnemyTurningPlan.HIGH) and grades[1].get(EnemyTurningPlan.HIGH, 0) > grades[0].get(EnemyTurningPlan.DANGER, 0), "no 고위험 early; plenty late" + mode)
+	verify(kinds.has(EnemyTurningPlan.SLASH) and kinds.has(EnemyTurningPlan.SWEEP), "slash and sweep are chosen next to a foe" + mode)
+	for i in range(200):
+		rng.seed = i;var held: EnemyTurningPlan = EnemyStrategyPlanner.plan(enemy, 1.3, rng, 1, &"normal", false)
+		if held != null and held.tier() == EnemyTurningPlan.HIGH:verify(false, "high cap respected" + mode);break
+	# Slash: one hit inside its circle after the warning.
+	var slash := make_plan(f, EnemyTurningPlan.SLASH)
+	slash.metadata = {"center": CharacterPersistence.point(ally.position), "radius": 80.0, "damage": 30.0}
+	f.tp.current.enemy_plans.assign([slash]);f.tp.resolve()
+	var hp: float = ally.current_hp
+	for frame in range(30): f.battle.simulate(1.0 / 60)
+	verify(ally.current_hp == hp and not enemy.strategy_cast.is_empty(), "slash waits through its warning" + mode)
+	for frame in range(12): f.battle.simulate(1.0 / 60)
+	verify(ally.current_hp < hp and enemy.strategy_cast.is_empty(), "slash lands in its circle" + mode)
+	f.battle.free()
+	# Sweep: hits everyone in the wide circle and drags them to the gather point.
+	f = fixture(legacy);pause(f)
+	ally = f.battle.units[0];enemy = f.battle.units[2];var other: BattleUnit = f.battle.units[1]
+	ally.position = enemy.position + Vector2(-150, 80);other.position = enemy.position + Vector2(-150, -80)
+	ally.parry_cooldown = 999;other.parry_cooldown = 999;ally.defense_cooldown = 999;other.defense_cooldown = 999
+	var gather: Vector2 = enemy.position + Vector2(-60, 0)
+	var sweep := make_plan(f, EnemyTurningPlan.SWEEP)
+	sweep.metadata = {"center": CharacterPersistence.point(enemy.position), "radius": 210.0, "gather": CharacterPersistence.point(gather), "damage": 20.0, "windup": 1.0}
+	f.tp.current.enemy_plans.assign([sweep]);f.tp.resolve()
+	var before: Array = [ally.position.distance_to(gather), other.position.distance_to(gather)];hp = ally.current_hp
+	for frame in range(48): f.battle.simulate(1.0 / 60)
+	verify(ally.current_hp == hp, "sweep holds a longer warning" + mode)
+	for frame in range(40): f.battle.simulate(1.0 / 60)
+	verify(ally.current_hp < hp and ally.position.distance_to(gather) < before[0] * .6 and other.position.distance_to(gather) < before[1] * .6, "sweep hits and drags units together" + mode)
+	f.battle.free()
+	# Evade: a dash to the marked spot.
+	f = fixture(legacy);pause(f)
+	enemy = f.battle.units[2]
+	var evade := make_plan(f, EnemyTurningPlan.EVADE)
+	var spot: Vector2 = enemy.position + Vector2(0, 180)
+	evade.metadata = {"from": CharacterPersistence.point(enemy.position), "to": CharacterPersistence.point(spot)}
+	f.tp.current.enemy_plans.assign([evade]);f.tp.resolve()
+	for frame in range(40): f.battle.simulate(1.0 / 60)
+	verify(enemy.position.distance_to(spot) < 40, "evade moves to its spot" + mode)
+	f.battle.free()
+
 func run(tree: SceneTree) -> void:
 	host = tree
 	test_clock_and_schedule()
@@ -361,6 +422,7 @@ func run(tree: SceneTree) -> void:
 	test_end_priority_and_retreat()
 	test_overshoot_and_dead_sides()
 	for legacy in [true, false]: test_special_strategies(legacy)
+	for legacy in [true, false]: test_strategy_grades(legacy)
 	print("PHASE 5 RESULT: ", groups, " test groups; ", checks, " checks; ", failures, " failures")
 
 func legacy_manager() -> BattleManager:
