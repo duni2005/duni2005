@@ -35,4 +35,4 @@ tags = PackedStringArray("일반", "돌격형")
 emoji = "🗡️"
 ultimate_windup = 1.5
 attack_profile = SubResource("Attack")
-recruit_tokens = 3
+recruit_tokens = 2

@@ -32,7 +32,13 @@ func golden() -> void:
 		var item: ItemData=ItemCatalog.get_item(StringName(row.id))
 		verify(item.display_name==row.name and item.gold_price==row.cost and item.description==row.help,"executed JS item "+row.id)
 	for row in web.cards:verify(StrategyCardCatalog.get_card(StringName(row.kind)).gold_price==row.cost,"actual card price")
-	for type in range(26):verify(CharacterCatalog.all()[type].recruit_tokens==web.recruitPrices[type],"actual recruit price")
+	# Recruit prices are the rarity tiers (1-5 tokens), fewer units at the higher tiers.
+	var per_tier: Array=[0,0,0,0,0,0]
+	for data in CharacterCatalog.all().values():
+		verify(data.recruit_tokens>=1 and data.recruit_tokens<=5,"recruit price is a 1-5 token tier")
+		per_tier[clampi(data.recruit_tokens,0,5)]+=1;verify(UnitRarity.tier(data.type_id)==data.recruit_tokens,"rarity tier follows the recruit price")
+	verify(per_tier==[0,9,9,7,5,3],"9/9/7/5/3 units per rarity tier")
+	verify(UnitRarity.label(27)=="전설" and UnitRarity.label(0)=="일반","rarity names")
 	verify(PredictionRules.POOLS.size()==web.predictionPools.size(),"59 exact prediction combinations")
 	for i in range(PredictionRules.POOLS.size()):
 		for j in range(2):verify(PredictionRules.POOLS[i][j]==int(web.predictionPools[i][j]),"exact prediction pool type")

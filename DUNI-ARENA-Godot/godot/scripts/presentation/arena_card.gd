@@ -42,6 +42,8 @@ var reveal_age: float=99
 const UNIT_TYPES: Array=["member","deploy_member","mini_member","party","revival_member","promotion_member","ally","library"]
 const ACTION_TYPES: Array=["event_option","product","choice","recruit","stake","prediction_team","item"]
 const SHOP_TYPES: Array=["product","recruit"]
+## Cards that show one unit carry its rarity (UnitRarity): coloured band and border, ◆ per token.
+const RARITY_TYPES: Array=["member","deploy_member","mini_member","revival_member","promotion_member","library","recruit"]
 func show_member(guild: GuildManager,member: GuildMemberState) -> void:
 	# Copy presentation values. Inventory ownership remains run data.
 	source_id=member.member_id;type_id=member.unit_type_id;title=guild.definition(type_id).display_name
@@ -108,6 +110,9 @@ func draw_member_summary(compact: bool=false) -> void:
 	draw_equipment(hp_y+16,13 if small else 15)
 	if not small:write(Vector2(0,size.y-7),"사망 · 배치 불가" if dead else status_text,10,ArenaUI.DANGER if dead else ArenaUI.MUTED,size.x,true)
 	for i in range(stars):ArenaIcon.draw(self,Vector2(size.x-11-i*12,33),"star",11,ArenaUI.GOLD)
+	# Deploy cards are narrow: the diamonds run down the left edge under the state chip.
+	if small:UnitRarity.draw_pips(self,Vector2(9,42),type_id,2.6,dead,Vector2.DOWN)
+	else:UnitRarity.draw_pips(self,Vector2(9,33),type_id,3,dead)
 	if small and not dead:
 		# Deploy state chip in the corner: green "배치" once placed, muted "대기" otherwise.
 		var label: String="배치" if deployed else "대기";var c: Color=Color("5fc9a0") if deployed else Color("6d7aa0")
@@ -127,8 +132,10 @@ func reveal(delay: float=0) -> void:
 func _revealing() -> bool:return reveal_age<Motion.ENTER+.45
 func _process(dt: float) -> void:
 	reveal_age+=dt;queue_redraw()
-	# Keep running only for the entrance and for the selected card's travelling rim light.
-	if not _revealing() and not ((selected or button_pressed) and UiMotion.enabled):set_process(false)
+	# Keep running only for the entrance and for the selected card's or a 전설 unit's travelling light.
+	if not _revealing() and not ((selected or button_pressed) and UiMotion.enabled) and not _shimmers():set_process(false)
+## 전설 units keep a light running round the border.
+func _shimmers() -> bool:return UiMotion.enabled and card_type in RARITY_TYPES and UnitRarity.tier(type_id)==5 and not (dead or sold or disabled or selected or button_pressed)
 func write(at: Vector2,value: String,font_size: int=14,color: Color=Color("eef1fa"),width: float=-1,center: bool=false) -> void:
 	draw_string(get_theme_default_font(),at,ArenaUI.plain(value),HORIZONTAL_ALIGNMENT_CENTER if center else HORIZONTAL_ALIGNMENT_LEFT,width,font_size,color)
 func _draw() -> void:
@@ -196,6 +203,10 @@ func _draw() -> void:
 		# Thin top sheen catches the light on the raised face.
 		var r: float=cached_style.corner_radius_top_left
 		draw_line(Vector2(r,2.5),Vector2(size.x-r,2.5),Color(1,1,1,.1),1)
+	# The selected card keeps its own gold rim, deploy cards their placed/waiting border.
+	if card_type in RARITY_TYPES and not active:
+		UnitRarity.draw_frame(self,Rect2(Vector2.ONE,size-Vector2.ONE*2),type_id,cached_style.corner_radius_top_left,dead or sold or disabled,card_type!="deploy_member")
+		if _shimmers() and not is_processing():set_process(true)
 	if UiMotion.enabled:
 		TypeArt.sweep(self,Rect2(Vector2(3,3),size-Vector2(6,6)),Motion.phase(reveal_age,Motion.ENTER*.5,.4),.2,minf(30,size.x*.25))
 		if active and card_type!="nav":_rim_light(cached_style.corner_radius_top_left)
@@ -299,6 +310,7 @@ func _draw() -> void:
 		# Custom battle character card: name, portrait, temporary cost.
 		write(Vector2(0,17),title,11,Color("eef1fa"),size.x,true)
 		UnitIcon.draw(self,Rect2(size.x*.5-20,22,40,40),type_id)
+		UnitRarity.draw_pips(self,Vector2((size.x-UnitRarity.pips_width(type_id,2.6))*.5+2.1,69),type_id,2.6)
 		ArenaIcon.draw(self,Vector2(size.x*.5-16,size.y-12),"gold",11,Color.WHITE)
 		draw_string(ArenaUI.numbers_font(),Vector2(size.x*.5-8,size.y-6),price,HORIZONTAL_ALIGNMENT_LEFT,-1,14,ArenaUI.GOLD)
 		return
@@ -327,9 +339,11 @@ func _draw() -> void:
 		return
 	if card_type=="recruit":
 		write(Vector2(0,23),title,13,Color("eef1fa"),size.x,true)
+		if UnitRarity.tier(type_id)>=4 and not sold:VfxArt.glow(self,Vector2(size.x*.5,62),40,UnitRarity.color(type_id),.22)
 		UnitIcon.draw(self,Rect2(size.x*.5-29,33,58,58),type_id,.4 if sold else 1)
-		write(Vector2(0,114),stats_summary,10,muted,size.x,true)
-		draw_multiline_string(get_theme_default_font(),Vector2(7,138),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-14,10,2,muted)
+		_rarity_line(102,sold or disabled)
+		write(Vector2(0,124),stats_summary,10,muted,size.x,true)
+		draw_multiline_string(get_theme_default_font(),Vector2(7,142),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-14,10,2,muted)
 		draw_price_chip(Rect2(7,size.y-42,size.x-14,32),"영입 완료")
 		return
 	if card_type=="strategy" and size.y<=64:
@@ -370,6 +384,14 @@ func _draw() -> void:
 			for j in range(10):points.append(at+Vector2.from_angle(-PI/2+j*PI/5)*(6 if j%2==0 else 2.5))
 			draw_colored_polygon(points,gold)
 
+## "◆◆◆ 희귀" pill centred on `y`.
+func _rarity_line(y: float,dim: bool) -> void:
+	var label: String=UnitRarity.label(type_id);var font: Font=get_theme_default_font();var col: Color=UnitRarity.color(type_id)
+	var pips: float=UnitRarity.pips_width(type_id,3.4);var w: float=pips+5+font.get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,11).x
+	var x: float=(size.x-w)*.5;var a: float=.5 if dim else 1.0
+	draw_style_box(ArenaUI.box(Color(col,.14*a),Color(col,.55*a)),Rect2(x-7,y-8,w+14,16))
+	UnitRarity.draw_pips(self,Vector2(x+2.7,y),type_id,3.4,dim)
+	write(Vector2(x+pips+5,y+4),label,11,Color(col.lightened(.25),a))
 ## A short bright segment of light running around the selected card's border.
 func _rim_light(radius: float) -> void:
 	var rect:=Rect2(Vector2.ONE,size-Vector2.ONE*2);var head: float=Time.get_ticks_msec()/1000.0*.42

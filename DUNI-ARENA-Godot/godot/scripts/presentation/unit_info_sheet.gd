@@ -53,6 +53,17 @@ func close() -> void:
 	t.tween_property(backdrop, "modulate:a", 0.0, .22)
 	t.chain().tween_callback(queue_free)
 
+## "◆◆◆ 희귀" chip in the rarity colour.
+func _rarity_chip() -> Control:
+	var chip := Control.new();var label: String = UnitRarity.label(type_id);var col: Color = UnitRarity.color(type_id)
+	var font: Font = get_theme_default_font();var text_w: float = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, 11).x
+	chip.custom_minimum_size = Vector2(UnitRarity.pips_width(type_id, 3) + text_w + 19, 20);chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	chip.draw.connect(func():
+		chip.draw_style_box(ArenaUI.box(Color(col, .16), Color(col, .7)), Rect2(Vector2.ZERO, chip.size))
+		UnitRarity.draw_pips(chip, Vector2(8.4, chip.size.y * .5), type_id, 3)
+		chip.draw_string(font, Vector2(UnitRarity.pips_width(type_id, 3) + 12, chip.size.y * .5 + 4), label, HORIZONTAL_ALIGNMENT_LEFT, -1, 11, col.lightened(.25)))
+	return chip
+
 func _build(column: VBoxContainer) -> void:
 	var data: UnitData = CharacterCatalog.all()[type_id]
 	if stats == null:stats = UnitCombatStats.from_table(data)
@@ -66,13 +77,16 @@ func _build(column: VBoxContainer) -> void:
 	var portrait := Control.new();portrait.custom_minimum_size = Vector2(72, 72)
 	portrait.draw.connect(func():
 		var c := Vector2(36, 36)
-		VfxArt.glow(portrait, c, 46, ArenaUI.GOLD, .18)
+		# The ring takes the unit's rarity colour.
+		var ring: Color = UnitRarity.color(type_id)
+		VfxArt.glow(portrait, c, 46, ring, .18 + .04 * UnitRarity.tier(type_id))
 		portrait.draw_circle(c, 34, Color("0b1120"));UnitIcon.draw(portrait, Rect2(c - Vector2(30, 30), Vector2(60, 60)), type_id)
-		portrait.draw_arc(c, 34, 0, TAU, 48, ArenaUI.GOLD, 2.5, true))
+		portrait.draw_arc(c, 34, 0, TAU, 48, ring, 2.5, true))
 	head.add_child(portrait)
 	var names := VBoxContainer.new();names.size_flags_horizontal = Control.SIZE_EXPAND_FILL;names.add_theme_constant_override("separation", 2);names.alignment = BoxContainer.ALIGNMENT_CENTER;head.add_child(names)
 	var name_label := Label.new();name_label.text = data.display_name + ("  " + "★".repeat(member.stars) if member != null and member.stars > 0 else "")
-	name_label.add_theme_font_override("font", ArenaUI.heading_font());name_label.add_theme_font_size_override("font_size", 22);name_label.add_theme_color_override("font_color", ArenaUI.GOLD);names.add_child(name_label)
+	name_label.add_theme_font_override("font", ArenaUI.heading_font());name_label.add_theme_font_size_override("font_size", 22);name_label.add_theme_color_override("font_color", ArenaUI.GOLD)
+	var title_row := HBoxContainer.new();title_row.add_theme_constant_override("separation", 8);title_row.add_child(name_label);title_row.add_child(_rarity_chip());names.add_child(title_row)
 	var line := Label.new();line.add_theme_font_size_override("font_size", 12);line.add_theme_color_override("font_color", ArenaUI.MUTED)
 	line.text = ("%s · Lv.%d" % [ArenaUI.member_label(member.member_id), member.level] if member != null else "기본 능력치") + "  ·  " + CharacterCatalog.damage_label(type_id) + " 피해"
 	names.add_child(line)
