@@ -4,6 +4,9 @@ extends RefCounted
 const REROLL_COST = 200
 ## Candidates per recruit room (rooms entered before 0.56.0 keep their three).
 const RECRUIT_SLOTS = 4
+## Chance (%) that a candidate slot shows a unit of each recruit price (1-5 tokens); within a
+## price every unit is equally likely, and no unit shows twice in one room.
+const RECRUIT_ODDS = {1:40, 2:30, 3:18, 4:9, 5:3}
 const HOT_SPRING_COST = 200
 ## Guild rest: how many dead members one revive brings back (at 20% HP).
 const REST_REVIVE_LIMIT = 3
@@ -56,9 +59,23 @@ func shuffle(values: Array) -> void:
 	for i in range(values.size()-1,0,-1):
 		var j: int=rng.randi_range(0,i);var v=values[i];values[i]=values[j];values[j]=v
 func create_offers(node: RoomState,revision: int) -> Array[RecruitOffer]:
-	var pool: Array=range(CharacterCatalog.NAMES.size());shuffle(pool);var offers: Array[RecruitOffer]=[]
+	var offers: Array[RecruitOffer]=[];var by_price: Dictionary={}
+	for type in range(CharacterCatalog.NAMES.size()):
+		var price: int=guild.definition(type).recruit_tokens
+		if not by_price.has(price):by_price[price]=[]
+		by_price[price].append(type)
 	for slot in range(RECRUIT_SLOTS):
-		var offer:=RecruitOffer.new();offer.offer_id="%s:recruit:%d:%d"%[node.room_id,revision,slot];offer.unit_type_id=pool[slot];offer.token_price=guild.definition(offer.unit_type_id).recruit_tokens;offers.append(offer)
+		# A price first (by its odds, among prices with units left), then a unit of that price.
+		var total: float=0
+		for price in by_price:
+			if not by_price[price].is_empty():total+=float(RECRUIT_ODDS.get(price,0))
+		var roll: float=rng.randf()*total;var pick: int=-1
+		for price in by_price:
+			if by_price[price].is_empty() or RECRUIT_ODDS.get(price,0)==0:continue
+			pick=price;roll-=float(RECRUIT_ODDS[price])
+			if roll<0:break
+		var units: Array=by_price[pick];var type: int=units.pop_at(rng.randi_range(0,units.size()-1))
+		var offer:=RecruitOffer.new();offer.offer_id="%s:recruit:%d:%d"%[node.room_id,revision,slot];offer.unit_type_id=type;offer.token_price=guild.definition(type).recruit_tokens;offers.append(offer)
 	return offers
 func ensure_recruit(node: RoomState) -> void:
 	if node.recruit!=null:return

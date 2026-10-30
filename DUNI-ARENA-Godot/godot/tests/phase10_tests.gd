@@ -66,6 +66,10 @@ func recruit_shop() -> void:
 	var distinct: Dictionary={}
 	for offer in offers:distinct[offer.unit_type_id]=true
 	verify(offers.size()==TowerContentService.RECRUIT_SLOTS and distinct.size()==4,"four distinct offers")
+	# Candidates show up with their price's odds (first slot: every price still available).
+	var seen: Dictionary={1:0,2:0,3:0,4:0,5:0};var odds_tower:=tower();odds_tower.select_room("0:0")
+	for i in range(3000):seen[odds_tower.content.create_offers(odds_tower.current_room(),i)[0].token_price]+=1
+	verify(TowerContentService.RECRUIT_ODDS.keys().all(func(p):return absf(seen[p]/30.0-TowerContentService.RECRUIT_ODDS[p])<3.5),"recruit candidates follow the price odds")
 	var first: RecruitOffer=offers[0];t.guild.create_member(first.unit_type_id)
 	var gold: int=t.guild.state.gold;var tokens: int=t.guild.state.tokens;var before: int=t.guild.all_members().size()
 	var result: Dictionary=t.content_action(&"recruit",{"offer_id":first.offer_id})
