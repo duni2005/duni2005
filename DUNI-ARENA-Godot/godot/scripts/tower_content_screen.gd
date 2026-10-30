@@ -189,17 +189,31 @@ func render() -> void:
 	elif node.room_type==RoomType.REST:render_rest()
 	elif node.event_type==&"prediction":render_prediction(node)
 	else:render_event(node)
+## Candidates in a grid that fits without scrolling (2×2 on a phone, one row of four on a wide
+## screen). Tapping a card opens the unit's info sheet; only its 영입 button buys.
 func render_recruit(node: RoomState) -> void:
-	var strip:=ScrollContainer.new();strip.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;strip.custom_minimum_size.y=216;content_box.add_child(strip)
+	var view: Vector2=get_viewport_rect().size;var wide: bool=view.x>=700
+	var grid:=GridContainer.new();grid.name="Candidates";grid.columns=4 if wide else 2;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation",8);grid.add_theme_constant_override("v_separation",8)
+	var center:=CenterContainer.new();content_box.add_child(center);center.add_child(grid)
 	# Reroll sits centred under the recruit cards.
 	var reroll_row:=HBoxContainer.new();reroll_row.alignment=BoxContainer.ALIGNMENT_CENTER;content_box.add_child(reroll_row)
-	var row:=HBoxContainer.new();strip.add_child(row)
+	var width: float=minf(200,(minf(860,view.x)-56)/4) if wide else minf(230,(view.x-56)*.5)
+	# Two rows (and the reroll row) share what the phone leaves between the header and the footer.
+	var height: float=216 if wide else clampf((view.y-400)*.5,150,216)
 	for offer in node.recruit.offers:
 		var data: UnitData=controller.guild.definition(offer.unit_type_id)
-		var b:=ArenaCard.new();b.text=data.display_name+" · 영입";b.card_type="recruit";b.type_id=offer.unit_type_id;b.title=data.display_name;b.description=" / ".join(data.tags);b.stats_summary="HP %d · ATK %s"%[int(data.max_hp),ArenaUI.number(data.attack)];b.price="토큰 %d · 영입"%offer.token_price;b.sold=offer.purchased;b.name=offer.offer_id
-		ArenaUI.bind(b,_action.bind(&"recruit",{"offer_id":offer.offer_id}));row.add_child(b);b.custom_minimum_size=Vector2(maxf(100,(minf(760,get_viewport_rect().size.x)-32)/3-4),210);b.disabled=offer.purchased or controller.guild.state.tokens<offer.token_price
+		var cell:=VBoxContainer.new();cell.add_theme_constant_override("separation",5);grid.add_child(cell)
+		var b:=ArenaCard.new();b.text=data.display_name+" · 정보";b.card_type="recruit";b.type_id=offer.unit_type_id;b.title=data.display_name;b.description=" / ".join(data.tags);b.stats_summary="HP %d · ATK %s"%[int(data.max_hp),ArenaUI.number(data.attack)];b.sold=offer.purchased;b.name=offer.offer_id
+		b.tooltip_text="눌러서 유닛 정보 보기";b.custom_minimum_size=Vector2(width,height-49);cell.add_child(b)
+		var unit_type: int=offer.unit_type_id;ArenaUI.bind(b,func():UnitInfoSheet.open(self,unit_type))
+		var buy:=Button.new();buy.name="Buy";buy.custom_minimum_size=Vector2(width,44);cell.add_child(buy)
+		if offer.purchased:buy.text="영입 완료";buy.disabled=true
+		else:
+			buy.disabled=controller.guild.state.tokens<offer.token_price;ArenaUI.price_button(buy,"영입","gem",offer.token_price)
+			ArenaUI.bind(buy,_action.bind(&"recruit",{"offer_id":offer.offer_id}))
 	var reroll: Button=button(reroll_row,"리롤 · %d G"%TowerContentService.REROLL_COST,_action.bind(&"reroll"),"Reroll");reroll.disabled=controller.guild.state.gold<TowerContentService.REROLL_COST;ArenaUI.price_button(reroll,"리롤","gold",TowerContentService.REROLL_COST)
-	if deal_cards:deal_cards=false;UiMotion.deal(row.get_children())
+	if deal_cards:deal_cards=false;UiMotion.deal(grid.get_children())
 func render_shop(node: RoomState) -> void:
 	if content_tab=="inventory":
 		var panel:=GuildManagementPanel.new();panel.controller=controller;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;content_box.add_child(panel);panel.show_tab("inventory");panel.modified.connect(refresh_wallet);panel.promoted.connect(presentation_requested.emit);return

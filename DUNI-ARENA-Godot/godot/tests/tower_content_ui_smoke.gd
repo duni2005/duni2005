@@ -60,9 +60,15 @@ func flow(touch: bool) -> void:
 	screen=load("res://scenes/tower.tscn").instantiate();root.add_child(screen);screen.controller.new_run(19,73);screen.show_map();await frames()
 	var t: TowerController=screen.controller;var run_state: RunState=t.guild.state
 	await click(screen.room_buttons["0:0"],touch)
-	verify(screen.content_screen!=null and t.current_room().recruit.offers.size()==3,"recruit room UI")
+	verify(screen.content_screen!=null and t.current_room().recruit.offers.size()==TowerContentService.RECRUIT_SLOTS,"recruit room UI")
 	var offer: RecruitOffer=t.current_room().recruit.offers[0];var tokens: int=run_state.tokens
-	await click(screen.content_screen.content_box.get_child(0).get_child(0).get_child(0),touch)
+	# Tapping the card only shows the unit; its 영입 button buys.
+	await click(screen.content_screen.content_box.find_child("Candidates",true,false).get_child(0).get_child(0),touch)
+	var sheets: Array=root.find_children("*","UnitInfoSheet",true,false)
+	verify(sheets.size()==1 and sheets[0].type_id==offer.unit_type_id and not offer.purchased and run_state.guild_members.size()==4,"candidate tap opens unit info without buying")
+	for sheet in sheets:sheet.free()
+	await frames()
+	await click(screen.content_screen.content_box.find_child("Buy",true,false),touch)
 	verify(run_state.guild_members.size()==5 and offer.purchased and run_state.tokens==tokens-offer.token_price,"candidate purchase via input")
 	await finish_reveal(screen,touch)
 	var gold: int=run_state.gold;await click(screen.content_screen.content_box.find_child("Reroll",true,false),touch)

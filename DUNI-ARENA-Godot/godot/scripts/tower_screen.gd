@@ -64,6 +64,7 @@ func _ready() -> void:
 	map_scroll.stairs_pressed.connect(_ascend);map_scroll.reward_pressed.connect(show_reward)
 	var cinematic_layer:=CanvasLayer.new();cinematic_layer.layer=1050;add_child(cinematic_layer)
 	cinematic=TowerCinematic.new();cinematic.theme=ArenaUI.get_theme();cinematic_layer.add_child(cinematic);cinematic.finished.connect(_cinematic_done)
+	map_scroll.hold=cinematic.active
 	notice=Label.new();notice.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;body.add_child(notice);notice.add_theme_font_size_override("font_size",12);notice.hide()
 	confirm_abandon=ConfirmationDialog.new();confirm_abandon.title="탐험 포기";confirm_abandon.dialog_text="탐험을 포기하면 바로 타워 정복 실패로 처리되고,\n지금까지의 진행은 이어할 수 없습니다.\n정말 포기하겠습니까?";confirm_abandon.ok_button_text="포기하기";confirm_abandon.cancel_button_text="계속 탐험";add_child(confirm_abandon)
 	confirm_abandon.confirmed.connect(func():if controller.abandon(true):show_map())

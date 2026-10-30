@@ -36,8 +36,8 @@ func run():
   screen.guild_panel.show_tab("upgrade");await shot(tag+"-upgrade");screen.guild_dialog.hide()
   screen.select_room("0:0");await frames();await shot(tag+"-recruit")
   var cs=screen.content_screen
-  var row=cs.content_box.get_child(0).get_child(0)
-  verify(row.get_child(2).get_global_rect().end.x<=res.x,"three recruit candidates fit")
+  var grid=cs.content_box.find_child("Candidates",true,false)
+  verify(grid.get_child_count()==4 and grid.get_children().all(func(c):return c.get_global_rect().end.x<=res.x and c.get_global_rect().end.y<=cs.scroll.get_global_rect().end.y),"four recruit candidates fit without scrolling")
   await press(cs.map_button);screen.select_room("0:1");await shot(tag+"-shop")
   verify(screen.content_screen.content_tabs.visible,"shop has original category tabs")
   await press(screen.content_screen.map_button);screen.select_room("0:3");await frames()

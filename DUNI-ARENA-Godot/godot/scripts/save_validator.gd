@@ -183,7 +183,7 @@ static func validate_room(room: RoomState) -> String:
 	for id in room.kill_rewards:
 		if not room.enemy_state.has(id) or room.enemy_state[id].alive:return "kill_receipt"
 	if room.recruit!=null:
-		if room.room_type!=RoomType.RECRUIT or room.recruit.revision<0 or room.recruit.offers.size()!=3:return "recruit"
+		if room.room_type!=RoomType.RECRUIT or room.recruit.revision<0 or not room.recruit.offers.size() in [3,TowerContentService.RECRUIT_SLOTS]:return "recruit"
 		seen={}
 		for offer in room.recruit.offers:
 			if not id_ok(offer.offer_id) or seen.has(offer.offer_id) or CharacterCatalog.all().get(offer.unit_type_id)==null or offer.gold_price<0 or offer.token_price<0:return "recruit_offer"

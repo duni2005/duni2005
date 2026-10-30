@@ -338,13 +338,15 @@ func _draw() -> void:
 		draw_rect(Rect2(6,56,size.x-12,3),Color("0e1424"));draw_rect(Rect2(6,56,(size.x-12)*clampf(hp/maxf(1,hp_max),0,1),3),Color("86e3a4"))
 		return
 	if card_type=="recruit":
-		write(Vector2(0,23),title,13,Color("eef1fa"),size.x,true)
-		if UnitRarity.tier(type_id)>=4 and not sold:VfxArt.glow(self,Vector2(size.x*.5,62),40,UnitRarity.color(type_id),.22)
-		UnitIcon.draw(self,Rect2(size.x*.5-29,33,58,58),type_id,.4 if sold else 1)
-		_rarity_line(102,sold or disabled)
-		write(Vector2(0,124),stats_summary,10,muted,size.x,true)
-		draw_multiline_string(get_theme_default_font(),Vector2(7,142),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-14,10,2,muted)
-		draw_price_chip(Rect2(7,size.y-42,size.x-14,32),"영입 완료")
+		# Tapping shows the unit's info (the 영입 button sits under the card): the icon grows with the card.
+		write(Vector2(0,20),title,13,Color("eef1fa"),size.x,true)
+		var icon: float=clampf(size.y-96,34,64);var mid: Vector2=Vector2(size.x*.5,25+icon*.5)
+		if UnitRarity.tier(type_id)>=4 and not sold:VfxArt.glow(self,mid,icon*.7,UnitRarity.color(type_id),.22)
+		UnitIcon.draw(self,Rect2(mid-Vector2.ONE*icon*.5,Vector2.ONE*icon),type_id,.4 if sold else 1)
+		_rarity_line(38+icon,sold)
+		write(Vector2(0,62+icon),stats_summary,10,muted,size.x,true)
+		draw_string(get_theme_default_font(),Vector2(6,77+icon),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-12,10,muted)
+		var info:=Vector2(size.x-12,12);draw_arc(info,6.5,0,TAU,20,Color(muted,.8),1.2,true);write(info+Vector2(-1.5,3.5),"i",10,Color(muted,.9))
 		return
 	if card_type=="strategy" and size.y<=64:
 		ArenaIcon.draw(self,Vector2(17,size.y*.5),kind,22,gold)

@@ -2,6 +2,8 @@ class_name TowerContentService
 extends RefCounted
 ## Pure content operations. UI sends IDs; no Nodes stored in content state.
 const REROLL_COST = 200
+## Candidates per recruit room (rooms entered before 0.56.0 keep their three).
+const RECRUIT_SLOTS = 4
 const HOT_SPRING_COST = 200
 ## Guild rest: how many dead members one revive brings back (at 20% HP).
 const REST_REVIVE_LIMIT = 3
@@ -55,7 +57,7 @@ func shuffle(values: Array) -> void:
 		var j: int=rng.randi_range(0,i);var v=values[i];values[i]=values[j];values[j]=v
 func create_offers(node: RoomState,revision: int) -> Array[RecruitOffer]:
 	var pool: Array=range(CharacterCatalog.NAMES.size());shuffle(pool);var offers: Array[RecruitOffer]=[]
-	for slot in range(3):
+	for slot in range(RECRUIT_SLOTS):
 		var offer:=RecruitOffer.new();offer.offer_id="%s:recruit:%d:%d"%[node.room_id,revision,slot];offer.unit_type_id=pool[slot];offer.token_price=guild.definition(offer.unit_type_id).recruit_tokens;offers.append(offer)
 	return offers
 func ensure_recruit(node: RoomState) -> void:

@@ -149,7 +149,7 @@ func content_and_save() -> void:
 			var content: TowerContentScreen=tower.content_screen
 			verify(content!=null and inside(content.scroll),"content mobile scroll "+String(room.room_type))
 			await capture("mobile-"+String(room.room_type))
-			if room.room_type==RoomType.RECRUIT:verify(room.recruit.offers.size()==3,"three persistent recruit candidates")
+			if room.room_type==RoomType.RECRUIT:verify(room.recruit.offers.size()==TowerContentService.RECRUIT_SLOTS,"four persistent recruit candidates")
 			else:
 				verify(content.offers_grid.get_child_count()==room.shop.offers.filter(func(o):return o.category==&"equipment").size(),"equipment stock tab presentation")
 				var card_tab: Button=content.content_tabs.get_child(1);await click(card_tab);await frames()

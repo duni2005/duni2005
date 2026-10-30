@@ -63,7 +63,9 @@ func golden() -> void:
 func recruit_shop() -> void:
 	groups+=1
 	var t:=tower();t.select_room("0:0");var room: RoomState=t.current_room();var offers: Array[RecruitOffer]=room.recruit.offers
-	verify(offers.size()==3 and offers[0].unit_type_id!=offers[1].unit_type_id and offers[0].unit_type_id!=offers[2].unit_type_id and offers[1].unit_type_id!=offers[2].unit_type_id,"three distinct offers")
+	var distinct: Dictionary={}
+	for offer in offers:distinct[offer.unit_type_id]=true
+	verify(offers.size()==TowerContentService.RECRUIT_SLOTS and distinct.size()==4,"four distinct offers")
 	var first: RecruitOffer=offers[0];t.guild.create_member(first.unit_type_id)
 	var gold: int=t.guild.state.gold;var tokens: int=t.guild.state.tokens;var before: int=t.guild.all_members().size()
 	var result: Dictionary=t.content_action(&"recruit",{"offer_id":first.offer_id})
