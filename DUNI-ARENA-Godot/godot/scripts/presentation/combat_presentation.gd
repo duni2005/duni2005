@@ -392,6 +392,7 @@ func _draw() -> void:
 			for layer in range(3):draw_rect(Rect2(point-Vector2.ONE*(radius-layer*5),Vector2.ONE*(radius-layer*5)*2),[Color("f7d6aa"),Color("e07a5b"),Color("5c83bc")][layer],false,3)
 			for x in [-1,1]:
 				for y in [-1,1]:draw_rect(Rect2(point+Vector2(x,y)*radius-Vector2.ONE*6,Vector2.ONE*12),Color("f2d1a0"))
+		elif z.kind=="oilFire":_oil_fire(z)
 		else:
 			VfxArt.field(self,z,real_age,c)
 			if z.get("ultimate",false):_ult_zone(z,point,radius)
@@ -805,6 +806,59 @@ func _frost_storm(u: BattleUnit) -> void:
 		var a: float=real_age*(1.6+VisualParticles.noise(i)*1.5)+i*2.399;var d: float=r*(.2+VisualParticles.noise(i+7)*.8)
 		VfxArt.star(self,at+Vector2.from_angle(a)*d,3+VisualParticles.noise(i+3)*4,Color("f2fbff"),.85*fade,a)
 
+## 화염방사기 ultimate, read from its zone's clock: bottles arc out and shatter into oil puddles,
+## a jet of fire lights the nearest puddle, and the fire runs across the rest of the oil.
+func _oil_fire(z: Dictionary) -> void:
+	var age: float=float(z.total)-float(z.life);var fade: float=clampf(float(z.life)/.6,0,1)
+	var origin: Vector2=CharacterPersistence.vector(z.origin);var first: Vector2=CharacterPersistence.vector(z.first)
+	for i in range(z.puddles.size()):
+		var pd: Dictionary=z.puddles[i];var at: Vector2=CharacterPersistence.vector(pd);var r: float=float(pd.r);var land: float=float(pd.land)
+		if age<land:
+			var k: float=(age-(land-FLAMETHROWER.FLIGHT))/FLAMETHROWER.FLIGHT
+			if k>=0:_oil_bottle(origin.lerp(at,k)+Vector2(0,-sin(k*PI)*80),age*13+i,k)
+			continue
+		var since: float=age-land;var grow: float=Motion.out_quint(clampf(since/.25,0,1))
+		# A flat, irregular pool of glossy oil, squashed a little for the top-down ground.
+		var pool:=PackedVector2Array();var inner:=PackedVector2Array();var lit: float=age-float(pd.ignite)
+		for j in range(20):
+			var d: Vector2=Vector2.from_angle(j*TAU/20)*Vector2(1,.72);var wob: float=.82+.3*VisualParticles.noise(i*29+j)
+			pool.append(at+d*r*wob*grow);inner.append(at+d*r*wob*grow*.62+Vector2(-r*.08,-r*.06))
+		draw_colored_polygon(pool,Color("241a10",.6*fade));draw_colored_polygon(inner,Color("3d2e1a",.45*fade))
+		if lit>=0:draw_colored_polygon(pool,Color("ff5a1f",(.28+.08*sin(real_age*9+i))*clampf(lit/.3,0,1)*fade))
+		else:draw_arc(at+Vector2(-r*.25,-r*.2)*grow,r*.3*grow,PI*1.1,PI*1.7,10,Color("c8b48a",.55*fade),2,true)
+		if since<.35:
+			# Shattering glass and splashing oil.
+			var q: float=since/.35
+			for j in range(8):
+				var d: Vector2=Vector2.from_angle(j*TAU/8+i);var p: Vector2=at+d*r*(.3+.9*Motion.out_quint(q))
+				draw_line(p,p+d*6,Color("cfe7d0",1-q),2,true);draw_circle(p-d*8,3*(1-q),Color("2a2016",1-q))
+			draw_arc(at,r*(.4+.8*q),0,TAU,24,Color("d8c7a0",.6*(1-q)),2,true)
+		if lit<0:continue
+		# The fire front races across the pool, then the oil keeps burning.
+		var spread: float=clampf(lit/.3,0,1)
+		VfxArt.glow(self,at,r*1.5,Color("ff6b25"),.45*fade*spread)
+		if spread<1:draw_arc(at,r*spread,0,TAU,28,Color("ffe08a",.9),4,true)
+		for j in range(13):
+			var t: float=fposmod(real_age*1.2+j*.131+i*.31,1.0);var base: Vector2=at+Vector2.from_angle(j*2.399+i)*Vector2(1,.72)*r*.85*sqrt(VisualParticles.noise(i*11+j+1))*spread
+			var flame: Vector2=base+Vector2(sin(real_age*3+j)*5,-t*42);var alpha: float=sin(t*PI)*fade
+			VfxArt.quad(self,VfxArt.SMOKE,flame,Vector2(15*(1-t)+6,30*(1-t)+8),sin(j)*.3,Color("ff5a1f",alpha*.7))
+			VfxArt.flare(self,flame,-PI/2,20*(1-t)+8,Color("ffdc82"),alpha*.9)
+			if j%3==0:VfxArt.star(self,flame+Vector2(sin(j*3.1)*8,-14-t*20),3,Color("ffd593"),alpha*.8)
+	# The jet of fire that lights the oil.
+	var jet: float=Motion.phase(age,FLAMETHROWER.IGNITE-.3,.3)*(1-Motion.phase(age,FLAMETHROWER.IGNITE+.05,.2))
+	if jet>0:
+		var dir: Vector2=(first-origin).normalized();var length: float=origin.distance_to(first)*minf(1,Motion.phase(age,FLAMETHROWER.IGNITE-.3,.25)*1.2)
+		for i in range(12):
+			var t: float=(i+fposmod(real_age*9,1.0))/12.0;var at: Vector2=origin+dir*(34+length*t)+dir.orthogonal()*sin(real_age*31+i)*8*t
+			draw_circle(at,6+20*t,Color(Color("ff4d1f").lerp(Color("ffb340"),1-t),.45*jet*(1-t*.6)))
+func _oil_bottle(at: Vector2,spin: float,k: float) -> void:
+	var turn:=Transform2D(spin,Vector2.ONE*1.5,0,at);var shadow: float=1-sin(k*PI)
+	draw_circle(at+Vector2(0,sin(k*PI)*80),5,Color(0,0,0,.18*(1-shadow*.5)))
+	draw_colored_polygon(PackedVector2Array([turn*Vector2(-6,-7),turn*Vector2(6,-7),turn*Vector2(6,9),turn*Vector2(-6,9)]),Color("4b6b3c"))
+	draw_colored_polygon(PackedVector2Array([turn*Vector2(-5,-2),turn*Vector2(5,-2),turn*Vector2(5,8),turn*Vector2(-5,8)]),Color("2a2016"))
+	draw_colored_polygon(PackedVector2Array([turn*Vector2(-2.5,-13),turn*Vector2(2.5,-13),turn*Vector2(2.5,-7),turn*Vector2(-2.5,-7)]),Color("6c8f5c"))
+	draw_colored_polygon(PackedVector2Array([turn*Vector2(-3,-16),turn*Vector2(3,-16),turn*Vector2(3,-12),turn*Vector2(-3,-12)]),Color("b98a54"))
+	draw_line(turn*Vector2(-4,-5),turn*Vector2(-4,6),Color(1,1,1,.45),1.5,true)
 func _flame_stream(u: BattleUnit) -> void:
 	var scale: float=u.combat_scale();var dir: Vector2=Vector2.from_angle(u.combat.aim_angle);var side: Vector2=dir.orthogonal()
 	var origin: Vector2=u.position+dir*34*scale;var length: float=240*scale;var k: float=clampf(u.combat.phase_time/.12,0,1)

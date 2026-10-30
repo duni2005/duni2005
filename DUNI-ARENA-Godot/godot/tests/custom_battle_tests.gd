@@ -190,10 +190,18 @@ func new_characters(tree: SceneTree) -> void:
 	flamer=b.units[0];flamer.set_state("oil",2);flamer.ultimate_gauge=100;StatusController.stun(b.units[1],8)
 	for i in range(60*3):
 		step(b,1.0/60)
-		if b.zones.entries.any(func(z):return z.get("oil",false)):break
-	verify(b.zones.entries.any(func(z):return z.kind=="tankFire" and z.get("oil",false)) and flamer.state_value("oil")>=29,"ultimate lights an oil fire patch and refills the tank")
-	hp=[b.units[1].current_hp];step(b,1.5)
-	verify(b.units[1].current_hp<hp[0],"the fire patch burns an enemy standing in it")
+		if b.zones.entries.any(func(z):return z.kind=="oilFire"):break
+	var fire: Array=b.zones.entries.filter(func(z):return z.kind=="oilFire")
+	verify(fire.size()==1 and fire[0].puddles.size()==5 and flamer.state_value("oil")>=29,"ultimate throws five oil bottles and refills the tank")
+	verify(fire[0].puddles.all(func(p):return float(p.ignite)>=float(p.land)),"each puddle catches fire only after its bottle lands")
+	# Stun the thrower: the sequence plays on by itself, and its spray cannot muddy the check.
+	StatusController.stun(flamer,8)
+	hp=[b.units[1].current_hp];step(b,.9)
+	verify(b.units[1].current_hp==hp[0],"nothing burns before the oil is lit")
+	step(b,1.6)
+	verify(b.units[1].current_hp<hp[0],"the lit oil burns an enemy standing in it")
+	var probe: Dictionary={"total":7.0,"life":5.0,"puddles":[{"x":100,"y":100,"r":50,"land":.5,"ignite":1.5},{"x":300,"y":100,"r":50,"land":.6,"ignite":3.0}]}
+	verify(BattleZones.burning(probe,Vector2(110,100)) and not BattleZones.burning(probe,Vector2(300,100)) and not BattleZones.burning(probe,Vector2(200,100)),"only lit oil burns; the gap between puddles does not")
 	b.queue_free()
 	# Tower: new types are recruitable members and fight in ordinary (non-custom) battles.
 	var guild:=GuildManager.new(RunState.new())

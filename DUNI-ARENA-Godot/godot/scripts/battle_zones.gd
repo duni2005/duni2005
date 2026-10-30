@@ -13,7 +13,7 @@ func risk(u,point: Vector2) -> float:
 	var body: float=25*u.combat_scale()
 	for z in entries:
 		var source=u.battle.find_actor(z.source)
-		if source==null or source.team==u.team or z.kind not in ["blackhole","tankFire","ring"]:continue
+		if source==null or source.team==u.team or z.kind not in ["blackhole","tankFire","ring","oilFire"]:continue
 		var center: Vector2=CharacterPersistence.vector(z.point)
 		var radius: float=z.radius
 		if z.kind=="ring":
@@ -39,6 +39,13 @@ func risk(u,point: Vector2) -> float:
 			var limit: float=float(area.radius)+body;var d: float=point.distance_to(CharacterPersistence.vector(area.point))
 			if d<limit:result+=weight*(.65+.35*(1-d/limit))
 	return result
+## 화염방사기 oil fire: whether `point` is on a puddle that has caught fire (one hit per tick
+## however many puddles overlap there).
+static func burning(z: Dictionary,point: Vector2,margin: float=0) -> bool:
+	var age: float=float(z.total)-float(z.life)
+	for puddle in z.puddles:
+		if age>=float(puddle.ignite) and point.distance_to(CharacterPersistence.vector(puddle))<=float(puddle.r)+margin:return true
+	return false
 func safe_areas(u) -> Array[Dictionary]:
 	var safe: Array[Dictionary]=[]
 	for z in entries:
@@ -116,6 +123,8 @@ func advance(battle,dt: float) -> void:
 			for actor in battle.units:
 				if not actor.alive or point.distance_to(actor.position)>float(z.radius):continue
 				if z.kind=="healing" and actor.team==u.team:CharacterAbility.restore_hp(actor,1.75 if actor==u else 2.5,u)
+				elif z.kind=="oilFire" and actor.team!=u.team and burning(z,actor.position,24*actor.combat_scale()):
+					battle.damage_resolver.resolve(u,actor,float(z.damage),{"dmg":&"fire_zone","critical":false,"impulse":0,"attack_origin":actor.position,"visible_hazard":true,"attack_token":z.source+z.kind})
 				elif z.kind in ["blackhole","tankFire"] and actor.team!=u.team:
 					battle.damage_resolver.resolve(u,actor,UnitStatTable.raw(u,&"ult") if z.kind=="blackhole" else float(z.get("damage",0)),{"dmg":&"ult" if z.kind=="blackhole" else &"fire_zone","critical":false,"impulse":0,"attack_origin":point,"visible_hazard":true,"attack_token":z.source+z.kind})
 		if float(z.life)<=0:entries.erase(z)

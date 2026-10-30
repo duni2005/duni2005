@@ -1,8 +1,10 @@
 extends CharacterAbility
 ## 화염방사기: sprays flame that pierces every enemy in its path, a puff every PUFF_EVERY seconds,
 ## each burning one unit of oil. Oil refills slowly whenever it is not spraying, and a spray
-## needs OIL_START to begin. Ultimate scatters oil on the ground and sets it alight: a burning
-## patch that hurts enemies inside every half second, and the tank is refilled.
+## needs OIL_START to begin. Ultimate: lobs BOTTLES oil bottles across the target area; each
+## shatters into a puddle of oil, then the unit sprays fire on the nearest puddle and the fire runs
+## across the oil. Burning puddles hurt enemies standing in them every half second for
+## PATCH_LIFE, and the tank is refilled.
 const OIL_MAX: float = 30
 const OIL_START: float = 6
 const OIL_REGEN: float = 3.5
@@ -10,6 +12,14 @@ const PUFF_EVERY: float = .1
 const PATCH_RADIUS: float = 140
 const PATCH_LIFE: float = 6
 const PATCH_REACH: float = 260
+const BOTTLES: int = 5
+const PUDDLE_RADIUS: float = 58
+## Bottle i leaves at i * THROW_GAP and flies FLIGHT seconds; the fire is lit at IGNITE and runs
+## across the oil at SPREAD pixels a second.
+const THROW_GAP: float = .09
+const FLIGHT: float = .55
+const IGNITE: float = 1.15
+const SPREAD: float = 420
 func on_spawn(u) -> void:
 	if not u.character_specific_state.has("oil"):u.set_state("oil",OIL_MAX)
 func tick(u,dt: float) -> void:
@@ -36,10 +46,23 @@ func attack_tick(u,dt: float) -> bool:
 		if u.state_value("oil")<1:u.combat_state=CombatController.State.RECOVERY;u.combat.phase_time=0
 	return false
 func release_ultimate(u,a: Dictionary,_dt: float) -> bool:
-	var point: Vector2=u.position+(CharacterPersistence.vector(a.get("point",{}),u.position)-u.position).limit_length(PATCH_REACH*u.combat_scale())
-	u.battle.zones.add(u,"tankFire",point,PATCH_RADIUS*u.combat_scale(),PATCH_LIFE,{"damage":UnitStatTable.raw(u,&"fire_zone"),"oil":true})
+	var scale: float=u.combat_scale();var r: RandomNumberGenerator=u.battle.rng
+	var center: Vector2=u.position+(CharacterPersistence.vector(a.get("point",{}),u.position)-u.position).limit_length(PATCH_REACH*scale)
+	# One bottle on the centre, the rest scattered around it.
+	var spots: Array=[center]
+	for i in range(BOTTLES-1):
+		spots.append(MovementController.clamp_position(center+Vector2.from_angle(i*TAU/(BOTTLES-1)+r.randf_range(-.4,.4))*r.randf_range(.45,.7)*PATCH_RADIUS*scale))
+	# The fire starts on the puddle nearest the thrower and runs outward through the oil.
+	var first: Vector2=spots[0]
+	for spot in spots:
+		if spot.distance_to(u.position)<first.distance_to(u.position):first=spot
+	var puddles: Array=[]
+	for i in range(spots.size()):
+		var at: Vector2=spots[i]
+		puddles.append({"x":at.x,"y":at.y,"r":PUDDLE_RADIUS*scale*r.randf_range(.85,1.1),"land":i*THROW_GAP+FLIGHT,"ignite":IGNITE+at.distance_to(first)/SPREAD})
+	var life: float=IGNITE+PATCH_LIFE
+	u.battle.zones.add(u,"oilFire",center,PATCH_RADIUS*scale+PUDDLE_RADIUS*scale,life,{"damage":UnitStatTable.raw(u,&"fire_zone"),"total":life,"puddles":puddles,"origin":CharacterPersistence.point(u.position),"first":CharacterPersistence.point(first)})
 	u.set_state("oil",OIL_MAX)
-	u.battle.emit_combat_event(&"ult_impact",point,{"actor":u.actor_id(),"type":u.data.type_id,"radius":PATCH_RADIUS*u.combat_scale()})
 	return true
 func cast_area(u,a: Dictionary) -> Dictionary:
 	var point: Vector2=u.position+(CharacterPersistence.vector(a.get("point",{}),u.position)-u.position).limit_length(PATCH_REACH*u.combat_scale())
