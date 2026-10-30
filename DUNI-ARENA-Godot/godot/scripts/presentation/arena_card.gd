@@ -415,74 +415,67 @@ func _draw_tp_member() -> void:
 	var badge:=c+Vector2(14,12)
 	draw_circle(badge,7,Color("10182b"));draw_arc(badge,7,0,TAU,20,ArenaUI.GOLD if on else Color("5a6890"),1,true)
 	ArenaIcon.draw(self,badge,kind,9,ArenaUI.GOLD if on else Color("c9d0e6"))
-## A room on the dark dungeon chart: a stone chamber with block walls, a tiled floor, fog while
-## unexplored, an icon, a name plaque on the south wall and a cleared stamp.
+## Floor colour of each room kind on the tower map.
+const ROOM_COLORS={"battle":"d9634f","miniboss":"ee9a3a","boss":"e8443c","recruit":"9f7ae6","shop":"4f9be0","blacksmith":"e3803f","rest":"4fb87a","hidden":"55607e"}
+## A room on the tower map, seen from above like the tower itself: a round stone dais with a
+## crenellated rim around a floor in the room's colour, its icon, a number on the rim and a
+## name ribbon across the bottom. Unexplored rooms are misty; boss rooms are larger with a
+## spiked rim; cleared rooms get a check.
 func _draw_dungeon_room() -> void:
-	var r:=Rect2(Vector2(3,3),size-Vector2(7,8))
-	var boss: bool=kind in ["boss","miniboss"];var active: bool=button_pressed or ArenaUI.is_held(self);var hidden: bool=kind=="hidden"
-	var accent: Color=ArenaUI.GOLD if active else Color("e0574a") if kind=="boss" else Color("e09a46") if kind=="miniboss" else Color("6f7ea8") if hidden or spent else Color("7fd3f0")
-	var floor:=_chamber(r,spent)
+	var active: bool=button_pressed or ArenaUI.is_held(self);var hidden: bool=kind=="hidden";var boss: bool=kind in ["boss","miniboss"]
+	var base: Color=Color(ROOM_COLORS.get(kind,"3fb3ad"))
+	if spent:base=base.lerp(Color("6b7280"),.6)
+	var at:=Vector2(size.x*.5,size.y*.46);var r: float=minf(size.x,size.y*.92)*.46
+	var ring: Color=ArenaUI.GOLD if active else Color("c9c1b0") if not boss else base.lightened(.25)
+	_dais(at,r,base,ring,boss,active)
 	if hidden:
-		# Unexplored: fog drifts over the floor.
-		draw_rect(floor,Color("0b1020",.5))
-		for i in range(4):VfxArt.glow(self,floor.position+floor.size*Vector2(.18+i*.22,.4+.18*sin(i*1.9)),floor.size.x*.32,Color("3a4a72"),.4)
-	draw_rect(floor.grow(-3),Color(accent,.4 if boss or active else .25),false,1)
-	for c in [floor.position+Vector2(3,3),Vector2(floor.end.x-3,floor.position.y+3),floor.end-Vector2(3,3),Vector2(floor.position.x+3,floor.end.y-3)]:draw_rect(Rect2(c-Vector2(2,2),Vector2(4,4)),Color(accent,.85))
-	if active:VfxArt.glow(self,r.get_center(),maxf(r.size.x,r.size.y)*.7,ArenaUI.GOLD,.22)
-	elif boss:VfxArt.glow(self,r.get_center(),maxf(r.size.x,r.size.y)*.6,accent,.16)
-	if active or boss:draw_rect(r,Color(accent,.9),false,2)
-	var icon: float=clampf(minf(r.size.x,r.size.y)*.36,16,32);var center:=floor.get_center()+Vector2(0,-5)
-	if hidden:write(center+Vector2(-r.size.x*.5,icon*.36),"?",int(icon*1.1),Color("7d8cb6"),r.size.x,true)
-	else:ArenaIcon.draw(self,center,kind,icon,Color(1,1,1,.45 if spent else 1))
-	_plaque(r,title,accent,spent)
-	write(floor.position+Vector2(4,12),subtitle,9,Color("8a98bf"))
+		for i in range(3):VfxArt.glow(self,at+Vector2.from_angle(i*2.1+Time.get_ticks_msec()*.0004)*r*.25,r*.55,Color("c9d6f0"),.18)
+		write(at+Vector2(-r,r*.22),"?",int(r*.62),Color(1,1,1,.85),r*2,true)
+	else:ArenaIcon.draw(self,at+Vector2(0,-r*.06),kind,r*.78,Color(1,1,1,.5 if spent else 1))
+	# Number on the rim, upper left.
+	var badge: Vector2=at+Vector2.from_angle(PI*1.25)*r*.86
+	draw_circle(badge,8.5,Color("1d2333"));draw_arc(badge,8.5,0,TAU,20,ring,1.5,true);write(badge+Vector2(-9,3.5),subtitle,10,Color.WHITE,18,true)
+	_ribbon(Vector2(at.x,at.y+r*.86),title,base,spent)
 	if sold:
-		var stamp:=Vector2(floor.end.x-10,floor.position.y+11);draw_circle(stamp,10,Color("0f1a16",.85));draw_arc(stamp,10,0,TAU,24,ArenaUI.HP,2,true)
-		draw_polyline(PackedVector2Array([stamp+Vector2(-5,0),stamp+Vector2(-1,4),stamp+Vector2(6,-5)]),ArenaUI.HP,2.5,true)
-## Stone walls with block joints and a checkered tile floor; returns the floor rect.
-func _chamber(r: Rect2,dim: bool) -> Rect2:
-	draw_rect(Rect2(r.position+Vector2(3,5),r.size),Color(0,0,0,.5))
-	var wall: float=clampf(minf(r.size.x,r.size.y)*.08,4,7);var joint:=Color("1b2340")
-	draw_rect(r,Color("2e3a5c") if dim else Color("3c4a72"))
-	for x in range(int(r.position.x)+6,int(r.end.x)-2,10):
-		draw_line(Vector2(x,r.position.y),Vector2(x,r.position.y+wall),joint,1);draw_line(Vector2(x+5,r.end.y-wall),Vector2(x+5,r.end.y),joint,1)
-	for y in range(int(r.position.y)+6,int(r.end.y)-2,10):
-		draw_line(Vector2(r.position.x,y),Vector2(r.position.x+wall,y),joint,1);draw_line(Vector2(r.end.x-wall,y+5),Vector2(r.end.x,y+5),joint,1)
-	draw_line(r.position,Vector2(r.end.x,r.position.y),Color(1,1,1,.2),1);draw_rect(r,Color(0,0,0,.6),false,1)
-	var floor:=r.grow(-wall);var tile: float=11
-	draw_rect(floor,Color("141b30") if dim else Color("1a2340"))
-	for gx in range(int(floor.size.x/tile)+1):
-		for gy in range(int(floor.size.y/tile)+1):
-			if (gx+gy)%2==0:draw_rect(Rect2(floor.position+Vector2(gx,gy)*tile,Vector2(tile,tile)).intersection(floor),Color(1,1,1,.03))
-	draw_rect(Rect2(floor.position,Vector2(floor.size.x,4)),Color(0,0,0,.35));draw_rect(Rect2(floor.position,Vector2(3,floor.size.y)),Color(0,0,0,.25))
-	return floor
-## Name plate set into the south wall.
-func _plaque(r: Rect2,text: String,accent: Color,dim: bool) -> void:
-	var font_size: int=10 if r.size.x<70 else 11
-	var w: float=minf(r.size.x-6,get_theme_default_font().get_string_size(ArenaUI.plain(text),HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x+16)
-	var plate:=Rect2(Vector2(r.get_center().x-w*.5,r.end.y-17),Vector2(w,16))
-	var style: StyleBoxFlat=ArenaUI.box(Color("0c1222"),Color(accent,.65));style.set_corner_radius_all(4);style.set_border_width_all(1);draw_style_box(style,plate)
-	write(Vector2(plate.position.x,plate.end.y-4),text,font_size,ArenaUI.MUTED if dim else Color("e6ebf8"),plate.size.x,true)
-## The stairway to the next floor: stone steps climbing to a lit archway.
+		var stamp: Vector2=at+Vector2.from_angle(-PI*.25)*r*.86;draw_circle(stamp,9,Color("12301f"));draw_arc(stamp,9,0,TAU,20,ArenaUI.HP,2,true)
+		draw_polyline(PackedVector2Array([stamp+Vector2(-4.5,0),stamp+Vector2(-1,3.5),stamp+Vector2(5,-4)]),ArenaUI.HP,2.2,true)
+## Round stone dais: shadow, crenellated rim (spiked for boss rooms), a floor that is lighter in
+## the middle, and a gold halo when selected.
+func _dais(at: Vector2,r: float,floor: Color,ring: Color,boss: bool,active: bool) -> void:
+	draw_circle(at+Vector2(2,4),r*1.02,Color(0,.08,0,.28))
+	if active:VfxArt.glow(self,at,r*1.6,ArenaUI.GOLD,.35)
+	elif boss:VfxArt.glow(self,at,r*1.5,floor,.3)
+	if boss:
+		for i in range(12):
+			var d: Vector2=Vector2.from_angle(i*TAU/12)
+			draw_colored_polygon(PackedVector2Array([at+d.rotated(-.13)*r*.92,at+d*r*1.16,at+d.rotated(.13)*r*.92]),ring.darkened(.15))
+	draw_circle(at,r,ring.darkened(.35));draw_circle(at,r*.94,ring)
+	var merlons: int=12 if r<40 else 16
+	for i in range(merlons):
+		var a: float=i*TAU/merlons;draw_arc(at,r*.88,a,a+TAU/merlons*.5,4,ring.lightened(.25),r*.1,false)
+	draw_circle(at,r*.76,ring.darkened(.45))
+	draw_circle(at,r*.72,floor.darkened(.15));draw_circle(at+Vector2(-r*.06,-r*.08),r*.56,floor);VfxArt.glow(self,at+Vector2(-r*.15,-r*.2),r*.5,Color.WHITE,.12)
+	if active:draw_arc(at,r*1.04,0,TAU,40,ArenaUI.GOLD,2.5,true)
+## Name ribbon across the bottom of a dais.
+func _ribbon(center: Vector2,text: String,color: Color,dim: bool) -> void:
+	var font_size: int=10 if size.x<80 else 11
+	var w: float=minf(size.x-2,get_theme_default_font().get_string_size(ArenaUI.plain(text),HORIZONTAL_ALIGNMENT_LEFT,-1,font_size).x+16)
+	var plate:=Rect2(Vector2(center.x-w*.5,center.y-8),Vector2(w,16))
+	var style: StyleBoxFlat=ArenaUI.box(Color("1d2333",.94),Color(color.lightened(.3),.9));style.set_corner_radius_all(8);style.set_border_width_all(1);draw_style_box(style,plate)
+	write(Vector2(plate.position.x,plate.end.y-4),text,font_size,ArenaUI.MUTED if dim else Color.WHITE,plate.size.x,true)
+## The stairway to the next floor: a gold dais with a spiral stair winding down into light.
 func _draw_stairs() -> void:
-	var r:=Rect2(Vector2(3,3),size-Vector2(7,8));var floor:=_chamber(r,false);var pulse: float=.5+.5*sin(Time.get_ticks_msec()*.004)
-	var cx: float=floor.get_center().x;var arch_w: float=floor.size.x*.38;var arch_h: float=floor.size.y*.4;var arch_top: float=floor.position.y+floor.size.y*.1
-	var bottom: float=arch_top+arch_h
-	VfxArt.glow(self,Vector2(cx,arch_top+arch_h*.55),arch_w*1.4,Color("ffd27a"),.3+.2*pulse)
-	# The archway: a stone frame around warm light.
-	var frame:=PackedVector2Array();var light:=PackedVector2Array();var colors:=PackedColorArray()
-	for k in range(9):
-		var ang: float=PI+k*PI/8
-		frame.append(Vector2(cx,arch_top+arch_w*.6)+Vector2(cos(ang),sin(ang))*arch_w*.6);light.append(Vector2(cx,arch_top+arch_w*.6)+Vector2(cos(ang),sin(ang))*arch_w*.44);colors.append(Color("fff3cf"))
-	frame.append(Vector2(cx+arch_w*.6,bottom));frame.append(Vector2(cx-arch_w*.6,bottom))
-	light.append(Vector2(cx+arch_w*.44,bottom));colors.append(Color("ffb35a"));light.append(Vector2(cx-arch_w*.44,bottom));colors.append(Color("ffb35a"))
-	draw_colored_polygon(frame,Color("8a849e"));draw_polygon(light,colors)
-	# Steps widening towards the viewer: a lit tread over a shaded riser.
-	var steps: int=4;var run: float=(floor.end.y-20-bottom)/steps
-	for i in range(steps):
-		var y: float=bottom+i*run;var top_half: float=arch_w*(.44+i*.12);var low_half: float=arch_w*(.44+(i+1)*.12)
-		draw_colored_polygon(PackedVector2Array([Vector2(cx-top_half,y),Vector2(cx+top_half,y),Vector2(cx+low_half,y+run*.55),Vector2(cx-low_half,y+run*.55)]),Color("b9b0c8").lerp(Color("ffe3a0"),.5-i*.12))
-		draw_rect(Rect2(Vector2(cx-low_half,y+run*.55),Vector2(low_half*2,run*.45)),Color("4a4660"))
-	draw_rect(r,Color("b8862b").lerp(Color("ffd27a"),pulse),false,2)
-	_plaque(r,"다음 층  ▲",ArenaUI.GOLD,false)
+	var pulse: float=.5+.5*sin(Time.get_ticks_msec()*.004);var at:=Vector2(size.x*.5,size.y*.46);var r: float=minf(size.x,size.y*.92)*.46
+	VfxArt.glow(self,at,r*1.7,Color("ffd27a"),.25+.2*pulse)
+	_dais(at,r,Color("3a3550"),Color("e3c27a"),false,false)
+	# Spiral steps: wedges turning inwards, brighter towards the lit centre.
+	for i in range(10):
+		var a0: float=i*TAU/10+Time.get_ticks_msec()*.0003;var k: float=i/10.0
+		var outer: float=r*(.68-k*.3);var inner: float=outer-r*.14
+		var pts:=PackedVector2Array()
+		for j in range(4):pts.append(at+Vector2.from_angle(a0+j*TAU/10/3)*outer)
+		for j in range(3,-1,-1):pts.append(at+Vector2.from_angle(a0+j*TAU/10/3)*inner)
+		draw_colored_polygon(pts,Color("b9b0c8").lerp(Color("ffe3a0"),k))
+	VfxArt.glow(self,at,r*.35,Color("fff3cf"),.7+.3*pulse)
+	_ribbon(Vector2(at.x,at.y+r*.86),"다음 층  ▲",Color("e3c27a"),false)
 	queue_redraw()

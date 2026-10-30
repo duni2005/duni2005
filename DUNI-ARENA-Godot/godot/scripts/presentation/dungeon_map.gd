@@ -1,8 +1,8 @@
 class_name DungeonMap
 extends Control
 ## The current floor seen from above as a great round tower: a crenellated stone wall ring with
-## four turrets around a meadow painted like the battlefield, and blue sky with drifting clouds
-## beyond the wall. Rooms stand in the meadow joined by paved roads; once the floor's clear
+## four slate-roofed turrets around a grass meadow in the battlefield's greens, and blue sky with
+## flat drifting clouds beyond the wall. Rooms are round daises joined by paved roads; once the floor's clear
 ## requirement is met, a stairway room opens in its reserved spot.
 ## A floor shown for the first time builds itself: the camera shows the whole tower, the rooms rise
 ## one by one (boss rooms last, under a pillar of light with a rune circle and a shake), the
@@ -102,26 +102,27 @@ func show_floor_ids(ids: Array) -> void:
 		layout_rects.clear();var ok: bool = true
 		for key in keys:
 			var big: bool = _big(key)
-			var size := Vector2(rng.randf_range(.26, .32), rng.randf_range(.21, .26)) * side * scale
-			if big:size = Vector2(.36, .3) * side * scale
-			elif key == "stairs":size = Vector2(.27, .24) * side * scale
-			size = size.max(Vector2(64, 56))
+			# Round daises: square cards, boss rooms larger.
+			var size := Vector2.ONE * side * scale * (.34 if big else .27 if key == "stairs" else rng.randf_range(.25, .29))
+			size = size.max(Vector2(70, 70))
 			var best := Rect2();var best_gap: float = -1
 			for k in range(40):
 				var at := Vector2(rng.randf_range(-.5, .5) * v.size.x, rng.randf_range(-.5, .5) * v.size.y)
 				var rect := Rect2(at - size * .5, size)
 				if not _fits(rect):continue
 				var gap: float = INF
-				for other in layout_rects.values():gap = minf(gap, other.get_center().distance_to(at) - (other.size + size).length() * .5)
-				if gap < 14 and attempt < 9:continue
+				for other in layout_rects.values():gap = minf(gap, other.get_center().distance_to(at) - (other.size.x + size.x) * .5)
+				if gap < 22 and attempt < 9:continue
 				if gap > best_gap:best_gap = gap;best = rect
 			if best_gap < 0 and attempt < 9:ok = false;break
 			if best_gap < 0:best = Rect2(-size * .5, size)
 			layout_rects[key] = best
 		if ok:break
 		scale *= .92
-	# Paths: a spanning tree over the rooms plus one extra loop, each bowed a little.
-	var inside: Array = [keys[0]];var rest: Array = keys.slice(1)
+	# Paths: a spanning tree over the rooms plus one extra loop, each bowed a little. The stairs
+	# hang off their nearest room, so the rooms stay connected while the stairs are closed.
+	var rooms: Array = keys.filter(func(k):return k != "stairs")
+	var inside: Array = [rooms[0]];var rest: Array = rooms.slice(1)
 	while not rest.is_empty():
 		var pair: Array = [];var gap: float = INF
 		for a in inside:
@@ -129,8 +130,18 @@ func show_floor_ids(ids: Array) -> void:
 				var d: float = layout_rects[a].get_center().distance_to(layout_rects[b].get_center())
 				if d < gap:gap = d;pair = [a, b]
 		edges.append([pair[0], pair[1], rng.randf_range(-.18, .18)]);inside.append(pair[1]);rest.erase(pair[1])
+	var near: String = rooms[0]
+	for id in rooms:
+		if layout_rects[id].get_center().distance_to(layout_rects["stairs"].get_center()) < layout_rects[near].get_center().distance_to(layout_rects["stairs"].get_center()):near = id
+	edges.append([near, "stairs", rng.randf_range(-.18, .18)])
 	var a: String = ids[rng.randi_range(0, ids.size() - 1)];var b: String = ids[rng.randi_range(0, ids.size() - 1)]
-	if a != b and not edges.any(func(e):return a in e and b in e):edges.append([a, b, rng.randf_range(-.18, .18)])
+	# The loop is left out when it would run under another room.
+	var clear: bool = a != b and not edges.any(func(e):return a in e and b in e)
+	for id in layout_rects:
+		if clear and id != a and id != b:
+			var p: Vector2 = layout_rects[a].get_center();var q: Vector2 = layout_rects[b].get_center();var c: Vector2 = layout_rects[id].get_center()
+			clear = c.distance_to(Geometry2D.get_closest_point_to_segment(c, p, q)) > layout_rects[id].size.x * .5 + 14
+	if clear:edges.append([a, b, rng.randf_range(-.18, .18)])
 	for id in room_cards:room_cards[id].visible = layout_rects.has(id)
 	_place();world.queue_redraw()
 func _big(key: String) -> bool:return room_cards.has(key) and room_cards[key].kind in ["boss", "miniboss"]
@@ -138,10 +149,8 @@ func _big(key: String) -> bool:return room_cards.has(key) and room_cards[key].ki
 func _fits(rect: Rect2) -> bool:
 	var v: Rect2 = view();var half: Vector2 = v.size * .5 - Vector2(10, 10)
 	if rect.position.x < -half.x or rect.position.y < -half.y or rect.end.x > half.x or rect.end.y > half.y:return false
-	var inner: float = meadow_radius() - 12
-	for corner in [rect.position, rect.end, Vector2(rect.position.x, rect.end.y), Vector2(rect.end.x, rect.position.y)]:
-		if corner.length() > inner:return false
-	return true
+	# Rooms are round: their circle stays clear of the wall.
+	return rect.get_center().length() + rect.size.x * .5 <= meadow_radius() - 10
 
 func set_stairs(open: bool) -> void:
 	if open and not stairs_open:stairs_age = 0
@@ -283,65 +292,72 @@ func _zoom_at(point: Vector2, factor: float) -> void:
 	zoom = clampf(zoom * factor, fit_zoom(), MAX_ZOOM)
 	cam = anchor - (point - view().get_center()) / zoom;_clamp_camera();_place()
 
-# Sky (screen space): a blue gradient with soft clouds that drift and follow the camera a little.
+# Sky (screen space): a clean blue gradient, a soft sun and a few flat clouds that drift and
+# follow the camera a little.
 func _draw() -> void:
-	draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)]), PackedColorArray([Color("4f9de0"), Color("4f9de0"), Color("a8dbf7"), Color("a8dbf7")]))
-	VfxArt.glow(self, Vector2(size.x * .8, size.y * .12), size.x * .6, Color("fff6d8"), .35)
+	draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)]), PackedColorArray([Color("3d8fdc"), Color("3d8fdc"), Color("b9e3fa"), Color("b9e3fa")]))
+	VfxArt.glow(self, Vector2(size.x * .82, size.y * .1), size.x * .7, Color("fff4d6"), .45)
 	var drift: Vector2 = -cam * zoom * .3
 	for cloud in clouds:
 		var span := size + Vector2(260, 200)
 		var at := Vector2(fposmod(cloud[0].x * span.x + age * cloud[2] + drift.x, span.x) - 130, fposmod(cloud[0].y * span.y + drift.y, span.y) - 100)
-		_cloud(self, at, 44 * cloud[1], .75)
+		_cloud(self, at, 40 * cloud[1], .9)
 
+## A flat cartoon cloud: rounded puffs on a flat base, with a pale blue underside.
 static func _cloud(c: CanvasItem, at: Vector2, s: float, alpha: float) -> void:
-	for puff in [[Vector2(-.9, .15), .55], [Vector2(-.35, -.2), .75], [Vector2(.3, -.3), .85], [Vector2(.95, .1), .6], [Vector2(.2, .25), .7]]:
-		c.draw_circle(at + puff[0] * s + Vector2(0, s * .12), puff[1] * s, Color(.55, .7, .86, alpha * .35))
-	for puff in [[Vector2(-.9, .15), .55], [Vector2(-.35, -.2), .75], [Vector2(.3, -.3), .85], [Vector2(.95, .1), .6], [Vector2(.2, .25), .7]]:
-		c.draw_circle(at + puff[0] * s, puff[1] * s, Color(1, 1, 1, alpha))
+	var puffs: Array = [[Vector2(-1.1, .1), .5], [Vector2(-.45, -.25), .72], [Vector2(.35, -.38), .85], [Vector2(1.05, .05), .55]]
+	for puff in puffs:c.draw_circle(at + puff[0] * s + Vector2(0, s * .14), puff[1] * s, Color("cfe3f5", alpha))
+	c.draw_rect(Rect2(at + Vector2(-1.1, .1) * s + Vector2(0, s * .14), Vector2(2.15 * s, .5 * s)), Color("cfe3f5", alpha))
+	for puff in puffs:c.draw_circle(at + puff[0] * s, puff[1] * s, Color(1, 1, 1, alpha))
+	c.draw_rect(Rect2(at + Vector2(-1.1, .1) * s, Vector2(2.15 * s, .45 * s)), Color(1, 1, 1, alpha))
 
-# The tower, in world units around its centre.
+# The tower, in world units around its centre, lit from the upper left.
 func _draw_world() -> void:
 	var r: float = radius;var w: float = wall_width();var inner: float = r - w
-	# Shadow on the sky, then the stone ring.
-	for i in range(4):world.draw_circle(Vector2(r * .04, r * .07), r * (1.02 + i * .03), Color(.05, .12, .3, .1))
-	world.draw_circle(Vector2.ZERO, r, Color("6f6b64"))
-	# Meadow: the battlefield's own floor painted into the circle.
-	var points := PackedVector2Array();var uvs := PackedVector2Array();var steps: int = 72
+	# Soft shadow on the sky.
+	VfxArt.glow(world, Vector2(r * .06, r * .1), r * 1.25, Color(.04, .16, .38), .55)
+	# Meadow: battlefield grass, lighter towards the sun, with a few tufts and flowers.
+	world.draw_circle(Vector2.ZERO, inner, Color("5c9a3a"))
+	VfxArt.glow(world, Vector2(-inner * .25, -inner * .3), inner * 1.1, Color("8fcf5a"), .55)
+	var rng := RandomNumberGenerator.new();rng.seed = 4242
+	for i in range(int(inner * inner / 3400)):
+		var at: Vector2 = Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * (inner - 18);var kind: float = rng.randf()
+		if kind < .7:
+			world.draw_line(at, at + Vector2(-2.5, -5), Color("3f7a2c"), 1.4, true);world.draw_line(at, at + Vector2(2.5, -5.5), Color("3f7a2c"), 1.4, true)
+		else:world.draw_circle(at, 2.2, Color("fff7d6") if kind < .85 else Color("ffd45c"))
+	# Cloud shadows sliding over the grass.
+	for i in range(2):
+		var at := Vector2(fposmod(age * 9 + i * 420, inner * 3) - inner * 1.5, (i - .5) * inner * .7)
+		if at.length() < inner * .8:VfxArt.glow(world, at, inner * .4, Color(0, .08, .1), .1)
+	# Shade along the foot of the wall.
+	var steps: int = 96
 	for i in range(steps):
-		var d: Vector2 = Vector2.from_angle(i * TAU / steps);points.append(d * inner);uvs.append(Vector2(.5, .5) + d * .165)
-	world.draw_colored_polygon(points, ArenaFloor.BASE)
-	world.draw_colored_polygon(points, Color.WHITE, uvs, ArenaFloor.texture(0))
-	# Cloud shadows sliding over the floor.
-	for i in range(3):
-		var at := Vector2(fposmod(age * 9 + i * 340, inner * 3) - inner * 1.5, (i - 1) * inner * .55)
-		if at.length() < inner * .85:VfxArt.glow(world, at, inner * .35, Color(0, .05, .1), .14)
-	# Shade inside the wall.
-	for i in range(steps):
-		var a0: float = i * TAU / steps;var a1: float = (i + 1) * TAU / steps
-		var p0: Vector2 = Vector2.from_angle(a0);var p1: Vector2 = Vector2.from_angle(a1)
-		world.draw_polygon(PackedVector2Array([p0 * inner, p1 * inner, p1 * (inner - 26), p0 * (inner - 26)]), PackedColorArray([Color(0, 0, 0, .38), Color(0, 0, 0, .38), Color(0, 0, 0, 0), Color(0, 0, 0, 0)]))
-	# Wall top: two courses of stone with joints, then battlements on the outer edge.
-	world.draw_arc(Vector2.ZERO, inner + w * .32, 0, TAU, 96, Color("8b867d"), w * .64, true)
-	world.draw_arc(Vector2.ZERO, inner + 1, 0, TAU, 96, Color("4a463f"), 3, true)
-	world.draw_arc(Vector2.ZERO, inner + w * .64, 0, TAU, 96, Color("5f5a52"), 1.5, true)
-	var joints: int = int(TAU * inner / 22)
+		var p0: Vector2 = Vector2.from_angle(i * TAU / steps);var p1: Vector2 = Vector2.from_angle((i + 1) * TAU / steps)
+		world.draw_polygon(PackedVector2Array([p0 * inner, p1 * inner, p1 * (inner - 22), p0 * (inner - 22)]), PackedColorArray([Color(0, .1, 0, .32), Color(0, .1, 0, .32), Color(0, .1, 0, 0), Color(0, .1, 0, 0)]))
+	# Wall: a smooth stone walk with neat joints, an outer parapet of merlons, crisp edges.
+	world.draw_arc(Vector2.ZERO, inner + w * .5, 0, TAU, 128, Color("b9b2a3"), w, true)
+	world.draw_arc(Vector2.ZERO, inner + w * .2, 0, TAU, 128, Color("cfc8b8"), w * .35, true)
+	var joints: int = int(TAU * inner / 26)
 	for i in range(joints):
-		var d: Vector2 = Vector2.from_angle(i * TAU / joints + (.5 * TAU / joints if i % 2 else 0.0))
-		world.draw_line(d * (inner + 2), d * (inner + w * .3), Color("625d55"), 1.2);world.draw_line(Vector2.from_angle(i * TAU / joints) * (inner + w * .34), Vector2.from_angle(i * TAU / joints) * (inner + w * .62), Color("625d55"), 1.2)
-	var merlons: int = int(TAU * r / 24)
+		var d: Vector2 = Vector2.from_angle(i * TAU / joints);world.draw_line(d * (inner + 2), d * (inner + w * .62), Color("9d9686"), 1)
+	var merlons: int = int(TAU * r / 22)
 	for i in range(merlons):
-		var a0: float = i * TAU / merlons;var a1: float = a0 + TAU / merlons * .55
+		var a0: float = i * TAU / merlons;var a1: float = a0 + TAU / merlons * .58
 		var p0: Vector2 = Vector2.from_angle(a0);var p1: Vector2 = Vector2.from_angle(a1)
-		world.draw_colored_polygon(PackedVector2Array([p0 * (r - w * .34), p1 * (r - w * .34), p1 * r, p0 * r]), Color("a29d93"))
-		world.draw_line(p0 * r, p1 * r, Color("c4bfb4"), 1.5)
-	world.draw_arc(Vector2.ZERO, r, 0, TAU, 128, Color("3f3b35"), 2, true)
-	# Four round turrets on the ring.
+		world.draw_colored_polygon(PackedVector2Array([p0 * (r - w * .3), p1 * (r - w * .3), p1 * r, p0 * r]), Color("ddd6c6"))
+	world.draw_arc(Vector2.ZERO, r - w * .3, 0, TAU, 128, Color("8f8878"), 1.5, true)
+	world.draw_arc(Vector2.ZERO, inner, 0, TAU, 128, Color("6f6858"), 2, true)
+	world.draw_arc(Vector2.ZERO, r, 0, TAU, 128, Color("6f6858"), 2, true)
+	# Four round turrets with slate cone roofs.
 	for i in range(4):
-		var at: Vector2 = Vector2.from_angle(PI * .25 + i * PI * .5) * (r - w * .5);var tr: float = w * 1.05
-		world.draw_circle(at + Vector2(3, 5), tr, Color(0, 0, 0, .25));world.draw_circle(at, tr, Color("9a958b"))
-		world.draw_circle(at, tr * .62, Color("6e695f"));world.draw_arc(at, tr, 0, TAU, 32, Color("3f3b35"), 2, true)
+		var at: Vector2 = Vector2.from_angle(PI * .25 + i * PI * .5) * (r - w * .5);var tr: float = w * 1.1
+		world.draw_circle(at + Vector2(4, 7), tr, Color(.02, .1, .25, .25))
+		world.draw_circle(at, tr, Color("cfc8b8"));world.draw_arc(at, tr, 0, TAU, 40, Color("6f6858"), 2, true)
+		var roof: float = tr * .82
 		for k in range(8):
-			var d: Vector2 = Vector2.from_angle(k * TAU / 8);world.draw_line(at + d * tr * .62, at + d * tr, Color("5a554c"), 2)
+			var a0: float = k * TAU / 8;world.draw_colored_polygon(PackedVector2Array([at, at + Vector2.from_angle(a0) * roof, at + Vector2.from_angle(a0 + TAU / 8) * roof]), Color("4f6b9a") if k % 2 else Color("5f7cad"))
+		VfxArt.glow(world, at + Vector2(-roof * .3, -roof * .3), roof * .6, Color.WHITE, .25)
+		world.draw_circle(at, roof * .14, Color("e3c27a"))
 	# Paved roads between the rooms (under the cards), drawn in as the floor builds.
 	for i in range(edges.size()):
 		var e: Array = edges[i]
@@ -360,13 +376,11 @@ func _curve(e: Array) -> PackedVector2Array:
 func _path(curve: PackedVector2Array, amount: float) -> void:
 	var count: int = maxi(2, int(ceil(amount * (curve.size() - 1))) + 1);var part: PackedVector2Array = curve.slice(0, count)
 	part[part.size() - 1] = curve[count - 2].lerp(curve[count - 1], fmod(amount * (curve.size() - 1), 1.0) if amount < 1 else 1.0)
-	world.draw_polyline(part, Color(0, .05, 0, .3), 24, true)
-	world.draw_polyline(part, Color("7d776c"), 20, true)
-	world.draw_polyline(part, Color("cfc7b4"), 15, true)
-	# Flagstones across the road.
-	for k in range(1, part.size() - 1):
-		var n: Vector2 = (part[k + 1] - part[k]).orthogonal().normalized() * 7.5
-		world.draw_line(part[k] - n, part[k] + n, Color("a39b88"), 1.2)
+	world.draw_polyline(part, Color(0, .12, 0, .22), 22, true)
+	world.draw_polyline(part, Color("b9b2a3"), 18, true)
+	world.draw_polyline(part, Color("e9e3d3"), 13, true)
+	# Small dashes down the middle, like a laid stone line.
+	for k in range(1, part.size() - 1, 2):world.draw_line(part[k], part[k].lerp(part[k + 1], .55), Color("cfc8b8"), 2, true)
 	if amount < 1:
 		VfxArt.glow(world, part[part.size() - 1], 26, Color("fff1c4"), .9);world.draw_circle(part[part.size() - 1], 4, Color("fffbe8"))
 
@@ -404,7 +418,3 @@ func _draw_hud() -> void:
 	var font: Font = ArenaUI.heading_font()
 	hud.draw_string(font, Vector2(PAD + 4, 30), title, HORIZONTAL_ALIGNMENT_LEFT, size.x - PAD * 2 - minf(132, size.x * .36) - 8, 20, Color(ArenaUI.GOLD, alpha))
 	hud.draw_string(get_theme_default_font(), Vector2(PAD + 4, 50), progress, HORIZONTAL_ALIGNMENT_LEFT, size.x - PAD * 2 - 8, 11, Color(Color("dfe7f7"), alpha))
-	# While the camera is pulled back a thin cloud layer drifts over the tower.
-	var high: float = clampf((1 - zoom) / .45, 0, 1) * (1.0 if build_t >= 0 else .6)
-	if high > .02:
-		for i in range(3):_cloud(hud, Vector2(fposmod(age * 14 + i * 260, size.x + 300) - 150, size.y * (.3 + i * .22)), 60, .14 * high)
