@@ -130,6 +130,7 @@ func flow(touch: bool) -> void:
 	while Time.get_ticks_msec()<until and not root.find_children("*","LoadingScreen",true,false).is_empty():await process_frame
 	verify(t.current_floor()==1 and screen.room_buttons["0:2"].disabled and not screen.room_buttons["1:0"].disabled,"stairs climb; the floor below stays behind")
 	screen.open_guild();await frames();screen.guild_panel.selected_member_id=ids[0];screen.guild_panel.show_tab("upgrade");await frames()
+	await click(screen.guild_panel.upgrade_views["guild"],touch)
 	await click(screen.guild_panel.promote_button,touch)
 	for id in ids.slice(1):await click(screen.guild_panel.promotion_dialog.grid.get_node(NodePath(id)),touch)
 	await click(screen.guild_panel.promotion_dialog.confirm,touch)
