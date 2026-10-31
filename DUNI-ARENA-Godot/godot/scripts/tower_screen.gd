@@ -176,6 +176,7 @@ func _refresh_map_cards() -> void:
 			button.queue_redraw()
 	var floor: FloorState=state.map.floors[depth]
 	map_scroll.title="%d층 · %s"%[depth+1,TowerSceneDirector.CHAPTER_NAMES.get(floor.chapter_index,"")]
+	map_scroll.chapter=floor.chapter_index
 	map_scroll.progress=_floor_progress(floor,state)
 	map_scroll.reward_button.text="층 정복 보상"+(" ✓" if floor.conquered else "");map_scroll.reward_button.fraction=float(floor.cleared_count)/maxi(1,floor.room_ids.size());map_scroll.reward_button.queue_redraw()
 	map_scroll.show_floor(depth,floor.room_ids,run.run_id)

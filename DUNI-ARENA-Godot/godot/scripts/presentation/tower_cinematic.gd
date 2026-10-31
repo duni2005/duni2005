@@ -11,19 +11,19 @@ signal finished
 const FH: float = 60 # one floor, world units
 const TW: float = 180 # tower width at the base
 const FLOORS_SHOWN: int = 44
-## Painterly daylight: a soft cyan sky, warm sunlit sandstone with cool blue shadows, olive hills.
-const SKY_TOP := Color("4fb4dc")
-const SKY_MID := Color("8fd3ea")
-const SKY_LOW := Color("dcefe6")
-const HAZE := Color("cfe4ea")
-const STONE_LIT := Color("ecdcb2")
-const STONE := Color("bba582")
-const STONE_DARK := Color("5f6a92")
-const RECESS := Color("3b4670")
-const CHAPTER_TINT = {1:Color("4f9c8c"), 2:Color("b8574c"), 3:Color("d2a24a")}
-## Round tree crowns: soft summer greens with a few muted autumn and gold ones.
-const TREE_COLORS = [Color("6c9e46"), Color("d69a52"), Color("4f8a4a"), Color("9cbc5a"), Color("5f9a55"), Color("c9a94e"), Color("3f7a52"), Color("b9764a")]
-const BLOSSOM_COLORS = [Color("e3a9b8"), Color("eec3cc"), Color("f3ece6")]
+## Painterly daylight shared with the floor map (TowerArt): a soft cyan sky, warm sunlit sandstone
+## with cool blue shadows, olive hills.
+const SKY_TOP := TowerArt.SKY_TOP
+const SKY_MID := TowerArt.SKY_MID
+const SKY_LOW := TowerArt.SKY_LOW
+const HAZE := TowerArt.HAZE
+const STONE_LIT := TowerArt.STONE_LIT
+const STONE := TowerArt.STONE
+const STONE_DARK := TowerArt.STONE_DARK
+const RECESS := TowerArt.RECESS
+const CHAPTER_TINT = TowerArt.CHAPTER_TINT
+const TREE_COLORS = TowerArt.TREE_COLORS
+const BLOSSOM_COLORS = TowerArt.BLOSSOM_COLORS
 var mode: String = ""
 var chapter: int = 1 # chapter introduced (for "clear": the one after the cleared chapter)
 var t: float = 0
@@ -38,6 +38,7 @@ var chunks: Array = []
 var motes: Array = []
 var puffs: Array = []
 var petals: Array = []
+var cracks: Array = [] # chapter clear: jagged lines spreading from the chapter's heart, world units
 var rng := RandomNumberGenerator.new()
 
 func _ready() -> void:
@@ -54,7 +55,15 @@ static func auto_play() -> bool:
 func play(kind: String, intro_chapter: int) -> void:
 	mode = kind;chapter = intro_chapter;t = 0;rng.seed = hash(kind + str(intro_chapter))
 	duration = {"intro":9.2, "clear":10.2, "enter":3.8}[kind];fade_at = duration - .6
-	chunks.clear();motes.clear();puffs.clear();petals.clear()
+	chunks.clear();motes.clear();puffs.clear();petals.clear();cracks.clear()
+	if kind == "clear":
+		for i in range(9):
+			var line: Array = [Vector2(0, -2.5 * FH)];var heading: float = i * TAU / 9 + rng.randf_range(-.3, .3)
+			for k in range(7):
+				heading += rng.randf_range(-.6, .6)
+				var step: Vector2 = Vector2.from_angle(heading) * rng.randf_range(12, 22)
+				line.append(Vector2(clampf(line[-1].x + step.x, -TW * .46, TW * .46), clampf(line[-1].y + step.y, -5 * FH + 6, -6)))
+			cracks.append(line)
 	for i in range(12):petals.append([Vector2(rng.randf(), rng.randf()), rng.randf_range(3, 5.5), rng.randf_range(.3, 1), rng.randi_range(0, 2)])
 	visible = true;view = get_viewport_rect().size;_camera();queue_redraw()
 
@@ -131,6 +140,7 @@ func _sky() -> void:
 	# Warm light washing in from the upper left, haze along the horizon.
 	var sun := Vector2(-view.x * .1 - drift * .02, view.y * .02)
 	VfxArt.glow(self, sun, view.x * 1.2, Color("fff1cf"), .45)
+	TowerArt.rays(self, sun, view.x * 1.7, t, .9)
 	VfxArt.glow(self, Vector2(view.x * .5, horizon), view.x * .9, Color("f4f1dc"), .5, .35)
 	_birds()
 func _vgradient(y0: float, y1: float, top: Color, bottom: Color) -> void:
@@ -147,16 +157,7 @@ func _birds() -> void:
 		draw_polyline(PackedVector2Array([at + Vector2(-tip.x, tip.y), at + Vector2(-s * .4, -s * .05 * flap), at, at + Vector2(s * .4, -s * .05 * flap), at + tip]), Color(1, 1, 1, .85), maxf(1.2, s * .2), true)
 
 ## Fluffy cumulus: a flat blue-grey underside beneath round white puffs.
-func _cloud(center: Vector2, r: float, seed_value: int, alpha: float = 1) -> void:
-	var local := RandomNumberGenerator.new();local.seed = seed_value
-	var parts: Array = []
-	for i in range(6):parts.append([Vector2(local.randf_range(-1.3, 1.3), local.randf_range(-.5, 0)) * r, r * local.randf_range(.36, .66)])
-	parts.append([Vector2(local.randf_range(-.3, .3), -.4) * r, r * .72])
-	# Flat-bottomed base, shaded underside, then the lit puffs.
-	draw_set_transform(center + Vector2(0, r * .12), 0, Vector2(1, .22));draw_circle(Vector2.ZERO, r * 1.45, Color("c3d6ec", .95 * alpha));draw_set_transform(Vector2.ZERO)
-	for p in parts:draw_circle(center + p[0] + Vector2(0, r * .14), p[1], Color("c3d6ec", .95 * alpha))
-	for p in parts:draw_circle(center + p[0], p[1], Color("f4f6f2", .97 * alpha))
-	for p in parts.slice(0, 4):draw_circle(center + p[0] + Vector2(-p[1] * .2, -p[1] * .22), p[1] * .5, Color("fffbef", alpha))
+func _cloud(center: Vector2, r: float, seed_value: int, alpha: float = 1) -> void:TowerArt.cloud(self, center, r, seed_value, alpha)
 ## Clouds keep to the sky beside and below the title, drifting with the wind.
 func _clouds(f: float, layer: int) -> void:
 	var s: float = _layer_scale(f)
@@ -270,6 +271,7 @@ func _tower() -> void:
 			if i < 5 and gone:continue
 			if i >= 5:y0 = -(i - 4) * FH - drop
 		_floor(base_floor + i, i, y0, glow if mode == "clear" and i < 5 else 0.0)
+		_form_light(base_floor + i, y0)
 	_plinth()
 	# Outline the introduced chapter during the title shot.
 	var shown: float = 5.0 if mode == "intro" else 6.0 if mode == "clear" else 0.0
@@ -281,6 +283,15 @@ func _tower() -> void:
 		for corner in [a, Vector2(b.x, a.y), b, Vector2(a.x, b.y)]:
 			var dx: float = 16 if corner.x < (a.x + b.x) * .5 else -16;var dy: float = 16 if corner.y < (a.y + b.y) * .5 else -16
 			draw_polyline(PackedVector2Array([corner + Vector2(dx * k, 0), corner, corner + Vector2(0, dy * k)]), Color(tint.lightened(.45), .9 * k), 2.5)
+		# A sheen of light runs once across the chapter as it is introduced.
+		TypeArt.sweep(self, Rect2(a, b - a), Motion.phase(t, shown + .25, 1.1), .22, 70)
+## Sunlight on the tower's left edge and cool form shadow on its right, so the drum reads round.
+func _form_light(floor: int, y0: float) -> void:
+	var w: float = _width(floor) * .5;var top: float = y0 + 2;var bottom: float = y0 + FH - 2
+	var l0: Vector2 = to_screen(Vector2(-w * .97, top));var l1: Vector2 = to_screen(Vector2(-w * .7, bottom))
+	draw_polygon(PackedVector2Array([l0, Vector2(l1.x, l0.y), l1, Vector2(l0.x, l1.y)]), PackedColorArray([Color(TowerArt.SUN, .2), Color(TowerArt.SUN, 0), Color(TowerArt.SUN, 0), Color(TowerArt.SUN, .2)]))
+	var r0: Vector2 = to_screen(Vector2(w * .55, top));var r1: Vector2 = to_screen(Vector2(w * .97, bottom))
+	draw_polygon(PackedVector2Array([r0, Vector2(r1.x, r0.y), r1, Vector2(r0.x, r1.y)]), PackedColorArray([Color(STONE_DARK, 0), Color(STONE_DARK, .22), Color(STONE_DARK, .22), Color(STONE_DARK, 0)]))
 func _width(floor: int) -> float:
 	return TW * (1 - .045 * mini(floor / 5, 8))
 func _plinth() -> void:
@@ -492,6 +503,17 @@ func _clear_effects() -> void:
 		if flash > 0:draw_rect(Rect2(Vector2.ZERO, view), Color(1, .99, .94, flash))
 	elif t > .5:
 		VfxArt.glow(self, to_screen(Vector2(0, -2.5 * FH)), TW * zoom * 1.5, Color("fff4d2"), clampf((t - .5) / 1.8, 0, 1) * .55)
+		# Cracks of light race out through the stone, brighter as the burst nears.
+		var grow: float = Motion.out_quint(clampf((t - .5) / 1.7, 0, 1));var heat: float = clampf((t - .5) / 1.8, 0, 1)
+		for line in cracks:
+			var shown := PackedVector2Array();var reach: float = grow * (line.size() - 1)
+			for k in range(line.size()):
+				if k <= reach:shown.append(to_screen(line[k]))
+				elif k - 1 < reach:shown.append(to_screen(line[k - 1].lerp(line[k], reach - (k - 1))));break
+			if shown.size() < 2:continue
+			draw_polyline(shown, Color("ffcf6a", .35 * heat), maxf(3, 7 * zoom * heat), true)
+			draw_polyline(shown, Color(1, .98, .88, .9 * heat), maxf(1.2, 2.2 * zoom), true)
+			VfxArt.glow(self, shown[shown.size() - 1], 14 * maxf(1, zoom), Color("ffe7a8"), .7 * heat)
 		# Light gathers into the chapter before it bursts.
 		for i in range(14):
 			var k: float = fposmod(t * .9 + i * .071, 1.0);var dir: Vector2 = Vector2.from_angle(i * 2.4)
@@ -539,6 +561,7 @@ func _titles() -> void:
 		_rising_title(numbers, "CHAPTER %d" % chapter, Vector2(view.x * .5, y + 4), 18, Color(tint, a), lt)
 		_rising_title(font, TowerSceneDirector.CHAPTER_NAMES.get(chapter, ""), Vector2(view.x * .5, y + 52), clampf(view.x * .11, 32, 62), Color(1, .98, .92, a), lt - .15)
 		TypeArt.rule(self, Vector2(view.x * .5, y + 66), minf(140, view.x * .3), Motion.phase(lt, .25, Motion.ENTER), Color(tint, .8 * a), 2)
+		TypeArt.motes(self, Rect2(0, y - 10, view.x, 130), lt, Color(tint.lightened(.2), .6 * a), 16, true, .25)
 		var sub_in: float = Motion.out_expo(Motion.phase(lt, .35, Motion.ENTER))
 		_text(font, "%d층 – %d층" % [first, first + 4], Vector2(view.x * .5, y + 90 + 8 * (1 - sub_in)), 15, Color(.85, .9, 1, .9 * a * sub_in), a * sub_in)
 	if t < fade_at:draw_string(get_theme_default_font(), Vector2(0, view.y - 18), "화면을 누르면 건너뜁니다  ", HORIZONTAL_ALIGNMENT_RIGHT, view.x, 11, Color(1, 1, 1, .5))

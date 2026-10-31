@@ -446,7 +446,7 @@ func _draw_dungeon_room() -> void:
 	var base: Color=Color(ROOM_COLORS.get(kind,"3fb3ad"))
 	if spent:base=base.lerp(Color("6b7280"),.6)
 	var at:=Vector2(size.x*.5,size.y*.46);var r: float=minf(size.x,size.y*.92)*.46
-	var ring: Color=ArenaUI.GOLD if active else Color("c9c1b0") if not boss else base.lightened(.25)
+	var ring: Color=ArenaUI.GOLD if active else TowerArt.STONE_LIT if not boss else base.lightened(.25)
 	_dais(at,r,base,ring,boss,active)
 	if hidden:
 		for i in range(3):VfxArt.glow(self,at+Vector2.from_angle(i*2.1+Time.get_ticks_msec()*.0004)*r*.25,r*.55,Color("c9d6f0"),.18)

@@ -56,6 +56,7 @@ var path_start: Array = [] # per edge: build time its path starts drawing
 var zoom_from: float = 1
 var shake: float = 0
 var clouds: Array = [] # [position 0..1, scale, speed]
+var trees: Array = [] # meadow trees along the wall: [centre, radius, colour, seed, blossom]
 var drag_sum: float = 0
 var drag_time: int = 0
 ## Stairs opening (on the map, when the next floor or chapter unlocks): seconds into it, -1 idle.
@@ -149,6 +150,15 @@ func show_floor_ids(ids: Array) -> void:
 			var p: Vector2 = layout_rects[a].get_center();var q: Vector2 = layout_rects[b].get_center();var c: Vector2 = layout_rects[id].get_center()
 			clear = c.distance_to(Geometry2D.get_closest_point_to_segment(c, p, q)) > layout_rects[id].size.x * .5 + 14
 	if clear:edges.append([a, b, rng.randf_range(-.18, .18)])
+	# Trees along the inside of the wall, clear of the rooms and of each other.
+	trees.clear();var grove := RandomNumberGenerator.new();grove.seed = hash("%s:%d:trees" % [run_id, shown_depth])
+	for i in range(80):
+		if trees.size() >= 16:break
+		var at: Vector2 = Vector2.from_angle(grove.randf() * TAU) * (meadow_radius() - grove.randf_range(16, 64));var tr: float = grove.randf_range(11, 19)
+		if layout_rects.values().any(func(room):return room.get_center().distance_to(at) < room.size.x * .5 + tr + 10):continue
+		if trees.any(func(tree):return tree[0].distance_to(at) < tree[1] + tr + 4):continue
+		var blossom: bool = grove.randf() < .25
+		trees.append([at, tr, TowerArt.BLOSSOM_COLORS[i % 3] if blossom else TowerArt.TREE_COLORS[i % TowerArt.TREE_COLORS.size()], i, blossom])
 	for id in room_cards:room_cards[id].visible = layout_rects.has(id)
 	_place();world.queue_redraw()
 func _big(key: String) -> bool:return room_cards.has(key) and room_cards[key].kind in ["boss", "miniboss"]
@@ -326,72 +336,92 @@ func _zoom_at(point: Vector2, factor: float) -> void:
 	zoom = clampf(zoom * factor, fit_zoom(), MAX_ZOOM)
 	cam = anchor - (point - view().get_center()) / zoom;_clamp_camera();_place()
 
-# Sky (screen space): a clean blue gradient, a soft sun and a few flat clouds that drift and
-# follow the camera a little.
+# Sky (screen space), the cutscenes' own daylight (TowerArt): a cyan gradient, the sun and its
+# shafts in the upper left, and two layers of flat clouds that drift and follow the camera a little.
 func _draw() -> void:
-	draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), size, Vector2(0, size.y)]), PackedColorArray([Color("3d8fdc"), Color("3d8fdc"), Color("b9e3fa"), Color("b9e3fa")]))
-	VfxArt.glow(self, Vector2(size.x * .82, size.y * .1), size.x * .7, Color("fff4d6"), .45)
-	var drift: Vector2 = -cam * zoom * .3
-	for cloud in clouds:
-		var span := size + Vector2(260, 200)
-		var at := Vector2(fposmod(cloud[0].x * span.x + age * cloud[2] + drift.x, span.x) - 130, fposmod(cloud[0].y * span.y + drift.y, span.y) - 100)
-		_cloud(self, at, 40 * cloud[1], .9)
+	var mid: float = size.y * .55
+	draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), Vector2(size.x, mid), Vector2(0, mid)]), PackedColorArray([TowerArt.SKY_TOP, TowerArt.SKY_TOP, TowerArt.SKY_MID, TowerArt.SKY_MID]))
+	draw_polygon(PackedVector2Array([Vector2(0, mid), Vector2(size.x, mid), size, Vector2(0, size.y)]), PackedColorArray([TowerArt.SKY_MID, TowerArt.SKY_MID, TowerArt.SKY_LOW, TowerArt.SKY_LOW]))
+	var sun := Vector2(-size.x * .1, HEADER * .5)
+	VfxArt.glow(self, sun, size.x * 1.2, TowerArt.SUN, .5)
+	TowerArt.rays(self, sun, maxf(size.x, size.y) * 1.3, age)
+	for layer in [0, 1]:
+		var drift: Vector2 = -cam * zoom * (.15 if layer == 0 else .35)
+		for i in range(clouds.size()):
+			if i % 2 != layer:continue
+			var cloud: Array = clouds[i];var span := size + Vector2(320, 240)
+			var at := Vector2(fposmod(cloud[0].x * span.x + age * cloud[2] * (.6 if layer == 0 else 1.0) + drift.x, span.x) - 160, fposmod(cloud[0].y * span.y + drift.y, span.y) - 120)
+			TowerArt.cloud(self, at, 34 * cloud[1] * (.75 if layer == 0 else 1.0), i * 31 + 7, .7 if layer == 0 else .95)
 
-## A flat cartoon cloud: rounded puffs on a flat base, with a pale blue underside.
-static func _cloud(c: CanvasItem, at: Vector2, s: float, alpha: float) -> void:
-	var puffs: Array = [[Vector2(-1.1, .1), .5], [Vector2(-.45, -.25), .72], [Vector2(.35, -.38), .85], [Vector2(1.05, .05), .55]]
-	for puff in puffs:c.draw_circle(at + puff[0] * s + Vector2(0, s * .14), puff[1] * s, Color("cfe3f5", alpha))
-	c.draw_rect(Rect2(at + Vector2(-1.1, .1) * s + Vector2(0, s * .14), Vector2(2.15 * s, .5 * s)), Color("cfe3f5", alpha))
-	for puff in puffs:c.draw_circle(at + puff[0] * s, puff[1] * s, Color(1, 1, 1, alpha))
-	c.draw_rect(Rect2(at + Vector2(-1.1, .1) * s, Vector2(2.15 * s, .45 * s)), Color(1, 1, 1, alpha))
-
-# The tower, in world units around its centre, lit from the upper left.
+# The tower seen from above, in world units around its centre, in the cutscenes' sandstone and lit
+# from the upper left: the wall's outer face shows as a darker crescent below its top, the walk is
+# sunlit stone with joints, merlons cast small shadows, flags in the chapter colour fly from the
+# wall and from four turrets with chapter-coloured cone roofs, and the meadow inside has trees.
 func _draw_world() -> void:
-	var r: float = radius;var w: float = wall_width();var inner: float = r - w
-	# Soft shadow on the sky.
-	VfxArt.glow(world, Vector2(r * .06, r * .1), r * 1.25, Color(.04, .16, .38), .55)
-	# Meadow: battlefield grass, lighter towards the sun, with a few tufts and flowers.
-	world.draw_circle(Vector2.ZERO, inner, Color("5c9a3a"))
-	VfxArt.glow(world, Vector2(-inner * .25, -inner * .3), inner * 1.1, Color("8fcf5a"), .55)
+	var r: float = radius;var w: float = wall_width();var inner: float = r - w;var tint: Color = TowerArt.chapter_tint(chapter)
+	var steps: int = 96
+	# Shadow on the sky, then the wall's outer face (its height) as a crescent below the top.
+	VfxArt.glow(world, Vector2(r * .08, r * .14), r * 1.3, Color(.04, .16, .38), .5)
+	world.draw_circle(Vector2(0, w * .55), r, TowerArt.STONE.lerp(TowerArt.STONE_DARK, .45))
+	for i in range(1, 4):world.draw_arc(Vector2(0, w * .55 * i / 4.0), r - 1, PI * .1, PI * .9, 48, Color(TowerArt.STONE_DARK, .25), 1, true)
+	# Meadow: the cutscenes' grass, sunlit towards the upper left, with tufts, flowers and trees.
+	world.draw_circle(Vector2.ZERO, inner, TowerArt.GRASS)
+	VfxArt.glow(world, Vector2(-inner * .3, -inner * .35), inner * 1.4, TowerArt.GRASS_LIT, .9)
 	var rng := RandomNumberGenerator.new();rng.seed = 4242
-	for i in range(int(inner * inner / 3400)):
+	for i in range(int(inner * inner / 3000)):
 		var at: Vector2 = Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * (inner - 18);var kind: float = rng.randf()
-		if kind < .7:
-			world.draw_line(at, at + Vector2(-2.5, -5), Color("3f7a2c"), 1.4, true);world.draw_line(at, at + Vector2(2.5, -5.5), Color("3f7a2c"), 1.4, true)
-		else:world.draw_circle(at, 2.2, Color("fff7d6") if kind < .85 else Color("ffd45c"))
+		if kind < .72:
+			var tuft := Color(TowerArt.GRASS_DEEP.darkened(.15), .8)
+			world.draw_polyline(PackedVector2Array([at + Vector2(-3, 0), at + Vector2(-1, -5), at, at + Vector2(1.2, -5.5), at + Vector2(3, 0)]), tuft, 1.3, true)
+		else:world.draw_circle(at, 2, [Color("fff7e6"), Color("f1d77a"), Color("e9b4c4")][int(kind * 100) % 3])
+	for tree in trees:TowerArt.crown(world, tree[0], tree[1], tree[2], tree[3], tree[4])
 	# Cloud shadows sliding over the grass.
 	for i in range(2):
 		var at := Vector2(fposmod(age * 9 + i * 420, inner * 3) - inner * 1.5, (i - .5) * inner * .7)
-		if at.length() < inner * .8:VfxArt.glow(world, at, inner * .4, Color(0, .08, .1), .1)
-	# Shade along the foot of the wall.
-	var steps: int = 96
+		if at.length() < inner * .8:VfxArt.glow(world, at, inner * .4, TowerArt.STONE_DARK, .1)
+	# The wall's shadow on the grass: deepest under the sunward (upper left) wall.
 	for i in range(steps):
-		var p0: Vector2 = Vector2.from_angle(i * TAU / steps);var p1: Vector2 = Vector2.from_angle((i + 1) * TAU / steps)
-		world.draw_polygon(PackedVector2Array([p0 * inner, p1 * inner, p1 * (inner - 22), p0 * (inner - 22)]), PackedColorArray([Color(0, .1, 0, .32), Color(0, .1, 0, .32), Color(0, .1, 0, 0), Color(0, .1, 0, 0)]))
-	# Wall: a smooth stone walk with neat joints, an outer parapet of merlons, crisp edges.
-	world.draw_arc(Vector2.ZERO, inner + w * .5, 0, TAU, 128, Color("b9b2a3"), w, true)
-	world.draw_arc(Vector2.ZERO, inner + w * .2, 0, TAU, 128, Color("cfc8b8"), w * .35, true)
-	var joints: int = int(TAU * inner / 26)
+		var d0: Vector2 = Vector2.from_angle(i * TAU / steps);var d1: Vector2 = Vector2.from_angle((i + 1) * TAU / steps)
+		var reach0: float = 10 + 30 * TowerArt.lit(d0);var reach1: float = 10 + 30 * TowerArt.lit(d1);var shade := Color(TowerArt.STONE_DARK.darkened(.4), .38)
+		world.draw_polygon(PackedVector2Array([d0 * inner, d1 * inner, d1 * (inner - reach1), d0 * (inner - reach0)]), PackedColorArray([shade, shade, Color(shade, 0), Color(shade, 0)]))
+	# Wall walk: sandstone shaded by the light, two courses of joints.
+	for i in range(steps):
+		var d0: Vector2 = Vector2.from_angle(i * TAU / steps);var d1: Vector2 = Vector2.from_angle((i + 1) * TAU / steps)
+		var outer0: Color = TowerArt.stone(d0);var outer1: Color = TowerArt.stone(d1)
+		world.draw_polygon(PackedVector2Array([d0 * inner, d1 * inner, d1 * r, d0 * r]), PackedColorArray([outer0.darkened(.08), outer1.darkened(.08), outer1, outer0]))
+	var joints: int = int(TAU * inner / 24)
 	for i in range(joints):
-		var d: Vector2 = Vector2.from_angle(i * TAU / joints);world.draw_line(d * (inner + 2), d * (inner + w * .62), Color("9d9686"), 1)
+		var d: Vector2 = Vector2.from_angle(i * TAU / joints);var half: Vector2 = Vector2.from_angle((i + .5) * TAU / joints)
+		world.draw_line(d * (inner + 2), d * (inner + w * .35), Color(TowerArt.STONE.darkened(.2), .6), 1)
+		world.draw_line(half * (inner + w * .35), half * (inner + w * .68), Color(TowerArt.STONE.darkened(.2), .6), 1)
+	world.draw_arc(Vector2.ZERO, inner + w * .35, 0, TAU, 128, Color(TowerArt.STONE.darkened(.15), .45), 1, true)
+	# Merlons on the outer edge, each throwing a short shadow away from the light.
 	var merlons: int = int(TAU * r / 22)
 	for i in range(merlons):
-		var a0: float = i * TAU / merlons;var a1: float = a0 + TAU / merlons * .58
-		var p0: Vector2 = Vector2.from_angle(a0);var p1: Vector2 = Vector2.from_angle(a1)
-		world.draw_colored_polygon(PackedVector2Array([p0 * (r - w * .3), p1 * (r - w * .3), p1 * r, p0 * r]), Color("ddd6c6"))
-	world.draw_arc(Vector2.ZERO, r - w * .3, 0, TAU, 128, Color("8f8878"), 1.5, true)
-	world.draw_arc(Vector2.ZERO, inner, 0, TAU, 128, Color("6f6858"), 2, true)
-	world.draw_arc(Vector2.ZERO, r, 0, TAU, 128, Color("6f6858"), 2, true)
-	# Four round turrets with slate cone roofs.
+		var a0: float = i * TAU / merlons;var a1: float = a0 + TAU / merlons * .56
+		var p0: Vector2 = Vector2.from_angle(a0);var p1: Vector2 = Vector2.from_angle(a1);var lift := Vector2(3, 4)
+		world.draw_colored_polygon(PackedVector2Array([p0 * (r - w * .3) + lift, p1 * (r - w * .3) + lift, p1 * r + lift, p0 * r + lift]), Color(TowerArt.STONE_DARK, .3))
+		world.draw_colored_polygon(PackedVector2Array([p0 * (r - w * .3), p1 * (r - w * .3), p1 * r, p0 * r]), TowerArt.stone(p0).lightened(.08))
+	world.draw_arc(Vector2.ZERO, inner, 0, TAU, 128, Color(TowerArt.RECESS, .55), 2, true)
+	world.draw_arc(Vector2.ZERO, r, 0, TAU, 128, Color(TowerArt.RECESS, .6), 2, true)
+	# Flags on the wall between the turrets, in the chapter colour, streaming with the wind.
+	for i in range(8):
+		var at: Vector2 = Vector2.from_angle(i * TAU / 8) * (inner + w * .5)
+		_flag(at, w * .55, tint, i)
+	# Four turrets: a sandstone drum (its side showing below) and a chapter-coloured cone roof.
 	for i in range(4):
-		var at: Vector2 = Vector2.from_angle(PI * .25 + i * PI * .5) * (r - w * .5);var tr: float = w * 1.1
-		world.draw_circle(at + Vector2(4, 7), tr, Color(.02, .1, .25, .25))
-		world.draw_circle(at, tr, Color("cfc8b8"));world.draw_arc(at, tr, 0, TAU, 40, Color("6f6858"), 2, true)
-		var roof: float = tr * .82
-		for k in range(8):
-			var a0: float = k * TAU / 8;world.draw_colored_polygon(PackedVector2Array([at, at + Vector2.from_angle(a0) * roof, at + Vector2.from_angle(a0 + TAU / 8) * roof]), Color("4f6b9a") if k % 2 else Color("5f7cad"))
-		VfxArt.glow(world, at + Vector2(-roof * .3, -roof * .3), roof * .6, Color.WHITE, .25)
-		world.draw_circle(at, roof * .14, Color("e3c27a"))
+		var at: Vector2 = Vector2.from_angle(PI * .25 + i * PI * .5) * (r - w * .5);var tr: float = w * 1.15
+		world.draw_circle(at + Vector2(6, 10), tr, Color(.02, .1, .25, .22))
+		world.draw_circle(at + Vector2(0, tr * .35), tr, TowerArt.STONE.lerp(TowerArt.STONE_DARK, .45))
+		world.draw_circle(at, tr, TowerArt.STONE_LIT);world.draw_arc(at, tr, 0, TAU, 40, Color(TowerArt.RECESS, .6), 2, true)
+		var roof: float = tr * .84
+		for k in range(10):
+			var a0: float = k * TAU / 10;var mid_dir: Vector2 = Vector2.from_angle(a0 + TAU / 20)
+			var shade: Color = tint.darkened(.35).lerp(tint.lightened(.2), TowerArt.lit(mid_dir))
+			world.draw_colored_polygon(PackedVector2Array([at, at + Vector2.from_angle(a0) * roof, at + Vector2.from_angle(a0 + TAU / 10) * roof]), shade if k % 2 else shade.darkened(.08))
+		world.draw_arc(at, roof, 0, TAU, 32, tint.darkened(.5), 1.5, true)
+		world.draw_circle(at, roof * .16, TowerArt.GOLD);world.draw_circle(at + Vector2(-1, -1), roof * .07, Color("fff1c4"))
+		_flag(at, tr * .7, tint.lightened(.15), i + 8)
 	# Paved roads between the rooms (under the cards), drawn in as the floor builds.
 	for i in range(edges.size()):
 		var e: Array = edges[i]
@@ -402,6 +432,13 @@ func _draw_world() -> void:
 	if stairs_open and layout_rects.has("stairs") and (build_t < 0 or build_t >= appear.get("stairs", INF)) and (unlock_t < 0 or unlock_t >= .9):
 		var at: Vector2 = layout_rects["stairs"].get_center()
 		VfxArt.glow(world, at, 90 + 8 * sin(age * 3), Color("ffd27a"), .3 + .1 * sin(age * 3))
+## A small flag on a pole seen from above: the pole's gold cap and a pennant streaming right.
+func _flag(at: Vector2, length: float, color: Color, seed_value: int) -> void:
+	var wave: float = sin(age * 3 + seed_value * 1.3) * length * .12
+	var cloth := PackedVector2Array([at, at + Vector2(length * .5, -length * .18 + wave), at + Vector2(length, wave * 1.4), at + Vector2(length * .5, length * .18 + wave)])
+	world.draw_colored_polygon(PackedVector2Array([cloth[0] + Vector2(2, 3), cloth[1] + Vector2(2, 3), cloth[2] + Vector2(2, 3), cloth[3] + Vector2(2, 3)]), Color(0, 0, .1, .2))
+	world.draw_colored_polygon(cloth, color);world.draw_line(cloth[0], cloth[2], color.lightened(.25), 1, true)
+	world.draw_circle(at, 2.6, TowerArt.GOLD)
 func _curve(e: Array) -> PackedVector2Array:
 	var p: Vector2 = layout_rects[e[0]].get_center();var q: Vector2 = layout_rects[e[1]].get_center()
 	var bend: Vector2 = (p + q) * .5 + (q - p).orthogonal() * float(e[2]);var out := PackedVector2Array()
@@ -411,11 +448,11 @@ func _curve(e: Array) -> PackedVector2Array:
 func _path(curve: PackedVector2Array, amount: float) -> void:
 	var count: int = maxi(2, int(ceil(amount * (curve.size() - 1))) + 1);var part: PackedVector2Array = curve.slice(0, count)
 	part[part.size() - 1] = curve[count - 2].lerp(curve[count - 1], fmod(amount * (curve.size() - 1), 1.0) if amount < 1 else 1.0)
-	world.draw_polyline(part, Color(0, .12, 0, .22), 22, true)
-	world.draw_polyline(part, Color("b9b2a3"), 18, true)
-	world.draw_polyline(part, Color("e9e3d3"), 13, true)
-	# Small dashes down the middle, like a laid stone line.
-	for k in range(1, part.size() - 1, 2):world.draw_line(part[k], part[k].lerp(part[k + 1], .55), Color("cfc8b8"), 2, true)
+	# The cutscenes' sandy path: a soft shadow, a darker verge and a pale worn middle.
+	world.draw_polyline(part, Color(0, .12, 0, .2), 22, true)
+	world.draw_polyline(part, TowerArt.PATH_EDGE, 18, true)
+	world.draw_polyline(part, TowerArt.PATH, 12, true)
+	for k in range(1, part.size() - 1, 2):world.draw_line(part[k], part[k].lerp(part[k + 1], .55), Color(TowerArt.PATH.lightened(.25), .8), 2, true)
 	if amount < 1:
 		VfxArt.glow(world, part[part.size() - 1], 26, Color("fff1c4"), .9);world.draw_circle(part[part.size() - 1], 4, Color("fffbe8"))
 
