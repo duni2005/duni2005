@@ -42,7 +42,8 @@ func battle_fixture():
 func pure() -> String:return JSON.stringify(SaveDomainCodec.new().encode(ui.controller.guild.state,"run"))
 func flow(res: Vector2i):
 	root.size=res;root.content_scale_size=res;tag="mobile" if res.x<500 else "desktop"
-	await fresh();ui.controller.guild.all_members()[0].current_hp=0;ui.controller.guild.all_members()[1].current_hp=0
+	await fresh()
+	for i in range(3):ui.controller.guild.all_members()[i].current_hp=0
 	ui.select_room("0:2");await frames();ui.fx.advance(3)
 	var c: TowerContentScreen=ui.content_screen
 	verify(c.event_grid.columns==2 and c.event_grid.get_child_count()==4,"rest four choices / two columns")
@@ -50,11 +51,16 @@ func flow(res: Vector2i):
 	verify(c.event_grid.get_child(0).global_position.y==c.event_grid.get_child(1).global_position.y,"choice pair same row")
 	verify(fits(c.event_grid) and c.event_grid.size.x<=580,"compact options fit viewport")
 	await shot("rest");var saved: String=pure();await tap(c.event_grid.get_node("Revival"))
-	verify(c.revive_dialog.visible and c.revival_units.get_child_count()==2,"revival opens modal / dead members only")
+	verify(c.revive_dialog.visible and c.revival_units.get_child_count()==3,"revival opens modal / dead members only")
 	verify(c.revive_confirm.disabled and pure()==saved,"opening revival never consumes the room")
 	await tap(c.revival_units.get_child(0));verify(c.revive_selection.size()==1 and not c.revive_confirm.disabled,"explicit individual selection")
+	# Up to three: the third dead member stays selectable after two are picked.
+	await tap(c.revival_units.get_child(1));verify(not c.revival_units.get_child(2).disabled,"third revive slot stays open")
+	await tap(c.revival_units.get_child(2));verify(c.revive_selection.size()==3 and c.revival_count.text.begins_with("3 / 3"),"three members selectable for revival")
+	await tap(c.revival_units.get_child(1));verify(c.revive_selection.size()==2,"tapping again deselects")
 	await shot("revive");await tap(c.revive_confirm)
-	verify(ui.controller.guild.all_members()[0].current_hp>0 and ui.controller.guild.all_members()[1].current_hp==0,"revive only chosen member")
+	var team: Array=ui.controller.guild.all_members()
+	verify(team[0].current_hp>0 and team[1].current_hp==0 and team[2].current_hp>0,"revive only chosen members")
 	verify(ui.controller.guild.state.tower.phase==&"route","rest completes back to map")
 	await select_event(&"hotSpring");c=ui.content_screen
 	verify(not c.map_button.visible and c.event_grid.get_child_count()==2,"hot spring hides escape / two choices")
