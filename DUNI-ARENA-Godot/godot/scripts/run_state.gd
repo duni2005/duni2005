@@ -31,6 +31,10 @@ var strategy_progress := StrategyProgressContext.new()
 var strategy_use_receipts: Dictionary = {}
 ## Sortie upgrades bought this run (see GrowthRules.sortie_limit).
 var sortie_level: int = 0
+## Guild expansion: roster size upgrades (GrowthRules.roster_limit) and recruit odds upgrades
+## (GrowthRules.recruit_odds).
+var roster_level: int = 0
+var odds_level: int = 0
 ## Mango faith stacks from offerings at mango saplings; a blessing spends them all.
 var mango_faith: int = 0
 func give_strategy_card(kind: StringName) -> StrategyCardInstance:

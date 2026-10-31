@@ -68,7 +68,7 @@ func flow(res: Vector2i):
 	# Promotion lives in the guild screen's upgrade tab, not in an event room.
 	await fresh();var members: Array=[]
 	for i in range(3):var member: GuildMemberState=ui.controller.guild.create_member(0);member.current_hp=ui.controller.guild.member_max_hp(member);members.append(member)
-	ui.open_guild();await frames();var panel: GuildManagementPanel=ui.guild_panel;panel.selected_member_id=members[0].member_id;panel.show_tab("upgrade");await frames()
+	ui.open_guild();await frames();var panel: GuildManagementPanel=ui.guild_panel;panel.selected_member_id=members[0].member_id;panel.show_tab("upgrade");panel.show_upgrade_view("guild");await frames()
 	verify(not panel.promote_button.disabled,"three matching units enable promotion");await tap(panel.promote_button)
 	var dialog: PromotionDialog=panel.promotion_dialog;verify(dialog.visible and dialog.lead_id==members[0].member_id,"promotion window opens with the selected unit as lead")
 	for m in members.slice(1):await tap(dialog.grid.get_node(NodePath(m.member_id)))

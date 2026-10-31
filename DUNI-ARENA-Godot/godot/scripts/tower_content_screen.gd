@@ -32,8 +32,10 @@ var speed_row: HBoxContainer
 var speed_buttons: Dictionary={}
 var battle: BattleManager
 var rendered_prediction_finished: bool = false
-var content_tab: String="equipment"
-const SHOP_TABS=[["equipment","장비 구매"],["card","전략카드"],["inventory","인벤토리"]]
+var content_tab: String="goods"
+## Shop and recruit rooms share the guild's inventory and upgrade tabs.
+const SHOP_TABS=[["goods","아이템/전략카드"],["inventory","인벤토리"],["upgrade","강화"]]
+const RECRUIT_TABS=[["recruit","모집"],["inventory","인벤토리"],["upgrade","강화"]]
 const BLACKSMITH_TABS=[["enhance","강화"],["trade","교환"],["sell","판매"]]
 ## Blacksmith: the rare item chosen on the 강화 tab and the basic items put in for a trade.
 var forge_pick: int=0
@@ -99,9 +101,13 @@ func _ready() -> void:
 		controller.save_manager.status_changed.connect(_storage_status)
 	content_tabs=HBoxContainer.new();room_column.add_child(content_tabs)
 	var forge: bool=controller.current_room().event_type==TowerController.BLACKSMITH
+	var recruiting: bool=controller.current_room().room_type==RoomType.RECRUIT
 	if forge:content_tab="enhance"
-	for pair in BLACKSMITH_TABS if forge else SHOP_TABS:
+	elif recruiting:content_tab="recruit"
+	for pair in BLACKSMITH_TABS if forge else RECRUIT_TABS if recruiting else SHOP_TABS:
 		var tab:=Button.new();tab.text=pair[1];tab.toggle_mode=true;tab.custom_minimum_size.y=36;tab.size_flags_horizontal=Control.SIZE_EXPAND_FILL;tab.set_meta("tab",pair[0]);ArenaUI.tab(tab);content_tabs.add_child(tab)
+		# The longer shop label shrinks on a phone so all three tabs share the row evenly.
+		if pair[1].length()>6 and get_viewport_rect().size.x<500:tab.add_theme_font_size_override("font_size",12)
 		tab.pressed.connect(func():content_tab=pair[0];render())
 	scroll=ScrollContainer.new();scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;room_column.add_child(scroll)
 	content_box=VBoxContainer.new();content_box.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content_box.size_flags_vertical=Control.SIZE_EXPAND_FILL;scroll.add_child(content_box)
@@ -146,6 +152,9 @@ func _action(action: StringName,options: Dictionary={}) -> void:
 		# A reroll deals the new candidates face-down and flips them over.
 		if action==&"reroll":deal_cards=true
 		_present_action(action,result.get("outcome",{}))
+	if not result.ok and result.code==&"guild_full":
+		status.text="길드를 확장해 길드 인원을 늘리세요"
+		presentation_requested.emit({"title":"길드 인원이 가득 찼습니다","icon":"guild","detail":"길드를 확장해 길드 인원을 늘리세요"})
 	if result.ok and controller.guild.state.tower.phase==&"route":map_requested.emit()
 	else:call_deferred("render")
 static func outcome_text(outcome: Dictionary) -> String:
@@ -164,12 +173,12 @@ func render() -> void:
 	var current: RoomState=controller.current_room()
 	room_title.text=ArenaUI.EVENT_NAMES.get(current.event_type,RoomType.LABELS[current.room_type])
 	emblem.icon=String(current.room_type) if current.room_type!=RoomType.EVENT else String(current.event_type)
-	emblem.caption="%d층 · %d번 방"%[current.floor_index+1,current.lane+1];emblem.visible=current.room_type!=RoomType.SHOP or content_tab!="inventory"
+	emblem.caption="%d층 · %d번 방"%[current.floor_index+1,current.lane+1];emblem.visible=not content_tab in ["inventory","upgrade"]
 	party_strip.visible=current.room_type==RoomType.REST or current.event_type in [&"hotSpring",&"supply",&"tokenShop",&"mangoSapling"]
 	if party_strip.visible:_refresh_party()
 	status.visible=not status.text.is_empty()
 	var node: RoomState=controller.current_room();var phase: StringName=controller.guild.state.tower.phase
-	content_tabs.visible=node.room_type==RoomType.SHOP or node.event_type==TowerController.BLACKSMITH and phase==&"event_active"
+	content_tabs.visible=node.room_type in [RoomType.SHOP,RoomType.RECRUIT] or node.event_type==TowerController.BLACKSMITH and phase==&"event_active"
 	for tab in content_tabs.get_children():tab.button_pressed=tab.get_meta("tab")==content_tab
 	map_button.disabled=not TowerNavigationPolicy.can_return(controller.guild.state)
 	# The original hides the map action until an event has actually resolved.
@@ -184,23 +193,22 @@ func render() -> void:
 		motion_tab=content_tab
 	if phase==&"cleared":
 		_result("star","완료한 방","이 방의 보상은 이미 받았습니다.\n지도에서 다음 방을 선택하세요.",ArenaUI.GOLD,[]);return
-	if node.room_type==RoomType.RECRUIT:render_recruit(node)
+	if node.room_type in [RoomType.RECRUIT,RoomType.SHOP] and content_tab in ["inventory","upgrade"]:_guild_panel(content_tab)
+	elif node.room_type==RoomType.RECRUIT:render_recruit(node)
 	elif node.room_type==RoomType.SHOP:render_shop(node)
 	elif node.room_type==RoomType.REST:render_rest()
 	elif node.event_type==&"prediction":render_prediction(node)
 	else:render_event(node)
-## Candidates in a grid that fits without scrolling (2×2 on a phone, one row of four on a wide
-## screen). Tapping a card opens the unit's info sheet; only its 영입 button buys.
+## Candidates in one row of four that fits without scrolling. Tapping a card opens the unit's info
+## sheet; only its 영입 button buys. The guild's head count sits by the reroll.
 func render_recruit(node: RoomState) -> void:
-	var view: Vector2=get_viewport_rect().size;var wide: bool=view.x>=700
-	var grid:=GridContainer.new();grid.name="Candidates";grid.columns=4 if wide else 2;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation",8);grid.add_theme_constant_override("v_separation",8)
+	var view: Vector2=get_viewport_rect().size
+	var grid:=GridContainer.new();grid.name="Candidates";grid.columns=4;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation",6);grid.add_theme_constant_override("v_separation",6)
 	var center:=CenterContainer.new();content_box.add_child(center);center.add_child(grid)
 	# Reroll sits centred under the recruit cards.
-	var reroll_row:=HBoxContainer.new();reroll_row.alignment=BoxContainer.ALIGNMENT_CENTER;content_box.add_child(reroll_row)
-	var width: float=minf(200,(minf(860,view.x)-56)/4) if wide else minf(230,(view.x-56)*.5)
-	# Two rows (and the reroll row) share what the phone leaves between the header and the footer.
-	var height: float=216 if wide else clampf((view.y-400)*.5,150,216)
+	var reroll_row:=HBoxContainer.new();reroll_row.alignment=BoxContainer.ALIGNMENT_CENTER;reroll_row.add_theme_constant_override("separation",12);content_box.add_child(reroll_row)
+	var width: float=minf(190,(minf(860,view.x)-58)/4);var height: float=clampf(view.y-560,190,250)
 	for offer in node.recruit.offers:
 		var data: UnitData=controller.guild.definition(offer.unit_type_id)
 		var cell:=VBoxContainer.new();cell.add_theme_constant_override("separation",5);grid.add_child(cell)
@@ -208,22 +216,31 @@ func render_recruit(node: RoomState) -> void:
 		b.tooltip_text="눌러서 유닛 정보 보기";b.custom_minimum_size=Vector2(width,height-49);cell.add_child(b)
 		var unit_type: int=offer.unit_type_id;ArenaUI.bind(b,func():UnitInfoSheet.open(self,unit_type))
 		var buy:=Button.new();buy.name="Buy";buy.custom_minimum_size=Vector2(width,44);cell.add_child(buy)
-		if offer.purchased:buy.text="영입 완료";buy.disabled=true
+		if offer.purchased:buy.text="완료";buy.disabled=true
 		else:
-			buy.disabled=controller.guild.state.tokens<offer.token_price;ArenaUI.price_button(buy,"영입","gem",offer.token_price)
+			# A full guild still taps through, to show what to do about it.
+			buy.disabled=controller.guild.state.tokens<offer.token_price;ArenaUI.price_button(buy,"영입","gem",offer.token_price);buy.custom_minimum_size.x=width
 			ArenaUI.bind(buy,_action.bind(&"recruit",{"offer_id":offer.offer_id}))
+	var count:=Label.new();count.name="GuildCount";var members: int=controller.guild.all_members().size();var limit: int=GrowthRules.roster_limit(controller.guild.state)
+	count.text="길드 %d/%d"%[members,limit];count.add_theme_font_size_override("font_size",13);count.add_theme_color_override("font_color",ArenaUI.DANGER if members>=limit else ArenaUI.MUTED);reroll_row.add_child(count)
 	var reroll: Button=button(reroll_row,"리롤 · %d G"%TowerContentService.REROLL_COST,_action.bind(&"reroll"),"Reroll");reroll.disabled=controller.guild.state.gold<TowerContentService.REROLL_COST;ArenaUI.price_button(reroll,"리롤","gold",TowerContentService.REROLL_COST)
 	if deal_cards:deal_cards=false;UiMotion.deal(grid.get_children())
+## The guild's inventory or upgrade page inside a shop or recruit room.
+func _guild_panel(tab: String) -> void:
+	var panel:=GuildManagementPanel.new();panel.controller=controller;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;content_box.add_child(panel);panel.show_tab(tab);panel.modified.connect(refresh_wallet);panel.promoted.connect(presentation_requested.emit)
+## Items and strategy cards on one shelf: items first, then cards drawn as real strategy cards.
 func render_shop(node: RoomState) -> void:
-	if content_tab=="inventory":
-		var panel:=GuildManagementPanel.new();panel.controller=controller;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;content_box.add_child(panel);panel.show_tab("inventory");panel.modified.connect(refresh_wallet);panel.promoted.connect(presentation_requested.emit);return
-	offers_grid=GridContainer.new();offers_grid.columns=3;offers_grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content_box.add_child(offers_grid)
-	for offer in node.shop.offers:
-		if String(offer.category)!=content_tab:continue
+	var stock: Array=node.shop.offers.filter(func(o):return o.category==&"equipment")+node.shop.offers.filter(func(o):return o.category==&"card")
+	# Phones: three to a row across the panel; wide screens: one centred row of fixed-width cards.
+	var wide: bool=get_viewport_rect().size.x>=700
+	offers_grid=GridContainer.new();offers_grid.columns=mini(6,stock.size()) if wide else 3;offers_grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+	if wide:var center:=CenterContainer.new();content_box.add_child(center);center.add_child(offers_grid)
+	else:content_box.add_child(offers_grid)
+	for offer in stock:
 		var item: ItemData=ItemCatalog.get_item(offer.kind) if offer.category==&"equipment" else null
 		var card: StrategyCardData=StrategyCardCatalog.get_card(offer.kind) if offer.category==&"card" else null
 		var b:=ArenaCard.new();b.text=(item.display_name if item!=null else card.display_name)+" · 구매";b.name=offer.offer_id
-		b.card_type="product";b.rarity=ItemCatalog.grade_color(offer.kind) if item!=null and not item.consumable else Color(0,0,0,0);b.title=item.display_name if item!=null else card.display_name;b.description=item.description if item!=null else card.description;b.kind=String(offer.kind);b.price="구매 완료" if offer.purchased else "%d G"%offer.gold_price;b.sold=offer.purchased;b.custom_minimum_size=Vector2(0,168);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL
+		b.card_type="product";b.slot_kind="card" if card!=null else "item";b.rarity=ItemCatalog.grade_color(offer.kind) if item!=null and not item.consumable else Color(0,0,0,0);b.title=item.display_name if item!=null else card.display_name;b.description=item.description if item!=null else card.description;b.kind=String(offer.kind);b.price="구매 완료" if offer.purchased else "%d G"%offer.gold_price;b.sold=offer.purchased;b.custom_minimum_size=Vector2(150 if wide else 0,190 if wide else 168);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL
 		b.tooltip_text=b.description;ArenaUI.bind(b,_action.bind(&"buy",{"offer_id":offer.offer_id}));offers_grid.add_child(b);b.disabled=offer.purchased or controller.guild.state.gold<offer.gold_price
 func _refresh_party() -> void:
 	clear(party_members)

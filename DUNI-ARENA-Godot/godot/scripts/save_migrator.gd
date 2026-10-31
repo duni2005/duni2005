@@ -7,8 +7,9 @@ extends RefCounted
 ## v3: events record token shop purchases.
 ## v4: items store their blacksmith enhancement.
 ## v5: the run stores mango faith.
-const CURRENT_VERSION=5
-const MIGRATION_LABEL="mango-v5"
+## v6: the run stores guild expansion (roster size and recruit odds upgrades).
+const CURRENT_VERSION=6
+const MIGRATION_LABEL="expansion-v6"
 static func prepare(value: Variant) -> SaveLoadResult:
 	if not value is Dictionary or not SaveValueCodec.integer(value.get("schema_version")):
 		return SaveLoadResult.failure(SaveLoadResult.Code.VALIDATION_ERROR,"schema_required")
@@ -17,6 +18,7 @@ static func prepare(value: Variant) -> SaveLoadResult:
 	if int(document.schema_version)==2:document=v2_to_v3(document)
 	if int(document.schema_version)==3:document=v3_to_v4(document)
 	if int(document.schema_version)==4:document=v4_to_v5(document)
+	if int(document.schema_version)==5:document=v5_to_v6(document)
 	if int(document.schema_version)!=CURRENT_VERSION:return SaveLoadResult.failure(SaveLoadResult.Code.UNSUPPORTED_VERSION,"unsupported_schema")
 	var result:=SaveLoadResult.new();result.document=document;return result
 ## Levels become the experience that reaches them, runs start without sortie upgrades, and a
@@ -59,4 +61,10 @@ static func v3_to_v4(source: Dictionary) -> Dictionary:
 static func v4_to_v5(source: Dictionary) -> Dictionary:
 	var document: Dictionary=source.duplicate(true);document.schema_version=5;document.migration_version=MIGRATION_LABEL
 	if document.get("run") is Dictionary and not document.run.has("mango_faith"):document.run["mango_faith"]=0
+	return document
+static func v5_to_v6(source: Dictionary) -> Dictionary:
+	var document: Dictionary=source.duplicate(true);document.schema_version=6;document.migration_version=MIGRATION_LABEL
+	if document.get("run") is Dictionary:
+		for field in ["roster_level","odds_level"]:
+			if not document.run.has(field):document.run[field]=0
 	return document

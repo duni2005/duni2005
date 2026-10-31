@@ -4,9 +4,6 @@ extends RefCounted
 const REROLL_COST = 200
 ## Candidates per recruit room (rooms entered before 0.56.0 keep their three).
 const RECRUIT_SLOTS = 4
-## Chance (%) that a candidate slot shows a unit of each recruit price (1-5 tokens); within a
-## price every unit is equally likely, and no unit shows twice in one room.
-const RECRUIT_ODDS = {1:40, 2:30, 3:18, 4:9, 5:3}
 const HOT_SPRING_COST = 200
 ## Guild rest: how many dead members one revive brings back (at 20% HP).
 const REST_REVIVE_LIMIT = 3
@@ -65,14 +62,15 @@ func create_offers(node: RoomState,revision: int) -> Array[RecruitOffer]:
 		if not by_price.has(price):by_price[price]=[]
 		by_price[price].append(type)
 	for slot in range(RECRUIT_SLOTS):
-		# A price first (by its odds, among prices with units left), then a unit of that price.
-		var total: float=0
+		# A price first (by the guild's recruit odds, among prices with units left), then a unit of
+		# that price; no unit shows twice in one room.
+		var odds: Dictionary=GrowthRules.recruit_odds(guild.state);var total: float=0
 		for price in by_price:
-			if not by_price[price].is_empty():total+=float(RECRUIT_ODDS.get(price,0))
+			if not by_price[price].is_empty():total+=float(odds.get(price,0))
 		var roll: float=rng.randf()*total;var pick: int=-1
 		for price in by_price:
-			if by_price[price].is_empty() or RECRUIT_ODDS.get(price,0)==0:continue
-			pick=price;roll-=float(RECRUIT_ODDS[price])
+			if by_price[price].is_empty() or odds.get(price,0)==0:continue
+			pick=price;roll-=float(odds[price])
 			if roll<0:break
 		var units: Array=by_price[pick];var type: int=units.pop_at(rng.randi_range(0,units.size()-1))
 		var offer:=RecruitOffer.new();offer.offer_id="%s:recruit:%d:%d"%[node.room_id,revision,slot];offer.unit_type_id=type;offer.token_price=guild.definition(type).recruit_tokens;offers.append(offer)
@@ -129,6 +127,7 @@ func recruit(offer_id: String) -> Dictionary:
 	if offer.purchased:return failure(&"purchased")
 	if not ResourceTransaction.can_spend(guild.state,0,offer.token_price,offer.offer_id):return failure(&"funds")
 	if guild.definition(offer.unit_type_id)==null:return failure(&"invalid_type")
+	if guild_full():return failure(&"guild_full")
 	ResourceTransaction.spend(guild.state,0,offer.token_price,offer.offer_id)
 	var member: GuildMemberState=guild.create_member(offer.unit_type_id);offer.purchased=true
 	return success({"member_id":member.member_id,"tokens_spent":offer.token_price})
@@ -209,6 +208,8 @@ func buy_exp(member_id: String,packs: int) -> Dictionary:
 func level_up(member_id: String) -> Dictionary:
 	var member: GuildMemberState=guild.get_member(member_id)
 	return buy_exp(member_id,GrowthRules.packs_to_level(member.total_exp)) if member!=null else failure(&"invalid_member")
+## The guild holds as many members as its roster limit (dead ones count).
+func guild_full() -> bool:return guild.all_members().size()>=GrowthRules.roster_limit(guild.state)
 func upgrade_sortie() -> Dictionary:
 	if not can_manage():return failure(&"management_locked")
 	var cost: int=GrowthRules.sortie_cost(guild.state)
@@ -217,6 +218,23 @@ func upgrade_sortie() -> Dictionary:
 	if not ResourceTransaction.can_spend(guild.state,cost,0,receipt):return failure(&"funds")
 	ResourceTransaction.spend(guild.state,cost,0,receipt);guild.state.sortie_level+=1
 	return success({"sortie_limit":GrowthRules.sortie_limit(guild.state),"gold_spent":cost})
+## Guild expansion: a bigger roster (+2 members) or better recruit odds (next level).
+func upgrade_roster() -> Dictionary:
+	if not can_manage():return failure(&"management_locked")
+	var cost: int=GrowthRules.roster_cost(guild.state)
+	if cost<0:return failure(&"max_roster")
+	var receipt: String="roster:%d"%guild.state.roster_level
+	if not ResourceTransaction.can_spend(guild.state,cost,0,receipt):return failure(&"funds")
+	ResourceTransaction.spend(guild.state,cost,0,receipt);guild.state.roster_level+=1
+	return success({"roster_limit":GrowthRules.roster_limit(guild.state),"gold_spent":cost})
+func upgrade_odds() -> Dictionary:
+	if not can_manage():return failure(&"management_locked")
+	var cost: int=GrowthRules.odds_cost(guild.state)
+	if cost<0:return failure(&"max_odds")
+	var receipt: String="odds:%d"%guild.state.odds_level
+	if not ResourceTransaction.can_spend(guild.state,cost,0,receipt):return failure(&"funds")
+	ResourceTransaction.spend(guild.state,cost,0,receipt);guild.state.odds_level+=1
+	return success({"odds_level":guild.state.odds_level,"gold_spent":cost})
 func finish() -> Dictionary:
 	if not live() or room()==null:return failure(&"run_ended")
 	if valid_room(RoomType.RECRUIT) or valid_room(RoomType.SHOP):return completion(&"close")
@@ -400,7 +418,10 @@ func event(choice: StringName) -> Dictionary:
 					outcome["items"]=ids
 				&"strategy":
 					var kinds: Array=StrategyCardCatalog.DEFINITIONS.keys();outcome["card_id"]=guild.state.give_strategy_card(kinds[rng.randi_range(0,kinds.size()-1)]).card_id
-				&"unit":outcome["member_id"]=guild.create_member(rng.randi_range(0,25)).member_id
+				# A full guild gets the tokens instead of a unit.
+				&"unit":
+					if guild_full():guild.state.tokens+=3;outcome["tokens"]=3
+					else:outcome["member_id"]=guild.create_member(rng.randi_range(0,25)).member_id
 				&"tokens":guild.state.tokens+=3;outcome["tokens"]=3
 				_:var gold: int=int(String(reward).trim_prefix("gold"));guild.state.gold+=gold;outcome["gold"]=gold
 	elif e.event_type in [&"tokenShop",TowerController.BLACKSMITH,&"mangoSapling",&"gambler"]:
@@ -476,5 +497,7 @@ func execute(action: StringName,options: Dictionary={}) -> Dictionary:
 		&"mango":return mango(options.get("choice",&""),options.get("member_id",""))
 		&"gamble":return gamble(options.get("choice",&""))
 		&"sortie_upgrade":return upgrade_sortie()
+		&"roster_upgrade":return upgrade_roster()
+		&"odds_upgrade":return upgrade_odds()
 		&"promote":return promote(options.get("member_id",""),options.get("materials",[]))
 	return failure(&"invalid_action")

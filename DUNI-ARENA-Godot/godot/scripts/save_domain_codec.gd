@@ -2,7 +2,7 @@ class_name SaveDomainCodec
 extends RefCounted
 ## Explicit domain schema (save version SaveMigrator.CURRENT_VERSION). Never reflects arbitrary Objects or instantiates scripts from a save.
 const SCALARS = {
-	"run":{"run_id":"s","next_member_number":"i","settled_battle_ids":"d","player_max_hp":"f","player_hp":"f","game_over":"b","game_over_reason":"i","death_losses_by_result_id":"d","next_strategy_card_number":"i","strategy_use_receipts":"d","gold":"i","tokens":"i","next_item_number":"i","inventory_receipts":"d","transaction_receipts":"d","content_receipts":"d","sortie_level":"i","mango_faith":"i"},
+	"run":{"run_id":"s","next_member_number":"i","settled_battle_ids":"d","player_max_hp":"f","player_hp":"f","game_over":"b","game_over_reason":"i","death_losses_by_result_id":"d","next_strategy_card_number":"i","strategy_use_receipts":"d","gold":"i","tokens":"i","next_item_number":"i","inventory_receipts":"d","transaction_receipts":"d","content_receipts":"d","sortie_level":"i","mango_faith":"i","roster_level":"i","odds_level":"i"},
 	"member":{"member_id":"s","unit_type_id":"i","total_exp":"i","stars":"i","current_hp":"f","energy":"i","ultimate_gauge":"f","transcendence_gauge":"f","stance":"n","character_specific_state":"d","fang_kills":"i"},
 	"item":{"item_id":"i","kind":"n","equipped_to_member_id":"s","consumed":"b","enhance":"i"},
 	"card":{"card_id":"i","kind":"n","used_depth":"i","used_floors":"ai","ready_floor":"i","consumed":"b"},
@@ -32,6 +32,8 @@ static func raw_valid(kind: String,field: String,value: Variant) -> bool:
 	if field=="energy":return value>=0 and value<=5
 	if field=="total_exp":return value>=0
 	if field=="sortie_level":return value>=0 and value<=GrowthRules.SORTIE_COSTS.size()
+	if field=="roster_level":return value>=0 and value<=GrowthRules.ROSTER_COSTS.size()
+	if field=="odds_level":return value>=0 and value<=GrowthRules.ODDS_COSTS.size()
 	if field=="stars":return value>=0 and value<=GrowthRules.MAX_STARS
 	if field=="game_over_reason":return value>=0 and value<=3
 	if field=="player_max_hp":return value>0

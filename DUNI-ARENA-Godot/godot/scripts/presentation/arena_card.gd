@@ -298,7 +298,14 @@ func _draw() -> void:
 		write(Vector2(0,70 if compact_room else 92),title,11 if compact_room else 14,Color("eef1fa") if not disabled else muted,size.x,true)
 		write(Vector2(0,89 if compact_room else 114),status_text,10 if compact_room else 11,muted,size.x,true)
 		return
+	if card_type=="product" and slot_kind=="card":
+		# Strategy cards on the shop shelf look like the cards in hand, with the price below.
+		StrategyCardArt.draw(self,Rect2(Vector2(4,4),size-Vector2(8,48)),kind,title,description,"","used" if sold else "ready","")
+		_shelf_tag("전략카드",Color("a07ad8"))
+		draw_price_chip(Rect2(6,size.y-37,size.x-12,30),"구매 완료")
+		return
 	if card_type=="product":
+		if slot_kind=="item":_shelf_tag("아이템",rarity if rarity.a>0 else Color("7f8aa6"))
 		if rarity.a>0:VfxArt.glow(self,Vector2(size.x*.5,28),30,rarity,.25)
 		draw_badge(Vector2(size.x*.5,28),20,gold)
 		ArenaIcon.draw(self,Vector2(size.x*.5,28),kind,25,gold)
@@ -338,15 +345,24 @@ func _draw() -> void:
 		draw_rect(Rect2(6,56,size.x-12,3),Color("0e1424"));draw_rect(Rect2(6,56,(size.x-12)*clampf(hp/maxf(1,hp_max),0,1),3),Color("86e3a4"))
 		return
 	if card_type=="recruit":
-		# Tapping shows the unit's info (the 영입 button sits under the card): the icon grows with the card.
-		write(Vector2(0,20),title,13,Color("eef1fa"),size.x,true)
-		var icon: float=clampf(size.y-96,34,64);var mid: Vector2=Vector2(size.x*.5,25+icon*.5)
+		# Tapping shows the unit's info (the 영입 button sits under the card). Narrow cards (four in a
+		# phone row) stack the rarity and stats instead of using the pill and one stat line.
+		var narrow: bool=size.x<120
+		write(Vector2(2,20),title,11 if narrow else 13,Color("eef1fa"),size.x-4,true)
+		var icon: float=clampf(minf(size.x-14,size.y-(104 if narrow else 96)),30,64);var mid: Vector2=Vector2(size.x*.5,27+icon*.5)
 		if UnitRarity.tier(type_id)>=4 and not sold:VfxArt.glow(self,mid,icon*.7,UnitRarity.color(type_id),.22)
 		UnitIcon.draw(self,Rect2(mid-Vector2.ONE*icon*.5,Vector2.ONE*icon),type_id,.4 if sold else 1)
-		_rarity_line(38+icon,sold)
-		write(Vector2(0,62+icon),stats_summary,10,muted,size.x,true)
-		draw_string(get_theme_default_font(),Vector2(6,77+icon),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-12,10,muted)
-		var info:=Vector2(size.x-12,12);draw_arc(info,6.5,0,TAU,20,Color(muted,.8),1.2,true);write(info+Vector2(-1.5,3.5),"i",10,Color(muted,.9))
+		var col: Color=Color(UnitRarity.color(type_id).lightened(.25),.5 if sold else 1.0)
+		if narrow:
+			UnitRarity.draw_pips(self,Vector2((size.x-UnitRarity.pips_width(type_id,2.8))*.5+2.24,38+icon),type_id,2.8,sold)
+			write(Vector2(0,55+icon),UnitRarity.label(type_id),10,col,size.x,true)
+			var lines: PackedStringArray=stats_summary.split(" · ")
+			for i in range(lines.size()):write(Vector2(0,72+icon+i*13),lines[i],9,muted,size.x,true)
+		else:
+			_rarity_line(38+icon,sold)
+			write(Vector2(0,62+icon),stats_summary,10,muted,size.x,true)
+			draw_string(get_theme_default_font(),Vector2(6,77+icon),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-12,10,muted)
+		var info:=Vector2(size.x-10,10);draw_arc(info,5.5,0,TAU,20,Color(muted,.8),1.2,true);write(info+Vector2(-1.5,3.5),"i",9,Color(muted,.9))
 		return
 	if card_type=="strategy" and size.y<=64:
 		ArenaIcon.draw(self,Vector2(17,size.y*.5),kind,22,gold)
@@ -386,6 +402,10 @@ func _draw() -> void:
 			for j in range(10):points.append(at+Vector2.from_angle(-PI/2+j*PI/5)*(6 if j%2==0 else 2.5))
 			draw_colored_polygon(points,gold)
 
+## Shop shelf tag in the top-left corner: 아이템 or 전략카드.
+func _shelf_tag(label: String,col: Color) -> void:
+	var w: float=get_theme_default_font().get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,8).x+8
+	draw_style_box(ArenaUI.box(Color(col,.3),Color(col,.85)),Rect2(5,5,w,13));write(Vector2(9,15),label,8,col.lightened(.45))
 ## "◆◆◆ 희귀" pill centred on `y`.
 func _rarity_line(y: float,dim: bool) -> void:
 	var label: String=UnitRarity.label(type_id);var font: Font=get_theme_default_font();var col: Color=UnitRarity.color(type_id)

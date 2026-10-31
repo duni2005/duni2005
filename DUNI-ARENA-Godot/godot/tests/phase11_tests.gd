@@ -176,6 +176,11 @@ func migration() -> void:
 	var v4: Dictionary=saved.duplicate(true);v4.schema_version=4;v4.run.erase("mango_faith")
 	reloaded=SaveSnapshotLoader.restore(v4);verify(reloaded.ok() and reloaded.run.mango_faith==0,"v4 save loads as v5 without faith")
 	var negative: Dictionary=saved.duplicate(true);negative.run.mango_faith=-1;verify(not SaveSnapshotLoader.restore(negative).ok(),"negative faith rejects")
+	forge.guild.state.roster_level=2;forge.guild.state.odds_level=3;saved=JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(forge,"save_forge",1).document))
+	reloaded=SaveSnapshotLoader.restore(saved.duplicate(true));verify(reloaded.ok() and reloaded.run.roster_level==2 and reloaded.run.odds_level==3,"guild expansion round trip")
+	var v5: Dictionary=saved.duplicate(true);v5.schema_version=5;v5.run.erase("roster_level");v5.run.erase("odds_level")
+	reloaded=SaveSnapshotLoader.restore(v5);verify(reloaded.ok() and reloaded.run.roster_level==0 and reloaded.run.odds_level==0,"v5 save loads as v6 without expansion")
+	var too_far: Dictionary=saved.duplicate(true);too_far.run.odds_level=GrowthRules.ODDS_COSTS.size()+1;verify(not SaveSnapshotLoader.restore(too_far).ok(),"odds level beyond the table rejects")
 	var gamble: TowerController=TowerController.new();gamble.new_run(19,73);gamble.guild.state.gold=1000
 	gamble.guild.state.tower.map.get_room("0:4").event_type=&"gambler";gamble.select_room("0:4")
 	verify(gamble.content_action(&"gamble",{"choice":&"roulette"}).ok and gamble.content_action(&"gamble",{"choice":&"dice"}).ok,"gambler games for save")

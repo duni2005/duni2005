@@ -66,10 +66,14 @@ func recruit_shop() -> void:
 	var distinct: Dictionary={}
 	for offer in offers:distinct[offer.unit_type_id]=true
 	verify(offers.size()==TowerContentService.RECRUIT_SLOTS and distinct.size()==4,"four distinct offers")
-	# Candidates show up with their price's odds (first slot: every price still available).
-	var seen: Dictionary={1:0,2:0,3:0,4:0,5:0};var odds_tower:=tower();odds_tower.select_room("0:0")
-	for i in range(3000):seen[odds_tower.content.create_offers(odds_tower.current_room(),i)[0].token_price]+=1
-	verify(TowerContentService.RECRUIT_ODDS.keys().all(func(p):return absf(seen[p]/30.0-TowerContentService.RECRUIT_ODDS[p])<3.5),"recruit candidates follow the price odds")
+	# Candidates show up with their price's odds at the guild's odds level (first slot: every price
+	# still available).
+	var odds_tower:=tower();odds_tower.select_room("0:0")
+	for level in [0,4]:
+		odds_tower.guild.state.odds_level=level;var seen: Dictionary={1:0,2:0,3:0,4:0,5:0};var table: Dictionary=GrowthRules.RECRUIT_ODDS[level]
+		for i in range(3000):seen[odds_tower.content.create_offers(odds_tower.current_room(),i)[0].token_price]+=1
+		verify(table.keys().all(func(p):return absf(seen[p]/30.0-table[p])<3.5),"recruit candidates follow the price odds, level %d"%level)
+	verify(GrowthRules.RECRUIT_ODDS.all(func(t):return t.values().reduce(func(a,b):return a+b,0)==100),"every odds level adds up to 100%")
 	var first: RecruitOffer=offers[0];t.guild.create_member(first.unit_type_id)
 	var gold: int=t.guild.state.gold;var tokens: int=t.guild.state.tokens;var before: int=t.guild.all_members().size()
 	var result: Dictionary=t.content_action(&"recruit",{"offer_id":first.offer_id})
@@ -159,6 +163,21 @@ func growth_rules() -> void:
 	var gold: int=t.guild.state.gold
 	verify(not t.content_action(&"sortie_upgrade").ok and t.guild.state.gold==gold and GrowthRules.sortie_limit(t.guild.state)==8,"sortie tops out at eight")
 	t=tower();t.guild.state.gold=499;verify(not t.content_action(&"sortie_upgrade").ok and t.guild.state.sortie_level==0,"sortie upgrade needs the gold")
+	# Guild expansion: roster +2 per upgrade from 10, recruit odds up to level 5.
+	t=tower();t.guild.state.gold=10000;verify(GrowthRules.roster_limit(t.guild.state)==10,"ten members by default")
+	limits.clear();spent.clear()
+	for i in range(GrowthRules.ROSTER_COSTS.size()+1):
+		gold=t.guild.state.gold;var result: Dictionary=t.content_action(&"roster_upgrade")
+		limits.append(result.outcome.roster_limit if result.ok else -1);spent.append(gold-t.guild.state.gold)
+	verify(limits==[12,14,16,18,-1] and spent==[300,500,800,1200,0],"roster upgrades: 300/500/800/1200 G, +2 each, then max")
+	for i in range(GrowthRules.ODDS_COSTS.size()):verify(t.content_action(&"odds_upgrade").ok,"odds upgrade")
+	verify(t.guild.state.odds_level==4 and not t.content_action(&"odds_upgrade").ok and GrowthRules.recruit_odds(t.guild.state)[5]==13,"odds top out at level 5 (legendary 13%)")
+	# A full guild cannot recruit: nothing is spent and the candidate stays.
+	t=tower();t.select_room("0:0");t.guild.state.tokens=30
+	while t.guild.all_members().size()<GrowthRules.roster_limit(t.guild.state):t.guild.create_member(0)
+	var offer: RecruitOffer=t.current_room().recruit.offers[0];var full: Dictionary=t.content_action(&"recruit",{"offer_id":offer.offer_id})
+	verify(not full.ok and full.code==&"guild_full" and t.guild.state.tokens==30 and not offer.purchased,"full guild refuses recruiting")
+	t.guild.state.gold=1000;verify(t.content_action(&"roster_upgrade").ok and t.content_action(&"recruit",{"offer_id":offer.offer_id}).ok,"expanding the guild makes room")
 func promotion() -> void:
 	groups+=1
 	for seed in range(12):

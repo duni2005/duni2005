@@ -14,6 +14,11 @@ var pending_item_id: int = 0
 var pending_member_id: String = ""
 var close_button: Button
 var active_tab: String="guild"
+## The upgrade tab shows one half at a time so it fits any screen: "unit" (the selected member's
+## EXP) or "guild" (promotion and guild expansion).
+var upgrade_view: String="unit"
+var upgrade_switch: HBoxContainer
+var upgrade_views: Dictionary={}
 var tabs: Dictionary={}
 var roster_scroll: ScrollContainer
 var inventory_scroll: ScrollContainer
@@ -48,6 +53,10 @@ var promote_button: Button
 var promote_caption: Label
 var sortie_button: Button
 var sortie_caption: Label
+var roster_button: Button
+var roster_caption: Label
+var odds_button: Button
+var odds_caption: Label
 var promotion_dialog: PromotionDialog
 func _ready() -> void:
  theme=ArenaUI.get_theme();var outer:=StyleBoxFlat.new();outer.bg_color=ArenaUI.BACKGROUND;add_theme_stylebox_override("panel",outer)
@@ -65,7 +74,9 @@ func _ready() -> void:
   menu_button=ArenaUI.nav_button("menu",_open_page_menu);heading.add_child(menu_button)
   var wallet:=WalletBar.new();wallet.guild=controller.guild;column.add_child(wallet)
  page_frame=PanelContainer.new();page_frame.size_flags_vertical=Control.SIZE_EXPAND_FILL;column.add_child(page_frame)
- var style: StyleBoxFlat=ArenaUI.card_style(ArenaUI.BORDER,ArenaUI.PANEL);style.content_margin_left=12;style.content_margin_right=12;style.content_margin_top=14;style.content_margin_bottom=12;page_frame.add_theme_stylebox_override("panel",style)
+ # Inside a room's tab the page sits in the room's own frame: tighter margins, compact summary.
+ var embedded: bool=not window is AcceptDialog
+ var style: StyleBoxFlat=ArenaUI.card_style(ArenaUI.BORDER,ArenaUI.PANEL);style.content_margin_left=6 if embedded else 12;style.content_margin_right=6 if embedded else 12;style.content_margin_top=6 if embedded else 14;style.content_margin_bottom=6 if embedded else 12;page_frame.add_theme_stylebox_override("panel",style)
  var content:=VBoxContainer.new();content.add_theme_constant_override("separation",6);page_frame.add_child(content)
  if prebattle_room!=null:
   var row:=HBoxContainer.new();content.add_child(row)
@@ -78,6 +89,11 @@ func _ready() -> void:
  for pair in definitions:
   var tab:=Button.new();tab.text=pair[1];tab.toggle_mode=true;tab.custom_minimum_size.y=36;tab.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ArenaUI.bind(tab,show_tab.bind(pair[0]));tab_row.add_child(tab);tabs[pair[0]]=tab
   ArenaUI.tab(tab)
+ upgrade_switch=HBoxContainer.new();upgrade_switch.alignment=BoxContainer.ALIGNMENT_CENTER;content.add_child(upgrade_switch)
+ for pair in [["unit","유닛 강화"],["guild","길드 성장"]]:
+  # A slim switch (not ArenaUI.bind, which makes buttons 44 px tall).
+  var view:=Button.new();view.text=pair[1];view.toggle_mode=true;view.custom_minimum_size=Vector2(118,32);view.pressed.connect(show_upgrade_view.bind(pair[0]));upgrade_switch.add_child(view);upgrade_views[pair[0]]=view
+  ArenaUI.tab(view)
  roster_scroll=ScrollContainer.new();roster_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;content.add_child(roster_scroll)
  roster=GridContainer.new();roster.columns=2;roster_scroll.add_child(roster)
  content.add_child(HSeparator.new())
@@ -87,23 +103,25 @@ func _ready() -> void:
  details=Label.new();details.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;details.add_theme_font_size_override("font_size",12);content.add_child(details)
  upgrade_frame=PanelContainer.new();upgrade_frame.add_theme_stylebox_override("panel",ArenaUI.card_style());content.add_child(upgrade_frame)
  var upgrade_column:=VBoxContainer.new();upgrade_frame.add_child(upgrade_column)
- upgrade_summary=UpgradeSummary.new();upgrade_column.add_child(upgrade_summary)
+ upgrade_summary=UpgradeSummary.new();upgrade_summary.compact=embedded;upgrade_column.add_child(upgrade_summary)
  # Experience: one pack at a time, or exactly the packs the next level needs.
  var exp_row:=HBoxContainer.new();exp_row.add_theme_constant_override("separation",8);upgrade_column.add_child(exp_row)
- upgrade_button=Button.new();upgrade_button.custom_minimum_size.y=44;upgrade_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ArenaUI.bind(upgrade_button,_upgrade);exp_row.add_child(upgrade_button)
- level_up_button=Button.new();level_up_button.custom_minimum_size.y=44;level_up_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ArenaUI.primary(level_up_button);ArenaUI.bind(level_up_button,_level_up);exp_row.add_child(level_up_button)
+ upgrade_button=Button.new();upgrade_button.custom_minimum_size.y=44;upgrade_button.clip_text=true;upgrade_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ArenaUI.bind(upgrade_button,_upgrade);exp_row.add_child(upgrade_button)
+ level_up_button=Button.new();level_up_button.custom_minimum_size.y=44;level_up_button.clip_text=true;level_up_button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ArenaUI.primary(level_up_button);ArenaUI.bind(level_up_button,_level_up);exp_row.add_child(level_up_button)
  status=Label.new();status.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;status.add_theme_font_size_override("font_size",12);content.add_child(status)
  inventory_scroll=ScrollContainer.new();inventory_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL;inventory_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;content.add_child(inventory_scroll)
  # The empty-slot padding depends on the visible height.
  inventory_scroll.resized.connect(func():if active_tab=="inventory" and is_inside_tree():render.call_deferred())
- # Guild growth, right under the member card: promotion and the guild-wide sortie upgrade, one
- # row each (icon, name, what it does, action button on the right).
+ # Guild growth, right under the member card: promotion, then guild expansion (sortie size,
+ # roster size, recruit odds), one row each (icon, name, what it does, action button on the right).
  growth_frame=PanelContainer.new();growth_frame.add_theme_stylebox_override("panel",ArenaUI.card_style());content.add_child(growth_frame);content.move_child(growth_frame,upgrade_frame.get_index()+1)
- var growth_column:=VBoxContainer.new();growth_column.add_theme_constant_override("separation",10);growth_frame.add_child(growth_column)
- var growth_title:=Label.new();growth_title.text="길드 성장";growth_title.add_theme_font_override("font",ArenaUI.heading_font());growth_title.add_theme_font_size_override("font_size",14);growth_title.add_theme_color_override("font_color",Color("e8d6a6"));growth_column.add_child(growth_title)
+ var growth_column:=VBoxContainer.new();growth_column.add_theme_constant_override("separation",6);growth_frame.add_child(growth_column)
  var promote: Array=_growth_row(growth_column,"star","승급",_open_promotion);promote_button=promote[0];promote_caption=promote[1];promote_button.text="승급하기"
  growth_column.add_child(HSeparator.new())
- var sortie: Array=_growth_row(growth_column,"flag","출정 수",_upgrade_sortie);sortie_button=sortie[0];sortie_caption=sortie[1]
+ var expansion_title:=Label.new();expansion_title.text="길드 확장";expansion_title.add_theme_font_override("font",ArenaUI.heading_font());expansion_title.add_theme_font_size_override("font_size",14);expansion_title.add_theme_color_override("font_color",Color("e8d6a6"));growth_column.add_child(expansion_title)
+ var sortie: Array=_growth_row(growth_column,"flag","출정 가능 수",_expand.bind(&"sortie_upgrade"));sortie_button=sortie[0];sortie_caption=sortie[1]
+ var roster_row: Array=_growth_row(growth_column,"guild","길드 인원 한도",_expand.bind(&"roster_upgrade"));roster_button=roster_row[0];roster_caption=roster_row[1]
+ var odds: Array=_growth_row(growth_column,"recruit","높은 유닛 영입 확률",_expand.bind(&"odds_upgrade"));odds_button=odds[0];odds_caption=odds[1]
  inventory_grid=GridContainer.new();inventory_grid.columns=4;inventory_grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;inventory_grid.add_theme_constant_override("h_separation",6);inventory_grid.add_theme_constant_override("v_separation",6);inventory_scroll.add_child(inventory_grid)
  promotion_dialog=PromotionDialog.new();promotion_dialog.controller=controller;add_child(promotion_dialog);ArenaModalBackdrop.new().connect_window(promotion_dialog,self)
  promotion_dialog.promoted.connect(func(event):status.text="";modified.emit();call_deferred("render");promoted.emit(event))
@@ -116,6 +134,8 @@ func _ready() -> void:
 func _open_page_menu() -> void:menu_dialog.popup_centered(Vector2i(mini(300,get_viewport_rect().size.x-50),145))
 func show_tab(tab: String) -> void:
  active_tab="inventory" if prebattle_room!=null and tab=="guild" else tab;render();call_deferred("_fit_dialog")
+func show_upgrade_view(view: String) -> void:
+ upgrade_view=view;render()
 func _fit_dialog() -> void:
  await get_tree().process_frame
  await get_tree().process_frame
@@ -139,7 +159,10 @@ func render() -> void:
  roster.size_flags_horizontal=Control.SIZE_EXPAND_FILL if main_list else Control.SIZE_SHRINK_BEGIN
  roster_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL if main_list else Control.SIZE_FILL
  roster_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO if main_list else ScrollContainer.SCROLL_MODE_DISABLED
- details.visible=active_tab=="inventory";upgrade_frame.visible=active_tab=="upgrade";growth_frame.visible=active_tab=="upgrade";inventory_heading.visible=active_tab=="inventory"
+ var upgrading: bool=active_tab=="upgrade"
+ details.visible=active_tab=="inventory";upgrade_frame.visible=upgrading and upgrade_view=="unit";growth_frame.visible=upgrading and upgrade_view=="guild";inventory_heading.visible=active_tab=="inventory"
+ upgrade_switch.visible=upgrading;roster_scroll.visible=not (upgrading and upgrade_view=="guild")
+ for key in upgrade_views:upgrade_views[key].button_pressed=key==upgrade_view
  inventory_scroll.visible=active_tab=="inventory";status.visible=not status.text.is_empty()
  if active_tab=="inventory":inventory_scroll.custom_minimum_size.y=0
  # Cards are reused across renders: re-adding them reshapes every Korean label, which is what
@@ -182,6 +205,15 @@ func render() -> void:
  sortie_caption.text="최대 출정 %d명 (최대치)"%limit if sortie_cost<0 else "출정 %d명 → %d명"%[limit,limit+1]
  sortie_button.text="최대" if sortie_cost<0 else "%s G"%ArenaUI.grouped(sortie_cost)
  sortie_button.disabled=sortie_cost<0 or guild.state.gold<sortie_cost or not controller.content.can_manage()
+ var roster_cost: int=GrowthRules.roster_cost(guild.state);var roster_limit: int=GrowthRules.roster_limit(guild.state)
+ roster_caption.text="인원 %d/%d (최대치)"%[members.size(),roster_limit] if roster_cost<0 else "인원 %d/%d · 한도 %d → %d명"%[members.size(),roster_limit,roster_limit,roster_limit+GrowthRules.ROSTER_STEP]
+ roster_button.text="최대" if roster_cost<0 else "%s G"%ArenaUI.grouped(roster_cost)
+ roster_button.disabled=roster_cost<0 or guild.state.gold<roster_cost or not controller.content.can_manage()
+ # Odds: the two rarest grades, now and after the next level.
+ var odds_cost: int=GrowthRules.odds_cost(guild.state);var now: Dictionary=GrowthRules.recruit_odds(guild.state);var level: int=guild.state.odds_level+1
+ odds_caption.text="Lv.%d (최대치) · 영웅 %d%% · 전설 %d%%"%[level,now[4],now[5]] if odds_cost<0 else "Lv.%d → %d · 영웅 %d→%d%% · 전설 %d→%d%%"%[level,level+1,now[4],GrowthRules.RECRUIT_ODDS[level][4],now[5],GrowthRules.RECRUIT_ODDS[level][5]]
+ odds_button.text="최대" if odds_cost<0 else "%s G"%ArenaUI.grouped(odds_cost)
+ odds_button.disabled=odds_cost<0 or guild.state.gold<odds_cost or not controller.content.can_manage()
  # Slots in reading order: spare equipment, consumables, equipped gear, ready cards, waiting cards.
  var spare: Array=controller.content.inventory.available().filter(func(i):return not ItemCatalog.get_item(i.kind).consumable)
  var consumables: Array=controller.content.inventory.available().filter(func(i):return ItemCatalog.get_item(i.kind).consumable)
@@ -241,15 +273,16 @@ func _growth_row(column: VBoxContainer,icon: String,label: String,callback: Call
  var row:=HBoxContainer.new();row.add_theme_constant_override("separation",10);column.add_child(row)
  var badge:=TextureRect.new();badge.texture=ArenaIcon.texture(icon);badge.custom_minimum_size=Vector2(30,30);badge.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;badge.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;badge.size_flags_vertical=Control.SIZE_SHRINK_CENTER;row.add_child(badge)
  var text:=VBoxContainer.new();text.add_theme_constant_override("separation",1);text.size_flags_horizontal=Control.SIZE_EXPAND_FILL;text.alignment=BoxContainer.ALIGNMENT_CENTER;row.add_child(text)
- var title:=Label.new();title.text=label;title.add_theme_font_override("font",ArenaUI.heading_font());title.add_theme_font_size_override("font_size",15);text.add_child(title)
+ var title:=Label.new();title.text=label;title.add_theme_font_override("font",ArenaUI.heading_font());title.add_theme_font_size_override("font_size",14);text.add_child(title)
  var caption:=Label.new();caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;caption.add_theme_font_size_override("font_size",11);caption.add_theme_color_override("font_color",ArenaUI.MUTED);text.add_child(caption)
- var button:=Button.new();button.custom_minimum_size=Vector2(108,44);button.size_flags_vertical=Control.SIZE_SHRINK_CENTER;ArenaUI.bind(button,callback);row.add_child(button)
- if icon=="flag":ArenaUI.style_button(button,Color("7a5a22"),ArenaUI.GOLD);ArenaUI.with_icon(button,"gold",16)
+ var button:=Button.new();button.custom_minimum_size=Vector2(96,40);button.size_flags_vertical=Control.SIZE_SHRINK_CENTER;ArenaUI.bind(button,callback);row.add_child(button)
+ if icon!="star":ArenaUI.style_button(button,Color("7a5a22"),ArenaUI.GOLD);ArenaUI.with_icon(button,"gold",16)
  else:ArenaUI.secondary(button)
  return [button,caption]
-func _upgrade_sortie() -> void:
- get_tree().root.set_meta("action_point",ArenaUI.control_center(sortie_button))
- var result: Dictionary=controller.content_action(&"sortie_upgrade");status.text="" if result.ok else "출정 수 업그레이드 불가 · "+String(result.code)
+func _expand(action: StringName) -> void:
+ var button: Button={&"sortie_upgrade":sortie_button,&"roster_upgrade":roster_button,&"odds_upgrade":odds_button}[action]
+ get_tree().root.set_meta("action_point",ArenaUI.control_center(button))
+ var result: Dictionary=controller.content_action(action);status.text="" if result.ok else "길드 확장 불가 · "+String(result.code)
  modified.emit();call_deferred("render")
 func _open_promotion() -> void:promotion_dialog.open(selected_member_id)
 func _build_item_dialog() -> void:

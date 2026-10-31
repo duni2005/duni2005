@@ -151,9 +151,10 @@ func content_and_save() -> void:
 			await capture("mobile-"+String(room.room_type))
 			if room.room_type==RoomType.RECRUIT:verify(room.recruit.offers.size()==TowerContentService.RECRUIT_SLOTS,"four persistent recruit candidates")
 			else:
-				verify(content.offers_grid.get_child_count()==room.shop.offers.filter(func(o):return o.category==&"equipment").size(),"equipment stock tab presentation")
-				var card_tab: Button=content.content_tabs.get_child(1);await click(card_tab);await frames()
-				verify(content.offers_grid.get_child_count()==room.shop.offers.filter(func(o):return o.category==&"card").size(),"strategy card stock tab presentation")
+				# Items and strategy cards share the first tab, items first.
+				verify(content.offers_grid.get_child_count()==room.shop.offers.size() and content.offers_grid.get_children().map(func(c):return c.slot_kind)==room.shop.offers.filter(func(o):return o.category==&"equipment").map(func(_o):return "item")+room.shop.offers.filter(func(o):return o.category==&"card").map(func(_o):return "card"),"one shelf: items, then strategy cards")
+				var upgrade_tab: Button=content.content_tabs.get_child(2);await click(upgrade_tab);await frames()
+				verify(content.content_box.find_children("*","GuildManagementPanel",true,false).size()==1,"shop upgrade tab shows the guild upgrades")
 			content._return_map();await frames()
 	var guard:=Button.new();tower.add_child(guard);var result: Array=[0];ArenaUI.bind(guard,func():result[0]+=1)
 	guard.pressed.emit();guard.pressed.emit();verify(result[0]==1,"duplicate frame click guarded")

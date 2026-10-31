@@ -279,7 +279,7 @@ static func _button_input(event: InputEvent,button: Button) -> void:
 	elif event is InputEventMouseMotion and event.device!=-1 and event.button_mask!=0:
 		if event.position.distance_to(button.get_meta("tap_origin"))>18:button.set_meta("drag_canceled",true)
 static func reason(code: String) -> String:
-	return {"OUTSIDE_DEPLOYMENT_ZONE":"강조된 배치 영역 안을 선택하세요.","TOO_CLOSE":"다른 유닛과 최소 58만큼 거리를 두세요.","DEAD_MEMBER":"사망한 길드원은 배치할 수 없습니다.","ALREADY_DEPLOYED":"이미 배치된 길드원입니다. 위치를 옮길 수 있습니다.","SORTIE_FULL":"출정 인원이 가득 찼습니다. 강화 탭에서 출정 수를 늘릴 수 있습니다.","INVALID_POSITION":"유효한 전장 위치를 선택하세요.","INSUFFICIENT_GOLD":"골드가 부족합니다.","INSUFFICIENT_TOKENS":"토큰이 부족합니다.","NO_EFFECT":"현재 대상에게 효과가 없습니다.","INVALID_TARGET":"살아 있는 아군을 선택하세요.","NOT_AVAILABLE":"이번 층에서 사용할 수 없습니다.","UNAVAILABLE":"사용 기록 또는 쿨타임 때문에 사용할 수 없습니다.","NOT_HOLD":"전투가 완전히 정지한 뒤 사용할 수 있습니다.","DUPLICATE":"이미 적용된 카드입니다.","NOT_PAUSED":"터닝포인트 정지 중에 사용할 수 있습니다."}.get(code,code.replace("_"," ").to_lower())
+	return {"OUTSIDE_DEPLOYMENT_ZONE":"강조된 배치 영역 안을 선택하세요.","TOO_CLOSE":"다른 유닛과 최소 58만큼 거리를 두세요.","DEAD_MEMBER":"사망한 길드원은 배치할 수 없습니다.","ALREADY_DEPLOYED":"이미 배치된 길드원입니다. 위치를 옮길 수 있습니다.","SORTIE_FULL":"출정 인원이 가득 찼습니다. 강화 탭의 길드 확장에서 출정 가능 수를 늘릴 수 있습니다.","GUILD_FULL":"길드를 확장해 길드 인원을 늘리세요","INVALID_POSITION":"유효한 전장 위치를 선택하세요.","INSUFFICIENT_GOLD":"골드가 부족합니다.","INSUFFICIENT_TOKENS":"토큰이 부족합니다.","NO_EFFECT":"현재 대상에게 효과가 없습니다.","INVALID_TARGET":"살아 있는 아군을 선택하세요.","NOT_AVAILABLE":"이번 층에서 사용할 수 없습니다.","UNAVAILABLE":"사용 기록 또는 쿨타임 때문에 사용할 수 없습니다.","NOT_HOLD":"전투가 완전히 정지한 뒤 사용할 수 있습니다.","DUPLICATE":"이미 적용된 카드입니다.","NOT_PAUSED":"터닝포인트 정지 중에 사용할 수 있습니다."}.get(code,code.replace("_"," ").to_lower())
 
 static func plain(value: String) -> String:
 	var out: String=""
