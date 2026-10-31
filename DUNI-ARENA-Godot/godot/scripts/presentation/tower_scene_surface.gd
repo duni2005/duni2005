@@ -140,7 +140,7 @@ func _draw_promotion(s: Dictionary,t: float,screen: Vector2) -> void:
 	var detail_in: float=Motion.out_expo(Motion.phase(t,fuse+1.0,Motion.ENTER))
 	text(Vector2(20,center.y+182+10*(1-detail_in)),s.get("detail",""),15 if screen.x<600 else 19,Color("c4cdbb",a*detail_in),screen.x-40)
 	if t>fuse+1.4:text(Vector2(20,screen.y-36),"터치하여 계속",11,Color(.66,.73,.82,a*.8*Motion.phase(t,fuse+1.4,.4)),screen.x-40)
-## Floor conquest (shown on the map, tap skips): slanted panels sweep in, a gold crown crest drops
+## Floor conquest (shown on the map, plays out in full; taps are held): slanted panels sweep in, a gold crown crest drops
 ## onto the band with a jolt, a shockwave and rising gold motes, "CONQUEST" drifts behind, the
 ## floor number counts in as "N층 정복" letter by letter over a gold rule, and the rewards land as
 ## chips one after another.
@@ -189,7 +189,6 @@ func _draw_conquest(s: Dictionary,t: float,screen: Vector2) -> void:
 		var w: float=get_theme_default_font().get_string_size(lines[i],HORIZONTAL_ALIGNMENT_LEFT,-1,14).x+28;var chip:=Rect2(Vector2(center.x-w*.5,chip_y+i*34+10*(1-k)),Vector2(w,28))
 		draw_style_box(ArenaUI.box(Color(.06,.08,.14,.92*a*k),Color(gold,.6*a*k)),chip)
 		draw_string(get_theme_default_font(),chip.position+Vector2(0,19),lines[i],HORIZONTAL_ALIGNMENT_CENTER,w,14,Color("e8eefc",a*k))
-	if t>land+1.2:text(Vector2(20,screen.y-36),"터치하여 계속",11,Color(.66,.73,.82,a*.8*Motion.phase(t,land+1.2,.4)),screen.x-40)
 func _draw_flights() -> void:
 	for flight in director.flights:
 		if flight.age<0:continue

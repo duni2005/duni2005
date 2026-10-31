@@ -151,9 +151,12 @@ func _rebuild_roster() -> void:
 func _open_unit_info(unit_type: int, member_id: String, stats: UnitCombatStats) -> void:
 	var member: GuildMemberState=guild.get_member(member_id) if not member_id.is_empty() else null
 	UnitInfoSheet.open(self,unit_type,stats if stats!=null else guild.member_stats(member) if member!=null else null,member)
-## Tapping the selected roster unit again opens its description sheet.
+## Tapping the selected roster unit again opens its description sheet. Picking a unit card while
+## the eraser is on puts the eraser away and selects that unit.
 func _roster_pressed(member_id: String) -> void:
 	var member: GuildMemberState=guild.get_member(member_id)
+	if board.erase_mode:
+		board.erase_mode=false;erase_button.set_pressed_no_signal(false);status.text="선택한 유닛을 배치하세요.";board.select(member_id);_update_tools();return
 	if member_id==board.selected_id and member!=null:UnitInfoSheet.open(self,member.unit_type_id,guild.member_stats(member),member);_refresh_roster();return
 	board.select(member_id)
 

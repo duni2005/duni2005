@@ -67,6 +67,9 @@ func display_contract():
 	await tap(screen.erase_button);verify(screen.board.erase_mode,"eraser touch stays selected")
 	pointer(point,true);pointer(point,false);await frames();verify(screen.plan.get_entry(member.member_id)==null,"eraser removes clicked member")
 	await tap(screen.undo_button);verify(screen.plan.get_entry(member.member_id)!=null,"erase can be undone")
+	# Picking a unit card while erasing puts the eraser away and selects that unit.
+	verify(screen.board.erase_mode,"eraser still on before picking a card")
+	await tap(screen.roster.get_child(1));verify(not screen.board.erase_mode and not screen.erase_button.button_pressed and screen.board.selected_id==screen.roster.get_child(1).name,"unit card turns the eraser off and selects the unit")
 	await tap(screen.tools_row.get_node("ClearAll"));verify(screen.plan.entries().is_empty(),"all clear actual button")
 	await tap(screen.undo_button);verify(screen.plan.entries().size()==1,"all clear can be undone")
 	await shot("deployment")

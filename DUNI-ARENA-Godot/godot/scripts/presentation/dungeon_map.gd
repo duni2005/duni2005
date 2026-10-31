@@ -6,7 +6,7 @@ extends Control
 ## requirement is met, a stairway room opens in its reserved spot.
 ## A floor shown for the first time builds itself: the camera shows the whole tower, the rooms rise
 ## one by one (boss rooms last, under a pillar of light with a rune circle and a shake), the
-## paths draw between them, then the camera closes in. Tapping skips it. Drag to move the
+## paths draw between them, then the camera closes in. It cannot be skipped. Drag to move the
 ## camera, pinch or wheel to zoom.
 signal stairs_pressed
 signal reward_pressed(depth: int)
@@ -15,13 +15,13 @@ const HEADER: float = 58
 const PAD: float = 18
 const MAX_ZOOM: float = 1.6
 ## Build timing (seconds).
-const TOWER_IN: float = .6
-const ROOM_GAP: float = .26
-const BOSS_GAP: float = .5
-const POP: float = .45
-const PATH_GAP: float = .16
-const PATH_DRAW: float = .45
-const ZOOM_IN: float = .95
+const TOWER_IN: float = .5
+const ROOM_GAP: float = .2
+const BOSS_GAP: float = .42
+const POP: float = .4
+const PATH_GAP: float = .12
+const PATH_DRAW: float = .4
+const ZOOM_IN: float = .8
 var floor_index: int = -1
 var shown_depth: int = -1
 var chapter: int = 1
@@ -161,7 +161,7 @@ func _fits(rect: Rect2) -> bool:
 
 ## The stairs open as a cutscene: the tower rumbles and the camera drifts to the stairs, the stair
 ## room bursts open under a gold pillar, its road draws in, and "N층 개방" (or "챕터 N 개방") is
-## stamped over the map. Tapping skips to the end.
+## stamped over the map. It cannot be skipped.
 func play_unlock(heading: String, kicker: String, detail: String = "") -> void:
 	if not layout_rects.has("stairs"):set_stairs(true);return
 	unlock_title = heading;unlock_kicker = kicker;unlock_detail = detail;unlock_t = 0;unlock_from = cam
@@ -189,7 +189,8 @@ func play_unfold() -> void:
 	var key: String = "%s:%d" % [run_id, floor_index]
 	if built.has(key) or floor_index < 0:return
 	built[key] = true
-	if TowerCinematic.auto_play():pending = true
+	# Hidden at once: the map may be drawn this frame before _process runs.
+	if TowerCinematic.auto_play():pending = true;world.modulate.a = 0
 func building() -> bool:return build_t >= 0 or pending
 
 func _start_build() -> void:
@@ -235,7 +236,9 @@ func _process(dt: float) -> void:
 		unlock_t += dt
 		if unlock_t >= UNLOCK:_finish_unlock()
 		else:_animate_unlock()
-	world.modulate.a = 1.0 if build_t < 0 else Motion.out_expo(Motion.phase(build_t, 0, TOWER_IN))
+	# A floor waiting for its build (behind a chapter cutscene or the loading cover) shows only sky,
+	# so the finished map never flashes up before the build plays.
+	world.modulate.a = 0.0 if pending else 1.0 if build_t < 0 else Motion.out_expo(Motion.phase(build_t, 0, TOWER_IN))
 	_place();queue_redraw();world.queue_redraw();fx.queue_redraw();hud.queue_redraw()
 
 func _animate_build() -> void:
@@ -295,14 +298,9 @@ func _input(event: InputEvent) -> void:
 # Camera input. Room cards pass their drags up here (ArenaUI.bind cancels the tap once a drag
 # goes past 18 px), so the map pans from anywhere.
 func _gui_input(event: InputEvent) -> void:
-	if unlock_t >= 0:
-		if (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) or (event is InputEventScreenTouch and event.pressed):
-			unlock_t = UNLOCK - .01;accept_event()
-		return
-	if build_t >= 0 or pending:
-		if (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) or (event is InputEventScreenTouch and event.pressed):
-			if build_t >= 0:build_end = minf(build_end, build_t + .01)
-			accept_event()
+	# The floor build and the stair opening play out in full: taps are held, not skipped.
+	if unlock_t >= 0 or build_t >= 0 or pending:
+		if (event is InputEventMouseButton and event.pressed) or event is InputEventScreenTouch:accept_event()
 		return
 	if event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
 		_zoom_at(event.position, 1.12 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1 / 1.12);accept_event()
