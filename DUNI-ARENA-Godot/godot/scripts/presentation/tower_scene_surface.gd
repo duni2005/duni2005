@@ -26,6 +26,7 @@ func _draw() -> void:
 	var alpha: float=minf(clampf(t/.2,0,1),clampf((s.duration-t)/.8,0,1));var kind: String=s.kind
 	if kind=="entry":_draw_entry(s,t,screen);_draw_flights();return
 	if kind=="promotion" and UiMotion.enabled:_draw_promotion(s,t,screen);_draw_flights();return
+	if kind=="conquest" and UiMotion.enabled:_draw_conquest(s,t,screen);_draw_flights();return
 	var strong: bool=kind in ["recruit","promotion"]
 	draw_rect(Rect2(Vector2.ZERO,screen),Color(.02,.025,.055,alpha*(.94 if strong else .72)))
 	var center: Vector2=screen*.5+Vector2(0,-18+(1-clampf(t/.3,0,1))*8)
@@ -139,6 +140,56 @@ func _draw_promotion(s: Dictionary,t: float,screen: Vector2) -> void:
 	var detail_in: float=Motion.out_expo(Motion.phase(t,fuse+1.0,Motion.ENTER))
 	text(Vector2(20,center.y+182+10*(1-detail_in)),s.get("detail",""),15 if screen.x<600 else 19,Color("c4cdbb",a*detail_in),screen.x-40)
 	if t>fuse+1.4:text(Vector2(20,screen.y-36),"터치하여 계속",11,Color(.66,.73,.82,a*.8*Motion.phase(t,fuse+1.4,.4)),screen.x-40)
+## Floor conquest (shown on the map, tap skips): slanted panels sweep in, a gold crown crest drops
+## onto the band with a jolt, a shockwave and rising gold motes, "CONQUEST" drifts behind, the
+## floor number counts in as "N층 정복" letter by letter over a gold rule, and the rewards land as
+## chips one after another.
+func _draw_conquest(s: Dictionary,t: float,screen: Vector2) -> void:
+	var duration: float=float(s.duration);var a: float=Motion.out_quint(Motion.phase(t,0,.3))*(1-Motion.phase(t,duration-.5,.5))
+	var gold:=Color("f0d490")
+	draw_rect(Rect2(Vector2.ZERO,screen),Color(.012,.016,.04,.9*a))
+	var center:=Vector2(screen.x*.5,screen.y*.38);var strip:=Rect2(0,center.y-120,screen.x,300)
+	TypeArt.panels(self,strip,t/duration,false,[TypeArt.NAVY,TypeArt.INDIGO,Color(.03,.035,.08,.97)],.72)
+	var drift: float=Motion.out_quint(Motion.phase(t,.3,1.4))
+	TypeArt.watermark(self,TypeArt.word(&"conquest"),Vector2(center.x+50*(1-drift),center.y+120),int(minf(screen.x*.17,92)),Color(1,1,1,.06*a*drift),-.22,14*(1-drift))
+	# The crest drops from above and lands at .55 s with a jolt.
+	var land: float=.55;var fall: float=Motion.in_cubic(Motion.phase(t,.15,land-.15))
+	var jolt: Vector2=Vector2(sin(t*70),cos(t*53))*6*(1-Motion.phase(t,land,.35)) if t>=land else Vector2.ZERO
+	var crest: Vector2=center+Vector2(0,-30)+Vector2(0,-screen.y*.5*(1-fall))+jolt
+	if t>=land:
+		var k: float=Motion.phase(t,land,.8)
+		VfxArt.glow(self,crest,minf(screen.x,screen.y)*.45,Color("ffe7a8"),.8*(1-Motion.phase(t,land,.25))*a)
+		draw_arc(crest,50+minf(screen.x,screen.y)*.55*Motion.out_expo(k),0,TAU,64,Color(gold,.8*(1-k)*a),4,true)
+		draw_arc(crest,40+minf(screen.x,screen.y)*.35*Motion.out_expo(k),0,TAU,64,Color(gold,.4*(1-k)*a),2,true)
+		TypeArt.motes(self,Rect2(center.x-180,center.y-160,360,300),t,Color(gold,.7*a),34,true,.2)
+		for i in range(18):
+			var angle: float=i*TAU/18+t*.1;var ray: float=minf(screen.x,screen.y)*.62
+			draw_colored_polygon(PackedVector2Array([crest,crest+Vector2.from_angle(angle)*ray,crest+Vector2.from_angle(angle+.05)*ray]),Color(gold,.045*a))
+	if t>=.15:
+		# Crest: a gold laurel ring around a dark disc holding the crown.
+		var r: float=58;VfxArt.glow(self,crest,110,gold,.3*a)
+		for side in [-1,1]:
+			for i in range(7):
+				var ang: float=PI*.5+side*(.5+i*.32);var leaf: Vector2=crest+Vector2.from_angle(ang)*(r+12)
+				draw_colored_polygon(PackedVector2Array([leaf+Vector2.from_angle(ang+side*1.4)*9,leaf+Vector2.from_angle(ang)*4,leaf+Vector2.from_angle(ang-side*1.4)*9,leaf-Vector2.from_angle(ang)*4]),Color(gold,.85*a))
+		draw_circle(crest,r,Color("0d1424",a));draw_arc(crest,r,0,TAU,64,Color(gold,a),3,true);draw_arc(crest,r-8,0,TAU,64,Color(gold,.35*a),1,true)
+		ArenaIcon.draw(self,crest,s.get("icon","crown"),72,Color(1,1,1,a))
+		if t>=land:TypeArt.sweep(self,Rect2(crest-Vector2(r,r),Vector2(r*2,r*2)),Motion.phase(t,land+.4,.5),.25,22)
+	# Kicker, title and the reward chips.
+	var font: Font=ArenaUI.heading_font();var title: String=s.get("title","");var title_size: int=34 if screen.x<600 else 46
+	var kicker_in: float=Motion.out_expo(Motion.phase(t,land+.15,Motion.ENTER))
+	draw_string(ArenaUI.numbers_font(),Vector2(0,center.y+68),"FLOOR %d  ·  CONQUERED"%int(s.get("floor",1)),HORIZONTAL_ALIGNMENT_CENTER,screen.x,15,Color(gold,.9*a*kicker_in))
+	var width: float=font.get_string_size(title,HORIZONTAL_ALIGNMENT_LEFT,-1,title_size).x
+	TypeArt.letters(self,font,title,Vector2(center.x-width*.5,center.y+112),title_size,Color("fff2cf",a),t-(land+.25),22,Color(.02,.03,.08,.6*a))
+	TypeArt.rule(self,Vector2(center.x,center.y+126),width*.5+30,Motion.phase(t,land+.45,Motion.ENTER),Color(gold,.7*a),2)
+	var lines: PackedStringArray=String(s.get("detail","")).split("\n",false);var chip_y: float=center.y+142
+	for i in range(lines.size()):
+		var k: float=Motion.out_expo(Motion.phase(t,land+.6+i*.18,Motion.ENTER))
+		if k<=0:continue
+		var w: float=get_theme_default_font().get_string_size(lines[i],HORIZONTAL_ALIGNMENT_LEFT,-1,14).x+28;var chip:=Rect2(Vector2(center.x-w*.5,chip_y+i*34+10*(1-k)),Vector2(w,28))
+		draw_style_box(ArenaUI.box(Color(.06,.08,.14,.92*a*k),Color(gold,.6*a*k)),chip)
+		draw_string(get_theme_default_font(),chip.position+Vector2(0,19),lines[i],HORIZONTAL_ALIGNMENT_CENTER,w,14,Color("e8eefc",a*k))
+	if t>land+1.2:text(Vector2(20,screen.y-36),"터치하여 계속",11,Color(.66,.73,.82,a*.8*Motion.phase(t,land+1.2,.4)),screen.x-40)
 func _draw_flights() -> void:
 	for flight in director.flights:
 		if flight.age<0:continue

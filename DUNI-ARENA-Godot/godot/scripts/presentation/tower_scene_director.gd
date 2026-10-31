@@ -1,7 +1,7 @@
 class_name TowerSceneDirector
 extends CanvasLayer
 ## Transient real-time presentation queue. Never applies a reward/transaction.
-const DURATIONS={"entry":Motion.CINEMATIC,"recruit":2.5,"promotion":4.2,"conquest":2.8}
+const DURATIONS={"entry":Motion.CINEMATIC,"recruit":2.5,"promotion":4.2,"conquest":3.6}
 const CHAPTER_NAMES={1:"무너진 회랑",2:"붉은 첨탑",3:"망고의 정상"}
 const LIMIT=8
 var active: Dictionary={}
@@ -69,7 +69,7 @@ func enqueue(scene: Dictionary) -> bool:
 func _next() -> void:
 	if active.is_empty() and not queue.is_empty():active=queue.pop_front();shown_count+=1
 func skip_recruit() -> bool:
-	if active.get("kind","") not in ["recruit","promotion"] or float(active.age)<0:return false
+	if active.get("kind","") not in ["recruit","promotion","conquest"] or float(active.age)<0:return false
 	active.clear();_next();return true
 func clear() -> void:
 	active.clear();queue.clear();played.clear();flights.clear();toasts.clear();sparks.clear();deltas.clear();balances.clear();targets.clear();shown_count=0
@@ -103,5 +103,5 @@ func advance(dt: float) -> void:
 		for i in range(collection.size()-1,-1,-1):
 			if collection[i].age>=float(collection[i].get("duration",2.2)):collection.remove_at(i)
 	if surface!=null:
-		surface.mouse_filter=Control.MOUSE_FILTER_STOP if active.get("kind","") in ["recruit","promotion"] and float(active.get("age",-1))>=0 else Control.MOUSE_FILTER_IGNORE
+		surface.mouse_filter=Control.MOUSE_FILTER_STOP if active.get("kind","") in ["recruit","promotion","conquest"] and float(active.get("age",-1))>=0 else Control.MOUSE_FILTER_IGNORE
 		surface.queue_redraw()

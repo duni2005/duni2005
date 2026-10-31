@@ -24,13 +24,15 @@ var save_label: Label
 var manual_save_button: Button
 var main_button: Button
 var notice: Label
-var last_unlocked: int=-1
 var menu_dialog: AcceptDialog
 var menu_button: Button
 var guild_button: Button
 var fx: TowerSceneDirector
 var watched_run: String=""
 var known_floors: Dictionary={}
+## Floor conquests, chapter clears and stair openings wait here until the map is on screen and idle.
+var map_shows: Array[Dictionary]=[]
+var known_unlocked: int=0
 var map_rendered_run: String=""
 var confirm_new: ConfirmationDialog
 func _exit_tree() -> void:controller.release_runtime_connections()
@@ -144,8 +146,6 @@ func show_map() -> void:
 	# or prediction enum strings as a permanent footer over the map.
 	if notice!=null:notice.hide()
 	wallet.text="두니 타워 · %s\n플레이어 HP %.0f / %.0f   🪙 %d   💎 %d   생존 %d/%d"%["게임오버" if run.game_over else "정복 완료" if state.conquered else "탐험 지도",run.player_hp,run.player_max_hp,run.gold,run.tokens,controller.guild.living_members().size(),controller.guild.all_members().size()]
-	if last_unlocked>=0 and state.unlocked_floor>last_unlocked:show_notice("계단이 열렸습니다 · 지도의 계단으로 %d층에 오를 수 있습니다."%(state.unlocked_floor+1))
-	last_unlocked=state.unlocked_floor
 	wallet.text+="\n챕터 %d · 최고 해금 %d층"%[state.current_chapter,state.unlocked_floor+1]
 	if run.game_over:show_notice("게임오버 · "+("탐험 포기" if String(state.result)=="abandon" else "플레이어 HP 소진" if run.player_hp<=0 else "생존 길드원 없음"))
 	if run.game_over:wallet.text+="\n"+ ("탐험을 포기했습니다." if String(state.result)=="abandon" else "플레이어 HP가 소진되었습니다." if run.player_hp<=0 else "생존 길드원이 없습니다.")
@@ -179,7 +179,8 @@ func _refresh_map_cards() -> void:
 	map_scroll.progress=_floor_progress(floor,state)
 	map_scroll.reward_button.text="층 정복 보상"+(" ✓" if floor.conquered else "");map_scroll.reward_button.fraction=float(floor.cleared_count)/maxi(1,floor.room_ids.size());map_scroll.reward_button.queue_redraw()
 	map_scroll.show_floor(depth,floor.room_ids,run.run_id)
-	map_scroll.set_stairs(controller.can_ascend())
+	# A stair opening still waiting for its cutscene keeps the stairs shut until it plays.
+	map_scroll.set_stairs(controller.can_ascend() and not map_shows.any(func(e):return e.kind=="unlock" and e.floor==depth+1))
 func _floor_progress(floor: FloorState,state: TowerRunState) -> String:
 	var text: String="클리어 %d / %d"%[floor.cleared_count,floor.room_ids.size()]
 	if controller.can_ascend():return text+"  ·  다음 층 계단이 열렸습니다"
@@ -192,11 +193,11 @@ func _ascend() -> void:
 	var before: int=controller.guild.state.tower.current_chapter
 	if not controller.ascend():return
 	var after: int=controller.guild.state.tower.current_chapter
-	# A loading screen covers the climb with the tower theme playing on; the chapter-clear cinematic
-	# (with the victory music for now) plays once it lifts.
-	var clear_chapter:=func():
-		if after>before and TowerCinematic.auto_play():cinematic.play("clear",after);BackgroundMusic.play(&"victory")
-	LoadingScreen.run(self,show_map,clear_chapter,true)
+	# A loading screen covers the climb with the tower theme playing on. The chapter clear already
+	# played on the map when the boss fell; a new chapter opens on its title shot.
+	var enter_chapter:=func():
+		if after>before and TowerCinematic.auto_play():cinematic.play("enter",after)
+	LoadingScreen.run(self,show_map,enter_chapter,true)
 func _cinematic_done() -> void:
 	# After a chapter clear the victory music fades out fully, then the tower theme resumes.
 	if cinematic.mode=="clear":BackgroundMusic.play(&"tower")
@@ -279,7 +280,7 @@ func _process(_dt: float) -> void:
 	if controller.guild==null or fx==null:return
 	var run: RunState=controller.guild.state;var state: TowerRunState=run.tower
 	if watched_run!=run.run_id:
-		watched_run=run.run_id;known_floors.clear()
+		watched_run=run.run_id;known_floors.clear();map_shows.clear();known_unlocked=state.unlocked_floor
 		for floor in state.map.floors:known_floors[floor.floor_index]=floor.conquered
 		fx.rebase_wallet(run.gold,run.tokens)
 		# A fresh run opens on the tower intro; a resumed one on its chapter's title shot.
@@ -292,10 +293,40 @@ func _process(_dt: float) -> void:
 		if floor.conquered and not known_floors.get(floor.floor_index,false):
 			known_floors[floor.floor_index]=true
 			var reward: String={&"heal":"전체 길드 HP +20%",&"tokens":"토큰 +2",&"item":"아이템 획득"}.get(floor.bonus,"")
-			fx.enqueue({"kind":"conquest","key":"floor:%d"%floor.floor_index,"title":"%d층 정복"%(floor.floor_index+1),"detail":"플레이어 HP 회복\n"+reward,"icon":"crown"})
+			map_shows.append({"kind":"conquest","floor":floor.floor_index,"detail":"플레이어 HP 회복\n"+reward})
+	# Each newly unlocked floor: a chapter clear first when it starts a new chapter, then the stairs.
+	while known_unlocked<state.unlocked_floor and known_unlocked+1<state.map.floors.size():
+		known_unlocked+=1
+		var next: FloorState=state.map.floors[known_unlocked];var previous: FloorState=state.map.floors[known_unlocked-1]
+		if next.chapter_index>previous.chapter_index:map_shows.append({"kind":"chapter","chapter":next.chapter_index})
+		map_shows.append({"kind":"unlock","floor":known_unlocked,"chapter":next.chapter_index,"new_chapter":next.chapter_index>previous.chapter_index})
+	_play_map_shows()
 	# The screen's own UI steps aside while a cutscene plays.
 	var shown: float=0.0 if cinematic.active() else 1.0
 	body.get_parent().modulate.a=move_toward(body.get_parent().modulate.a,shown,_dt*3)
+## Plays the next waiting map presentation once the map is on screen with nothing else running.
+## Without cutscenes (tests, motion off) they resolve at once: the stairs simply open.
+func _play_map_shows() -> void:
+	if map_shows.is_empty():return
+	if not TowerCinematic.auto_play():
+		for show in map_shows:
+			if show.kind=="conquest":fx.enqueue({"kind":"conquest","key":"floor:%d"%show.floor,"floor":show.floor+1,"title":"%d층 정복"%(show.floor+1),"detail":show.detail,"icon":"crown"})
+		map_shows.clear();if map_scroll.is_visible_in_tree():_refresh_map_cards()
+		return
+	var state: TowerRunState=controller.guild.state.tower
+	if is_instance_valid(content_screen) or is_instance_valid(battle_screen) or not map_scroll.is_visible_in_tree() or state.phase!=&"route" or controller.guild.state.game_over:return
+	if cinematic.active() or not fx.active.is_empty() or not fx.queue.is_empty() or map_scroll.building() or map_scroll.unlocking() or get_tree().root.get_children().any(func(n):return n is LoadingScreen):return
+	var show: Dictionary=map_shows.pop_front()
+	match show.kind:
+		"conquest":fx.enqueue({"kind":"conquest","key":"floor:%d"%show.floor,"floor":show.floor+1,"title":"%d층 정복"%(show.floor+1),"detail":show.detail,"icon":"crown"})
+		"chapter":cinematic.play("clear",show.chapter);BackgroundMusic.play(&"victory")
+		"unlock":
+			# Only the stairs on the floor being shown can open on screen.
+			if show.floor==controller.current_floor()+1:
+				var chapter_name: String=TowerSceneDirector.CHAPTER_NAMES.get(show.chapter,"")
+				if show.new_chapter:map_scroll.play_unlock("챕터 %d 개방"%show.chapter,"CHAPTER %d  ·  OPEN"%show.chapter,"%s · %d층으로 오르는 계단이 열렸습니다"%[chapter_name,show.floor+1])
+				else:map_scroll.play_unlock("%d층 개방"%(show.floor+1),"FLOOR %d  ·  OPEN"%(show.floor+1),"계단으로 다음 층에 오를 수 있습니다")
+			_refresh_map_cards()
 func _present_content(event: Dictionary) -> void:
 	_update_fx_context()
 	var origin: Vector2=event.get("point",_resource_origin())

@@ -58,6 +58,13 @@ var shake: float = 0
 var clouds: Array = [] # [position 0..1, scale, speed]
 var drag_sum: float = 0
 var drag_time: int = 0
+## Stairs opening (on the map, when the next floor or chapter unlocks): seconds into it, -1 idle.
+const UNLOCK: float = 3.2
+var unlock_t: float = -1
+var unlock_title: String = ""
+var unlock_kicker: String = ""
+var unlock_detail: String = ""
+var unlock_from := Vector2.ZERO
 var touches: Dictionary = {} # touch index -> position, kept for every touch (cards swallow some releases)
 var touch_prev: Dictionary = {} # touch index -> position before its latest drag
 
@@ -152,6 +159,27 @@ func _fits(rect: Rect2) -> bool:
 	# Rooms are round: their circle stays clear of the wall.
 	return rect.get_center().length() + rect.size.x * .5 <= meadow_radius() - 10
 
+## The stairs open as a cutscene: the tower rumbles and the camera drifts to the stairs, the stair
+## room bursts open under a gold pillar, its road draws in, and "N층 개방" (or "챕터 N 개방") is
+## stamped over the map. Tapping skips to the end.
+func play_unlock(heading: String, kicker: String, detail: String = "") -> void:
+	if not layout_rects.has("stairs"):set_stairs(true);return
+	unlock_title = heading;unlock_kicker = kicker;unlock_detail = detail;unlock_t = 0;unlock_from = cam
+	stairs_open = true;stairs_age = 0;stairs.visible = true;stairs.modulate.a = 0
+	for card in _cards():card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+func unlocking() -> bool:return unlock_t >= 0
+func _finish_unlock() -> void:
+	unlock_t = -1;stairs.modulate.a = 1;stairs.scale = Vector2.ONE
+	for card in _cards():card.mouse_filter = Control.MOUSE_FILTER_PASS
+func _animate_unlock() -> void:
+	var t: float = unlock_t
+	# Rumble builds until the stairs burst open at .9 s, then settles.
+	shake = maxf(shake, Motion.phase(t, 0, .9) * .9 if t < .9 else 1.2 * (1 - Motion.phase(t, .9, .5)))
+	var target: Vector2 = layout_rects["stairs"].get_center() * .5
+	cam = unlock_from.lerp(target, Motion.out_quint(Motion.phase(t, 0, 1.1)))
+	var k: float = Motion.phase(t, .9, POP)
+	stairs.pivot_offset = stairs.size * .5;stairs.scale = Vector2.ONE * lerpf(.3, 1, Motion.emphasis(k));stairs.modulate.a = Motion.out_quint(k * 1.6)
+
 func set_stairs(open: bool) -> void:
 	if open and not stairs_open:stairs_age = 0
 	stairs_open = open;stairs.visible = open and layout_rects.has("stairs");world.queue_redraw()
@@ -203,6 +231,10 @@ func _process(dt: float) -> void:
 		build_t += dt
 		if build_t >= build_end:_finish_build()
 		else:_animate_build()
+	if unlock_t >= 0:
+		unlock_t += dt
+		if unlock_t >= UNLOCK:_finish_unlock()
+		else:_animate_unlock()
 	world.modulate.a = 1.0 if build_t < 0 else Motion.out_expo(Motion.phase(build_t, 0, TOWER_IN))
 	_place();queue_redraw();world.queue_redraw();fx.queue_redraw();hud.queue_redraw()
 
@@ -263,6 +295,10 @@ func _input(event: InputEvent) -> void:
 # Camera input. Room cards pass their drags up here (ArenaUI.bind cancels the tap once a drag
 # goes past 18 px), so the map pans from anywhere.
 func _gui_input(event: InputEvent) -> void:
+	if unlock_t >= 0:
+		if (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) or (event is InputEventScreenTouch and event.pressed):
+			unlock_t = UNLOCK - .01;accept_event()
+		return
 	if build_t >= 0 or pending:
 		if (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT) or (event is InputEventScreenTouch and event.pressed):
 			if build_t >= 0:build_end = minf(build_end, build_t + .01)
@@ -363,8 +399,9 @@ func _draw_world() -> void:
 		var e: Array = edges[i]
 		if not layout_rects.has(e[0]) or not layout_rects.has(e[1]) or "stairs" in e and not stairs_open:continue
 		var amount: float = 1.0 if build_t < 0 else Motion.out_quint(Motion.phase(build_t, path_start[i], PATH_DRAW)) if i < path_start.size() and path_start[i] >= 0 else 0.0
+		if unlock_t >= 0 and "stairs" in e:amount = Motion.out_quint(Motion.phase(unlock_t, 1.0, PATH_DRAW))
 		if amount > 0:_path(_curve(e), amount)
-	if stairs_open and layout_rects.has("stairs") and (build_t < 0 or build_t >= appear.get("stairs", INF)):
+	if stairs_open and layout_rects.has("stairs") and (build_t < 0 or build_t >= appear.get("stairs", INF)) and (unlock_t < 0 or unlock_t >= .9):
 		var at: Vector2 = layout_rects["stairs"].get_center()
 		VfxArt.glow(world, at, 90 + 8 * sin(age * 3), Color("ffd27a"), .3 + .1 * sin(age * 3))
 func _curve(e: Array) -> PackedVector2Array:
@@ -387,6 +424,20 @@ func _path(curve: PackedVector2Array, amount: float) -> void:
 # Build bursts over the rooms: a ring and dust as each room lands; boss rooms add a light pillar,
 # a turning rune circle and a jolt.
 func _draw_fx() -> void:
+	if unlock_t >= 0 and layout_rects.has("stairs"):
+		# The stair room: a gold pillar gathers, then a burst of rings and dust as it opens.
+		var rect: Rect2 = layout_rects["stairs"];var at: Vector2 = rect.get_center();var t: float = unlock_t;var col := Color("ffd27a")
+		var gather: float = Motion.phase(t, .3, .6);var fade: float = 1 - Motion.phase(t, 1.4, .7)
+		if t < 2.1:
+			fx.draw_rect(Rect2(at.x - rect.size.x * .32 * gather, at.y - 900, rect.size.x * .64 * gather, 900), Color(col, .3 * fade))
+			fx.draw_rect(Rect2(at.x - rect.size.x * .09 * gather, at.y - 900, rect.size.x * .18 * gather, 900), Color(1, .98, .9, .6 * fade))
+			VfxArt.glow(fx, at, rect.size.x * (.4 + gather), col, .5 * gather * fade)
+		var k: float = Motion.phase(t, .9, .9)
+		if k > 0 and k < 1:
+			for ring in [.55, .9, 1.3]:fx.draw_arc(at, rect.size.x * (.3 + ring * Motion.out_expo(k)), 0, TAU, 48, Color(col, .8 * (1 - k)), 3 * (1 - k) + 1, true)
+			for n in range(10):
+				var d: Vector2 = Vector2.from_angle(n * TAU / 10 + .4);fx.draw_circle(at + d * rect.size.x * (.4 + .6 * Motion.out_expo(k)), 5 * (1 - k) + 1, Color(Color("e9dcc0"), .8 * (1 - k)))
+		return
 	if build_t < 0:return
 	for id in appear:
 		if not layout_rects.has(id):continue
@@ -418,3 +469,18 @@ func _draw_hud() -> void:
 	var font: Font = ArenaUI.heading_font()
 	hud.draw_string(font, Vector2(PAD + 4, 30), title, HORIZONTAL_ALIGNMENT_LEFT, size.x - PAD * 2 - minf(132, size.x * .36) - 8, 20, Color(ArenaUI.GOLD, alpha))
 	hud.draw_string(get_theme_default_font(), Vector2(PAD + 4, 50), progress, HORIZONTAL_ALIGNMENT_LEFT, size.x - PAD * 2 - 8, 11, Color(Color("dfe7f7"), alpha))
+	if unlock_t >= 1.0:_draw_unlock_banner(unlock_t - 1.0)
+## "N층 개방" stamped across the map: a dark band slides in, the English kicker, the title rising
+## letter by letter over a gold rule, then the band slides away.
+func _draw_unlock_banner(t: float) -> void:
+	var a: float = Motion.out_quint(Motion.phase(t, 0, .3)) * (1 - Motion.phase(t, UNLOCK - 1.0 - .45, .45))
+	# The band sits on the half of the screen away from the stairs, so the opening stays in view.
+	var stairs_y: float = world.position.y + layout_rects.get("stairs", Rect2()).get_center().y * zoom
+	var mid: Vector2 = view().get_center() + Vector2(0, view().size.y * (.24 if stairs_y < view().get_center().y else -.2));var band := Rect2(0, mid.y - 62, size.x, 124)
+	TypeArt.panels(hud, band, Motion.phase(t, 0, UNLOCK - 1.0), false, [TypeArt.NAVY, TypeArt.INDIGO, Color(.03, .035, .08, .9)], .7)
+	var gold := Color("f0d490");var font: Font = ArenaUI.heading_font();var title_size: int = 34 if size.x < 600 else 44
+	hud.draw_string(ArenaUI.numbers_font(), Vector2(0, mid.y - 28), unlock_kicker, HORIZONTAL_ALIGNMENT_CENTER, size.x, 14, Color(gold, .9 * a * Motion.out_expo(Motion.phase(t, .1, Motion.ENTER))))
+	var width: float = font.get_string_size(unlock_title, HORIZONTAL_ALIGNMENT_LEFT, -1, title_size).x
+	TypeArt.letters(hud, font, unlock_title, Vector2(mid.x - width * .5, mid.y + 16), title_size, Color("fff2cf", a), t - .15, 20, Color(.02, .03, .08, .6 * a))
+	TypeArt.rule(hud, Vector2(mid.x, mid.y + 30), width * .5 + 30, Motion.phase(t, .35, Motion.ENTER), Color(gold, .7 * a), 2)
+	if not unlock_detail.is_empty():hud.draw_string(get_theme_default_font(), Vector2(0, mid.y + 52), unlock_detail, HORIZONTAL_ALIGNMENT_CENTER, size.x, 13, Color("c4cdbb", a * Motion.phase(t, .5, .4)))
