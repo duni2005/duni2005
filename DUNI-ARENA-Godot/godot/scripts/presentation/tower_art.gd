@@ -1,21 +1,22 @@
 class_name TowerArt
 extends RefCounted
 ## The tower's shared look, used by the cutscenes (side view) and the floor map (top view) so both
-## read as one world: painterly daylight with a soft cyan sky, warm sunlit sandstone with cool blue
+## read as one world, in a clean flat cel style (colour shapes with hard-edged shadows): a bright
+## blue sky, warm sunlit sandstone with cool blue
 ## shadows, summer greens, sandy paths, chapter-coloured banners and gold trim. Light falls from
 ## the upper left.
-const SKY_TOP := Color("4fb4dc")
-const SKY_MID := Color("8fd3ea")
-const SKY_LOW := Color("dcefe6")
+const SKY_TOP := Color("3f9de2")
+const SKY_MID := Color("86ccf0")
+const SKY_LOW := Color("d6eef7")
 const HAZE := Color("cfe4ea")
 const SUN := Color("fff1cf")
 const STONE_LIT := Color("ecdcb2")
 const STONE := Color("bba582")
 const STONE_DARK := Color("5f6a92")
 const RECESS := Color("3b4670")
-const GRASS_LIT := Color("a9c862")
-const GRASS := Color("6f9a4c")
-const GRASS_DEEP := Color("5e8c3c")
+const GRASS_LIT := Color("a8d34e")
+const GRASS := Color("86bf3f")
+const GRASS_DEEP := Color("5f9a34")
 const PATH := Color("e8d8a8")
 const PATH_EDGE := Color("d8c79a")
 const GOLD := Color("c9a560")
@@ -29,11 +30,6 @@ const LIGHT := Vector2(-.707, -.707)
 static func chapter_tint(chapter: int) -> Color:return CHAPTER_TINT.get(chapter, Color("4f9c8c"))
 ## How lit a surface facing `normal` is, 0 (in shadow) to 1 (facing the sun).
 static func lit(normal: Vector2) -> float:return .5 + .5 * normal.normalized().dot(LIGHT)
-## Sandstone shaded by how much it faces the light: sunlit to cool blue shadow.
-static func stone(normal: Vector2, warm: float = 1) -> Color:
-	var k: float = lit(normal)
-	return STONE.lerp(STONE_LIT, k * warm).lerp(STONE_DARK, (1 - k) * .28)
-
 ## A flat-bottomed cartoon cloud: a pale blue underside, then the lit puffs.
 static func cloud(c: CanvasItem, center: Vector2, r: float, seed_value: int, alpha: float = 1) -> void:
 	var local := RandomNumberGenerator.new();local.seed = seed_value
@@ -56,10 +52,3 @@ static func crown(c: CanvasItem, center: Vector2, r: float, color: Color, seed_v
 	if blossom:
 		var local := RandomNumberGenerator.new();local.seed = seed_value
 		for i in range(7):c.draw_circle(center + Vector2(local.randf_range(-.8, .8), local.randf_range(-.7, .5)) * r, maxf(1, r * .1), Color("fff3f8", .9))
-
-## Soft shafts of sunlight fanning from `origin`, slowly breathing with `time`.
-static func rays(c: CanvasItem, origin: Vector2, reach: float, time: float, alpha: float = 1, count: int = 6) -> void:
-	for i in range(count):
-		var angle: float = .25 + i * .2 + sin(time * .23 + i * 1.7) * .03;var width: float = .05 + .03 * sin(time * .4 + i * 2.3)
-		var a: float = (.06 + .04 * sin(time * .5 + i)) * alpha
-		c.draw_polygon(PackedVector2Array([origin, origin + Vector2.from_angle(angle - width) * reach, origin + Vector2.from_angle(angle + width) * reach]), PackedColorArray([Color(SUN, a), Color(SUN, 0), Color(SUN, 0)]))

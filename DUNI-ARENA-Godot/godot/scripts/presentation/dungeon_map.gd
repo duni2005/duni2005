@@ -336,15 +336,14 @@ func _zoom_at(point: Vector2, factor: float) -> void:
 	zoom = clampf(zoom * factor, fit_zoom(), MAX_ZOOM)
 	cam = anchor - (point - view().get_center()) / zoom;_clamp_camera();_place()
 
-# Sky (screen space), the cutscenes' own daylight (TowerArt): a cyan gradient, the sun and its
-# shafts in the upper left, and two layers of flat clouds that drift and follow the camera a little.
+# Sky (screen space), the cutscenes' own daylight (TowerArt): a blue gradient, the sun in the upper
+# left, and two layers of flat clouds that drift and follow the camera a little.
 func _draw() -> void:
 	var mid: float = size.y * .55
 	draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), Vector2(size.x, mid), Vector2(0, mid)]), PackedColorArray([TowerArt.SKY_TOP, TowerArt.SKY_TOP, TowerArt.SKY_MID, TowerArt.SKY_MID]))
 	draw_polygon(PackedVector2Array([Vector2(0, mid), Vector2(size.x, mid), size, Vector2(0, size.y)]), PackedColorArray([TowerArt.SKY_MID, TowerArt.SKY_MID, TowerArt.SKY_LOW, TowerArt.SKY_LOW]))
 	var sun := Vector2(-size.x * .1, HEADER * .5)
-	VfxArt.glow(self, sun, size.x * 1.2, TowerArt.SUN, .5)
-	TowerArt.rays(self, sun, maxf(size.x, size.y) * 1.3, age)
+	VfxArt.glow(self, sun, size.x * 1.1, TowerArt.SUN, .35)
 	for layer in [0, 1]:
 		var drift: Vector2 = -cam * zoom * (.15 if layer == 0 else .35)
 		for i in range(clouds.size()):
@@ -365,8 +364,7 @@ func _draw_world() -> void:
 	world.draw_circle(Vector2(0, w * .55), r, TowerArt.STONE.lerp(TowerArt.STONE_DARK, .45))
 	for i in range(1, 4):world.draw_arc(Vector2(0, w * .55 * i / 4.0), r - 1, PI * .1, PI * .9, 48, Color(TowerArt.STONE_DARK, .25), 1, true)
 	# Meadow: the cutscenes' grass, sunlit towards the upper left, with tufts, flowers and trees.
-	world.draw_circle(Vector2.ZERO, inner, TowerArt.GRASS)
-	VfxArt.glow(world, Vector2(-inner * .3, -inner * .35), inner * 1.4, TowerArt.GRASS_LIT, .9)
+	world.draw_circle(Vector2.ZERO, inner, TowerArt.GRASS_LIT)
 	var rng := RandomNumberGenerator.new();rng.seed = 4242
 	for i in range(int(inner * inner / 3000)):
 		var at: Vector2 = Vector2.from_angle(rng.randf() * TAU) * sqrt(rng.randf()) * (inner - 18);var kind: float = rng.randf()
@@ -375,20 +373,18 @@ func _draw_world() -> void:
 			world.draw_polyline(PackedVector2Array([at + Vector2(-3, 0), at + Vector2(-1, -5), at, at + Vector2(1.2, -5.5), at + Vector2(3, 0)]), tuft, 1.3, true)
 		else:world.draw_circle(at, 2, [Color("fff7e6"), Color("f1d77a"), Color("e9b4c4")][int(kind * 100) % 3])
 	for tree in trees:TowerArt.crown(world, tree[0], tree[1], tree[2], tree[3], tree[4])
-	# Cloud shadows sliding over the grass.
-	for i in range(2):
-		var at := Vector2(fposmod(age * 9 + i * 420, inner * 3) - inner * 1.5, (i - .5) * inner * .7)
-		if at.length() < inner * .8:VfxArt.glow(world, at, inner * .4, TowerArt.STONE_DARK, .1)
 	# The wall's shadow on the grass: deepest under the sunward (upper left) wall.
 	for i in range(steps):
 		var d0: Vector2 = Vector2.from_angle(i * TAU / steps);var d1: Vector2 = Vector2.from_angle((i + 1) * TAU / steps)
-		var reach0: float = 10 + 30 * TowerArt.lit(d0);var reach1: float = 10 + 30 * TowerArt.lit(d1);var shade := Color(TowerArt.STONE_DARK.darkened(.4), .38)
-		world.draw_polygon(PackedVector2Array([d0 * inner, d1 * inner, d1 * (inner - reach1), d0 * (inner - reach0)]), PackedColorArray([shade, shade, Color(shade, 0), Color(shade, 0)]))
+		# A flat, hard-edged shadow band.
+		var reach0: float = 8 + 30 * TowerArt.lit(d0);var reach1: float = 8 + 30 * TowerArt.lit(d1)
+		world.draw_colored_polygon(PackedVector2Array([d0 * inner, d1 * inner, d1 * (inner - reach1), d0 * (inner - reach0)]), TowerArt.GRASS)
 	# Wall walk: sandstone shaded by the light, two courses of joints.
 	for i in range(steps):
 		var d0: Vector2 = Vector2.from_angle(i * TAU / steps);var d1: Vector2 = Vector2.from_angle((i + 1) * TAU / steps)
-		var outer0: Color = TowerArt.stone(d0);var outer1: Color = TowerArt.stone(d1)
-		world.draw_polygon(PackedVector2Array([d0 * inner, d1 * inner, d1 * r, d0 * r]), PackedColorArray([outer0.darkened(.08), outer1.darkened(.08), outer1, outer0]))
+		# Cel shading: sunlit stone or one flat shadow tone, nothing in between.
+		var sunlit: bool = TowerArt.lit(d0 + d1) > .42
+		world.draw_colored_polygon(PackedVector2Array([d0 * inner, d1 * inner, d1 * r, d0 * r]), TowerArt.STONE_LIT if sunlit else TowerArt.STONE.lerp(TowerArt.STONE_DARK, .15))
 	var joints: int = int(TAU * inner / 24)
 	for i in range(joints):
 		var d: Vector2 = Vector2.from_angle(i * TAU / joints);var half: Vector2 = Vector2.from_angle((i + .5) * TAU / joints)
@@ -401,7 +397,7 @@ func _draw_world() -> void:
 		var a0: float = i * TAU / merlons;var a1: float = a0 + TAU / merlons * .56
 		var p0: Vector2 = Vector2.from_angle(a0);var p1: Vector2 = Vector2.from_angle(a1);var lift := Vector2(3, 4)
 		world.draw_colored_polygon(PackedVector2Array([p0 * (r - w * .3) + lift, p1 * (r - w * .3) + lift, p1 * r + lift, p0 * r + lift]), Color(TowerArt.STONE_DARK, .3))
-		world.draw_colored_polygon(PackedVector2Array([p0 * (r - w * .3), p1 * (r - w * .3), p1 * r, p0 * r]), TowerArt.stone(p0).lightened(.08))
+		world.draw_colored_polygon(PackedVector2Array([p0 * (r - w * .3), p1 * (r - w * .3), p1 * r, p0 * r]), TowerArt.STONE_LIT.lightened(.06) if TowerArt.lit(p0) > .42 else TowerArt.STONE)
 	world.draw_arc(Vector2.ZERO, inner, 0, TAU, 128, Color(TowerArt.RECESS, .55), 2, true)
 	world.draw_arc(Vector2.ZERO, r, 0, TAU, 128, Color(TowerArt.RECESS, .6), 2, true)
 	# Flags on the wall between the turrets, in the chapter colour, streaming with the wind.
@@ -417,7 +413,7 @@ func _draw_world() -> void:
 		var roof: float = tr * .84
 		for k in range(10):
 			var a0: float = k * TAU / 10;var mid_dir: Vector2 = Vector2.from_angle(a0 + TAU / 20)
-			var shade: Color = tint.darkened(.35).lerp(tint.lightened(.2), TowerArt.lit(mid_dir))
+			var shade: Color = tint.lightened(.1) if TowerArt.lit(mid_dir) > .42 else tint.darkened(.3)
 			world.draw_colored_polygon(PackedVector2Array([at, at + Vector2.from_angle(a0) * roof, at + Vector2.from_angle(a0 + TAU / 10) * roof]), shade if k % 2 else shade.darkened(.08))
 		world.draw_arc(at, roof, 0, TAU, 32, tint.darkened(.5), 1.5, true)
 		world.draw_circle(at, roof * .16, TowerArt.GOLD);world.draw_circle(at + Vector2(-1, -1), roof * .07, Color("fff1c4"))
