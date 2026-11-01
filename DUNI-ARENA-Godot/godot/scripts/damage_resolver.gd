@@ -57,7 +57,9 @@ func complete(source, target, outcome: DamageOutcome) -> DamageOutcome:
 
 func resolve_common(source, target, raw_damage: float, options: Dictionary) -> DamageOutcome:
 	var out := DamageOutcome.new()
-	out.ultimate = options.get("ultimate", false) or (battle.ultimate_actor != null and battle.ultimate_actor == source)
+	var status: bool = StringName(options.get("status", &"")) != &""
+	out.ultimate = not status and (options.get("ultimate", false) or (battle.ultimate_actor != null and battle.ultimate_actor == source))
+	out.status = StringName(options.get("status", &""))
 	var collision: bool = options.get("collision", false)
 	if not battle.started or battle.finished or battle.clock.is_turning_paused() or not is_instance_valid(target) or not target.alive or not is_finite(raw_damage) or raw_damage <= 0: return out
 	if not collision and (battle.run_end_requested or not is_instance_valid(source) or source.team == target.team): return out
@@ -66,12 +68,13 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	out.attempted_damage = raw_damage
 	var damage: float = raw_damage
 	var recoil: bool = options.get("parry_recoil", false) or options.get("clash_recoil", false) or options.get("mirror_shard",false)
-	var transcend: bool=options.get("transcendent",false)
+	# Element status damage (burn, poison, erosion, chain jumps) cannot be parried or dodged.
+	var transcend: bool=options.get("transcendent",false) or status
 	var duel_result: bool=options.get("duel_result",false)
 	var full: bool=battle.full_characters_enabled
 	var spec: Dictionary=UnitStatTable.spec(int(options.get("dmg_type",source.data.type_id if is_instance_valid(source) else -1)),StringName(options.get("dmg",&"basic"))) if full else {}
 	var kind: StringName=spec.get("kind",&"physical")
-	var plain: bool=recoil or options.get("mirror_raw",false)
+	var plain: bool=recoil or options.get("mirror_raw",false) or options.get("plain",false)
 	if not collision:
 		var chance: float=(EquipmentCombatEffects.crit(source)+source.ability.critical_bonus(source,target)) if full else source.data.critical_chance+EquipmentCombatEffects.crit(source)
 		out.critical = options.get("critical", true) and rng.randf() < clampf(chance,0,1)
@@ -80,13 +83,14 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 			var stats: UnitCombatStats=source.combat_stats
 			damage*=CombatRules.attack_factor(source)*(1+UnitStatTable.tag_bonus(stats,spec.tags))
 			if UnitStatTable.has_element(spec.tags):damage*=stats.element_power if stats!=null else 1.0
-			if out.critical:damage*=stats.crit_damage if stats!=null else UnitStatTable.CRIT_DAMAGE
+			if out.critical:damage*=(stats.crit_damage if stats!=null else UnitStatTable.CRIT_DAMAGE)+ElementEffects.crit_taken(target)
 			if out.ultimate or spec.skill==&"ultimate":out.ultimate=true;damage*=stats.ult_damage if stats!=null else 1.0
-			damage*=StanceRules.spend_counter(source)
+			if not status:damage*=StanceRules.spend_counter(source)
 	if battle.full_characters_enabled:
 		if not collision and options.get("critical",true):damage*=CharacterCombat.champion_factor(source)
 		if source!=null and not collision:
 			damage*=.7 if source.cosmic_marked else 1
+			damage*=ElementEffects.outgoing(source,target,spec,options)
 			if not options.get("mirror_shard",false):damage*=target.ability.incoming_factor(target,source,options)
 			if not recoil and not options.get("mirror_raw",false) and not duel_result and source.state_value("paladinBlessingTime")>0:damage*=1.3
 		var interception: Dictionary=target.ability.pre_damage(target,source,damage,options)
@@ -95,7 +99,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	if not collision and not recoil and not transcend and target.parry.try_block(target, source, power, options.get("attack_token")):
 		out.parried = true
 		return complete(source, target, out)
-	var reducing: bool = not recoil and not collision and target.stun_remaining <= 0 and target.parry_remaining > 0
+	var reducing: bool = not recoil and not collision and not status and target.stun_remaining <= 0 and target.parry_remaining > 0
 	var origin: Vector2 = options.get("attack_origin", source.position if is_instance_valid(source) else target.position)
 	var can_evade: bool = not collision and not recoil and not transcend and not duel_result and target.duel.is_empty() and target.stun_remaining <= 0 and CombatPerception.can_see_attack(target, source, origin, options.get("hidden_launch", false))
 	if target.invincible_remaining > 0 or (target.evade_remaining > 0 and can_evade):
@@ -149,6 +153,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 		out.parried = perfect
 		out.damage_reduced = not perfect
 		battle.emit_combat_event(&"warrior_parry",target.position,{"actor_id":target.battle_id,"perfect":perfect})
+		ElementEffects.on_action(target)
 	var shares: Array[Dictionary]=[]
 	var executed: bool=false
 	if battle.full_characters_enabled:
@@ -173,5 +178,6 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 		CharacterCombat.apply_shares(target,shares)
 		target.ability.after_damage(target,source,out.hp_damage,options)
 	if warrior_defended and target.alive: target.combat.start_counter(target,source)
+	if full and not collision and (out.hp_damage > 0 or out.shield_absorbed > 0):ElementEffects.on_hit(source,target,out,spec,options)
 	if out.hp_damage > 0 or out.shield_absorbed > 0: battle.emit_combat_event(&"hit",target.position,{"actor_id":target.battle_id,"hp_damage":out.hp_damage,"shield":out.shield_absorbed})
 	return complete(source,target,out)

@@ -43,7 +43,7 @@ static func nearest(u,list: Array):
 	var sorted: Array=list.duplicate();sorted.sort_custom(func(a,b):return u.position.distance_to(a.position)<u.position.distance_to(b.position));return sorted[0] if not sorted.is_empty() else null
 static func restore_hp(target, base: float, source=null) -> float:
 	if target==null or not target.alive or base<=0:return 0
-	var gain: float=minf(target.max_hp-target.current_hp,base*(source.healing_power if source!=null else 1)*target.healing_received)
+	var gain: float=minf(target.max_hp-target.current_hp,base*(source.healing_power*ElementEffects.healing(source) if source!=null else 1)*target.healing_received*ElementEffects.healing(target))
 	target.current_hp+=gain;return gain
 static func shoot(u,angle: float,damage: float,settings: Dictionary={}) -> BattleProjectile:
 	var p:=u.battle.PROJECTILE_SCENE.instantiate() as BattleProjectile
@@ -130,3 +130,6 @@ func ultimate_point(_u,point: Vector2) -> Vector2:return point.clamp(Vector2(28,
 func requires_initiative() -> bool:return true
 func debug_state(_u) -> String:return ""
 func reactive_ultimate() -> bool:return false
+## True when this unit's own ability replaces a shared element rule (ElementEffects) for a hit:
+## &"ice" (frost stacks it grants itself) or &"chain" (an attack that already chains).
+func own_element(_rule: StringName,_options: Dictionary) -> bool:return false

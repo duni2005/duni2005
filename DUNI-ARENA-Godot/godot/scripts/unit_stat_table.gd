@@ -166,6 +166,9 @@ const ITEM = {&"dragon_heart":[&"item", &"magic", 15, 0.6, [&"fire", &"area"], "
 ## Turning-point special strategies; the ratio grows with tower progress (see EnemyStrategyPlanner).
 const STRATEGY = {&"strategy_smash":[&"system", &"", 0, 2.0, [&"area"], "특수전략 · 강타"], &"strategy_cleave":[&"system", &"", 0, 1.5, [], "특수전략 · 가르기"], &"strategy_slash":[&"system", &"", 0, 1.3, [&"area"], "특수전략 · 참격"], &"strategy_sweep":[&"system", &"", 0, 2.4, [&"area"], "특수전략 · 휩쓸어 모으기"]}
 
+## Element status damage (ElementEffects): the raw value is set by the status itself.
+const STATUS = {&"burn":[&"system", &"magic", 4, 0, [&"fire", &"dot"], "화상"], &"burn_spread":[&"system", &"magic", 2, 0, [&"fire", &"dot"], "화염 확산"], &"poison":[&"system", &"magic", 1, 0, [&"poison", &"dot"], "맹독 (스택당)"], &"frostbite":[&"system", &"magic", 5, 0, [&"ice"], "동상 추가 피해"], &"chain_shock":[&"system", &"magic", 0, 0, [&"lightning"], "연쇄충격"], &"erosion":[&"system", &"magic", 6, 0, [&"dark", &"dot"], "침식"]}
+
 static func row(type_id: int) -> Array:
 	return STATS.get(_name(type_id), [&"physical", 30, 0, 0, 20, 10])
 static func _name(type_id: int) -> String:
@@ -195,6 +198,7 @@ static func spec(type_id: int, key: StringName) -> Dictionary:
 	if key == &"transcend":return _spec(TRANSCEND, key, main)
 	if ITEM.has(key):return _spec(ITEM[key], key, main)
 	if STRATEGY.has(key):return _spec(STRATEGY[key], key, main)
+	if STATUS.has(key):return _spec(STATUS[key], key, main)
 	if table.has(&"basic"):return _spec(table[&"basic"], &"basic", main)
 	return {"key":&"", "skill":&"system", "kind":main, "base":0.0, "ratio":1.0, "tags":[], "label":""}
 

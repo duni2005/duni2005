@@ -31,7 +31,7 @@ static func advance(battle, dt: float) -> void:
 
 static func _advance_fx(u, dt: float) -> void:
 	if u.state_value("deliveryFx") > 0:u.set_state("deliveryFx", maxf(0, u.state_value("deliveryFx") - dt))
-	for key in ["refractFx", "magnetShockFx", "magnetCastFx", "frozenTime"]:
+	for key in ["refractFx", "magnetShockFx", "magnetCastFx"]:
 		if u.state_value(key) > 0:u.set_state(key, maxf(0, u.state_value(key) - dt))
 	# Frost stacks melt away when no new frost lands for a while.
 	if u.state_value("frostDecay") > 0:

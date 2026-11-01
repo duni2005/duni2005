@@ -4,7 +4,7 @@ const FIELDS = {"shieldHp": "shield_hp", "shieldTime": "shield_remaining", "iron
 const BOOL_FIELDS = {"parryCounterUsed": "parry_counter_used", "parryPulseUsed": "parry_pulse_used"}
 static func heal(unit: BattleUnit, base: float) -> float:
 	# Strategy recovery during hold uses the recipient's healing received, no caster.
-	var gain: float = minf(maxf(0, base)*(unit.healing_received if unit.battle.full_characters_enabled else 1), unit.max_hp - unit.current_hp)
+	var gain: float = minf(maxf(0, base)*(unit.healing_received*ElementEffects.healing(unit) if unit.battle.full_characters_enabled else 1), unit.max_hp - unit.current_hp)
 	if not unit.alive or gain <= 0: return 0
 	unit.current_hp += gain
 	unit.queue_redraw()

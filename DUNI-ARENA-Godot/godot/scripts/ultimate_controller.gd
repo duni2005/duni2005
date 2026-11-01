@@ -50,4 +50,5 @@ func request(u,target) -> bool:
 	u.ultimate_gauge=0;u.set_state("ultReadyAge",0);u.set_state("ultUses",u.state_value("ultUses")+1);u.set_state("strategyUltimateReady",false)
 	u.velocity=Vector2.ZERO;u.knockback_velocity*=.2
 	u.battle.emit_combat_event(&"ultimate",u.position,{"actor":u.actor_id(),"type":u.data.type_id})
+	ElementEffects.on_action(u)
 	return true

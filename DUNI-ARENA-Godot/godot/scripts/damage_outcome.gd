@@ -18,5 +18,7 @@ var parried: bool = false
 var damage_reduced: bool = false
 ## Presentation only: the hit came from an ultimate.
 var ultimate: bool = false
+## Presentation only: the element status that dealt this damage (burn, poison, ...), else empty.
+var status: StringName = &""
 # Reserved stages for later mirror/share/rescue; no invented effects here.
 var reflected_damage: float = 0

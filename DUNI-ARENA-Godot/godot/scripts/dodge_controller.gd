@@ -20,6 +20,7 @@ static func start(unit, source, kind: StringName = &"roll") -> bool:
 	unit.knockback_velocity = Vector2.ZERO
 	unit.velocity = Vector2.ZERO
 	unit.battle.emit_combat_event(&"dodge", unit.position, {"actor_id": unit.battle_id})
+	ElementEffects.on_action(unit)
 	return true
 static func advance(unit, delta: float) -> bool:
 	if unit.dodge_state.is_empty(): return false

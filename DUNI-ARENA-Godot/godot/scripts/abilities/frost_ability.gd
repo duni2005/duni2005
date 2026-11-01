@@ -1,9 +1,8 @@
 extends CharacterAbility
 ## 빙결술사: fires three ice crystals in quick succession, each adding a frost stack. Ultimate
 ## summons an ice storm that drifts slowly forward, hurting and frosting enemies inside it.
-## Any enemy reaching FREEZE_STACKS frost stacks is frozen solid (stunned) for FREEZE_TIME.
-const FREEZE_STACKS: int = 10
-const FREEZE_TIME: float = 4
+## Its own crystals and storm grant frost instead of the shared 50% ice roll; freezing and
+## frostbite follow ElementEffects.
 const STORM_RADIUS: float = 115
 const STORM_SPEED: float = 75
 const STORM_LIFE: float = 7
@@ -16,15 +15,8 @@ func release_basic(u) -> void:
 func dealt_damage(u,target,_actual: float,options: Dictionary) -> void:
 	# Storm hits carry frost_stacks; the only projectile this unit fires is an ice crystal.
 	var stacks: int=int(options.get("frost_stacks",1 if options.get("melee",true)==false else 0))
-	if stacks>0:add_frost(u,target,stacks)
-static func add_frost(_u,target,stacks: int) -> void:
-	if not target.alive or target.state_value("frozenTime")>0:return
-	var total: float=target.state_value("frostStacks")+stacks
-	target.set_state("frostDecay",4)
-	if total>=FREEZE_STACKS:
-		target.set_state("frostStacks",0);target.set_state("frozenTime",FREEZE_TIME)
-		StatusController.stun(target,FREEZE_TIME)
-	else:target.set_state("frostStacks",total)
+	if stacks>0:ElementEffects.add_frost(u,target,stacks)
+func own_element(rule: StringName,_options: Dictionary) -> bool:return rule==&"ice"
 ## Driven by BindingController so the storm keeps drifting while the caster is stunned.
 func advance_storm(u,dt: float) -> void:
 	var storm: Dictionary=u.character_specific_state.get("storm",{})

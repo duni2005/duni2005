@@ -35,7 +35,7 @@ static func _stat(u,field: StringName,neutral: float) -> float:
 	return float(u.combat_stats.get(field)) if is_instance_valid(u) and u.combat_stats!=null else neutral
 static func crit(u) -> float:return _stat(u,&"crit",0)
 static func armor(u) -> float:return _stat(u,&"armor",0)
-static func attack_speed(u) -> float:return maxf(.2,_stat(u,&"attack_speed",1))
+static func attack_speed(u) -> float:return maxf(.2,_stat(u,&"attack_speed",1)*ElementEffects.attack_speed(u))
 static func ultimate_power(u) -> float:return _stat(u,&"ultimate_power",1)
 ## Physical or magic power, times elemental power for elemental hits.
 static func damage_factor(u,options: Dictionary) -> float:

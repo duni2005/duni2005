@@ -51,6 +51,7 @@ func run(tree: SceneTree) -> void:
 	verify(alive.size()<=1,"at most one faction survives")
 	b.queue_free()
 	await new_characters(tree)
+	element_effects(tree)
 	items(tree)
 	multikill(tree)
 	stairs()
@@ -115,7 +116,8 @@ func new_characters(tree: SceneTree) -> void:
 	verify(b.units[3].state_value("magnetTime")<=0,"the nearer enemy is not linked")
 	verify(b.units[1].position.distance_to(b.units[2].position)<BindingController.MAGNET_GAP+12,"linked enemies are pulled together")
 	var partner_hp: float=b.units[2].current_hp
-	var hit: DamageOutcome=b.damage_resolver.resolve(magnet,b.units[1],100,{"critical":false,"impulse":0})
+	# A hit without the lightning tag, so no chain jump adds to the partner's damage.
+	var hit: DamageOutcome=b.damage_resolver.resolve(magnet,b.units[1],100,{"dmg":&"transcend","critical":false,"impulse":0})
 	verify(hit.hp_damage>0 and is_equal_approx(partner_hp-b.units[2].current_hp,CombatRules.js_round(CombatRules.js_round(hit.hp_damage*.1)*CombatRules.mitigation(b.units[2],&"magic"))),"linked partner takes 10% of the damage, after its own defense")
 	b.queue_free()
 	# 기관사: the train hits enemies on the line hard and shoves allies lightly.
@@ -502,3 +504,89 @@ func tactical_mind(tree: SceneTree) -> void:
 	var attacker: BattleUnit=b.units[2];attacker.combat.attack_target=b.units[1];attacker.combat_state=CombatController.State.WINDUP
 	verify(u.mind.pick_target(u,b.units[3])==attacker,"a guard targets the enemy attacking its ally")
 	b.free()
+
+## Element statuses (ElementEffects): burn, poison, frost/frostbite, shock + chain, wind, light, dark.
+func element_effects(tree: SceneTree) -> void:
+	var b:=duel(tree,[[13,0,Vector2(150,250)],[30,0,Vector2(150,330)],[5,0,Vector2(150,410)],[2,0,Vector2(150,490)],[0,0,Vector2(150,570)],[8,1,Vector2(500,400)],[6,1,Vector2(500,470)],[8,1,Vector2(570,400)]])
+	step(b,.05)
+	var bomber: BattleUnit=b.units[0];var magnet: BattleUnit=b.units[1];var healer: BattleUnit=b.units[2];var mage: BattleUnit=b.units[3];var warrior: BattleUnit=b.units[4]
+	var foe: BattleUnit=b.units[5];var near: BattleUnit=b.units[6];var side: BattleUnit=b.units[7]
+	var calm:=func():
+		for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0;u.ultimate_gauge=0;u.stance=CombatStance.NORMAL
+	var hit:=func(source: BattleUnit,target: BattleUnit,key: StringName) -> DamageOutcome:
+		var out: DamageOutcome=b.damage_resolver.resolve(source,target,UnitStatTable.raw(source,key),{"dmg":key,"critical":false,"impulse":0})
+		calm.call();return out
+	calm.call()
+	# 화염: procs on fire hits, burns a stack every half second and scorches nearby allies only.
+	for i in range(20):
+		hit.call(bomber,foe,&"basic")
+		for u in b.units:u.current_hp=u.max_hp
+	verify(foe.state_value("burnStacks")>0 and foe.state_value("burnStacks")<=ElementEffects.BURN_MAX,"fire hits add burn stacks (capped)")
+	for u in b.units:u.current_hp=u.max_hp;u.character_specific_state.clear()
+	ElementEffects.add_burn(bomber,foe,2)
+	step(b,.55);calm.call()
+	verify(foe.state_value("burnStacks")==1 and foe.current_hp<foe.max_hp,"a burn tick spends one stack for damage")
+	verify(near.current_hp<near.max_hp and near.state_value("burnStacks")==0,"the burning unit scorches a nearby ally without passing stacks")
+	verify(bomber.current_hp==bomber.max_hp,"burn spread never touches the other side")
+	# 맹독: stacks stay, tick every second by stack count, and cut healing.
+	for u in b.units:u.current_hp=u.max_hp;u.character_specific_state.clear()
+	foe.set_state("poisonStacks",3);foe.set_state("poisonSource",bomber.actor_id())
+	step(b,1.05);calm.call()
+	var lost: float=foe.max_hp-foe.current_hp
+	verify(lost>0 and foe.state_value("poisonStacks")==3,"poison ticks and its stacks never fade")
+	foe.current_hp=foe.max_hp*.5
+	var gain: float=CharacterAbility.restore_hp(foe,20)
+	verify(is_equal_approx(gain,20*foe.healing_received*ElementEffects.POISON_HEAL),"poisoned units receive 60% healing")
+	# 얼음: 10 stacks freeze for 4s, then frostbite (+10% taken, frost turns into a 5 damage hit).
+	for u in b.units:u.current_hp=u.max_hp;u.character_specific_state.clear();u.stun_remaining=0
+	ElementEffects.add_frost(bomber,foe,10)
+	verify(foe.state_value("frozenTime")>0 and foe.stun_remaining>=3.9,"ten frost stacks freeze for 4 seconds")
+	ElementEffects.add_frost(bomber,foe,3)
+	verify(foe.state_value("frostStacks")==0,"no frost builds while frozen")
+	step(b,4.1);calm.call()
+	verify(foe.state_value("frozenTime")<=0 and foe.state_value("frostbiteTime")>0 and is_equal_approx(CombatRules.taken(foe),ElementEffects.FROSTBITE_TAKEN*StanceRules.taken(foe)),"thawing leaves frostbite (+10% damage taken)")
+	var before: float=foe.current_hp
+	ElementEffects.add_frost(bomber,foe,1);step(b,.05);calm.call()
+	verify(foe.state_value("frostStacks")==0 and foe.current_hp<before,"frost on a frostbitten unit deals extra damage instead of stacking")
+	# 번개: shock stacks stun at 5; lightning hits jump to other enemies for 60%.
+	step(b,4);for u in b.units:u.current_hp=u.max_hp;u.character_specific_state.clear();u.stun_remaining=0
+	calm.call()
+	var out: DamageOutcome=hit.call(magnet,foe,&"basic")
+	verify(foe.state_value("shockStacks")==1,"a lightning hit adds a shock stack")
+	verify(near.current_hp<near.max_hp and side.current_hp<side.max_hp,"the hit jumps on to the other enemies")
+	verify(out.hp_damage>0 and side.max_hp-side.current_hp<=out.hp_damage+out.shield_absorbed,"jumps deal at most the hit's damage")
+	for i in range(4):hit.call(magnet,foe,&"basic")
+	verify(foe.stun_remaining>0 and foe.state_value("shockStacks")==0,"five shock stacks stun")
+	hit.call(magnet,foe,&"basic")
+	verify(foe.state_value("shockStacks")==0,"no shock builds while stunned")
+	# 바람: gusts raise attack speed until a direct hit lands; headwind slows.
+	for u in b.units:u.current_hp=u.max_hp;u.character_specific_state.clear();u.stun_remaining=0
+	var speed: float=EquipmentCombatEffects.attack_speed(warrior)
+	warrior.set_state("windStacks",4)
+	verify(is_equal_approx(EquipmentCombatEffects.attack_speed(warrior),speed*1.2),"each gust stack adds 5% attack speed")
+	hit.call(foe,warrior,&"basic")
+	verify(warrior.state_value("windStacks")==0,"a direct hit resets the gusts")
+	var walk: float=foe.move_speed;foe.set_state("headwindTime",2)
+	verify(is_equal_approx(foe.move_speed,walk*ElementEffects.HEADWIND_MOVE),"headwind slows movement")
+	# 빛: light damage heals allies around the attacker; another unit's hit pops the mark.
+	for u in b.units:u.current_hp=u.max_hp*.5;u.character_specific_state.clear()
+	foe.current_hp=foe.max_hp
+	hit.call(healer,foe,&"basic")
+	verify(healer.current_hp>healer.max_hp*.5 and mage.current_hp>mage.max_hp*.5,"light damage heals the attacker and nearby allies")
+	verify(str(foe.character_specific_state.get("lightMark",""))==healer.actor_id(),"light marks the target")
+	var w: float=warrior.current_hp
+	hit.call(warrior,foe,&"basic")
+	verify(not foe.character_specific_state.has("lightMark") and warrior.current_hp>w,"another unit's direct hit pops the mark and heals")
+	# 어둠: erosion hurts on actions and boosts crits taken; another unit's hit pops the mark for +20%.
+	for u in b.units:u.current_hp=u.max_hp;u.character_specific_state.clear()
+	hit.call(mage,foe,&"ult")
+	verify(foe.state_value("erosionTime")>0 and str(foe.character_specific_state.get("darkMark",""))==mage.actor_id(),"dark hits erode and mark")
+	verify(is_equal_approx(ElementEffects.crit_taken(foe),.25),"eroded units take +25% critical damage")
+	before=foe.current_hp
+	ElementEffects.on_action(foe);step(b,.02);calm.call()
+	verify(foe.current_hp<before,"acting while eroded hurts")
+	var spec: Dictionary=UnitStatTable.spec(warrior.data.type_id,&"basic")
+	verify(is_equal_approx(ElementEffects.outgoing(warrior,foe,spec,{}),ElementEffects.DARK_POP) and is_equal_approx(ElementEffects.outgoing(mage,foe,spec,{}),1),"the mark boosts only another unit's hit")
+	hit.call(warrior,foe,&"basic")
+	verify(not foe.character_specific_state.has("darkMark"),"a direct hit pops the dark mark")
+	b.queue_free()

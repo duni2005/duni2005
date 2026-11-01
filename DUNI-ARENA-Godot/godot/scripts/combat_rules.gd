@@ -29,4 +29,4 @@ static func mitigation(unit, kind: StringName) -> float:
 static func armor(unit) -> float:
 	return maxf(0, defense(unit) - unit.defense_power)
 static func taken(unit) -> float:
-	return (1.2 if unit.character_specific_state.get("saintFallen",false) and unit.data.type_id==19 else 1)*(1.15 if unit.state_value("curseTime")>0 else 1)*StanceRules.taken(unit)
+	return (1.2 if unit.character_specific_state.get("saintFallen",false) and unit.data.type_id==19 else 1)*(1.15 if unit.state_value("curseTime")>0 else 1)*StanceRules.taken(unit)*ElementEffects.taken(unit)

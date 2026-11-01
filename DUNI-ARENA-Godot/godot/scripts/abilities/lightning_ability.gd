@@ -26,10 +26,8 @@ func projectile_tick(u,dt: float) -> void:
 func can_ultimate(u,_t) -> bool:return u.enemies().any(func(e):return u.position.distance_to(e.position)<250*u.combat_scale()) and (u.enemies().filter(func(e):return u.position.distance_to(e.position)<280*u.combat_scale()).size()>=2 or u.current_hp/u.max_hp<.6 or u.state_value("ultReadyAge")>4)
 func release_ultimate(u,_a,_dt: float) -> bool:
 	u.battle.zones.add(u,"discharge",u.position,280*u.combat_scale(),.22,{"age":0.0,"hits":{},"damage":UnitStatTable.raw(u,&"ult")});return true
-func dealt_damage(_u,target,_actual: float,options: Dictionary) -> void:
-	if not target.alive:return
-	target.set_state("shockStacks",target.state_value("shockStacks")+float(options.get("shock_stacks",1)))
-	if target.state_value("shockStacks")>=4:target.set_state("shockStacks",int(target.state_value("shockStacks"))%4);StatusController.stun(target,2.5)
+## Shock stacks follow ElementEffects; the chain bolt already jumps, so it skips the shared jump.
+func own_element(rule: StringName,options: Dictionary) -> bool:return rule==&"chain" and StringName(options.get("dmg",&"basic"))==&"basic"
 func ultimate_danger(u,observer,a: Dictionary) -> bool:return observer.position.distance_to(u.position)<310*u.combat_scale()
 func cast_area(u,a: Dictionary) -> Dictionary:return {"point":CharacterPersistence.point(u.position),"radius":280*u.combat_scale()}
 func debug_state(u) -> String:return " / ".join(["shockStacks"].map(func(k):return k+":"+str(u.character_specific_state.get(k,0))))

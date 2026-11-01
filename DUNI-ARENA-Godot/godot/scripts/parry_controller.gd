@@ -26,6 +26,7 @@ func start(unit, source = null) -> bool:
 		unit.brain.heading=Vector2.ZERO;unit.brain.commit_until=0;unit.brain.punish_until=0;unit.brain.attack_decision.clear();unit.brain.disengage_until=unit.battle.clock.elapsed+.55
 	if is_instance_valid(source) and (not unit.battle.full_characters_enabled or unit.data.type_id!=18): unit.facing = (source.position - unit.position).angle()
 	unit.battle.emit_combat_event(&"parry_start", unit.position, {"actor_id": unit.battle_id})
+	ElementEffects.on_action(unit)
 	return true
 func try_block(unit, source, power: float, token: Variant) -> bool:
 	if not perfect(unit): return false

@@ -98,7 +98,11 @@ var base_body_scale: float:
 	get: return data.body_scale * (combat_stats.scale if combat_stats != null else 1)
 var current_hp: float
 var velocity: Vector2 = Vector2.ZERO
-var move_speed: float
+## Base walking speed; reads include element slows (ElementEffects headwind).
+var base_move_speed: float
+var move_speed: float:
+	get: return base_move_speed * ElementEffects.move_speed(self) if not character_specific_state.is_empty() else base_move_speed
+	set(value): base_move_speed = value
 var target = null
 var alive: bool = true
 var combat_state: CombatController.State = CombatController.State.IDLE
