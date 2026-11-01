@@ -48,8 +48,8 @@ func run(owner: SceneTree) -> void:
 		print("PHASE12 UI begin ",window_size)
 		var mobile: bool=window_size.x==390
 		var menu:=MainMenuScreen.new();menu.save_manager=SaveManager.new("user://phase12-tests/menu-"+DisplayServer.get_name()+".json");tree.root.add_child(menu);await frames()
-		verify([menu.tower_button,menu.custom_button,menu.settings_button].all(func(b):return inside(b) and b.size.y>=44),"three menu buttons fit with touch height %s"%window_size)
-		verify(not menu.continue_button.is_visible_in_tree() and not menu.find_children("*","Label",true,false).any(func(l):return "길드원" in l.text),"title shows the wordmark and three buttons only")
+		verify([menu.tower_button,menu.custom_button,menu.codex_button,menu.settings_button].all(func(b):return inside(b) and b.size.y>=44),"four menu buttons fit with touch height %s"%window_size)
+		verify(not menu.continue_button.is_visible_in_tree() and not menu.find_children("*","Label",true,false).any(func(l):return "길드원" in l.text),"title shows the wordmark and four buttons only")
 		verify(menu.theme==ArenaUI.get_theme(),"shared theme")
 		if mobile or window_size==Vector2i(1280,720):await capture(("mobile" if mobile else "desktop")+"-menu")
 		menu.free();await frames()

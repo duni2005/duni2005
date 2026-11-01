@@ -1,7 +1,7 @@
 class_name MainMenuScreen
 extends Control
-## Title screen over a layered landscape with the distant tower: the DUNI ARENA wordmark and three
-## buttons (타워 입장 / 커스텀 전투 / 설정). With a save, 타워 입장 opens a window to continue or
+## Title screen over a layered landscape with the distant tower: the DUNI ARENA wordmark and four
+## buttons (타워 입장 / 커스텀 전투 / 도감 / 설정). With a save, 타워 입장 opens a window to continue or
 ## start over; without one it starts at once. Entering the tower dives the camera into it.
 ## TowerScreen remains the actual game view.
 var save_manager:=SaveManager.new(SaveManager.DEFAULT_PATH,true)
@@ -18,6 +18,8 @@ var scenery: TitleScenery
 var tower_dialog: AcceptDialog
 var overwrite_dialog: ConfirmationDialog
 var settings_button: Button
+var codex_button: Button
+var codex_screen: CodexScreen
 var settings_dialog: AcceptDialog
 var version_label: Label
 ## The logo screen plays once, when the app starts on this scene.
@@ -39,6 +41,7 @@ func _ready() -> void:
 	var open:=Control.new();open.size_flags_vertical=Control.SIZE_EXPAND_FILL;open.size_flags_stretch_ratio=2.6;menu.add_child(open)
 	tower_button=_menu_button("타워 입장","crown",enter_tower,true)
 	custom_button=_menu_button("커스텀 전투","battle",open_custom,false)
+	codex_button=_menu_button("도감","book",open_codex,false)
 	settings_button=_menu_button("설정","settings",open_settings,false)
 	var below:=Control.new();below.size_flags_vertical=Control.SIZE_EXPAND_FILL;menu.add_child(below)
 	version_label=Label.new();version_label.text="v"+str(ProjectSettings.get_setting("application/config/version","dev"));version_label.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;version_label.add_theme_font_size_override("font_size",10);version_label.add_theme_color_override("font_color",Color(1,1,1,.55));menu.add_child(version_label)
@@ -149,7 +152,7 @@ func _dive_into(controller: TowerController,notice: String="") -> void:
 	create_tween().tween_property(menu,"modulate:a",0.0,.3)
 	scenery.dive_finished.connect(open,CONNECT_ONE_SHOT);scenery.play_dive()
 func _set_menu_disabled(on: bool) -> void:
-	for button in [tower_button,custom_button,settings_button]:button.disabled=on
+	for button in [tower_button,custom_button,codex_button,settings_button]:button.disabled=on
 func open_custom() -> void:
 	if is_instance_valid(custom_screen) or is_instance_valid(tower_screen):return
 	_set_menu_disabled(true)
@@ -158,6 +161,15 @@ func open_custom() -> void:
 		custom_screen=CustomBattleScreen.new();add_child(custom_screen)
 		custom_screen.closed.connect(func():call_deferred("close_custom"))
 		BackgroundMusic.play(&"battle"))
+## 도감: a full page over the title screen.
+func open_codex() -> void:
+	if is_instance_valid(codex_screen) or is_instance_valid(custom_screen) or is_instance_valid(tower_screen):return
+	UiTransition.play("forward","CODEX");menu.get_parent().hide();scenery.hide()
+	codex_screen=CodexScreen.new();add_child(codex_screen);codex_screen.closed.connect(func():call_deferred("close_codex"))
+func close_codex() -> void:
+	UiTransition.play("back",TypeArt.word(&"menu"))
+	if is_instance_valid(codex_screen):remove_child(codex_screen);codex_screen.queue_free();codex_screen=null
+	menu.get_parent().show();scenery.show();_reveal()
 func close_custom() -> void:
 	UiTransition.play("back",TypeArt.word(&"menu"));BackgroundMusic.play(&"menu")
 	if is_instance_valid(custom_screen):remove_child(custom_screen);custom_screen.queue_free();custom_screen=null

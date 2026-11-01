@@ -318,8 +318,12 @@ func _draw() -> void:
 		write(Vector2(0,17),title,11,Color("eef1fa"),size.x,true)
 		UnitIcon.draw(self,Rect2(size.x*.5-20,22,40,40),type_id)
 		UnitRarity.draw_pips(self,Vector2((size.x-UnitRarity.pips_width(type_id,2.6))*.5+2.1,69),type_id,2.6)
-		ArenaIcon.draw(self,Vector2(size.x*.5-16,size.y-12),"gold",11,Color.WHITE)
-		draw_string(ArenaUI.numbers_font(),Vector2(size.x*.5-8,size.y-6),price,HORIZONTAL_ALIGNMENT_LEFT,-1,14,ArenaUI.GOLD)
+		# The codex leaves the price out and marks boss / elite candidates in the corner.
+		if not price.is_empty():
+			ArenaIcon.draw(self,Vector2(size.x*.5-16,size.y-12),"gold",11,Color.WHITE)
+			draw_string(ArenaUI.numbers_font(),Vector2(size.x*.5-8,size.y-6),price,HORIZONTAL_ALIGNMENT_LEFT,-1,14,ArenaUI.GOLD)
+		else:write(Vector2(0,size.y-7),UnitRarity.label(type_id),9,UnitRarity.color(type_id).lightened(.2),size.x,true)
+		if kind in ["boss","miniboss"]:ArenaIcon.draw(self,Vector2(size.x-11,12),kind,15,Color.WHITE)
 		return
 	if card_type=="slot":
 		var waiting: bool=slot_kind=="cooldown";var rim: Color=Color(SLOT_COLORS[slot_kind][1]) if SLOT_COLORS.has(slot_kind) else muted
