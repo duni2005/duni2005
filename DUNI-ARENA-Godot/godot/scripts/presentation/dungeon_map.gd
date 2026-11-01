@@ -344,6 +344,12 @@ func _draw() -> void:
 	draw_polygon(PackedVector2Array([Vector2(0, mid), Vector2(size.x, mid), size, Vector2(0, size.y)]), PackedColorArray([TowerArt.SKY_MID, TowerArt.SKY_MID, TowerArt.SKY_LOW, TowerArt.SKY_LOW]))
 	var sun := Vector2(-size.x * .1, HEADER * .5)
 	VfxArt.glow(self, sun, size.x * 1.1, TowerArt.SUN, .35)
+	# Floating islands far below and around the tower, drifting and bobbing on the far parallax.
+	var below: Vector2 = -cam * zoom * .1
+	for i in range(4):
+		var home := Vector2([.12, .9, .2, .82][i] * size.x, [.3, .45, .82, .9][i] * size.y)
+		var at: Vector2 = home + below + Vector2(sin(age * .12 + i * 1.7) * 18, sin(age * .5 + i) * 5)
+		TowerArt.island_top(self, at, [26.0, 20.0, 32.0, 18.0][i] * clampf(size.x / 390, 1, 1.6), i)
 	for layer in [0, 1]:
 		var drift: Vector2 = -cam * zoom * (.15 if layer == 0 else .35)
 		for i in range(clouds.size()):
@@ -373,6 +379,7 @@ func _draw_world() -> void:
 			world.draw_polyline(PackedVector2Array([at + Vector2(-3, 0), at + Vector2(-1, -5), at, at + Vector2(1.2, -5.5), at + Vector2(3, 0)]), tuft, 1.3, true)
 		else:world.draw_circle(at, 2, [Color("fff7e6"), Color("f1d77a"), Color("e9b4c4")][int(kind * 100) % 3])
 	for tree in trees:TowerArt.crown(world, tree[0], tree[1], tree[2], tree[3], tree[4])
+	TowerArt.spirits(world, Rect2(-inner * .8, -inner * .8, inner * 1.6, inner * 1.6), age, 14)
 	# The wall's shadow on the grass: deepest under the sunward (upper left) wall.
 	for i in range(steps):
 		var d0: Vector2 = Vector2.from_angle(i * TAU / steps);var d1: Vector2 = Vector2.from_angle((i + 1) * TAU / steps)
@@ -496,6 +503,12 @@ func _draw_fx() -> void:
 # Header over the sky: a dark band with the floor, its chapter and the unlock progress.
 func _draw_hud() -> void:
 	var alpha: float = _hud_alpha()
+	# Birds crossing high above the tower now and then, with their small shadows.
+	for i in range(3):
+		var k: float = fposmod(age * .035 + i * .37, 1.6) - .3
+		if k < -.1 or k > 1.1:continue
+		var at := Vector2(k * (size.x + 80) - 40, size.y * (.3 + i * .2) - k * size.y * .12);var flap: float = sin(age * 7 + i * 2)
+		TowerArt.bird(hud, at + Vector2(14, 22), 7, flap, Color(.05, .12, .25, .15));TowerArt.bird(hud, at, 7, flap)
 	hud.draw_polygon(PackedVector2Array([Vector2.ZERO, Vector2(size.x, 0), Vector2(size.x, HEADER + 24), Vector2(0, HEADER + 24)]), PackedColorArray([Color(.03, .06, .14, .88 * alpha), Color(.03, .06, .14, .88 * alpha), Color(.03, .06, .14, 0), Color(.03, .06, .14, 0)]))
 	var font: Font = ArenaUI.heading_font()
 	hud.draw_string(font, Vector2(PAD + 4, 30), title, HORIZONTAL_ALIGNMENT_LEFT, size.x - PAD * 2 - minf(132, size.x * .36) - 8, 20, Color(ArenaUI.GOLD, alpha))

@@ -118,8 +118,9 @@ func _draw() -> void:
 	var alpha: float = minf(clampf(t / (.5 if mode == "clear" else .35), 0, 1), clampf((duration - t) / .6, 0, 1))
 	modulate.a = alpha
 	_sky();_clouds(.08, 0);_ridge(.14, 30, 300, 1.3, Color("a7c4e8"), true);_ridge(.22, 20, 190, 4.1, Color("7fa6d6"), false)
-	_clouds(.2, 1);_treeline(.32, 8, 70, 2.2, Color("6fae5a"));_treeline(.45, 4, 40, 5.4, Color("4f9447"))
+	_islands(.16, 0);_clouds(.2, 1);_islands(.3, 1);_treeline(.32, 8, 70, 2.2, Color("6fae5a"));_treeline(.45, 4, 40, 5.4, Color("4f9447"))
 	_back_trees();_meadow();_tower();_mid_trees()
+	TowerArt.spirits(self, Rect2(0, view.y * .4, view.x, view.y * .6), t, 16, clampf(view.x / 390, 1, 2))
 	if mode == "clear":_clear_effects()
 	_front_foliage();_petals()
 	_titles()
@@ -153,6 +154,14 @@ func _clouds(f: float, layer: int) -> void:
 		var x: float = fposmod(i * 260 + layer * 130 + t * (10 + layer * 8), 1300) - 650
 		var y: float = -470 - (i % 2) * 70 if layer == 0 else -300 - (i % 3) * 40
 		_cloud(_layer(Vector2(x, y), f), (34 + (i % 3) * 12) * s * (1.4 if layer == 0 else 1.0), i * 31 + layer * 7, .75 if layer == 0 else .95)
+
+## Floating islands bobbing in the sky on two parallax layers; the nearer left one pours a waterfall.
+func _islands(f: float, layer: int) -> void:
+	var s: float = _layer_scale(f)
+	var spots: Array = [[-250, -560, 26, 1], [240, -620, 20, 2]] if layer == 0 else [[-170, -330, 46, 3], [180, -430, 36, 4]]
+	for i in range(spots.size()):
+		var spot: Array = spots[i]
+		TowerArt.island(self, _layer(Vector2(spot[0], spot[1] + sin(t * .7 + spot[3]) * 7), f), spot[2] * s, spot[3], t, layer == 1 and i == 0)
 
 # ---- Land ----
 ## A flat mountain range: one colour, with a hard-edged darker facet on every slope that faces away
@@ -304,48 +313,30 @@ func _floor(floor: int, index: int, y0: float, glow: float) -> void:
 	draw_rect(Rect2(Vector2(a.x + W * .1, a.y), Vector2(W * .07, H)), lit.lightened(.12))
 	draw_rect(Rect2(Vector2(a.x + W * .64, a.y), Vector2(W * .36, H)), shade)
 	var ink: float = 1 - fade
-	if H > 18:
-		# Masonry courses, joints squeezed towards the curved edges.
-		for r in range(1, 4):
-			var y: float = a.y + H * r / 4;draw_line(Vector2(a.x, y), Vector2(b.x, y), Color(.3, .32, .45, .16 * ink), 1)
-			for j in range(7):
-				var x: float = a.x + W * (.5 + .5 * sin(((j + (.5 if r % 2 else 0.0)) / 7.0 - .5) * PI));draw_line(Vector2(x, y - H / 4), Vector2(x, y), Color(.3, .32, .45, .1 * ink), 1)
-	# Corner pilasters frame every storey.
-	for u in [.07, .93]:
-		var px: float = a.x + W * u;var pw: float = W * .045
-		draw_rect(Rect2(Vector2(px - pw * .5, a.y), Vector2(pw, H)), Color(1, 1, .9, .1 * ink) if u < .5 else Color(.2, .25, .45, .14 * ink))
+	# One clean course line per storey.
+	draw_line(Vector2(a.x, a.y), Vector2(b.x, a.y), Color(STONE_DARK, .18 * ink), 1)
+	# The introduced chapter's windows light up warm, storey by storey from the bottom.
+	var shown_at: float = 5.0 if mode == "intro" else 6.0 if mode == "clear" else .3
+	var light: float = glow
+	if floor / 5 + 1 == chapter and (mode != "clear" or t > 6.0):light = maxf(glow, .7 * Motion.out_quint(Motion.phase(t, shown_at + .3 + k * .16, .5)))
 	if H > 10:
 		if k == 0:
 			if floor == 0 and index == 0 and mode != "clear":_door(a, W, H)
 			else:
 				for th in [-.9, 0.0, .9]:_window(_on_drum(a, W, th, H * .26), W * .14 * cos(th), H * .6, 0, fade, false)
 		elif k == 2:
-			if tier % 2 == 0:_rose(Vector2(a.x + W * .5, a.y + H * .52), minf(W * .16, H * .36), glow, fade)
+			if tier % 2 == 0:_rose(Vector2(a.x + W * .5, a.y + H * .52), minf(W * .16, H * .36), light, fade)
 			else:
-				for th in [-.18, .18]:_window(_on_drum(a, W, th, H * .2), W * .1, H * .64, glow, fade, true)
+				for th in [-.18, .18]:_window(_on_drum(a, W, th, H * .2), W * .1, H * .64, light, fade, true)
 		else:
 			var spots: Array = [-.95, -.35, .35, .95] if (k + tier) % 2 == 0 else [-.7, 0.0, .7]
-			for th in spots:_window(_on_drum(a, W, th, H * .26), W * .11 * cos(th), H * .52, glow, fade, true)
+			for th in spots:_window(_on_drum(a, W, th, H * .26), W * .11 * cos(th), H * .52, light, fade, true)
 	# Each tier's base course; a crenellated gallery on corbels tops the tier.
 	if k == 0:
 		var band: float = maxf(2, H * .1)
 		draw_rect(Rect2(Vector2(a.x - W * .02, b.y - band), Vector2(W * 1.04, band)), STONE_DARK.lerp(STONE, .5).lerp(HAZE, fade * .85))
 		draw_line(Vector2(a.x - W * .02, b.y - band), Vector2(b.x + W * .02, b.y - band), Color(1, 1, 1, .18 * ink), 1)
 	if k == 4 and H > 6:_gallery(a, W, H, floor, fade)
-	if (k == 0 or k == 4) and H > 10 and fade < .9:
-		var moss := RandomNumberGenerator.new();moss.seed = floor * 31 + 7
-		for m in range(5):
-			var at := Vector2(a.x + W * moss.randf_range(.05, .95), b.y - (H * .1 if k == 0 else H))
-			draw_set_transform(at, 0, Vector2(1, .45));draw_circle(Vector2.ZERO, W * moss.randf_range(.03, .06), Color("86ad4f", .8 * ink));draw_circle(Vector2(-W * .01, -W * .01), W * .02, Color("a9c866", .8 * ink));draw_set_transform(Vector2.ZERO)
-	# Vines on some floors.
-	var local := RandomNumberGenerator.new();local.seed = floor * 977 + 13
-	for v in range(2):
-		if local.randf() < .4 and fade < .8:
-			var x: float = a.x + W * local.randf_range(.1, .9);var length: float = H * local.randf_range(.5, 1.3)
-			var pts := PackedVector2Array()
-			for s in range(7):pts.append(Vector2(x + sin(s * .9 + t * 1.5 + floor) * W * .012, a.y + length * s / 6.0))
-			draw_polyline(pts, Color("3f7f3b", .9 - fade), maxf(1, W * .01))
-			for s in range(1, 7, 2):draw_circle(pts[s] + Vector2(W * .012, 0), maxf(1.4, W * .014), Color("5fae4e", .9 - fade))
 	# Silhouette: a light rim on the sun side, a dark edge on the other.
 	draw_line(a, Vector2(a.x, b.y), Color(1, 1, .92, .3 * ink), 1);draw_line(Vector2(b.x, a.y), b, Color(STONE_DARK.darkened(.2), .7 * ink), 1.5)
 	if glow > 0:
@@ -364,7 +355,7 @@ func _window(top: Vector2, w: float, h: float, glow: float, fade: float, lit_up:
 		var ang: float = PI + k * PI / 6;frame.append(top + Vector2(cos(ang) * w * .65, h * .28 + sin(ang) * h * .32))
 	frame.append(top + Vector2(w * .65, h));frame.append(top + Vector2(-w * .65, h))
 	draw_colored_polygon(frame, STONE.darkened(.25).lerp(HAZE, fade * .8))
-	var lit: Color = Color("4a5a88").lerp(Color("fffbe8"), glow);var deep: Color = RECESS.lerp(Color("fff1c8"), glow)
+	var lit: Color = Color("4a5a88").lerp(Color("ffe7a3"), glow);var deep: Color = RECESS.lerp(Color("f2b65c"), glow)
 	if not lit_up:lit = RECESS.darkened(.2);deep = RECESS
 	for k in range(7):
 		var ang: float = PI + k * PI / 6;inner.append(top + Vector2(cos(ang) * w * .45, h * .3 + sin(ang) * h * .26))
@@ -399,17 +390,12 @@ func _gallery(a: Vector2, W: float, H: float, floor: int, fade: float) -> void:
 		draw_rect(r, stone);draw_rect(Rect2(r.position, Vector2(r.size.x * .3, r.size.y)), Color(1, 1, 1, .08 * (1 - fade)))
 	var tint: Color = CHAPTER_TINT.get(floor / 5 + 1, Color("8a4e4f")).lerp(HAZE, fade * .7)
 	for u in [.16, .84]:_banner(Vector2(a.x + W * u, a.y + band * 1.4), W * .1, H * .7, tint)
-	for u in [-.05, 1.05]:_torch(Vector2(a.x + W * u, a.y - band * .5 - mh), H * .14, fade)
 func _banner(at: Vector2, w: float, h: float, tint: Color) -> void:
 	var sway: float = sin(t * 2 + at.x * .01) * w * .08
 	draw_colored_polygon(PackedVector2Array([at + Vector2(-w * .5, 0), at + Vector2(w * .5, 0), at + Vector2(w * .5 + sway, h), at + Vector2(sway, h * .82), at + Vector2(-w * .5 + sway, h)]), tint)
 	draw_rect(Rect2(at + Vector2(-w * .5, 0), Vector2(w * .22, h * .9)), Color(1, 1, 1, .12))
 	draw_rect(Rect2(at + Vector2(-w * .6, -1), Vector2(w * 1.2, maxf(1.5, h * .05))), Color("c9a560"))
 	draw_circle(at + Vector2(sway * .5, h * .4), w * .22, Color("f4d27a", .9))
-func _torch(at: Vector2, s: float, fade: float) -> void:
-	var flick: float = .85 + .15 * sin(t * 13 + at.x)
-	VfxArt.glow(self, at, s * 3.2 * flick, Color("ffb35a"), .45 * (1 - fade))
-	draw_colored_polygon(PackedVector2Array([at + Vector2(0, -s * 1.3 * flick), at + Vector2(s * .45, 0), at + Vector2(-s * .45, 0)]), Color("ffd27a", 1 - fade))
 func _door(a: Vector2, W: float, H: float) -> void:
 	var c := Vector2(a.x + W * .5, a.y + H);var w: float = W * .22;var h: float = H * .8
 	var pts := PackedVector2Array([c + Vector2(-w * .5, 0), c + Vector2(-w * .5, -h * .6)])
@@ -420,7 +406,6 @@ func _door(a: Vector2, W: float, H: float) -> void:
 	for p in pts:arch.append(c + (p - c) * Vector2(1.25, 1.1))
 	draw_colored_polygon(arch, STONE_LIT);draw_colored_polygon(pts, Color("4a3a30"));draw_polyline(pts, Color("9a7a4a"), maxf(1, W * .012))
 	draw_line(c, c + Vector2(0, -h * .95), Color("1e130b"), maxf(1, W * .01))
-	for side in [-1, 1]:_torch(c + Vector2(side * w * .85, -h * .62), H * .11, 0)
 
 # ---- Foreground ----
 func _mid_trees() -> void:

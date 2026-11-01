@@ -52,3 +52,62 @@ static func crown(c: CanvasItem, center: Vector2, r: float, color: Color, seed_v
 	if blossom:
 		var local := RandomNumberGenerator.new();local.seed = seed_value
 		for i in range(7):c.draw_circle(center + Vector2(local.randf_range(-.8, .8), local.randf_range(-.7, .5)) * r, maxf(1, r * .1), Color("fff3f8", .9))
+
+# ---- Fantasy scenery (animated by the caller's time) ----
+const ROCK := Color("a3a6c4")
+const ROCK_DARK := Color("7a7fa6")
+const WATER := Color("cdeefa")
+const WATER_DEEP := Color("9fd9f2")
+const SPIRIT := Color("fff4c2")
+
+## A floating island seen from the side: a grassy cap with a deeper front lip on a jagged rock
+## cone (sunlit left face, flat shadow facet on the right), a tree or two, and with `fall` a thin
+## waterfall pouring off the right edge, its light streaks running down.
+static func island(c: CanvasItem, center: Vector2, r: float, seed_value: int, time: float, fall: bool = false) -> void:
+	var local := RandomNumberGenerator.new();local.seed = seed_value
+	var rock := PackedVector2Array([center + Vector2(-r, 0)])
+	for k in range(1, 6):
+		var u: float = k / 6.0;rock.append(center + Vector2(-r + u * r * .9 + local.randf_range(-.06, .06) * r, r * (.35 + u * .75)))
+	rock.append(center + Vector2(local.randf_range(-.1, .1) * r, r * 1.25))
+	for k in range(5, 0, -1):
+		var u: float = k / 6.0;rock.append(center + Vector2(r - u * r * .9 + local.randf_range(-.06, .06) * r, r * (.35 + u * .75)))
+	rock.append(center + Vector2(r, 0))
+	c.draw_colored_polygon(rock, ROCK)
+	c.draw_colored_polygon(PackedVector2Array([center + Vector2(r * .15, r * .1), center + Vector2(r, 0), rock[rock.size() - 2], rock[6]]), ROCK_DARK)
+	if fall:
+		# Water pours off the right edge and thins out as it falls.
+		var top: Vector2 = center + Vector2(r * .62, r * .06);var w: float = maxf(2, r * .1)
+		for seg in range(3):c.draw_rect(Rect2(top + Vector2(-w * .5, r * .8 * seg), Vector2(w, r * .8)), Color(WATER, .9 - seg * .3))
+		for k in range(4):
+			var y: float = fposmod(time * r * .9 + k * r * .6, r * 2.4)
+			c.draw_rect(Rect2(top + Vector2(-w * .2, y), Vector2(w * .4, r * .25)), Color(1, 1, 1, .8 * (1 - y / (r * 2.4))))
+	c.draw_set_transform(center + Vector2(0, r * .06), 0, Vector2(1, .3));c.draw_circle(Vector2.ZERO, r * 1.02, GRASS_DEEP);c.draw_set_transform(Vector2.ZERO)
+	c.draw_set_transform(center, 0, Vector2(1, .26));c.draw_circle(Vector2.ZERO, r, GRASS_LIT);c.draw_set_transform(Vector2.ZERO)
+	for k in range(1 + seed_value % 2):
+		var at: Vector2 = center + Vector2((-.35 + k * .55) * r, -r * .02);var h: float = r * (.55 - k * .12)
+		c.draw_rect(Rect2(at + Vector2(-h * .05, -h * .5), Vector2(h * .1, h * .5)), Color("6b5440"))
+		crown(c, at + Vector2(0, -h * .62), h * .38, TREE_COLORS[(seed_value + k) % TREE_COLORS.size()], seed_value + k, (seed_value + k) % 3 == 0)
+
+## A floating island seen from above (the map's sky): its rock side shows below the grassy top,
+## with a tree or two and sometimes a little pond.
+static func island_top(c: CanvasItem, center: Vector2, r: float, seed_value: int) -> void:
+	c.draw_circle(center + Vector2(r * .5, r * .9), r * 1.05, Color(STONE_DARK, .18))
+	c.draw_circle(center + Vector2(0, r * .3), r, ROCK_DARK);c.draw_circle(center, r, ROCK)
+	c.draw_circle(center + Vector2(-r * .04, -r * .06), r * .84, GRASS_LIT)
+	if seed_value % 2 == 0:
+		c.draw_set_transform(center + Vector2(r * .3, r * .2), 0, Vector2(1, .7));c.draw_circle(Vector2.ZERO, r * .26, WATER_DEEP);c.draw_circle(Vector2(-r * .05, -r * .05), r * .16, WATER);c.draw_set_transform(Vector2.ZERO)
+	crown(c, center + Vector2(-r * .3, -r * .2), r * .32, TREE_COLORS[seed_value % TREE_COLORS.size()], seed_value, seed_value % 3 == 0)
+	if r > 30:crown(c, center + Vector2(r * .05, -r * .45), r * .22, TREE_COLORS[(seed_value + 3) % TREE_COLORS.size()], seed_value + 1)
+
+## A bird gliding, wings beating with `flap` (-1..1).
+static func bird(c: CanvasItem, at: Vector2, s: float, flap: float, color: Color = Color(1, 1, 1, .9)) -> void:
+	var tip := Vector2(s, -s * (.2 + flap * .45))
+	c.draw_polyline(PackedVector2Array([at + Vector2(-tip.x, tip.y), at + Vector2(-s * .4, -s * .05 * flap), at, at + Vector2(s * .4, -s * .05 * flap), at + tip]), color, maxf(1.2, s * .2), true)
+
+## Little spirit lights drifting up through `rect` and fading in and out.
+static func spirits(c: CanvasItem, rect: Rect2, time: float, count: int = 12, scale: float = 1) -> void:
+	for i in range(count):
+		var sx: float = sin(i * 12.98 + 3.14) * .5 + .5;var k: float = fposmod(time * (.05 + .03 * (i % 4)) + sin(i * 7.7) * .5 + .5, 1.0)
+		var at := Vector2(rect.position.x + sx * rect.size.x + sin(time * 1.3 + i) * 10 * scale, rect.end.y - k * rect.size.y)
+		var a: float = sin(k * PI) * (.6 + .4 * sin(time * 3 + i * 2.1))
+		c.draw_circle(at, 6 * scale, Color(SPIRIT, .18 * a));c.draw_circle(at, 2.2 * scale, Color(SPIRIT, .95 * a))
