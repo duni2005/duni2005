@@ -1,7 +1,7 @@
 class_name AttackVisuals
 extends RefCounted
 ## Source-grounded geometry. All inputs are observed; never writes to combat objects.
-const INKS=["ffd39c","e2f5ad","bca9ee","a9eee5","f3dd9e","c5f4e5","ffe6ba","f0ca83","efb1de","efa794","e5d3ae","c2faff","d3e7b5","ffbc75","dceff5","d0fff0","fff0bc","ffc1a0","ebe5ba","e9d7ff","8bdbff","b4e5e8","d5c2ff","eed18f","ffc4c3","f4c0dc","e8c48f","ffb08c","bdf0ff","ffe08a","ff9aa4","bfeaff","ffb36b"]
+const INKS=["ffd39c","e2f5ad","bca9ee","a9eee5","f3dd9e","c5f4e5","ffe6ba","f0ca83","efb1de","efa794","e5d3ae","c2faff","d3e7b5","ffbc75","dceff5","d0fff0","fff0bc","ffc1a0","ebe5ba","e9d7ff","8bdbff","b4e5e8","d5c2ff","eed18f","ffc4c3","f4c0dc","e8c48f","ffb08c","bdf0ff","ffe08a","ff9aa4","bfeaff","ffb36b","c8f7e6","e9d7a4"]
 static func ink(type: int) -> Color:return Color(INKS[type])
 static func body_visible(u: BattleUnit) -> bool:
 	if not u.alive or u.frog_flight!=0:return false
@@ -133,6 +133,17 @@ static func projectile(canvas: CanvasItem,p: BattleProjectile,trail: Array,time:
 		canvas.draw_circle(at,size,Color("ff6b25",.5*(1-k)))
 		canvas.draw_circle(at+dir*size*.2,size*.62,Color("ffc35a",.7*(1-k)))
 		canvas.draw_circle(at+dir*size*.3,size*.28,Color("fff4cf",.85*(1-k)))
+	elif kind=="crossBolt":
+		# A short steel-tipped bolt with a pale wind streak behind it.
+		VisualShapes.streak(canvas,at-dir*10*scale,dir.angle(),26*scale,3*scale,Color("dff7ec"),.55)
+		canvas.draw_line(at-dir*11*scale,at+dir*9*scale,Color("8a5a36"),2.5,true)
+		canvas.draw_colored_polygon(PackedVector2Array([at+dir*14*scale,at+dir*8*scale+dir.orthogonal()*3*scale,at+dir*8*scale-dir.orthogonal()*3*scale]),Color("e6ebf0"))
+	elif kind=="markShell":
+		# The marking shell: a red-ringed round trailing sparks.
+		VfxArt.glow(canvas,at,22*scale,Color("ff6a5a"),.5)
+		canvas.draw_circle(at,8*scale,Color("2a2f38"));canvas.draw_arc(at,8*scale,0,TAU,16,Color("ff7a6a"),2.5,true)
+		canvas.draw_circle(at,3*scale,Color("ffe0a8"))
+		VisualShapes.streak(canvas,at-dir*16*scale,dir.angle(),30*scale,4*scale,Color("ffd6c4"),.5)
 	elif kind=="iceShard":
 		# Faceted ice crystal with a frosty glow.
 		VfxArt.glow(canvas,at,18*scale,Color("9fdcff"),.45)

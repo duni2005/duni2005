@@ -54,6 +54,8 @@ const STATS = {
 	"magnet":[&"magic", 35, 0, 10, 10, 24],
 	"frost":[&"magic", 25, 0, 10, 10, 30],
 	"flamethrower":[&"magic", 30, 5, 10, 10, 26],
+	"griffin":[&"magic", 50, 0, 10, 15, 32],
+	"crossbow":[&"physical", 30, 0, 0, 32, 10],
 }
 
 const DAMAGE = {
@@ -160,6 +162,12 @@ const DAMAGE = {
 	"flamethrower":{
 		&"basic":[&"basic", &"magic", 0, 0.22, [&"fire", &"projectile"], "화염 분사 (관통, 0.1초마다)"],
 		&"fire_zone":[&"ultimate", &"magic", 4, 0.35, [&"fire", &"area", &"dot"], "기름 불장판 (0.5초마다)"]},
+	"griffin":{
+		&"basic":[&"basic", &"magic", 2, 0.42, [&"wind", &"area", &"dot"], "폭풍 (2초, 0.5초마다)"],
+		&"ult":[&"ultimate", &"magic", 15, 2.2, [&"wind", &"area"], "돌풍 (넉백 · 충돌 시 2초 기절)"]},
+	"crossbow":{
+		&"basic":[&"basic", &"physical", 0, 0.32, [&"wind", &"projectile"], "화살 (7연발)"],
+		&"ult":[&"ultimate", &"physical", 15, 1.8, [&"explosion", &"wind", &"projectile"], "목표지정 탄 폭발 (10초 목표 상태)"]},
 }
 ## Damage every unit can deal regardless of character, using its main damage kind.
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]

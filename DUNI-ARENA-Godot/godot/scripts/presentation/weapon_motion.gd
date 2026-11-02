@@ -74,6 +74,18 @@ static func _draw_prop(canvas: CanvasItem,type: int,index: float,alpha: float) -
 			canvas.draw_rect(Rect2(18,1,18,8),Color(Color("172326"),alpha));canvas.draw_rect(Rect2(19,2,16,6),Color(Color("8d949e"),alpha))
 			canvas.draw_rect(Rect2(34,0,5,10),Color(Color("3a3f45"),alpha))
 			canvas.draw_circle(Vector2(42,5),3.5,Color(Color("ff8a3d"),alpha*.9));canvas.draw_circle(Vector2(42,5),1.8,Color(Color("ffe08a"),alpha))
+		33:
+			# A pair of feathered wings half spread.
+			for side in [-1,1]:
+				var tip:=Vector2(10,side*20)
+				canvas.draw_colored_polygon(PackedVector2Array([Vector2(4,side*4),tip,Vector2(22,side*12)]),Color(Color("e8f5ee"),alpha*.95))
+				canvas.draw_polyline(PackedVector2Array([Vector2(4,side*4),tip,Vector2(22,side*12)]),Color(Color("6fbfa4"),alpha),1.5)
+		34:
+			# Crossbow: stock, bow limbs and a loaded bolt.
+			canvas.draw_line(Vector2(12,6),Vector2(38,6),Color(Color("7a5536"),alpha),4)
+			canvas.draw_arc(Vector2(34,6),11,-PI*.5,PI*.5,12,Color(Color("cfd6dd"),alpha),2.5)
+			canvas.draw_line(Vector2(34,-5),Vector2(34,17),Color(Color("f1e6c8"),alpha*.8),1)
+			canvas.draw_line(Vector2(22,6),Vector2(46,6),Color(Color("f6e7b0"),alpha),1.5)
 		31:
 			# Staff topped with an ice crystal.
 			canvas.draw_line(Vector2(14,10),Vector2(34,-6),Color(Color("9fb7c9"),alpha),3)

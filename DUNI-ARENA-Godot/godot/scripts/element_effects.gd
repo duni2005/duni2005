@@ -58,6 +58,9 @@ const EROSION_TIME: float = 2
 const EROSION_DAMAGE: float = 6
 const EROSION_CRIT: float = .25
 const DARK_POP: float = 1.2
+## 목표 (석궁 궁극기): damage taken +10%, wind damage taken +15%.
+const TARGETED_TAKEN: float = 1.1
+const TARGETED_WIND: float = 1.15
 
 static func _on(u) -> bool:return u != null and is_instance_valid(u) and u.battle != null and u.battle.full_characters_enabled
 ## A direct hit: an attack landing, not damage over time, a status tick, a chain jump or a collision.
@@ -77,10 +80,12 @@ static func outgoing(source, target, spec: Dictionary, options: Dictionary) -> f
 	if spec.get("tags", []).has(&"wind"):factor *= 1 + WIND_DAMAGE * source.state_value("windStacks")
 	var mark: String = str(target.character_specific_state.get("darkMark", ""))
 	if not mark.is_empty() and mark != source.actor_id() and direct(spec, options):factor *= DARK_POP
+	# 목표 (석궁): wind damage taken +15% in all (the general +10% comes from taken()).
+	if target.state_value("targetedTime") > 0 and spec.get("tags", []).has(&"wind"):factor *= TARGETED_WIND / TARGETED_TAKEN
 	return factor
 ## Extra critical damage an eroded unit takes (added to the attacker's critical damage).
 static func crit_taken(target) -> float:return EROSION_CRIT if target.state_value("erosionTime") > 0 else 0.0
-static func taken(u) -> float:return FROSTBITE_TAKEN if u.state_value("frostbiteTime") > 0 else 1.0
+static func taken(u) -> float:return (FROSTBITE_TAKEN if u.state_value("frostbiteTime") > 0 else 1.0) * (TARGETED_TAKEN if u.state_value("targetedTime") > 0 else 1.0)
 static func attack_speed(u) -> float:
 	if u.character_specific_state.is_empty():return 1
 	return (1 + WIND_ATTACK_SPEED * u.state_value("windStacks")) * (HEADWIND_ATTACK_SPEED if u.state_value("headwindTime") > 0 else 1.0)
@@ -200,7 +205,7 @@ static func advance(battle, dt: float) -> void:
 		if u.state_value("frozenTime") > 0:
 			u.set_state("frozenTime", maxf(0, u.state_value("frozenTime") - dt))
 			if u.state_value("frozenTime") <= 0:u.set_state("frostbiteTime", FROSTBITE_TIME)
-		for key in ["frostbiteTime", "headwindTime", "erosionTime"]:
+		for key in ["frostbiteTime", "headwindTime", "erosionTime", "targetedTime"]:
 			if u.state_value(key) > 0:u.set_state(key, maxf(0, u.state_value(key) - dt))
 		for pair in [["frostbitePending", "frostbiteSource", &"frostbite", FROSTBITE_HIT], ["erodePending", "erosionSource", &"erosion", EROSION_DAMAGE]]:
 			var count: int = int(u.state_value(pair[0]))

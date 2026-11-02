@@ -169,7 +169,8 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	if battle.full_characters_enabled:
 		CharacterCombat.after_hit(source,target,out,options)
 		if target.state_value("guardRemaining")>0:impulse=0
-		target.knockback_collision_stun=options.get("collision_stun",0)
+		# A collision's own damage must not clear the stun its knockback carries (성기사 방패치기, 그리핀 돌풍).
+		if not collision:target.knockback_collision_stun=options.get("collision_stun",0)
 	# Shield absorption still creates impact. Invulnerability returned before shield.
 	if not collision and target.alive and amount > 0:
 		KnockbackController.apply(target, Vector2.from_angle(angle)*KnockbackController.attack_force(amount,impulse,source,target),source)

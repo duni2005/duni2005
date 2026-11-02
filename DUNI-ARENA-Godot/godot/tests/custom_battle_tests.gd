@@ -56,6 +56,7 @@ func run(tree: SceneTree) -> void:
 	hero_moves(tree)
 	await custom_result_flow(tree)
 	await status_sheet(tree)
+	griffin_and_crossbow(tree)
 	items(tree)
 	multikill(tree)
 	stairs()
@@ -77,7 +78,7 @@ func step(b: BattleManager,seconds: float) -> void:
 		if b.finished:return
 		b.simulate(1.0/60)
 func new_characters(tree: SceneTree) -> void:
-	verify(CharacterCatalog.all().size()==33,"33 characters in the catalog")
+	verify(CharacterCatalog.all().size()==35,"35 characters in the catalog")
 	# 말뚝: opening stake tethers the nearest enemy to a small circle.
 	var b:=duel(tree,[[26,0,Vector2(150,400)],[1,1,Vector2(450,400)],[1,1,Vector2(700,700)]])
 	step(b,.2)
@@ -438,7 +439,7 @@ func stat_damage(tree: SceneTree) -> void:
 		if not UnitStatTable.STATS.has(unit_name) or not UnitStatTable.DAMAGE.has(unit_name):tagged=false
 		for d in UnitStatTable.instances(id):
 			if not UnitStatTable.KIND_NAMES.has(d.kind) or not d.tags.all(func(t):return t in UnitStatTable.ELEMENTS+UnitStatTable.DAMAGE_TAGS):tagged=false
-	verify(tagged and CharacterCatalog.NAMES.size()==33,"all 33 units have base stats and exactly one kind plus known tags per damage instance")
+	verify(tagged and CharacterCatalog.NAMES.size()==35,"all 35 units have base stats and exactly one kind plus known tags per damage instance")
 	verify(UnitStatTable.mitigation(0)==1 and UnitStatTable.mitigation(100)==.5 and is_equal_approx(UnitStatTable.mitigation(-100),1.5),"mitigation 100/(100+def), 2-100/(100-def) below zero")
 	# Bomber (fire · explosion · area) hits a mage.
 	var b:=duel(tree,[[13,0,Vector2(300,400)],[2,1,Vector2(380,400)]]);var src: BattleUnit=b.units[0];var tgt: BattleUnit=b.units[1];b.started=true
@@ -704,3 +705,55 @@ func status_sheet(tree: SceneTree) -> void:
 	var plain:=UnitInfoSheet.open(host,3);await tree.process_frame
 	verify(plain.tab_buttons.is_empty() and plain.info_body.visible,"a sheet without a unit instance has no 상태 tab")
 	plain.queue_free();host.queue_free();b.queue_free();await tree.process_frame
+
+## 그리핀 (33) and 석궁 (34), 0.72.0.
+func griffin_and_crossbow(tree: SceneTree) -> void:
+	# 그리핀: fixed (never walks), dashes in on its attack and leaves a wind storm.
+	var b:=duel(tree,[[33,0,Vector2(200,400)],[4,1,Vector2(420,400)]])
+	step(b,.05)
+	var griffin: BattleUnit=b.units[0];var foe: BattleUnit=b.units[1]
+	verify(TacticalMind.role(griffin.data)==TacticalMind.FIXED and griffin.data.recruit_tokens==4,"griffin is a fixed 4-token unit")
+	foe.move_speed=0;foe.combat.cooldown=1000;foe.parry_cooldown=1000;foe.defense_cooldown=1000
+	var start: Vector2=griffin.position
+	for i in range(60*4):
+		step(b,1.0/60)
+		if b.zones.entries.any(func(z):return z.kind=="griffinStorm"):break
+	verify(b.zones.entries.any(func(z):return z.kind=="griffinStorm") and griffin.position.distance_to(start)>60,"griffin dashes in and raises a storm")
+	var hp: float=foe.current_hp
+	step(b,1.2)
+	verify(foe.current_hp<hp and foe.state_value("headwindTime")>0,"the storm deals wind damage over time")
+	b.queue_free()
+	# Gust: knocks back, and a unit thrown into another is stunned.
+	# The blocker is the griffin's own ally, outside the cone, so only the thrown enemy flies.
+	b=duel(tree,[[33,0,Vector2(200,400)],[8,1,Vector2(330,400)],[4,0,Vector2(440,400)]])
+	step(b,.05)
+	griffin=b.units[0];var front: BattleUnit=b.units[1];var back: BattleUnit=b.units[2]
+	front.position=Vector2(330,400);back.position=Vector2(440,400)
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0
+	griffin.ability.gust(griffin,0.0)
+	verify(front.knockback_velocity.length()>200 and front.current_hp<front.max_hp,"the gust damages and throws enemies back")
+	var stunned: bool=false
+	for i in range(60):
+		step(b,1.0/60)
+		if front.stun_remaining>0 or back.stun_remaining>0:stunned=true;break
+	verify(stunned,"a unit thrown into another is stunned")
+	b.queue_free()
+	# 석궁: seven bolts per volley; the marking shell bursts and marks enemies as 목표.
+	b=duel(tree,[[34,0,Vector2(200,400)],[4,1,Vector2(480,400)],[4,1,Vector2(520,450)]])
+	step(b,.05)
+	var bow: BattleUnit=b.units[0]
+	for u in b.units.slice(1):u.move_speed=0;u.combat.cooldown=1000
+	var seen: Dictionary={}
+	for i in range(60*10):
+		step(b,1.0/60)
+		for p in b.projectiles:
+			if p.source==bow and p.kind=="crossBolt":seen[p.projectile_id]=true
+		if seen.size()>=7:break
+	verify(seen.size()>=7,"crossbow fires a volley of seven bolts")
+	bow.ability.burst(bow,b.units[1].position)
+	var marked: Array=b.units.slice(1).filter(func(e):return e.state_value("targetedTime")>0)
+	verify(marked.size()==2,"the marking shell bursts and marks every enemy in the blast")
+	var spec: Dictionary=UnitStatTable.spec(34,&"basic");bow.set_state("windStacks",0)
+	verify(is_equal_approx(ElementEffects.taken(marked[0]),1.1*(ElementEffects.FROSTBITE_TAKEN if marked[0].state_value("frostbiteTime")>0 else 1.0)) and is_equal_approx(ElementEffects.outgoing(bow,marked[0],spec,{})*ElementEffects.TARGETED_TAKEN,ElementEffects.TARGETED_WIND),"목표: +10% damage taken, +15% wind damage taken")
+	verify(StatusCatalog.collect(marked[0]).any(func(r):return r.key==&"targeted"),"목표 shows in the unit's 상태이상")
+	b.queue_free()

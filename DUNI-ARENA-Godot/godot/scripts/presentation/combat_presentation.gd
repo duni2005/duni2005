@@ -4,7 +4,7 @@ extends Control
 const MAX_EFFECTS=96
 const MAX_NUMBERS=40
 const FLAMETHROWER=preload("res://scripts/abilities/flamethrower_ability.gd")
-const ZONE_COLORS={"blackhole":Color("a878f5"),"tankFire":Color("ff934f"),"ring":Color("ffd68a"),"healing":Color("6de3ad"),"holy":Color("ffeeb3"),"cosmic":Color("80b1ff"),"galaxy":Color("a0a1ff"),"discharge":Color("b8e7ff")}
+const ZONE_COLORS={"blackhole":Color("a878f5"),"tankFire":Color("ff934f"),"ring":Color("ffd68a"),"healing":Color("6de3ad"),"holy":Color("ffeeb3"),"cosmic":Color("80b1ff"),"galaxy":Color("a0a1ff"),"discharge":Color("b8e7ff"),"griffinStorm":Color("9ff0d8")}
 var board: DeploymentBoard
 var battle: BattleManager
 var camera:=ArenaCameraController.new()
@@ -389,6 +389,15 @@ func advance(delta: float) -> void:
 					particles.burst(e.point,Color("6b5a4a"),26,320,0,"smoke",true);particles.burst(e.point,Color("c8a77c"),22,420,0,"shard",true)
 					particles.burst(e.point,Color("ffe59a"),20,380,0,"spark",true)
 					impact_pause(120);camera.impact(16,e.point);camera.focus(e.point)
+				"griffin_gust":
+					var angle: float=float(e.metadata.get("angle",0))
+					add_effect("griffin_gust",e.point,Color("c8f7e6"),float(e.metadata.get("radius",270)),.6,angle);effects[-1]["cone"]=float(e.metadata.get("cone",.6))
+					particles.burst(e.point+Vector2.from_angle(angle)*60,Color("e8fff6"),24,520,angle,"spark",true)
+					camera.impact(9,e.point)
+				"griffin_storm":
+					particles.burst(e.point,Color("c8f7e6"),14,220,0,"spark",false);particles.burst(e.point,Color("9fb9ae"),6,60,0,"smoke",false)
+				"targeted":
+					add_effect("targeted",e.point,Color("ff6a5a"),40,.5)
 				"hero_grab":
 					add_effect("hero_grab",e.point,Color("ffd27a"),46,.4)
 					particles.burst(e.point,Color("fff1c4"),10,200,0,"spark",true);camera.impact(5,e.point)
@@ -513,6 +522,19 @@ func _draw() -> void:
 			for i in range(10):
 				var v:=Vector2.from_angle(i*TAU/10+.3);var reach: float=e.radius*.42*minf(1,t*5)
 				draw_line(e.point+v*18,e.point+v*reach+v.orthogonal()*sin(i*2.3)*10,Color("4a3b2e",.75*(1-t)),3*(1-t)+1,true)
+		elif e.kind=="griffin_gust":
+			# Curved wind blades sweeping out through the cone.
+			var cone: float=float(e.get("cone",.6))
+			for k in range(4):
+				var tk: float=clampf((t-k*.08)/(1-k*.08),0,1);var r: float=e.radius*(.25+.75*(1-pow(1-tk,2)))
+				if tk>0 and tk<1:draw_arc(e.point,r,float(e.angle)-cone,float(e.angle)+cone,28,Color(Color("e8fff6"),(1-tk)*.85),6*(1-tk)+1.5,true)
+			for i in range(7):
+				var a: float=float(e.angle)+(i-3)*cone/3.5;var len: float=e.radius*(.3+.7*t)
+				draw_line(e.point+Vector2.from_angle(a)*len*.45,e.point+Vector2.from_angle(a)*len,Color(Color("c8f7e6"),.7*(1-t)),2.5,true)
+		elif e.kind=="targeted":
+			draw_arc(e.point,e.radius*(1.4-t*.6),0,TAU,32,Color(e.color,1-t),3,true)
+			for i in range(4):
+				var d:=Vector2.from_angle(i*PI/2);draw_line(e.point+d*e.radius*(1.6-t),e.point+d*e.radius*(.9-t*.3),Color(e.color,1-t),3,true)
 		elif e.kind=="hero_punch":
 			var dir:=Vector2.from_angle(float(e.angle))
 			VfxArt.flare(self,e.point,float(e.angle),e.radius*(.5+t),Color("fff4dd"),1-t)
@@ -548,7 +570,7 @@ func _draw() -> void:
 			draw_arc(e.point,40+t*520,0,TAU,72,Color(Color(e.color).lightened(.4),.3*(1-t)),3*(1-t)+1,true)
 		elif VfxArt.effect(self,e):pass
 		else:draw_arc(e.point,radius,0,TAU,32,c,2)
-		if e.kind not in ["hit","critical","projectile_hit","explosion","heal","parry_success","warrior_parry","clash","ultimate","transcendence","launch","reflect","shield_break","shield_hit","ult_flash","ult_release","ult_impact","ult_hit","chain_shock","light_pop","dark_pop","shock_stun","light_mark","dark_mark","hero_shock","hero_punch","hero_call","hero_grab"]:
+		if e.kind not in ["hit","critical","projectile_hit","explosion","heal","parry_success","warrior_parry","clash","ultimate","transcendence","launch","reflect","shield_break","shield_hit","ult_flash","ult_release","ult_impact","ult_hit","chain_shock","light_pop","dark_pop","shock_stun","light_mark","dark_mark","hero_shock","hero_punch","hero_call","hero_grab","griffin_gust","targeted"]:
 			for i in range(4):
 				var v:=Vector2.from_angle(i*TAU/4+float(e.age)*.7);VfxArt.star(self,e.point+v*radius,5,e.color,1-t)
 		if e.kind in ["parry_success","warrior_parry","clash"]:draw_string(ThemeDB.fallback_font,e.point+Vector2(-26,-50-t*18),{"parry_success":"패링","warrior_parry":"반격","clash":"상쇄"}[e.kind],HORIZONTAL_ALIGNMENT_LEFT,-1,18,c)
@@ -894,6 +916,12 @@ func _element_status(u: BattleUnit,p: Vector2,s: float) -> void:
 		for i in range(3):
 			var a: float=-real_age*2.4+i*TAU/3
 			draw_arc(p,34*s,a,a+.9,10,Color("c9a6ff",.75),2.5,true)
+	# 목표 (석궁): a red reticle turning over the unit.
+	if u.state_value("targetedTime")>0:
+		var rr: float=31*s;var spin: float=real_age*1.5
+		draw_arc(p,rr,0,TAU,32,Color("ff6a5a",.75),2,true)
+		for i in range(4):
+			var d:=Vector2.from_angle(spin+i*PI/2);draw_line(p+d*(rr-6*s),p+d*(rr+7*s),Color("ff8a7a"),2.5,true)
 	# Marks: a turning golden sigil (광휘) / a violet sigil of inward fangs (암흑) over the head.
 	var light_mark: bool=not str(u.character_specific_state.get("lightMark","")).is_empty()
 	var dark_mark: bool=not str(u.character_specific_state.get("darkMark","")).is_empty()

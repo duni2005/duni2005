@@ -235,6 +235,16 @@ static func field(c: CanvasItem,z: Dictionary,time: float,color: Color) -> void:
 		c.draw_circle(p,r*.22,Color("080913",fade))
 		ellipse(c,p,r*.29,.44,Color("f1cfff",fade*.85),2);ellipse(c,p,r*.34,.42,Color("a57cff",fade*.6),3)
 		sigil(c,p,r*.9,time,Color("b89bfa"),.35*fade)
+	elif kind=="griffinStorm":
+		# Wind spiralling inside the storm, quick pale streaks and a soft cyan haze.
+		glow(c,p,r,color,.2*fade)
+		for i in range(6):
+			var a: float=-time*3.2+i*TAU/6
+			c.draw_arc(p,r*(.35+.1*(i%3)),a,a+1.9,18,Color(Color("e8fff6"),.55*fade),2.5,true)
+		for i in range(10):
+			var t: float=fposmod(time*1.4+i*.1,1.0);var a: float=i*2.39-time*4
+			var at: Vector2=p+Vector2.from_angle(a)*r*(.95-t*.6)
+			c.draw_line(at,at+Vector2.from_angle(a+PI*.5)*14,Color(Color("c8f7e6"),sin(t*PI)*.8*fade),2,true)
 	elif kind in ["healing","holy"]:
 		glow(c,p,r,color,.18*fade);sigil(c,p,r*.85,time,color,.55*fade)
 		for i in range(6):ribbon(c,p,r*.59,time*.12+i*TAU/6,time*.12+i*TAU/6+.72,10,color,.2*fade)

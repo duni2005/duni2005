@@ -2,7 +2,7 @@ class_name MagicFieldLayer
 extends Control
 ## Bounded reusable shader quads for decorative flow; actual boundaries stay in main draw.
 const LIMIT=16
-const KINDS={"blackhole":0,"tankFire":1,"healing":2,"holy":2,"galaxy":3,"cosmic":3}
+const KINDS={"blackhole":0,"tankFire":1,"healing":2,"holy":2,"galaxy":3,"cosmic":3,"griffinStorm":2}
 const FLOW=preload("res://assets/vfx/magic_flow.gdshader")
 const NOISE=preload("res://assets/vfx/flow_noise.png")
 var pool: Array[Node2D]=[]
