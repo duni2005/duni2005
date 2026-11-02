@@ -106,15 +106,18 @@ static func on_hit(source, target, out: DamageOutcome, spec: Dictionary, options
 		if out.hp_damage > 0 and target.state_value("windStacks") > 0:target.set_state("windStacks", 0)
 		if str(target.character_specific_state.get("darkMark", "")) not in ["", me]:
 			target.character_specific_state.erase("darkMark")
-			battle.emit_combat_event(&"dark_pop", target.position, {"actor_id": target.battle_id})
+			battle.emit_combat_event(&"dark_pop", target.position, {"actor_id": target.battle_id, "to": [me]})
 		if str(target.character_specific_state.get("lightMark", "")) not in ["", me]:
 			target.character_specific_state.erase("lightMark")
 			if source.alive:CharacterAbility.restore_hp(source, source.max_hp * LIGHT_POP_HEAL, source)
-			battle.emit_combat_event(&"light_pop", target.position, {"actor_id": target.battle_id})
+			battle.emit_combat_event(&"light_pop", target.position, {"actor_id": target.battle_id, "to": [me]})
 	if tags.has(&"light") and out.hp_damage > 0 and source.alive:
+		var healed: Array = []
 		for ally in battle.units:
 			if ally.alive and ally.team == source.team and not ally.unavailable() and ally.position.distance_to(source.position) <= LIGHT_RADIUS * source.combat_scale():
-				CharacterAbility.restore_hp(ally, out.hp_damage * LIGHT_HEAL, source)
+				if CharacterAbility.restore_hp(ally, out.hp_damage * LIGHT_HEAL, source) > 0:healed.append(ally.actor_id())
+		# Presentation: orbs of light fly from the struck enemy to each healed ally.
+		if not healed.is_empty():battle.emit_combat_event(&"light_orbs", target.position, {"to": healed})
 	if status != &"" and status != &"chain_shock":return
 	if target.alive:
 		var rng: RandomNumberGenerator = battle.rng
@@ -125,8 +128,11 @@ static func on_hit(source, target, out: DamageOutcome, spec: Dictionary, options
 			target.set_state("poisonStacks", target.state_value("poisonStacks") + 1);target.set_state("poisonSource", me)
 		if tags.has(&"ice") and not source.ability.own_element(&"ice", options) and rng.randf() < PROC_CHANCE:add_frost(source, target, 1)
 		if tags.has(&"wind"):target.set_state("headwindTime", HEADWIND_TIME)
-		if tags.has(&"light"):target.set_state("lightMark", me)
+		if tags.has(&"light"):
+			if str(target.character_specific_state.get("lightMark", "")) != me:battle.emit_combat_event(&"light_mark", target.position, {"actor_id": target.battle_id})
+			target.set_state("lightMark", me)
 		if tags.has(&"dark"):
+			if str(target.character_specific_state.get("darkMark", "")) != me:battle.emit_combat_event(&"dark_mark", target.position, {"actor_id": target.battle_id})
 			target.set_state("erosionTime", EROSION_TIME);target.set_state("erosionSource", me);target.set_state("darkMark", me)
 	if status == &"" and tags.has(&"lightning") and not source.ability.own_element(&"chain", options):
 		_chain(source, target, out.hp_damage + out.shield_absorbed)

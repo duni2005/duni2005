@@ -17,12 +17,17 @@ func burst(point: Vector2,color: Color,amount: int,force: float=190,angle: float
 		var speed: float=force*(.35+noise(seed+2)*.9);var life: float=.26+noise(seed+3)*.5
 		var velocity: Vector2=Vector2.from_angle(a)*speed
 		if style in ["heal","mote"]:velocity=Vector2((noise(seed)-.5)*force*.35,-force*(.25+noise(seed+2)*.5))
+		# Rising status puffs: tinted smoke (plume) and licking flames (flame) drift upward.
+		elif style=="plume":velocity=Vector2((noise(seed)-.5)*force*.5,-force*(.3+noise(seed+2)*.4));life=.8+noise(seed+3)*.7
+		elif style=="flame":velocity=Vector2((noise(seed)-.5)*force*.45,-force*(.6+noise(seed+2)*.6));life=.35+noise(seed+3)*.35
 		entries.append({"p":point,"v":velocity,"age":0.0,"life":life,"color":color,"size":1.5+noise(seed+5)*3,"style":style,"spin":(noise(seed+6)*2-1)*5,"angle":a,"seed":seed})
 	peak=maxi(peak,entries.size())
 func advance(dt: float) -> void:
 	for e in entries:
-		e.age=float(e.age)+dt;e.p=Vector2(e.p)+Vector2(e.v)*dt;e.v=Vector2(e.v)*exp((-1.6 if e.style=="shard" else -3)*dt);e.angle+=float(e.spin)*dt
+		e.age=float(e.age)+dt;e.p=Vector2(e.p)+Vector2(e.v)*dt;e.v=Vector2(e.v)*exp((-1.6 if e.style=="shard" else -1.1 if e.style in ["plume","flame"] else -3)*dt);e.angle+=float(e.spin)*dt
 		if e.style=="smoke":e.v+=Vector2(0,-20)*dt
+		elif e.style=="plume":e.v+=Vector2(sin(e.age*3+e.seed)*14,-16)*dt
+		elif e.style=="flame":e.v+=Vector2(sin(e.age*14+e.seed)*40,-70)*dt
 		elif e.style in ["heal","mote"]:e.v+=Vector2(sin(e.age*8+e.seed)*12,-25)*dt
 		else:e.v+=Vector2(0,140 if e.style=="shard" else 60)*dt
 	for i in range(entries.size()-1,-1,-1):
@@ -33,6 +38,14 @@ func draw(canvas: CanvasItem,dim: float=1) -> void:
 		match e.style:
 			"smoke":
 				VfxArt.quad(canvas,VfxArt.SMOKE,point,Vector2.ONE*(8+t*15)*e.size,e.angle,Color("5e514d",sin(t*PI)*.35*dim))
+			"plume":
+				VfxArt.quad(canvas,VfxArt.SMOKE,point,Vector2.ONE*(7+t*18)*e.size,e.angle,Color(e.color,sin(t*PI)*.7*dim))
+			"flame":
+				# White-hot core cooling to orange, then a dull red as it rises and shrinks.
+				var hot: Color=Color("fff0b0").lerp(Color("ff8a2a"),clampf(t*1.8,0,1)).lerp(Color("b8341c"),clampf(t*1.6-.6,0,1))
+				var size: float=e.size*(1.6-t*1.1)
+				VfxArt.glow(canvas,point,size*4.5,e.color,fade*.5)
+				canvas.draw_colored_polygon(PackedVector2Array([point+Vector2(0,-size*2.6),point+Vector2(size,0),point+Vector2(0,size*.9),point+Vector2(-size,0)]),Color(hot,fade))
 			"heal","mote":
 				var size: float=e.size*(1+sin(t*PI))
 				VfxArt.star(canvas,point,size*2.4,e.color,fade,e.angle*.15)

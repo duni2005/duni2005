@@ -36,6 +36,10 @@ var release_counts: Dictionary={}
 var weapon_releases: Dictionary={}
 var afterimages: Array[Dictionary]=[]
 const MAX_AFTERIMAGES=48
+## Element visuals: orbs of light / dark flying between units, and per-unit emitter clocks for
+## the rising flames, smoke and poison plumes.
+var orbs: Array[Dictionary]=[]
+var emit_clock: Dictionary={}
 ## Element status damage numbers and badges (ElementEffects).
 const STATUS_COLORS={&"burn":Color("ff9a52"),&"burn_spread":Color("ffb27a"),&"poison":Color("8fe36b"),&"frostbite":Color("a8e4ff"),&"chain_shock":Color("9fdcff"),&"erosion":Color("b48cff")}
 var kill_notices: Array[Dictionary]=[]
@@ -84,7 +88,7 @@ func cleanup() -> void:
 		if battle.battle_finalizing.is_connected(_prepare_ending):battle.battle_finalizing.disconnect(_prepare_ending)
 	cinematic=BattleCinematicState.new()
 	kill_notices.clear();kill_streaks.clear();multi_banner.clear();multi_queue.clear()
-	connected=false;battle=null;effects.clear();numbers.clear();previous.clear();feed.clear();event_total=0;end_age=0;camera.reset();particles.clear();flashes.clear();visual_positions.clear();freeze_positions.clear();impact_remaining=0;trans_active=false;explosive_seen.clear();tracked_projectiles.clear();projectile_trails.clear();projectile_origins.clear();release_counts.clear();weapon_releases.clear();ult_released.clear();ult_timers.clear();afterimages.clear();trail_tick=-1;queue_redraw()
+	connected=false;battle=null;effects.clear();numbers.clear();previous.clear();feed.clear();event_total=0;end_age=0;camera.reset();particles.clear();flashes.clear();visual_positions.clear();freeze_positions.clear();impact_remaining=0;trans_active=false;explosive_seen.clear();tracked_projectiles.clear();projectile_trails.clear();projectile_origins.clear();release_counts.clear();weapon_releases.clear();ult_released.clear();ult_timers.clear();afterimages.clear();orbs.clear();emit_clock.clear();trail_tick=-1;queue_redraw()
 	if is_instance_valid(glow_layer):glow_layer.queue_redraw()
 	if is_instance_valid(field_layer):field_layer.clear()
 func add_effect(kind: String,point: Vector2,color: Color=Color.WHITE,radius: float=28,life: float=.45,direction: float=0) -> void:
@@ -131,6 +135,11 @@ func _damage(source,target,out: DamageOutcome) -> void:
 	if out.status!=&"":
 		if out.hp_damage>0:number("status",target.position,out.hp_damage,STATUS_COLORS.get(out.status,Color.WHITE),target.battle_id)
 		if out.status==&"chain_shock" and out.hp_damage>0:flashes[target.battle_id]=.1
+		match out.status:
+			&"burn":particles.burst(target.position,Color("ff9a52"),3,90,-PI/2,"flame",false)
+			&"poison":particles.burst(target.position,Color("2f6b2a"),3,40,0,"plume",false);particles.burst(target.position,Color("8fe36b"),3,80,-PI/2,"mote",false)
+			&"erosion":particles.burst(target.position,Color("a777ff"),7,200,0,"shard",true);particles.burst(target.position,Color("2a1840"),3,40,0,"plume",false)
+			&"frostbite":particles.burst(target.position,Color("d9f4ff"),7,200,0,"shard",true)
 		return
 	if out.hp_damage>0:
 		flashes[target.battle_id]=.15
@@ -338,9 +347,21 @@ func advance(delta: float) -> void:
 				particles.burst(e.point,Color("c8a77c"),20,340,0,"shard",true);particles.burst(e.point,Color("6b5a4a"),12,90,0,"smoke",true)
 				impact_pause(90);camera.impact(14,e.point)
 			if kind=="chain_shock":
-				add_effect("chain_shock",e.point,Color("bfe9ff"),20,.28);effects[-1]["to"]=CharacterPersistence.vector(e.metadata.get("to",{}),e.point)
-			elif kind in ["light_pop","dark_pop","shock_stun"]:
-				add_effect(kind,e.point,Color("ffe9a0") if kind=="light_pop" else Color("b48cff") if kind=="dark_pop" else Color("9fdcff"),44,.5)
+				var to: Vector2=CharacterPersistence.vector(e.metadata.get("to",{}),e.point)
+				add_effect("chain_shock",e.point,Color("bfe9ff"),20,.34);effects[-1]["to"]=to
+				particles.burst(to,Color("bfe9ff"),14,280,(to-e.point).angle(),"spark",true);particles.burst(to,Color.WHITE,5,150,0,"spark",true)
+				for k in range(3):particles.burst(e.point.lerp(to,(k+1)/4.0),Color("9fdcff"),3,110,0,"spark",false)
+			elif kind in ["light_pop","dark_pop","shock_stun","light_mark","dark_mark"]:
+				var light: bool=kind.begins_with("light")
+				add_effect(kind,e.point,Color("ffe9a0") if light else Color("9fdcff") if kind=="shock_stun" else Color("b48cff"),48 if kind.ends_with("pop") else 34,.55)
+				match kind:
+					"light_pop":particles.burst(e.point,Color("ffe59a"),18,220,0,"heal",true);particles.burst(e.point,Color.WHITE,8,260,0,"spark",true)
+					"dark_pop":particles.burst(e.point,Color("a777ff"),16,260,0,"shard",true);particles.burst(e.point,Color("3a1f63"),8,60,0,"plume",true)
+					"shock_stun":particles.burst(e.point,Color("bfe9ff"),20,300,0,"spark",true)
+					"light_mark":particles.burst(e.point,Color("ffe59a"),8,90,0,"mote",false)
+					"dark_mark":particles.burst(e.point,Color("6b3fb0"),6,50,0,"plume",false)
+			if kind in ["light_orbs","light_pop","dark_pop"]:
+				for id in e.metadata.get("to",[]):_orb(e.point,str(id),kind)
 			if kind=="dragon_heart":
 				add_effect("dragon_heart",e.point,Color("ff8a4a"),float(e.metadata.get("radius",130)),.6)
 				particles.burst(e.point,Color("ffbf72"),12,170,0,"ember",false)
@@ -363,6 +384,7 @@ func advance(delta: float) -> void:
 			if u.stun_remaining>0 and float(old.stun)<=0:add_effect("stun",u.position,ArenaUI.GOLD,32)
 			if u.invincible_remaining>0 and float(old.inv)<=0:add_effect("invincible",u.position,ArenaUI.GOLD,38)
 			previous[u.battle_id]={"hp":u.current_hp,"shield":u.shield_hp,"stun":u.stun_remaining,"inv":u.invincible_remaining}
+	_status_emitters(delta);_advance_orbs(delta)
 	var rows: Array=[]
 	for unit in battle.units:
 		if unit.alive:rows.append({"position":unit.position,"velocity":unit.velocity,"scale":unit.combat_scale()})
@@ -430,6 +452,7 @@ func _draw() -> void:
 	for u in ([] if battle.finished else battle.units):
 		if u.data.type_id==27 and u.state_value("trainFx")>0 and u.ultimate.cast.has("track"):_draw_train(u)
 	particles.draw(self)
+	_draw_orbs()
 	for e in effects:
 		if e.kind=="ultimate":
 			var caster: BattleUnit=battle.find_actor(String(e.get("actor","")))
@@ -440,8 +463,12 @@ func _draw() -> void:
 			UnitIcon.draw(self,Rect2(e.point-Vector2(26,26)*float(e.get("scale",1))+Vector2(0,t*12),Vector2(52,52)*float(e.get("scale",1))),int(e.get("type",0)),1-t)
 			for i in range(5):draw_line(e.point+Vector2(-25,-20+i*10),e.point+Vector2(25+t*30,-20+i*10),Color(e.color,.5*(1-t)),2)
 		elif e.kind=="chain_shock":
-			VisualShapes.bolt(self,e.point,e.get("to",e.point),c,real_age*30+float(e.radius),3*(1-t)+1)
-		elif e.kind in ["light_pop","dark_pop","shock_stun"]:
+			var to: Vector2=e.get("to",e.point)
+			VisualShapes.bolt(self,e.point,to,Color("6fc6ff",.45*(1-t)),real_age*30+float(e.radius),8*(1-t)+2)
+			VisualShapes.bolt(self,e.point,to,c,real_age*30+float(e.radius),3*(1-t)+1)
+			VisualShapes.bolt(self,e.point,to,Color(1,1,1,1-t),real_age*30+float(e.radius)+.5,1.2)
+			VfxArt.glow(self,to,26*(1-t)+8,Color("9fdcff"),.6*(1-t))
+		elif e.kind in ["light_pop","dark_pop","shock_stun","light_mark","dark_mark"]:
 			VfxArt.glow(self,e.point,e.radius*(.6+t),e.color,.5*(1-t))
 			for i in range(4):
 				var v:=Vector2.from_angle(i*TAU/4+PI/4+t*1.2)
@@ -451,7 +478,7 @@ func _draw() -> void:
 			draw_arc(e.point,40+t*520,0,TAU,72,Color(Color(e.color).lightened(.4),.3*(1-t)),3*(1-t)+1,true)
 		elif VfxArt.effect(self,e):pass
 		else:draw_arc(e.point,radius,0,TAU,32,c,2)
-		if e.kind not in ["hit","critical","projectile_hit","explosion","heal","parry_success","warrior_parry","clash","ultimate","transcendence","launch","reflect","shield_break","shield_hit","ult_flash","ult_release","ult_impact","ult_hit","chain_shock","light_pop","dark_pop","shock_stun"]:
+		if e.kind not in ["hit","critical","projectile_hit","explosion","heal","parry_success","warrior_parry","clash","ultimate","transcendence","launch","reflect","shield_break","shield_hit","ult_flash","ult_release","ult_impact","ult_hit","chain_shock","light_pop","dark_pop","shock_stun","light_mark","dark_mark"]:
 			for i in range(4):
 				var v:=Vector2.from_angle(i*TAU/4+float(e.age)*.7);VfxArt.star(self,e.point+v*radius,5,e.color,1-t)
 		if e.kind in ["parry_success","warrior_parry","clash"]:draw_string(ThemeDB.fallback_font,e.point+Vector2(-26,-50-t*18),{"parry_success":"패링","warrior_parry":"반격","clash":"상쇄"}[e.kind],HORIZONTAL_ALIGNMENT_LEFT,-1,18,c)
@@ -653,20 +680,77 @@ func _new_character_state(u: BattleUnit,p: Vector2,s: float) -> void:
 		var t: float=1-u.state_value("deliveryFx")/1.2
 		var icon: String={"heal":"heal","power":"fang","charge":"charge","shield":"shield"}.get(kind,"heal")
 		ArenaIcon.draw(self,p+Vector2(0,-58-t*22)*s,icon,18,Color({"heal":"8ff0a4","power":"ff9a7a","charge":"9fd8ff","shield":"7ddfff"}.get(kind,"ffffff"),1-t))
+## Rising flames and smoke while burning, dark-green and violet plumes while poisoned, violet smoke
+## while eroded, frost glints while frostbitten. Emitters run on battle time.
+func _status_emitters(dt: float) -> void:
+	if dt<=0 or not is_instance_valid(battle):return
+	for u in battle.units:
+		if not u.alive or u.character_specific_state.is_empty():continue
+		var clock: Dictionary=emit_clock.get(u.battle_id,{})
+		var s: float=u.combat_scale();var p: Vector2=u.position
+		var burn: float=u.state_value("burnStacks")
+		for row in [["flame",burn>0,.07/(1+burn*.08)],["smoke",burn>0,.18],["poison",u.state_value("poisonStacks")>0,.11],["erosion",u.state_value("erosionTime")>0,.1],["frost",u.state_value("frostbiteTime")>0,.22]]:
+			if not row[1]:clock.erase(row[0]);continue
+			var t: float=float(clock.get(row[0],row[2]))+dt
+			while t>=row[2]:
+				t-=row[2]
+				var n: float=VisualParticles.noise(real_age*97+u.battle_id*13+t);var x: float=(n-.5)*36*s
+				match row[0]:
+					"flame":particles.burst(p+Vector2(x,10*s),Color("ff7a2e"),1,70*s,-PI/2,"flame",false)
+					"smoke":particles.burst(p+Vector2(x*.6,-24*s),Color("3a3432"),1,40*s,-PI/2,"plume",false)
+					"poison":
+						particles.burst(p+Vector2(x,8*s),Color("2e7a22") if n<.55 else Color("7a3aa8"),1,42*s,-PI/2,"plume",false)
+						if n>.75:particles.burst(p+Vector2(x,0),Color("a6f07a"),1,40*s,-PI/2,"mote",false)
+					"erosion":
+						particles.burst(p+Vector2(x,6*s),Color("2a1840") if n<.6 else Color("6b3fb0"),1,46*s,-PI/2,"plume",false)
+						if n>.7:particles.burst(p+Vector2(x,-6*s),Color("c9a6ff"),1,50*s,-PI/2,"mote",false)
+					"frost":particles.burst(p+Vector2(x,-10*s),Color("e6f8ff"),1,40*s,-PI/2,"mote",false)
+			clock[row[0]]=t
+		emit_clock[u.battle_id]=clock
+## An orb of light (heal) or darkness (empower) flies on a bent path from a struck enemy to an ally.
+func _orb(from: Vector2,actor: String,kind: String) -> void:
+	if orbs.size()>=48:orbs.pop_front()
+	orbs.append({"from":from,"to":from,"actor":actor,"age":0.0,"life":.6 if kind=="light_orbs" else .7,"dark":kind=="dark_pop","big":kind!="light_orbs","bend":(1 if orbs.size()%2==0 else -1)*(.5+VisualParticles.noise(real_age*31+orbs.size())*.5),"trail":[]})
+func _orb_point(o: Dictionary,t: float) -> Vector2:
+	var from: Vector2=o.from;var to: Vector2=o.to;var k: float=t*t*(3-2*t)
+	var mid: Vector2=(from+to)*.5+(to-from).orthogonal()*float(o.bend)*.45+Vector2(0,-50)
+	return from.lerp(mid,k).lerp(mid.lerp(to,k),k)
+func _advance_orbs(dt: float) -> void:
+	for o in orbs.duplicate():
+		o.age=float(o.age)+dt
+		var u=battle.find_actor(String(o.actor)) if is_instance_valid(battle) else null
+		if u!=null:o.to=u.position
+		var t: float=clampf(float(o.age)/float(o.life),0,1);var at: Vector2=_orb_point(o,t)
+		o.trail.append(at)
+		if o.trail.size()>9:o.trail.pop_front()
+		var tint: Color=Color("a777ff") if o.dark else Color("ffe59a")
+		if VisualParticles.noise(real_age*53+float(o.age)*7)>.6:particles.burst(at,tint,1,40,0,"mote",false)
+		if t>=1:
+			orbs.erase(o)
+			add_effect("orb_land",o.to,tint,30 if o.big else 20,.45)
+			particles.burst(o.to,tint,14 if o.big else 8,160,0,"shard" if o.dark else "heal",true)
+func _draw_orbs() -> void:
+	for o in orbs:
+		var t: float=clampf(float(o.age)/float(o.life),0,1);var at: Vector2=_orb_point(o,t)
+		var tint: Color=Color("a777ff") if o.dark else Color("ffe59a");var core: Color=Color("2a1048") if o.dark else Color.WHITE
+		var r: float=9.0 if o.big else 6.5
+		var trail: Array=o.trail
+		for i in range(1,trail.size()):draw_line(trail[i-1],trail[i],Color(tint,float(i)/trail.size()*.7),r*float(i)/trail.size()*1.3,true)
+		VfxArt.glow(self,at,r*4.5,tint,.85)
+		draw_circle(at,r,tint);draw_circle(at,r*.55,core)
+		if not o.dark:VfxArt.star(self,at,r*1.6,Color.WHITE,.9,real_age*4)
+		else:draw_arc(at,r*1.4,real_age*6,real_age*6+2.2,8,Color("e0ccff",.9),1.5,true)
 ## Element statuses (ElementEffects): an aura for burning / poison / erosion / frostbite / headwind,
 ## marks over the head, and a row of small counted badges under the unit.
 func _element_status(u: BattleUnit,p: Vector2,s: float) -> void:
 	if u.character_specific_state.is_empty() or not u.alive:return
 	var flicker: float=.5+.5*sin(real_age*9+u.battle_id)
 	if u.state_value("burnStacks")>0:
-		VfxArt.glow(self,p,40*s,Color("ff7a2e"),.3+.12*flicker)
-		for i in range(3):
-			var k: float=fposmod(real_age*1.6+i*.33+u.battle_id*.17,1.0)
-			draw_circle(p+Vector2((i-1)*13+sin(real_age*5+i)*3,20-k*50)*s,(5.5-k*3.5)*s,Color("ffc061",.95*(1-k)))
+		VfxArt.glow(self,p,44*s,Color("ff6a1e"),.32+.14*flicker)
+		VfxArt.glow(self,p+Vector2(0,-14)*s,26*s,Color("ffc061"),.22+.1*flicker)
 	if u.state_value("poisonStacks")>0:
-		var k: float=fposmod(real_age*.9+u.battle_id*.21,1.0)
-		draw_circle(p+Vector2(16,-6+k*22)*s,3*s,Color("8fe36b",.8*(1-k)))
-		draw_arc(p,30*s,0,TAU,28,Color("8fe36b",.6),2.5,true)
+		VfxArt.glow(self,p,40*s,Color("3f7a2c"),.28+.08*flicker)
+		VfxArt.glow(self,p+Vector2(8,-8)*s,24*s,Color("6b3a8f"),.2)
 	if u.state_value("frostbiteTime")>0:
 		for i in range(6):
 			var a: float=i*TAU/6+real_age*.6
@@ -681,15 +765,29 @@ func _element_status(u: BattleUnit,p: Vector2,s: float) -> void:
 			var a: float=real_age*4+i*TAU/n
 			draw_arc(p+Vector2.from_angle(a)*30*s,5*s,a,a+2.4,6,Color("9ff0d8",.85),2,true)
 	if u.state_value("erosionTime")>0:
-		VfxArt.glow(self,p,40*s,Color("5a2ea8"),.35+.1*flicker)
+		VfxArt.glow(self,p,44*s,Color("4a2290"),.38+.12*flicker)
 		for i in range(3):
-			var k: float=fposmod(real_age*1.2+i*.33,1.0)
-			draw_line(p+Vector2((i-1)*14,10-k*30)*s,p+Vector2((i-1)*14+4,2-k*30)*s,Color("c9a6ff",.9*(1-k)),3,true)
-	for pair in [["lightMark",Color("ffe9a0")],["darkMark",Color("b48cff")]]:
-		if str(u.character_specific_state.get(pair[0],"")).is_empty():continue
-		var at: Vector2=p+Vector2(-12 if pair[0]=="lightMark" else 12,-60)*s+Vector2(0,sin(real_age*3)*2)
-		var d: float=9*s
-		draw_colored_polygon(PackedVector2Array([at+Vector2(0,-d),at+Vector2(d*.7,0),at+Vector2(0,d),at+Vector2(-d*.7,0)]),Color(pair[1],.9))
+			var a: float=-real_age*2.4+i*TAU/3
+			draw_arc(p,34*s,a,a+.9,10,Color("c9a6ff",.75),2.5,true)
+	# Marks: a turning golden sigil (광휘) / a violet sigil of inward fangs (암흑) over the head.
+	var light_mark: bool=not str(u.character_specific_state.get("lightMark","")).is_empty()
+	var dark_mark: bool=not str(u.character_specific_state.get("darkMark","")).is_empty()
+	if light_mark:
+		var at: Vector2=p+Vector2(-15 if dark_mark else 0,-66)*s+Vector2(0,sin(real_age*3)*2)
+		VfxArt.glow(self,at,26*s,Color("ffd86a"),.45+.15*flicker)
+		VfxArt.star(self,at,8*s,Color("fff4c8"),1,real_age*1.5)
+		for i in range(4):
+			var v: Vector2=Vector2.from_angle(real_age*2+i*TAU/4)*12*s;var d: float=3.5*s
+			draw_colored_polygon(PackedVector2Array([at+v+Vector2(0,-d),at+v+Vector2(d*.7,0),at+v+Vector2(0,d),at+v+Vector2(-d*.7,0)]),Color("ffe59a",.95))
+		draw_arc(at,12*s,0,TAU,24,Color("ffe59a",.5),1.5,true)
+	if dark_mark:
+		var at: Vector2=p+Vector2(15 if light_mark else 0,-66)*s+Vector2(0,cos(real_age*3)*2)
+		VfxArt.glow(self,at,26*s,Color("6b3fb0"),.55+.15*flicker)
+		draw_circle(at,6*s,Color("1c0f30"));draw_arc(at,6*s,0,TAU,16,Color("c9a6ff"),1.5,true)
+		for i in range(3):
+			var v: Vector2=Vector2.from_angle(-real_age*2.2+i*TAU/3)
+			draw_colored_polygon(PackedVector2Array([at+v*8*s,at+v*15*s+v.orthogonal()*4*s,at+v*15*s-v.orthogonal()*4*s]),Color("b48cff",.95))
+		draw_arc(at,15*s,0,TAU,24,Color("b48cff",.45),1.5,true)
 	var badges: Array=[]
 	for row in [["burnStacks","phoenixFeather",Color("ff9a52")],["poisonStacks","verdantStone",Color("8fe36b")],["windStacks","hawkFeather",Color("9ff0d8")]]:
 		var n: int=int(u.state_value(row[0]))
