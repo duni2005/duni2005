@@ -36,7 +36,10 @@ static func intercept_lethal(u,hp_damage: float,executed: bool=false) -> bool:
 	if not heroes.is_empty():
 		var hero=heroes[0]
 		interrupt(hero);release_carried(hero);hero.stun_remaining=0;hero.stun_revision+=1;hero.hero_rescue_used=true
-		hero.hero_rescue={"target":u.actor_id(),"time":0.0};u.hero_rescue_owner=hero.actor_id();hero.combat.cancel(hero);hero.ultimate.cast.clear();hero.parry_remaining=0;hero.knockback_velocity=Vector2.ZERO
+		hero.hero_rescue={"target":u.actor_id(),"time":0.0,"from":CharacterPersistence.point(hero.position)};u.hero_rescue_owner=hero.actor_id();hero.combat.cancel(hero);hero.ultimate.cast.clear();hero.parry_remaining=0;hero.knockback_velocity=Vector2.ZERO
+		# The lethal hit is cancelled and the ally is shielded at once; the hero flies in.
+		u.shield_hp=maxf(u.shield_hp,60);u.shield_remaining=maxf(u.shield_remaining,10)
+		u.battle.emit_combat_event(&"hero_call",u.position,{"hero":hero.actor_id(),"target":u.actor_id()})
 		return true
 	var frogs: Array=u.friends().filter(func(v):return v.data.type_id==24 and v.ultimate_gauge>=100 and v.stun_remaining<=0 and v.frog_action.is_empty() and not v.unavailable() and v.duel.is_empty() and v.strategy_dash.is_empty() and v.position.distance_to(u.position)<=1100*v.combat_scale())
 	frogs.sort_custom(func(a,b):return u.position.distance_to(a.position)<u.position.distance_to(b.position))

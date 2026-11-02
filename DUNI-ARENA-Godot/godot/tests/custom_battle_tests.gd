@@ -53,6 +53,7 @@ func run(tree: SceneTree) -> void:
 	await new_characters(tree)
 	element_effects(tree)
 	attack_speed_pace(tree)
+	hero_moves(tree)
 	items(tree)
 	multikill(tree)
 	stairs()
@@ -625,3 +626,32 @@ func attack_speed_pace(tree: SceneTree) -> void:
 			b.queue_free()
 		rates.append(released)
 	verify(rates[1]>=rates[0]*1.35,"double attack speed attacks clearly more often (%d -> %d)"%[rates[0],rates[1]])
+
+## 히어로 (0.67.0): the rescue shields the ally the moment it triggers; the ultimate grabs the enemy,
+## holds it while the fist is drawn back, then punches.
+func hero_moves(tree: SceneTree) -> void:
+	var b:=duel(tree,[[17,0,Vector2(150,250)],[0,0,Vector2(420,520)],[4,1,Vector2(520,560)]])
+	step(b,.05)
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0
+	var hero: BattleUnit=b.units[0];var ally: BattleUnit=b.units[1];var foe: BattleUnit=b.units[2]
+	ally.current_hp=3
+	b.damage_resolver.resolve(foe,ally,200,{"critical":false})
+	verify(ally.alive and not hero.hero_rescue.is_empty() and ally.shield_hp>=60 and b.combat_event_counts.get(&"hero_call",0)==1,"rescue cancels the lethal hit and shields the ally at once")
+	step(b,1.5)
+	verify(b.combat_event_counts.get(&"hero_rescue",0)==1,"the hero lands with a shockwave")
+	b.queue_free()
+	b=duel(tree,[[17,0,Vector2(200,400)],[8,1,Vector2(480,400)]])
+	step(b,.05)
+	hero=b.units[0];foe=b.units[1]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000
+	hero.ultimate_gauge=100
+	var grabbed: bool=false;var held: bool=true
+	for i in range(60*5):
+		step(b,1.0/60)
+		if b.combat_event_counts.get(&"hero_grab",0)>0 and hero.ultimate.cast.get("phase","")=="punch":
+			grabbed=true
+			held=held and foe.stun_remaining>0 and foe.position.distance_to(hero.position)<90
+		if b.combat_event_counts.get(&"hero_punch",0)>0:break
+	verify(grabbed and held,"the ultimate grabs and holds the enemy while charging")
+	verify(b.combat_event_counts.get(&"hero_punch",0)==1,"then punches with a shockwave")
+	b.queue_free()

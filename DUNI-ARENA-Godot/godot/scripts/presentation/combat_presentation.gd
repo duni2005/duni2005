@@ -39,6 +39,8 @@ const MAX_AFTERIMAGES=48
 ## Element visuals: orbs of light / dark flying between units, and per-unit emitter clocks for
 ## the rising flames, smoke and poison plumes.
 var orbs: Array[Dictionary]=[]
+## End of the hero's grab + charge (HeroAbility GRAB + CHARGE), when the fist is thrown.
+const FIST_CHARGE_END: float=.64
 var emit_clock: Dictionary={}
 ## Element status damage numbers and badges (ElementEffects).
 const STATUS_COLORS={&"burn":Color("ff9a52"),&"burn_spread":Color("ffb27a"),&"poison":Color("8fe36b"),&"frostbite":Color("a8e4ff"),&"chain_shock":Color("9fdcff"),&"erosion":Color("b48cff")}
@@ -362,6 +364,25 @@ func advance(delta: float) -> void:
 					"dark_mark":particles.burst(e.point,Color("6b3fb0"),6,50,0,"plume",false)
 			if kind in ["light_orbs","light_pop","dark_pop"]:
 				for id in e.metadata.get("to",[]):_orb(e.point,str(id),kind)
+			match kind:
+				"hero_call":
+					add_effect("hero_call",e.point,Color("ffd27a"),70,.6)
+					particles.burst(e.point,Color("ffe59a"),16,220,0,"spark",true)
+				"hero_rescue":
+					# Landing: triple shockwave, ground cracks, a ring of dust smoke, heavy shake.
+					add_effect("hero_shock",e.point,Color("ffd27a"),240,1.0)
+					particles.burst(e.point,Color("6b5a4a"),26,320,0,"smoke",true);particles.burst(e.point,Color("c8a77c"),22,420,0,"shard",true)
+					particles.burst(e.point,Color("ffe59a"),20,380,0,"spark",true)
+					impact_pause(120);camera.impact(16,e.point);camera.focus(e.point)
+				"hero_grab":
+					add_effect("hero_grab",e.point,Color("ffd27a"),46,.4)
+					particles.burst(e.point,Color("fff1c4"),10,200,0,"spark",true);camera.impact(5,e.point)
+				"hero_punch":
+					var angle: float=float(e.metadata.get("angle",0))
+					add_effect("hero_punch",e.point,Color("ffb347"),280,.9,angle)
+					particles.burst(e.point,Color("ffe1a0"),30,560,angle,"spark",true);particles.burst(e.point,Color("6b5a4a"),18,280,angle,"smoke",true)
+					particles.burst(e.point,Color("c8a77c"),16,460,angle,"shard",true)
+					impact_pause(150);camera.impact(18,e.point);camera.focus(e.point)
 			if kind=="dragon_heart":
 				add_effect("dragon_heart",e.point,Color("ff8a4a"),float(e.metadata.get("radius",130)),.6)
 				particles.burst(e.point,Color("ffbf72"),12,170,0,"ember",false)
@@ -462,6 +483,33 @@ func _draw() -> void:
 			VfxArt.effect(self,e)
 			UnitIcon.draw(self,Rect2(e.point-Vector2(26,26)*float(e.get("scale",1))+Vector2(0,t*12),Vector2(52,52)*float(e.get("scale",1))),int(e.get("type",0)),1-t)
 			for i in range(5):draw_line(e.point+Vector2(-25,-20+i*10),e.point+Vector2(25+t*30,-20+i*10),Color(e.color,.5*(1-t)),2)
+		elif e.kind=="hero_shock":
+			for k in range(3):
+				var tk: float=clampf((t-k*.13)/(1-k*.13),0,1);var r: float=e.radius*(1-pow(1-tk,3))*(1-k*.18)
+				if tk>0 and tk<1:draw_arc(e.point,r,0,TAU,64,Color(Color(e.color).lightened(.3*k),(1-tk)*.9),12*(1-tk)+1.5,true)
+			VfxArt.glow(self,e.point,e.radius*.55,e.color,.65*pow(1-t,2))
+			draw_circle(e.point,e.radius*.18*(1-t),Color(1,1,1,.8*(1-t)))
+			for i in range(10):
+				var v:=Vector2.from_angle(i*TAU/10+.3);var reach: float=e.radius*.42*minf(1,t*5)
+				draw_line(e.point+v*18,e.point+v*reach+v.orthogonal()*sin(i*2.3)*10,Color("4a3b2e",.75*(1-t)),3*(1-t)+1,true)
+		elif e.kind=="hero_punch":
+			var dir:=Vector2.from_angle(float(e.angle))
+			VfxArt.flare(self,e.point,float(e.angle),e.radius*(.5+t),Color("fff4dd"),1-t)
+			for k in range(3):
+				var tk: float=clampf((t-k*.1)/(1-k*.1),0,1);var r: float=e.radius*(1-pow(1-tk,3))*(1-k*.2)
+				if tk>0 and tk<1:draw_arc(e.point,r,float(e.angle)-.95,float(e.angle)+.95,40,Color(e.color,(1-tk)),14*(1-tk)+1.5,true)
+			var ring: float=e.radius*.45*(1-pow(1-t,3))
+			draw_arc(e.point,ring,0,TAU,48,Color(1,1,1,.7*(1-t)),5*(1-t)+1,true)
+			for i in range(7):
+				var a: float=float(e.angle)+(i-3)*.22;var v:=Vector2.from_angle(a);var len: float=e.radius*(.35+.5*t)
+				draw_line(e.point+v*len*.4,e.point+v*len,Color("ffe1a0",.8*(1-t)),3,true)
+			VfxArt.glow(self,e.point+dir*30,e.radius*.4,e.color,.7*pow(1-t,2))
+		elif e.kind=="hero_call":
+			VfxArt.glow(self,e.point,e.radius*(.6+t*.6),e.color,.7*(1-t))
+			draw_arc(e.point,e.radius*(.3+t),0,TAU,40,Color(Color.WHITE,1-t),4*(1-t)+1,true)
+		elif e.kind=="hero_grab":
+			for i in range(4):
+				var v:=Vector2.from_angle(i*TAU/4+PI/4);draw_line(e.point+v*(14+t*20),e.point+v*(28+t*30),Color(e.color,1-t),4*(1-t)+1,true)
 		elif e.kind=="chain_shock":
 			var to: Vector2=e.get("to",e.point)
 			VisualShapes.bolt(self,e.point,to,Color("6fc6ff",.45*(1-t)),real_age*30+float(e.radius),8*(1-t)+2)
@@ -478,7 +526,7 @@ func _draw() -> void:
 			draw_arc(e.point,40+t*520,0,TAU,72,Color(Color(e.color).lightened(.4),.3*(1-t)),3*(1-t)+1,true)
 		elif VfxArt.effect(self,e):pass
 		else:draw_arc(e.point,radius,0,TAU,32,c,2)
-		if e.kind not in ["hit","critical","projectile_hit","explosion","heal","parry_success","warrior_parry","clash","ultimate","transcendence","launch","reflect","shield_break","shield_hit","ult_flash","ult_release","ult_impact","ult_hit","chain_shock","light_pop","dark_pop","shock_stun","light_mark","dark_mark"]:
+		if e.kind not in ["hit","critical","projectile_hit","explosion","heal","parry_success","warrior_parry","clash","ultimate","transcendence","launch","reflect","shield_break","shield_hit","ult_flash","ult_release","ult_impact","ult_hit","chain_shock","light_pop","dark_pop","shock_stun","light_mark","dark_mark","hero_shock","hero_punch","hero_call","hero_grab"]:
 			for i in range(4):
 				var v:=Vector2.from_angle(i*TAU/4+float(e.age)*.7);VfxArt.star(self,e.point+v*radius,5,e.color,1-t)
 		if e.kind in ["parry_success","warrior_parry","clash"]:draw_string(ThemeDB.fallback_font,e.point+Vector2(-26,-50-t*18),{"parry_success":"패링","warrior_parry":"반격","clash":"상쇄"}[e.kind],HORIZONTAL_ALIGNMENT_LEFT,-1,18,c)
@@ -623,7 +671,6 @@ func _ability_state(u: BattleUnit) -> void:
 	if not u.puppet_control.is_empty():
 		for i in range(3):draw_line(p+Vector2((i-1)*12,-30)*s,p+Vector2((i-1)*23,-77)*s,Color("dca2e1"),1.5)
 	
-	if not u.hero_rescue.is_empty():VisualShapes.barrier(self,p,43*s,Color("ffd284"),real_age)
 	_new_character_state(u,p,s)
 	_ult_empowered(u,p,s)
 
@@ -670,6 +717,7 @@ func _new_character_state(u: BattleUnit,p: Vector2,s: float) -> void:
 		draw_line(block.position+Vector2(36,10)*s,block.position+Vector2(46,4)*s,Color(1,1,1,.5),2)
 		VfxArt.glow(self,p,40*s,Color("9fdcff"),.15+.1*k)
 	_element_status(u,p,s)
+	_hero_state(u,p,s)
 	# 빙결술사 storm drifting across the field.
 	if u.data.type_id==31 and u.alive and u.character_specific_state.has("storm"):_frost_storm(u)
 	# 화염방사기 spraying: a flickering stream of flame from the nozzle.
@@ -680,14 +728,51 @@ func _new_character_state(u: BattleUnit,p: Vector2,s: float) -> void:
 		var t: float=1-u.state_value("deliveryFx")/1.2
 		var icon: String={"heal":"heal","power":"fang","charge":"charge","shield":"shield"}.get(kind,"heal")
 		ArenaIcon.draw(self,p+Vector2(0,-58-t*22)*s,icon,18,Color({"heal":"8ff0a4","power":"ff9a7a","charge":"9fd8ff","shield":"7ddfff"}.get(kind,"ffffff"),1-t))
+## 히어로: a golden barrier on the ally being rescued, speed lines and afterimages while it flies,
+## and during the ultimate the grip on the held enemy and the fist drawn back gathering power.
+func _hero_state(u: BattleUnit,p: Vector2,s: float) -> void:
+	if not u.hero_rescue_owner.is_empty():
+		VfxArt.glow(self,p,52*s,Color("ffd27a"),.35+.1*sin(real_age*10))
+		VisualShapes.barrier(self,p,40*s,Color("ffd284"),real_age)
+	if u.data.type_id!=17 or not u.alive:return
+	if u.is_dashing() and u.velocity.length()>120:
+		var dir: Vector2=u.velocity.normalized();var side: Vector2=dir.orthogonal()
+		for i in range(4):draw_circle(p-dir*(22+i*22)*s,(22-i*4)*s,Color("ffd27a",.22-i*.05))
+		for i in range(7):
+			var off: float=(i-3)*9*s;var len: float=(50+VisualParticles.noise(i*7.1+floorf(real_age*30))*60)*s
+			draw_line(p-dir*28*s+side*off,p-dir*(28*s+len)+side*off,Color("fff4dd",.75),2,true)
+		VfxArt.glow(self,p+dir*14*s,40*s,Color("ffd27a"),.5)
+	var cast: Dictionary=u.ultimate.cast
+	if cast.get("phase","")=="punch" and float(cast.get("punch_time",0))<FIST_CHARGE_END:
+		var k: float=clampf((float(cast.get("punch_time",0))-.14)/.5,0,1);var dir:=Vector2.from_angle(float(cast.get("angle",u.facing)))
+		var fist: Vector2=p-dir*(24+24*k)*s+dir.orthogonal()*10*s
+		var shake:=Vector2(sin(real_age*90),cos(real_age*77))*2.5*k
+		VfxArt.glow(self,fist+shake,(22+46*k)*s,Color("ffb347"),.45+.5*k)
+		for i in range(8):
+			var a: float=i*TAU/8+real_age*3;var phase: float=fposmod(real_age*2.4+i*.125,1.0)
+			var from: Vector2=fist+Vector2.from_angle(a)*(72*(1-phase)+14)*s
+			draw_line(from,from.lerp(fist,.35),Color("ffe1a0",.85*k*(1-phase)),2,true)
+		draw_arc(fist+shake,(14+10*k)*s,0,TAU,24,Color("fff4dd",.4+.5*k),2+2*k,true)
+		draw_circle(fist+shake,13*s,Color("f2c27a"));draw_circle(fist+shake,13*s*.55,Color("ffe9c0"))
+		for i in range(3):draw_line(fist+shake+dir*6*s+dir.orthogonal()*(i-1)*4*s,fist+shake+dir*10*s+dir.orthogonal()*(i-1)*4*s,Color("8a5a2a"),2,true)
+		var held=battle.find_actor(str(cast.get("target","")))
+		if held!=null and held.alive and k>0:
+			for i in range(2):
+				var g: Vector2=held.position+(u.position-held.position).normalized()*18*s+dir.orthogonal()*(i*2-1)*14*s
+				draw_arc(g,6*s,0,TAU,12,Color("ffd27a",.9),3,true)
 ## Rising flames and smoke while burning, dark-green and violet plumes while poisoned, violet smoke
 ## while eroded, frost glints while frostbitten. Emitters run on battle time.
 func _status_emitters(dt: float) -> void:
 	if dt<=0 or not is_instance_valid(battle):return
 	for u in battle.units:
-		if not u.alive or u.character_specific_state.is_empty():continue
+		if not u.alive or (u.character_specific_state.is_empty() and u.data.type_id!=17):continue
 		var clock: Dictionary=emit_clock.get(u.battle_id,{})
 		var s: float=u.combat_scale();var p: Vector2=u.position
+		if u.data.type_id==17 and u.is_dashing() and u.velocity.length()>120:
+			var dust: float=float(clock.get("dash",0.0))+dt
+			while dust>=.035:
+				dust-=.035;particles.burst(p-u.velocity.normalized()*20*s,Color("6b5a4a"),1,50,u.velocity.angle()+PI,"smoke",false)
+			clock["dash"]=dust
 		var burn: float=u.state_value("burnStacks")
 		for row in [["flame",burn>0,.07/(1+burn*.08)],["smoke",burn>0,.18],["poison",u.state_value("poisonStacks")>0,.11],["erosion",u.state_value("erosionTime")>0,.1],["frost",u.state_value("frostbiteTime")>0,.22]]:
 			if not row[1]:clock.erase(row[0]);continue
