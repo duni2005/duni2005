@@ -60,6 +60,9 @@ var trans_active: bool=false
 var trans_point:=Vector2.ZERO
 var glow_layer: CombatGlowLayer
 var field_layer: MagicFieldLayer
+## Shader-drawn shockwaves, lightning and fire (ShaderFxLayer); false falls back to shapes.
+var shader_fx: ShaderFxLayer
+var use_shader_fx: bool=true
 var ult_released: Dictionary={}
 var ult_timers: Dictionary={}
 var stance_marks:=StanceMarks.new()
@@ -72,6 +75,7 @@ func impact_pause(milliseconds: int) -> void:
 func _ready() -> void:
 	mouse_filter=Control.MOUSE_FILTER_IGNORE;clip_contents=true;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	field_layer=MagicFieldLayer.new();add_child(field_layer)
+	shader_fx=ShaderFxLayer.new();add_child(shader_fx)
 	glow_layer=CombatGlowLayer.new();glow_layer.host=self;add_child(glow_layer)
 func attach(value: BattleManager) -> void:
 	cleanup();battle=value
@@ -93,6 +97,7 @@ func cleanup() -> void:
 	connected=false;battle=null;effects.clear();numbers.clear();previous.clear();feed.clear();event_total=0;end_age=0;camera.reset();particles.clear();flashes.clear();visual_positions.clear();freeze_positions.clear();impact_remaining=0;trans_active=false;explosive_seen.clear();tracked_projectiles.clear();projectile_trails.clear();projectile_origins.clear();release_counts.clear();weapon_releases.clear();ult_released.clear();ult_timers.clear();afterimages.clear();orbs.clear();emit_clock.clear();trail_tick=-1;queue_redraw()
 	if is_instance_valid(glow_layer):glow_layer.queue_redraw()
 	if is_instance_valid(field_layer):field_layer.clear()
+	if is_instance_valid(shader_fx):shader_fx.clear()
 func add_effect(kind: String,point: Vector2,color: Color=Color.WHITE,radius: float=28,life: float=.45,direction: float=0) -> void:
 	if not point.is_finite():return
 	if effects.size()>=MAX_EFFECTS:effects.pop_front()
@@ -261,6 +266,7 @@ func _advance_ending(delta: float) -> void:
 	queue_redraw()
 	if is_instance_valid(glow_layer):glow_layer.queue_redraw()
 	if is_instance_valid(field_layer):field_layer.clear()
+	if is_instance_valid(shader_fx):shader_fx.clear()
 func _process(delta: float) -> void:advance(delta)
 func advance(delta: float) -> void:
 	if is_instance_valid(battle) and battle.finished:
@@ -286,6 +292,7 @@ func advance(delta: float) -> void:
 	if not is_instance_valid(battle):
 		camera.reset();queue_redraw()
 		if is_instance_valid(field_layer):field_layer.clear()
+		if is_instance_valid(shader_fx):shader_fx.clear()
 		return
 	if battle.finished:
 		end_age+=delta
@@ -351,6 +358,7 @@ func advance(delta: float) -> void:
 			if kind=="chain_shock":
 				var to: Vector2=CharacterPersistence.vector(e.metadata.get("to",{}),e.point)
 				add_effect("chain_shock",e.point,Color("bfe9ff"),20,.34);effects[-1]["to"]=to
+				if use_shader_fx:shader_fx.bolt(e.point,to)
 				particles.burst(to,Color("bfe9ff"),14,280,(to-e.point).angle(),"spark",true);particles.burst(to,Color.WHITE,5,150,0,"spark",true)
 				for k in range(3):particles.burst(e.point.lerp(to,(k+1)/4.0),Color("9fdcff"),3,110,0,"spark",false)
 			elif kind in ["light_pop","dark_pop","shock_stun","light_mark","dark_mark"]:
@@ -371,6 +379,7 @@ func advance(delta: float) -> void:
 				"hero_rescue":
 					# Landing: triple shockwave, ground cracks, a ring of dust smoke, heavy shake.
 					add_effect("hero_shock",e.point,Color("ffd27a"),240,1.0)
+					if use_shader_fx:shader_fx.shock(e.point,220,.85,Color("ffcf6e"))
 					particles.burst(e.point,Color("6b5a4a"),26,320,0,"smoke",true);particles.burst(e.point,Color("c8a77c"),22,420,0,"shard",true)
 					particles.burst(e.point,Color("ffe59a"),20,380,0,"spark",true)
 					impact_pause(120);camera.impact(16,e.point);camera.focus(e.point)
@@ -380,6 +389,7 @@ func advance(delta: float) -> void:
 				"hero_punch":
 					var angle: float=float(e.metadata.get("angle",0))
 					add_effect("hero_punch",e.point,Color("ffb347"),280,.9,angle)
+					if use_shader_fx:shader_fx.shock(e.point,240,.75,Color("ffab45"),angle,.85)
 					particles.burst(e.point,Color("ffe1a0"),30,560,angle,"spark",true);particles.burst(e.point,Color("6b5a4a"),18,280,angle,"smoke",true)
 					particles.burst(e.point,Color("c8a77c"),16,460,angle,"shard",true)
 					impact_pause(150);camera.impact(18,e.point);camera.focus(e.point)
@@ -419,6 +429,9 @@ func advance(delta: float) -> void:
 		var rect: Rect2=board.board_rect()
 		var at:=Transform2D(0,Vector2.ONE*rect.size.x/800,0,rect.position)*camera.transform()
 		field_layer.sync(battle.zones.entries,at,real_age)
+		if is_instance_valid(shader_fx):
+			if use_shader_fx:shader_fx.advance(delta);shader_fx.sync(battle,at,real_age)
+			else:shader_fx.clear()
 func _draw() -> void:
 	if not is_instance_valid(battle) or board==null:return
 	var rect: Rect2=board.board_rect();var factor: float=rect.size.x/800
@@ -429,6 +442,7 @@ func _draw() -> void:
 	parent_transform=Transform2D(0,Vector2.ONE*factor,0,rect.position)*camera.transform()
 	draw_set_transform_matrix(parent_transform)
 	if is_instance_valid(field_layer):field_layer.align(parent_transform)
+	if is_instance_valid(shader_fx):shader_fx.align(parent_transform)
 	VisualShapes.arena(self,ArenaFloor.MARGIN)
 	if battle.clock.state in [BattleClock.State.TURNING_SLOWDOWN,BattleClock.State.TURNING_PAUSED]:
 		# Turning point tint lies on the ground only; units stay at full brightness.
@@ -484,7 +498,7 @@ func _draw() -> void:
 			UnitIcon.draw(self,Rect2(e.point-Vector2(26,26)*float(e.get("scale",1))+Vector2(0,t*12),Vector2(52,52)*float(e.get("scale",1))),int(e.get("type",0)),1-t)
 			for i in range(5):draw_line(e.point+Vector2(-25,-20+i*10),e.point+Vector2(25+t*30,-20+i*10),Color(e.color,.5*(1-t)),2)
 		elif e.kind=="hero_shock":
-			for k in range(3):
+			for k in range(0 if use_shader_fx else 3):
 				var tk: float=clampf((t-k*.13)/(1-k*.13),0,1);var r: float=e.radius*(1-pow(1-tk,3))*(1-k*.18)
 				if tk>0 and tk<1:draw_arc(e.point,r,0,TAU,64,Color(Color(e.color).lightened(.3*k),(1-tk)*.9),12*(1-tk)+1.5,true)
 			VfxArt.glow(self,e.point,e.radius*.55,e.color,.65*pow(1-t,2))
@@ -495,7 +509,7 @@ func _draw() -> void:
 		elif e.kind=="hero_punch":
 			var dir:=Vector2.from_angle(float(e.angle))
 			VfxArt.flare(self,e.point,float(e.angle),e.radius*(.5+t),Color("fff4dd"),1-t)
-			for k in range(3):
+			for k in range(0 if use_shader_fx else 3):
 				var tk: float=clampf((t-k*.1)/(1-k*.1),0,1);var r: float=e.radius*(1-pow(1-tk,3))*(1-k*.2)
 				if tk>0 and tk<1:draw_arc(e.point,r,float(e.angle)-.95,float(e.angle)+.95,40,Color(e.color,(1-tk)),14*(1-tk)+1.5,true)
 			var ring: float=e.radius*.45*(1-pow(1-t,3))
@@ -512,9 +526,10 @@ func _draw() -> void:
 				var v:=Vector2.from_angle(i*TAU/4+PI/4);draw_line(e.point+v*(14+t*20),e.point+v*(28+t*30),Color(e.color,1-t),4*(1-t)+1,true)
 		elif e.kind=="chain_shock":
 			var to: Vector2=e.get("to",e.point)
-			VisualShapes.bolt(self,e.point,to,Color("6fc6ff",.45*(1-t)),real_age*30+float(e.radius),8*(1-t)+2)
-			VisualShapes.bolt(self,e.point,to,c,real_age*30+float(e.radius),3*(1-t)+1)
-			VisualShapes.bolt(self,e.point,to,Color(1,1,1,1-t),real_age*30+float(e.radius)+.5,1.2)
+			if not use_shader_fx:
+				VisualShapes.bolt(self,e.point,to,Color("6fc6ff",.45*(1-t)),real_age*30+float(e.radius),8*(1-t)+2)
+				VisualShapes.bolt(self,e.point,to,c,real_age*30+float(e.radius),3*(1-t)+1)
+				VisualShapes.bolt(self,e.point,to,Color(1,1,1,1-t),real_age*30+float(e.radius)+.5,1.2)
 			VfxArt.glow(self,to,26*(1-t)+8,Color("9fdcff"),.6*(1-t))
 		elif e.kind in ["light_pop","dark_pop","shock_stun","light_mark","dark_mark"]:
 			VfxArt.glow(self,e.point,e.radius*(.6+t),e.color,.5*(1-t))
