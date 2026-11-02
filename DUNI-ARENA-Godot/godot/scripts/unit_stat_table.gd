@@ -56,6 +56,7 @@ const STATS = {
 	"flamethrower":[&"magic", 30, 5, 10, 10, 26],
 	"griffin":[&"magic", 50, 0, 10, 15, 32],
 	"crossbow":[&"physical", 30, 0, 0, 32, 10],
+	"slime":[&"physical", 40, 0, 0, 30, 10],
 }
 
 const DAMAGE = {
@@ -168,6 +169,9 @@ const DAMAGE = {
 	"crossbow":{
 		&"basic":[&"basic", &"physical", 0, 0.32, [&"wind", &"projectile"], "화살 (7연발)"],
 		&"ult":[&"ultimate", &"physical", 15, 1.8, [&"explosion", &"wind", &"projectile"], "목표지정 탄 폭발 (10초 목표 상태)"]},
+	"slime":{
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"poison"], "몸통 박치기 (넉백 · 2초 둔화)"],
+		&"ult":[&"ultimate", &"physical", 10, 1.4, [&"area", &"poison"], "다 함께 낙하 착지"]},
 }
 ## Damage every unit can deal regardless of character, using its main damage kind.
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]

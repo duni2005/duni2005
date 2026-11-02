@@ -57,6 +57,7 @@ func run(tree: SceneTree) -> void:
 	await custom_result_flow(tree)
 	await status_sheet(tree)
 	griffin_and_crossbow(tree)
+	slime_unit(tree)
 	items(tree)
 	multikill(tree)
 	stairs()
@@ -78,7 +79,7 @@ func step(b: BattleManager,seconds: float) -> void:
 		if b.finished:return
 		b.simulate(1.0/60)
 func new_characters(tree: SceneTree) -> void:
-	verify(CharacterCatalog.all().size()==35,"35 characters in the catalog")
+	verify(CharacterCatalog.all().size()==36,"36 characters in the catalog")
 	# 말뚝: opening stake tethers the nearest enemy to a small circle.
 	var b:=duel(tree,[[26,0,Vector2(150,400)],[1,1,Vector2(450,400)],[1,1,Vector2(700,700)]])
 	step(b,.2)
@@ -439,7 +440,7 @@ func stat_damage(tree: SceneTree) -> void:
 		if not UnitStatTable.STATS.has(unit_name) or not UnitStatTable.DAMAGE.has(unit_name):tagged=false
 		for d in UnitStatTable.instances(id):
 			if not UnitStatTable.KIND_NAMES.has(d.kind) or not d.tags.all(func(t):return t in UnitStatTable.ELEMENTS+UnitStatTable.DAMAGE_TAGS):tagged=false
-	verify(tagged and CharacterCatalog.NAMES.size()==35,"all 35 units have base stats and exactly one kind plus known tags per damage instance")
+	verify(tagged and CharacterCatalog.NAMES.size()==36,"all 36 units have base stats and exactly one kind plus known tags per damage instance")
 	verify(UnitStatTable.mitigation(0)==1 and UnitStatTable.mitigation(100)==.5 and is_equal_approx(UnitStatTable.mitigation(-100),1.5),"mitigation 100/(100+def), 2-100/(100-def) below zero")
 	# Bomber (fire · explosion · area) hits a mage.
 	var b:=duel(tree,[[13,0,Vector2(300,400)],[2,1,Vector2(380,400)]]);var src: BattleUnit=b.units[0];var tgt: BattleUnit=b.units[1];b.started=true
@@ -756,4 +757,41 @@ func griffin_and_crossbow(tree: SceneTree) -> void:
 	var spec: Dictionary=UnitStatTable.spec(34,&"basic");bow.set_state("windStacks",0)
 	verify(is_equal_approx(ElementEffects.taken(marked[0]),1.1*(ElementEffects.FROSTBITE_TAKEN if marked[0].state_value("frostbiteTime")>0 else 1.0)) and is_equal_approx(ElementEffects.outgoing(bow,marked[0],spec,{})*ElementEffects.TARGETED_TAKEN,ElementEffects.TARGETED_WIND),"목표: +10% damage taken, +15% wind damage taken")
 	verify(StatusCatalog.collect(marked[0]).any(func(r):return r.key==&"targeted"),"목표 shows in the unit's 상태이상")
+	b.queue_free()
+
+## 슬라임 (35), 0.73.0: splits twice on death, slam slows, the family leaps together.
+func slime_unit(tree: SceneTree) -> void:
+	var b:=duel(tree,[[35,0,Vector2(200,400)],[4,1,Vector2(560,400)]])
+	step(b,.05)
+	var slime: BattleUnit=b.units[0];var foe: BattleUnit=b.units[1]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0
+	var full_hp: float=slime.max_hp;var full_damage: float=slime.combat_stats.physical_damage
+	var slimes:=func():return b.units.filter(func(u):return u.alive and u.data.type_id==35)
+	b.damage_resolver.resolve(foe,slime,9999,{"critical":false,"transcendent":true});step(b,1.0/60)
+	verify(slime.alive and is_equal_approx(slime.max_hp,full_hp*.5) and is_equal_approx(slime.combat_stats.physical_damage,full_damage*.5) and slimes.call().size()==2,"a lethal blow splits the slime into two halves")
+	for s in slimes.call():s.invincible_remaining=0
+	for s in slimes.call():b.damage_resolver.resolve(foe,s,9999,{"critical":false,"transcendent":true})
+	step(b,1.0/60)
+	verify(slimes.call().size()==4 and slimes.call().all(func(s):return is_equal_approx(s.max_hp,full_hp*.25)),"each half splits again: four quarter slimes")
+	var last=slimes.call()[0];last.invincible_remaining=0
+	b.damage_resolver.resolve(foe,last,9999,{"critical":false,"transcendent":true});step(b,1.0/60)
+	verify(not last.alive and slimes.call().size()==3,"after two splits a slime dies for good")
+	verify(b.units.filter(func(u):return u.data.type_id==35).all(func(s):return s.source_member_id.is_empty()) and b.units.filter(func(u):return u.data.type_id==35 and u!=slime).all(func(s):return s.character_specific_state.get("slimeFamily","")==slime.character_specific_state.get("slimeFamily","")),"split slimes are battle-only and share the family")
+	# Family leap: every slime jumps at once and lands on the nearest enemy.
+	for s in slimes.call():s.invincible_remaining=0
+	var hp: float=foe.current_hp
+	slimes.call()[0].ability.release_ultimate(slimes.call()[0],{},0)
+	verify(slimes.call().all(func(s):return s.character_specific_state.has("slimeLeap")),"the ultimate makes the whole family leap")
+	step(b,.9)
+	verify(foe.current_hp<hp and not slimes.call().any(func(s):return s.character_specific_state.has("slimeLeap")),"the slimes land on the enemy")
+	b.queue_free()
+	# Body slam: knockback and a 2 s slow.
+	b=duel(tree,[[35,0,Vector2(200,400)],[8,1,Vector2(320,400)]])
+	step(b,.05)
+	slime=b.units[0];foe=b.units[1]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000
+	foe.position=slime.position+Vector2(40,0);var walk: float=foe.move_speed
+	slime.ability.release_basic(slime)
+	verify(foe.current_hp<foe.max_hp and foe.knockback_velocity.length()>50 and foe.state_value("slowTime")>0,"the slam damages, knocks back and slows")
+	verify(foe.move_speed<walk and StatusCatalog.collect(foe).any(func(r):return r.key==&"slow"),"둔화 slows movement and shows as a status")
 	b.queue_free()

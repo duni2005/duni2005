@@ -34,6 +34,7 @@ const ENTRIES = {
 	&"frostbite":["동상", &"debuff", "ether", "받는 피해 +10%. 빙결 스택 대신 추가 피해 5를 받는다."],
 	&"shock":["감전", &"debuff", "charge", "5스택이 되면 2초 기절한다."],
 	&"headwind":["역풍", &"debuff", "hawkFeather", "이동속도 -30%, 공격속도 -20%."],
+	&"slow":["둔화", &"debuff", "boots", "이동속도 -30%. 슬라임의 몸통 박치기에 맞으면 2초간 걸린다."],
 	&"erosion":["침식", &"debuff", "skull", "이동 외 행동마다 피해를 받고, 받는 치명타 피해 +25%."],
 	&"curse":["축소 저주", &"debuff", "dice", "챌런에게 맞아 몸이 작아졌다. 받는 피해 +15%."],
 	&"cosmic":["우주 표식", &"debuff", "star", "은하에게 찍혀 주는 피해 -30%."],
@@ -57,6 +58,7 @@ const ENTRIES = {
 	&"rescue_ready":["구조 대기", &"buff", "heart", "아군이 치명상을 입으면 한 번 구하러 날아간다."],
 	&"predator":["포식 성장", &"growth", "predatorFang", "처치할 때마다 몸집과 힘이 커진다(스택당 크기 +4%)."],
 	&"shrink":["축소 · 가속", &"growth", "boots", "챌런이 피해를 받을수록 작아지고 빨라진다(스택당 이동속도 +4%)."],
+	&"split":["분열", &"growth", "heart", "슬라임이 쓰러질 때마다 HP · 피해량이 절반인 두 마리로 나뉜다(최대 2번)."],
 	&"ammo":["탄약", &"unique", "supply", "기관총의 남은 탄약. 다 쓰면 4초 재장전."],
 	&"reload":["재장전", &"unique", "supply", "기관총이 탄약을 채우는 중이다(이동속도 -60%)."],
 	&"oil":["기름", &"unique", "phoenixFeather", "화염방사기의 기름. 6 이상이어야 분사를 시작한다."],
@@ -123,6 +125,7 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if _num(s, "frostbiteTime") > 0:add.call(&"frostbite", _secs(_num(s, "frostbiteTime")))
 	if _num(s, "shockStacks") > 0:add.call(&"shock", "%d/%d" % [int(_num(s, "shockStacks")), ElementEffects.SHOCK_STACKS])
 	if _num(s, "headwindTime") > 0:add.call(&"headwind", _secs(_num(s, "headwindTime")))
+	if _num(s, "slowTime") > 0:add.call(&"slow", _secs(_num(s, "slowTime")))
 	if _num(s, "erosionTime") > 0:add.call(&"erosion", _secs(_num(s, "erosionTime")))
 	if _num(s, "curseTime") > 0:add.call(&"curse", _secs(_num(s, "curseTime")))
 	if u != null and u.cosmic_marked:add.call(&"cosmic")
@@ -151,6 +154,7 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	# 성장
 	if _num(s, "predatorStacks") > 0:add.call(&"predator", _stacks(_num(s, "predatorStacks")))
 	if _num(s, "dolphinStacks") > 0:add.call(&"shrink", _stacks(_num(s, "dolphinStacks")))
+	if type_id == 35:add.call(&"split", "%d/2" % int(_num(s, "slimeSplits")))
 	# 고유
 	if type_id == 23 and s.has("ammo"):add.call(&"ammo", "%d/20" % int(_num(s, "ammo")))
 	if _num(s, "reloadRemaining") > 0:add.call(&"reload", _secs(_num(s, "reloadRemaining")))

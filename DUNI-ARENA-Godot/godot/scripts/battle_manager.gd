@@ -226,6 +226,25 @@ func advance_attacks(delta: float) -> void:
 			projectiles[index].queue_free()
 			projectiles.remove_at(index)
 
+## Units born during the fight (슬라임 분열) wait here and join after the current tick, so no unit
+## list changes while it is being walked. They are battle-only: no member or room-enemy identity.
+var spawn_queue: Array[Dictionary] = []
+func queue_spawn(source: BattleUnit, at: Vector2, stats: UnitCombatStats, state: Dictionary, push: Vector2 = Vector2.ZERO) -> void:
+	spawn_queue.append({"source": source, "at": at, "stats": stats, "state": state, "push": push})
+func _flush_spawns() -> void:
+	for row in spawn_queue:
+		var source: BattleUnit = row.source
+		if not is_instance_valid(source):continue
+		var unit: BattleUnit = unit_factory.create({"data": source.data, "team": source.team, "position": MovementController.clamp_position(row.at), "combat_stats": row.stats}, units.size() + 1, self, rng)
+		if unit == null:continue
+		unit.original_team = source.original_team;unit.stance = source.stance;unit.ultimate_gauge = source.ultimate_gauge
+		unit.character_specific_state = row.state.duplicate(true)
+		unit.set_state("heal", rng.randf_range(1, 3));unit.set_state("dash", rng.randf_range(2, 5))
+		unit.died.connect(_on_unit_died);units.append(unit);add_child(unit)
+		unit.ability.on_spawn(unit)
+		unit.invincible_remaining = .35;unit.knockback_velocity = row.push
+		emit_combat_event(&"unit_spawned", unit.position, {"actor_id": unit.battle_id})
+	spawn_queue.clear()
 func _on_unit_died(unit: BattleUnit, source) -> void:
 	unit_died.emit(unit, source)
 	# Never decide victory during individual damage: other contacts may still kill.
@@ -412,6 +431,7 @@ func simulate_common(delta: float) -> void:
 		if unit.combat.can_start(unit,unit.target): unit.combat.start(unit,unit.target,rng)
 		unit.queue_redraw()
 	if full_characters_enabled:BindingController.advance(self,delta);ElementEffects.advance(self,delta)
+	if not spawn_queue.is_empty():_flush_spawns()
 	PhysicalAttackSystem.advance(self,delta)
 	for wave in combat_waves: wave.advance(self,delta)
 	for i in range(combat_waves.size()-1,-1,-1):

@@ -61,6 +61,8 @@ const DARK_POP: float = 1.2
 ## 목표 (석궁 궁극기): damage taken +10%, wind damage taken +15%.
 const TARGETED_TAKEN: float = 1.1
 const TARGETED_WIND: float = 1.15
+## 둔화 (슬라임 몸통 박치기): movement -30%.
+const SLOW_MOVE: float = .7
 
 static func _on(u) -> bool:return u != null and is_instance_valid(u) and u.battle != null and u.battle.full_characters_enabled
 ## A direct hit: an attack landing, not damage over time, a status tick, a chain jump or a collision.
@@ -89,7 +91,7 @@ static func taken(u) -> float:return (FROSTBITE_TAKEN if u.state_value("frostbit
 static func attack_speed(u) -> float:
 	if u.character_specific_state.is_empty():return 1
 	return (1 + WIND_ATTACK_SPEED * u.state_value("windStacks")) * (HEADWIND_ATTACK_SPEED if u.state_value("headwindTime") > 0 else 1.0)
-static func move_speed(u) -> float:return HEADWIND_MOVE if u.state_value("headwindTime") > 0 else 1.0
+static func move_speed(u) -> float:return (HEADWIND_MOVE if u.state_value("headwindTime") > 0 else 1.0) * (SLOW_MOVE if u.state_value("slowTime") > 0 else 1.0)
 static func healing(u) -> float:return POISON_HEAL if u.state_value("poisonStacks") > 0 else 1.0
 
 # ---- Events ----
@@ -205,7 +207,7 @@ static func advance(battle, dt: float) -> void:
 		if u.state_value("frozenTime") > 0:
 			u.set_state("frozenTime", maxf(0, u.state_value("frozenTime") - dt))
 			if u.state_value("frozenTime") <= 0:u.set_state("frostbiteTime", FROSTBITE_TIME)
-		for key in ["frostbiteTime", "headwindTime", "erosionTime", "targetedTime"]:
+		for key in ["frostbiteTime", "headwindTime", "erosionTime", "targetedTime", "slowTime"]:
 			if u.state_value(key) > 0:u.set_state(key, maxf(0, u.state_value(key) - dt))
 		for pair in [["frostbitePending", "frostbiteSource", &"frostbite", FROSTBITE_HIT], ["erodePending", "erosionSource", &"erosion", EROSION_DAMAGE]]:
 			var count: int = int(u.state_value(pair[0]))

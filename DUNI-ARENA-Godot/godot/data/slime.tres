@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/unit_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/attack_data.gd" id="2"]
+
+[sub_resource type="Resource" id="Attack"]
+script = ExtResource("2")
+kind = 0
+windup = 0.34
+active = 0.16
+recovery = 0.45
+reach = 170
+cone = 1.2
+impulse = 120
+
+[resource]
+script = ExtResource("1")
+type_id = 35
+display_name = "슬라임"
+base_gold_cost = 200
+max_hp = 180
+attack = 18
+defense_power = 30
+move_speed = 100
+attack_range = 170
+attack_interval = 1.5
+critical_chance = 0.05
+tags = PackedStringArray("일반", "돌격형")
+emoji = "🟢"
+ultimate_windup = 0.35
+attack_profile = SubResource("Attack")
+recruit_tokens = 3

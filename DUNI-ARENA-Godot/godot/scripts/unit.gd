@@ -218,7 +218,7 @@ func unavailable() -> bool:return not frog_carrier.is_empty() or frog_flight!=0
 func is_dashing() -> bool:return not hero_rescue.is_empty() or ultimate.cast.get("dashing",false)
 func combat_scale() -> float:
 	var permanent: float=maxf(.4,pow(.94,state_value("dolphinStacks"))) if data.type_id==11 else minf(2.4,1+state_value("predatorStacks")*.04) if data.type_id==12 else 1
-	return permanent*base_body_scale*(.65 if state_value("curseTime")>0 else 1)
+	return permanent*base_body_scale*(.65 if state_value("curseTime")>0 else 1)*(1+state_value("leapHeight"))
 
 var movement_phase: float = 0
 var equipment_fang_kills: int = 0

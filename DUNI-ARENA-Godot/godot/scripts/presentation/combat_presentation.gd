@@ -389,6 +389,15 @@ func advance(delta: float) -> void:
 					particles.burst(e.point,Color("6b5a4a"),26,320,0,"smoke",true);particles.burst(e.point,Color("c8a77c"),22,420,0,"shard",true)
 					particles.burst(e.point,Color("ffe59a"),20,380,0,"spark",true)
 					impact_pause(120);camera.impact(16,e.point);camera.focus(e.point)
+				"slime_slam":
+					add_effect("slime_ring",e.point,Color("9be36f"),float(e.metadata.get("radius",58))*1.3,.4)
+					particles.burst(e.point,Color("8fd86b"),12,240,0,"shard",true);camera.impact(4,e.point)
+				"slime_land":
+					add_effect("slime_ring",e.point,Color("b6f08a"),float(e.metadata.get("radius",92))*1.4,.55)
+					particles.burst(e.point,Color("8fd86b"),18,320,0,"shard",true);particles.burst(e.point,Color("6b5a4a"),8,90,0,"smoke",true)
+					camera.impact(7,e.point)
+				"slime_split","unit_spawned":
+					particles.burst(e.point,Color("a6ec7c"),16,260,0,"shard",true);add_effect("slime_ring",e.point,Color("c4f2a8"),46,.45)
 				"griffin_gust":
 					var angle: float=float(e.metadata.get("angle",0))
 					add_effect("griffin_gust",e.point,Color("c8f7e6"),float(e.metadata.get("radius",270)),.6,angle);effects[-1]["cone"]=float(e.metadata.get("cone",.6))
@@ -522,6 +531,12 @@ func _draw() -> void:
 			for i in range(10):
 				var v:=Vector2.from_angle(i*TAU/10+.3);var reach: float=e.radius*.42*minf(1,t*5)
 				draw_line(e.point+v*18,e.point+v*reach+v.orthogonal()*sin(i*2.3)*10,Color("4a3b2e",.75*(1-t)),3*(1-t)+1,true)
+		elif e.kind=="slime_ring":
+			# A squashy ring of slime splashing outward.
+			var rr: float=e.radius*(.35+.65*(1-pow(1-t,2)))
+			draw_arc(e.point,rr,0,TAU,40,Color(e.color,.8*(1-t)),7*(1-t)+1.5,true)
+			for i in range(8):
+				var d:=Vector2.from_angle(i*TAU/8+.2);draw_circle(e.point+d*rr,(6-4*t),Color(e.color,.9*(1-t)))
 		elif e.kind=="griffin_gust":
 			# Curved wind blades sweeping out through the cone.
 			var cone: float=float(e.get("cone",.6))
@@ -570,7 +585,7 @@ func _draw() -> void:
 			draw_arc(e.point,40+t*520,0,TAU,72,Color(Color(e.color).lightened(.4),.3*(1-t)),3*(1-t)+1,true)
 		elif VfxArt.effect(self,e):pass
 		else:draw_arc(e.point,radius,0,TAU,32,c,2)
-		if e.kind not in ["hit","critical","projectile_hit","explosion","heal","parry_success","warrior_parry","clash","ultimate","transcendence","launch","reflect","shield_break","shield_hit","ult_flash","ult_release","ult_impact","ult_hit","chain_shock","light_pop","dark_pop","shock_stun","light_mark","dark_mark","hero_shock","hero_punch","hero_call","hero_grab","griffin_gust","targeted"]:
+		if e.kind not in ["hit","critical","projectile_hit","explosion","heal","parry_success","warrior_parry","clash","ultimate","transcendence","launch","reflect","shield_break","shield_hit","ult_flash","ult_release","ult_impact","ult_hit","chain_shock","light_pop","dark_pop","shock_stun","light_mark","dark_mark","hero_shock","hero_punch","hero_call","hero_grab","griffin_gust","targeted","slime_ring"]:
 			for i in range(4):
 				var v:=Vector2.from_angle(i*TAU/4+float(e.age)*.7);VfxArt.star(self,e.point+v*radius,5,e.color,1-t)
 		if e.kind in ["parry_success","warrior_parry","clash"]:draw_string(ThemeDB.fallback_font,e.point+Vector2(-26,-50-t*18),{"parry_success":"패링","warrior_parry":"반격","clash":"상쇄"}[e.kind],HORIZONTAL_ALIGNMENT_LEFT,-1,18,c)
@@ -916,6 +931,9 @@ func _element_status(u: BattleUnit,p: Vector2,s: float) -> void:
 		for i in range(3):
 			var a: float=-real_age*2.4+i*TAU/3
 			draw_arc(p,34*s,a,a+.9,10,Color("c9a6ff",.75),2.5,true)
+	# 둔화: a sluggish lavender ring at the feet.
+	if u.state_value("slowTime")>0:
+		VfxArt.ellipse(self,p+Vector2(0,22*s),26*s,.35,Color("c9b8ff",.8),2.5)
 	# 목표 (석궁): a red reticle turning over the unit.
 	if u.state_value("targetedTime")>0:
 		var rr: float=31*s;var spin: float=real_age*1.5

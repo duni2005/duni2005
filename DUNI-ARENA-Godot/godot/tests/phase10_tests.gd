@@ -37,7 +37,7 @@ func golden() -> void:
 	for data in CharacterCatalog.all().values():
 		verify(data.recruit_tokens>=1 and data.recruit_tokens<=5,"recruit price is a 1-5 token tier")
 		per_tier[clampi(data.recruit_tokens,0,5)]+=1;verify(UnitRarity.tier(data.type_id)==data.recruit_tokens,"rarity tier follows the recruit price")
-	verify(per_tier==[0,9,9,7,7,3],"9/9/7/7/3 units per rarity tier")
+	verify(per_tier==[0,9,9,8,7,3],"9/9/8/7/3 units per rarity tier")
 	verify(UnitRarity.label(27)=="전설" and UnitRarity.label(0)=="일반","rarity names")
 	verify(PredictionRules.POOLS.size()==web.predictionPools.size(),"59 exact prediction combinations")
 	for i in range(PredictionRules.POOLS.size()):
