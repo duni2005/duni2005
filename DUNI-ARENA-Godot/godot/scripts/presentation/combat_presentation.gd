@@ -121,6 +121,8 @@ func add_effect(kind: String,point: Vector2,color: Color=Color.WHITE,radius: flo
 
 func number(kind: String,point: Vector2,value: float,color: Color,actor: int) -> void:
 	if value<=0:return
+	# 피해량 표시 off: damage numbers go, heals still show.
+	if not GameSettings.damage_numbers and kind!="heal":return
 	for n in numbers:
 		if n.actor==actor and n.kind==kind and float(n.age)<.12:n.value+=value;return
 	if numbers.size()>=MAX_NUMBERS:numbers.pop_front()

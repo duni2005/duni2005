@@ -51,6 +51,24 @@ func run(owner: SceneTree) -> void:
 		verify([menu.tower_button,menu.custom_button,menu.codex_button,menu.settings_button].all(func(b):return inside(b) and b.size.y>=44),"four menu buttons fit with touch height %s"%window_size)
 		verify(not menu.continue_button.is_visible_in_tree() and not menu.find_children("*","Label",true,false).any(func(l):return "길드원" in l.text),"title shows the wordmark and four buttons only")
 		verify(menu.theme==ArenaUI.get_theme(),"shared theme")
+		# 설정: 게임플레이 / 그래픽 / 소리 tabs, each fitting the screen without scrolling.
+		menu.open_settings();await frames()
+		verify(menu.settings_tabs.size()==3 and menu.settings_pages.gameplay.visible,"settings open on 게임플레이 with three tabs")
+		for k in ["graphics","sound","gameplay"]:
+			menu.show_settings_tab(k);await frames()
+			var box: Vector2=Vector2(menu.settings_dialog.size)
+			verify(menu.settings_pages[k].visible and box.x<=window_size.x and box.y<=window_size.y,"settings %s tab fits %s"%[k,window_size])
+		if mobile:
+			menu.show_settings_tab("sound");await frames();await capture("mobile-settings-sound")
+			menu.show_settings_tab("gameplay");await frames();await capture("mobile-settings-gameplay")
+			var saved: Array=[GameSettings.shake_level,GameSettings.music_volume,GameSettings.damage_numbers,GameSettings.particles]
+			GameSettings.set_value("shake_level",1);GameSettings.set_value("music",.5);GameSettings.set_value("damage_numbers",false);GameSettings.set_value("particles",0)
+			verify(is_equal_approx(GameSettings.shake_scale(),.5) and is_equal_approx(GameSettings.particle_scale(),.35),"shake strength and particle quality scale effects")
+			verify(AudioServer.get_bus_index(GameSettings.MUSIC_BUS)>=0 and is_equal_approx(db_to_linear(AudioServer.get_bus_volume_db(AudioServer.get_bus_index(GameSettings.MUSIC_BUS))),.5),"music volume drives its own bus")
+			GameSettings.load_settings()
+			verify(GameSettings.shake_level==1 and not GameSettings.damage_numbers,"settings persist")
+			GameSettings.set_value("shake_level",saved[0]);GameSettings.set_value("music",saved[1]);GameSettings.set_value("damage_numbers",saved[2]);GameSettings.set_value("particles",saved[3])
+		menu.settings_dialog.hide()
 		if mobile or window_size==Vector2i(1280,720):await capture(("mobile" if mobile else "desktop")+"-menu")
 		menu.free();await frames()
 		var screen:=TowerScreen.new();tree.root.add_child(screen);screen.controller.new_run(19,73);screen.show_map();await frames()

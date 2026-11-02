@@ -20,7 +20,7 @@ func _ready() -> void:
 	mouse_filter=Control.MOUSE_FILTER_IGNORE;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 func shock(point: Vector2,radius: float,life: float,tint: Color,angle: float=0,cone: float=0) -> void:
 	_push({"kind":"shock","point":point,"radius":radius,"life":life,"tint":tint,"angle":angle,"cone":cone})
-	_push({"kind":"warp","point":point,"radius":radius,"life":life})
+	if GameSettings.particles>0:_push({"kind":"warp","point":point,"radius":radius,"life":life})
 func bolt(from: Vector2,to: Vector2,life: float=.5) -> void:
 	_push({"kind":"bolt","point":from,"to":to,"life":life,"seed":randf()*10})
 func _push(e: Dictionary) -> void:

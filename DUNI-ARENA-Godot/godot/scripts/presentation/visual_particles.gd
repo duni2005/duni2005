@@ -9,6 +9,9 @@ var peak: int=0
 static func noise(i: float) -> float:return fposmod(sin(i*127.1+311.7)*43758.5453,1)
 func burst(point: Vector2,color: Color,amount: int,force: float=190,angle: float=0,style: String="spark",priority: bool=false) -> void:
 	serial+=1
+	# 파티클 품질: a share of the particles; the fractional part is rolled so small bursts thin out.
+	var share: float=amount*GameSettings.particle_scale()
+	amount=int(share)+(1 if noise(serial*3.7)<share-floorf(share) else 0)
 	for i in range(amount):
 		if entries.size()>=(LIMIT if priority else AMBIENT_LIMIT):
 			if not priority:break

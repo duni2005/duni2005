@@ -100,7 +100,7 @@ func _camera() -> void:
 		elif t >= 4.75 and t < 5.25:shake = 9 * (1 - (t - 4.75) / .5)
 	else:
 		zoom = close * (1 + t * .012);cam = _cam_for(zoom, .86)
-	if not GameSettings.shake:shake = 0
+	shake *= GameSettings.shake_scale()
 
 func _shake() -> Vector2:return Vector2(sin(t * 53), cos(t * 41)) * shake
 ## Tower-world point to screen.

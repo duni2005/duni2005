@@ -37,8 +37,9 @@ var delayed: Tween
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
+	GameSettings.ensure_buses()
 	for i in range(2):
-		var player := AudioStreamPlayer.new();player.volume_db = -80;add_child(player);players.append(player)
+		var player := AudioStreamPlayer.new();player.volume_db = -80;player.bus = GameSettings.MUSIC_BUS;add_child(player);players.append(player)
 
 static func _node() -> BackgroundMusic:
 	var tree := Engine.get_main_loop() as SceneTree

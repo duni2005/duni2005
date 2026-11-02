@@ -184,17 +184,64 @@ func return_menu() -> void:
 	UiTransition.play("back",TypeArt.word(&"menu"));BackgroundMusic.play(&"menu")
 	if is_instance_valid(tower_screen):remove_child(tower_screen);tower_screen.queue_free();tower_screen=null
 	menu.get_parent().show();scenery.show();_set_menu_disabled(false);refresh();_reveal()
+## 설정 window: 게임플레이 / 그래픽 / 소리 tabs. Every change is saved at once (GameSettings).
+var settings_pages: Dictionary = {}
+var settings_tabs: Dictionary = {}
+const SETTINGS_TABS = [["gameplay","게임플레이"],["graphics","그래픽"],["sound","소리"]]
 func _build_settings() -> void:
 	settings_dialog=AcceptDialog.new();settings_dialog.title="설정";settings_dialog.get_ok_button().text="닫기";add_child(settings_dialog);ArenaModalBackdrop.new().connect_window(settings_dialog,self)
-	var column:=VBoxContainer.new();column.add_theme_constant_override("separation",10);column.custom_minimum_size.x=280;settings_dialog.add_child(column);ArenaUI.dialog_header(settings_dialog,column,"설정")
-	for row in [["vibration","진동","버튼을 누를 때 짧게 진동합니다."],["motion","UI 애니메이션","화면 전환과 등장 연출을 켭니다."],["shake","화면 흔들림","전투 타격 시 화면이 흔들립니다."]]:
-		var line:=HBoxContainer.new();column.add_child(line)
-		var texts:=VBoxContainer.new();texts.size_flags_horizontal=Control.SIZE_EXPAND_FILL;texts.add_theme_constant_override("separation",0);line.add_child(texts)
-		var label:=Label.new();label.text=row[1];texts.add_child(label)
-		var hint:=Label.new();hint.text=row[2];hint.add_theme_font_size_override("font_size",11);hint.add_theme_color_override("font_color",ArenaUI.MUTED);texts.add_child(hint)
-		var toggle:=CheckButton.new();toggle.name=row[0];toggle.button_pressed=GameSettings.value(row[0]);line.add_child(toggle)
-		toggle.toggled.connect(func(on: bool):GameSettings.set_value(row[0],on))
+	var column:=VBoxContainer.new();column.add_theme_constant_override("separation",10);column.custom_minimum_size.x=290;settings_dialog.add_child(column);ArenaUI.dialog_header(settings_dialog,column,"설정")
+	var tabs:=HBoxContainer.new();tabs.add_theme_constant_override("separation",6);column.add_child(tabs)
+	for pair in SETTINGS_TABS:
+		var b:=Button.new();b.name="Tab_"+pair[0];b.text=pair[1];b.toggle_mode=true;b.custom_minimum_size.y=36;b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ArenaUI.tab(b)
+		b.pressed.connect(show_settings_tab.bind(pair[0]));tabs.add_child(b);settings_tabs[pair[0]]=b
+		var page:=VBoxContainer.new();page.name="Page_"+pair[0];page.add_theme_constant_override("separation",12);page.custom_minimum_size.y=200;column.add_child(page);settings_pages[pair[0]]=page
+	var play: VBoxContainer=settings_pages.gameplay
+	play.add_child(_toggle_row("vibration","진동","버튼을 누를 때 짧게 진동합니다."))
+	play.add_child(_choice_row("shake_level","화면 흔들림","타격과 연출 때 화면이 흔들리는 세기.",GameSettings.SHAKE_LEVELS,[0,1,2,3]))
+	play.add_child(_toggle_row("damage_numbers","피해량 표시","전투 중 피해 숫자를 띄웁니다. 회복 숫자는 항상 보입니다."))
+	play.add_child(_toggle_row("motion","UI 애니메이션","화면 전환과 등장 연출을 켭니다."))
+	var gfx: VBoxContainer=settings_pages.graphics
+	gfx.add_child(_choice_row("fps_limit","프레임 제한","낮추면 배터리와 발열이 줄어듭니다.",["30","60","무제한"],GameSettings.FPS_CHOICES))
+	gfx.add_child(_choice_row("particles","파티클 품질","낮추면 이펙트 입자가 줄어 가벼워집니다.",GameSettings.PARTICLE_LEVELS,[0,1,2]))
+	var snd: VBoxContainer=settings_pages.sound
+	for row in [["master","마스터 볼륨"],["music","배경음악"],["sfx","효과음"]]:snd.add_child(_volume_row(row[0],row[1]))
 	var about:=Label.new();about.text="DUNI ARENA · v"+str(ProjectSettings.get_setting("application/config/version","dev"));about.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;about.add_theme_font_size_override("font_size",11);about.add_theme_color_override("font_color",ArenaUI.MUTED);column.add_child(about)
+	show_settings_tab("gameplay")
+func show_settings_tab(key: String) -> void:
+	for k in settings_pages:settings_pages[k].visible=k==key;settings_tabs[k].set_pressed_no_signal(k==key)
+func _setting_texts(title: String,hint: String) -> VBoxContainer:
+	var texts:=VBoxContainer.new();texts.size_flags_horizontal=Control.SIZE_EXPAND_FILL;texts.add_theme_constant_override("separation",0)
+	var label:=Label.new();label.text=title;texts.add_child(label)
+	if not hint.is_empty():
+		var small:=Label.new();small.text=hint;small.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;small.custom_minimum_size.x=200;small.add_theme_font_size_override("font_size",11);small.add_theme_color_override("font_color",ArenaUI.MUTED);texts.add_child(small)
+	return texts
+func _toggle_row(key: String,title: String,hint: String) -> Control:
+	var line:=HBoxContainer.new();line.add_child(_setting_texts(title,hint))
+	var toggle:=CheckButton.new();toggle.name=key;toggle.button_pressed=GameSettings.value(key);line.add_child(toggle)
+	toggle.toggled.connect(func(on: bool):GameSettings.set_value(key,on))
+	return line
+## A label and a row of segmented choices (화면 흔들림, 프레임 제한, 파티클 품질).
+func _choice_row(key: String,title: String,hint: String,labels: Array,values: Array) -> Control:
+	var box:=VBoxContainer.new();box.name=key;box.add_theme_constant_override("separation",6);box.add_child(_setting_texts(title,hint))
+	var row:=HBoxContainer.new();row.add_theme_constant_override("separation",4);box.add_child(row)
+	var buttons: Array[Button]=[]
+	for i in range(labels.size()):
+		var b:=Button.new();b.text=labels[i];b.toggle_mode=true;b.custom_minimum_size.y=34;b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.add_theme_font_size_override("font_size",12);ArenaUI.tab(b)
+		b.set_pressed_no_signal(GameSettings.value(key)==values[i]);row.add_child(b);buttons.append(b)
+		var v=values[i]
+		b.pressed.connect(func():
+			GameSettings.set_value(key,v)
+			for other in buttons:other.set_pressed_no_signal(other==b))
+	return box
+## A volume slider with its percentage.
+func _volume_row(key: String,title: String) -> Control:
+	var box:=VBoxContainer.new();box.name=key;box.add_theme_constant_override("separation",4)
+	var head:=HBoxContainer.new();box.add_child(head);head.add_child(_setting_texts(title,""))
+	var amount:=Label.new();amount.text="%d%%"%roundi(float(GameSettings.value(key))*100);amount.add_theme_font_override("font",ArenaUI.numbers_font());amount.add_theme_color_override("font_color",ArenaUI.GOLD);head.add_child(amount)
+	var slider:=HSlider.new();slider.min_value=0;slider.max_value=100;slider.step=5;slider.value=roundi(float(GameSettings.value(key))*100);slider.custom_minimum_size.y=32;box.add_child(slider)
+	slider.value_changed.connect(func(v: float):amount.text="%d%%"%roundi(v);GameSettings.set_value(key,v/100.0))
+	return box
 func open_settings() -> void:
 	settings_dialog.popup_centered(Vector2i(mini(360,int(get_viewport_rect().size.x)-28),0))
 func _close() -> void:

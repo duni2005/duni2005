@@ -88,7 +88,7 @@ class Wipe extends Control:
 		var a: Vector2 = c - cut * (w + h);var b: Vector2 = c + cut * (w + h)
 		var open: float = Motion.out_expo(Motion.phase(t, .1, .42)) * (w + h) * .55
 		var shake := Vector2.ZERO
-		if GameSettings.shake and t < .2:shake = Vector2(sin(t * 90), cos(t * 70)) * 4 * (1 - t / .2)
+		if GameSettings.shake_level > 0 and t < .2:shake = Vector2(sin(t * 90), cos(t * 70)) * 4 * (1 - t / .2) * GameSettings.shake_scale()
 		# Two halves of the old screen fly apart along the cut's normal.
 		var far: float = (w + h) * 2
 		var upper := PackedVector2Array([a, b, b + normal * -far, a + normal * -far])
