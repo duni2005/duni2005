@@ -57,9 +57,10 @@ func sync(battle,parent: Transform2D,time: float) -> void:
 			if not u.alive or u.state_value("burnStacks")<=0:continue
 			var sc: float=u.combat_scale();var stacks: float=u.state_value("burnStacks")
 			var s:=_surface("flame",FLAME);var m: ShaderMaterial=s.material
-			var h: float=(64+stacks*4)*sc
-			logical[s]=Transform2D(0,Vector2(34*sc,h*.5),0,u.position+Vector2(0,12*sc-h*.5))
-			m.set_shader_parameter("clock",time);m.set_shader_parameter("seed",u.battle_id*.37);m.set_shader_parameter("intensity",clampf(.75+stacks*.05,.75,1.2))
+			var h: float=(60+stacks*3)*sc;var w: float=36*sc
+			logical[s]=Transform2D(0,Vector2(w,h*.5),0,u.position+Vector2(0,14*sc-h*.5))
+			m.set_shader_parameter("clock",time);m.set_shader_parameter("seed",u.battle_id*.37);m.set_shader_parameter("intensity",clampf(.7+stacks*.04,.7,1.0))
+			m.set_shader_parameter("hole",Vector4(.5,(h-14*sc)/h,26*sc/(2*w),26*sc/h))
 	for kind in pools:
 		var pool: Array=pools[kind]
 		for i in range(int(used.get(kind,0)),pool.size()):pool[i].hide()

@@ -247,7 +247,9 @@ func start_battle() -> void:
 		# Web custom mode is a transcendence practice ground: every unit starts charged.
 		battle.units[i].transcendence_gauge=100
 	board.battle=battle;board.editing=false;watch_paused=false;trans_press.clear()
-	battle.battle_finished.connect(func(_r):call_deferred("_show_winner"))
+	# The result belongs to this battle only: a rematch or return drops a pending result.
+	winner_for=null;winner_wait=0
+	battle.battle_finished.connect(_battle_ended.bind(battle))
 	for child in trans_row.get_children():trans_row.remove_child(child);child.queue_free()
 	var refill:=_button(trans_row,"초월 충전",_refill);refill.custom_minimum_size=Vector2(60,56);refill.add_theme_font_size_override("font_size",11);refill.tooltip_text="생존 유닛의 초월 게이지 충전";ArenaUI.quiet(refill)
 	for u in battle.units:
@@ -255,7 +257,19 @@ func start_battle() -> void:
 		card.gui_input.connect(_trans_input.bind(u.actor_id(),card))
 	status_line.battle=battle;status_line.combat_active=true
 	_set_phase(true);_set_speed(1)
+## Battle whose result is waiting to be shown, and how long it has waited. The panel opens once the
+## final kill's slow motion has played (WINNER_DELAY), not after the whole ending cinematic.
+var winner_for: BattleManager=null
+var winner_wait: float=0
+const WINNER_DELAY: float=1.4
+func _battle_ended(_result,which: BattleManager) -> void:
+	if which==battle:winner_for=which;winner_wait=0
 func _dispose_battle() -> void:
+	winner_for=null;winner_wait=0
+	# A paused spectator view must not survive the battle: resume drawing and drop every effect,
+	# or the old battle's units and effects stay frozen on screen.
+	watch_paused=false;pause_button.text="Ⅱ 일시정지";status_line.spectator_paused=false
+	if board.presentation!=null:board.presentation.set_process(true);board.presentation.cleanup()
 	if is_instance_valid(battle):
 		if battle.get_parent()!=null:battle.get_parent().remove_child(battle)
 		battle.queue_free()
@@ -281,9 +295,6 @@ func _refill() -> void:
 		if u.alive:u.transcendence_gauge=100
 func _show_winner() -> void:
 	if not is_instance_valid(battle) or battle.result==null:return
-	# Let the shared ending cinematic play first, as in tower battles.
-	await get_tree().create_timer(BattleCinematicState.DURATION).timeout
-	if not is_instance_valid(battle):return
 	var winner: int=battle.result.winner_team
 	var left: Array=battle.units.filter(func(u):return u.alive)
 	if winner<0 or left.is_empty():winner_title.text="무승부"
@@ -304,6 +315,11 @@ func _show_records() -> void:
 
 func _process(dt: float) -> void:
 	if not is_instance_valid(battle) or board.editing:return
+	if winner_for!=null:
+		if winner_for!=battle or not battle.finished:winner_for=null
+		else:
+			winner_wait+=dt
+			if winner_wait>=WINNER_DELAY:winner_for=null;_show_winner()
 	for card in trans_row.get_children():
 		if not card is ArenaCard:continue
 		var u=battle.find_actor(card.get_meta("actor"))

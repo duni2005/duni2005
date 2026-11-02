@@ -54,6 +54,7 @@ func run(tree: SceneTree) -> void:
 	element_effects(tree)
 	attack_speed_pace(tree)
 	hero_moves(tree)
+	await custom_result_flow(tree)
 	items(tree)
 	multikill(tree)
 	stairs()
@@ -655,3 +656,23 @@ func hero_moves(tree: SceneTree) -> void:
 	verify(grabbed and held,"the ultimate grabs and holds the enemy while charging")
 	verify(b.combat_event_counts.get(&"hero_punch",0)==1,"then punches with a shockwave")
 	b.queue_free()
+
+## Custom battle result (0.69.0): shown shortly after the end, owned by its battle, and a rematch or a
+## paused spectator view never leaves the old battle's result or picture behind.
+func custom_result_flow(tree: SceneTree) -> void:
+	var cs:=CustomBattleScreen.new();tree.root.add_child(cs);await tree.process_frame
+	cs.setup.add(13,1,Vector2(200,400));cs.setup.add(0,2,Vector2(320,400))
+	cs.start_battle();await tree.process_frame
+	cs.battle.finish_with_reason(BattleEndReason.Value.VICTORY,1)
+	cs._process(.5)
+	verify(not cs.winner_panel.visible,"the result waits for the final slow motion")
+	cs.start_battle();await tree.process_frame
+	cs._process(2.0)
+	verify(not cs.winner_panel.visible and not cs.battle.finished,"a rematch drops the old battle's pending result")
+	cs._toggle_pause()
+	cs.start_battle();await tree.process_frame
+	verify(not cs.watch_paused and cs.board.presentation.is_processing(),"a rematch resumes a paused view")
+	cs.battle.finish_with_reason(BattleEndReason.Value.VICTORY,1)
+	cs._process(.8);cs._process(.7)
+	verify(cs.winner_panel.visible,"the result shows about 1.4 s after the end")
+	cs.queue_free();await tree.process_frame

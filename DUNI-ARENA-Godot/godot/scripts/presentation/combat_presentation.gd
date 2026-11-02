@@ -77,6 +77,7 @@ func _ready() -> void:
 	field_layer=MagicFieldLayer.new();add_child(field_layer)
 	shader_fx=ShaderFxLayer.new();add_child(shader_fx)
 	glow_layer=CombatGlowLayer.new();glow_layer.host=self;add_child(glow_layer)
+	bar_overlay=BarOverlay.new();bar_overlay.host=self;add_child(bar_overlay)
 func attach(value: BattleManager) -> void:
 	cleanup();battle=value
 	if not is_instance_valid(battle):return
@@ -425,6 +426,7 @@ func advance(delta: float) -> void:
 	else:camera.advance(ui_delta,(battle.clock.state!=BattleClock.State.NORMAL or battle.finished) and not ending,ArenaCameraController.TURNING_ZOOM if battle.clock.state==BattleClock.State.TURNING_PAUSED else 1.0)
 	queue_redraw()
 	if is_instance_valid(glow_layer):glow_layer.queue_redraw()
+	if is_instance_valid(bar_overlay):bar_overlay.queue_redraw()
 	if is_instance_valid(field_layer) and board!=null:
 		var rect: Rect2=board.board_rect()
 		var at:=Transform2D(0,Vector2.ONE*rect.size.x/800,0,rect.position)*camera.transform()
@@ -580,6 +582,32 @@ func _draw_kill_notices(rect: Rect2) -> void:
 		ArenaIcon.draw(self,at+Vector2(width*.49,14),"battle",17,Color(1,1,1,alpha))
 		draw_string(get_theme_default_font(),at+Vector2(width*.56,19),row.target_name,HORIZONTAL_ALIGNMENT_LEFT,width*.44-30,11,Color(ArenaUI.DANGER if row.team==0 else Color("f5c89a"),alpha))
 		UnitIcon.draw(self,Rect2(at+Vector2(width-26,4),Vector2.ONE*21),row.target,alpha)
+## HP bar (dark outlined well, bright team-colour fill, never smaller than ~28x4 screen px however
+## far the board is scaled down) and the ultimate gauge under it. Drawn with the unit and again on
+## the top overlay (BarOverlay) so effects never hide them.
+func draw_bars(canvas: CanvasItem,u: BattleUnit,parent: Transform2D) -> Rect2:
+	var at: Vector2=u.position;var radius: float=25*u.combat_scale();var color: Color=u.team_color()
+	var px: float=1/maxf(.05,parent.get_scale().x)
+	var bar_w: float=maxf(48,28*px);var hp_h: float=maxf(6,4*px);var ult_h: float=maxf(3,2.5*px)
+	var hp_rect:=Rect2(at+Vector2(-bar_w*.5,-radius-6-hp_h-ult_h),Vector2(bar_w,hp_h));var hp_frac: float=clampf(u.current_hp/u.max_hp,0,1)
+	canvas.draw_rect(hp_rect.grow(px),Color(0,0,0,.85));canvas.draw_rect(hp_rect,Color("1a2232"))
+	canvas.draw_rect(Rect2(hp_rect.position,Vector2(hp_rect.size.x*hp_frac,hp_rect.size.y)),color.lightened(.15))
+	canvas.draw_rect(Rect2(hp_rect.position,Vector2(hp_rect.size.x*hp_frac,hp_h*.3)),Color(1,1,1,.3))
+	if u.data.ultimate_windup>=0:
+		var gauge: float=clampf(u.ultimate_gauge/100,0,1);var ult_rect:=Rect2(Vector2(hp_rect.position.x,hp_rect.end.y+px),Vector2(bar_w,ult_h))
+		canvas.draw_rect(ult_rect.grow(px*.8),Color(0,0,0,.8));canvas.draw_rect(ult_rect,Color("1c2433"))
+		canvas.draw_rect(Rect2(ult_rect.position,Vector2(ult_rect.size.x*gauge,ult_rect.size.y)),Color("ffe28a") if gauge>=1 else Color("c49dff"))
+	if u.shield_hp>0:canvas.draw_rect(Rect2(hp_rect.position-Vector2(0,ult_h+px),Vector2(bar_w*minf(1,u.shield_hp/100),ult_h)),Color("7ddfff"))
+	return hp_rect
+class BarOverlay extends Control:
+	var host
+	func _ready() -> void:mouse_filter=Control.MOUSE_FILTER_IGNORE;set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	func _draw() -> void:
+		if host==null or not is_instance_valid(host.battle) or host.board==null or host.battle.finished:return
+		draw_set_transform_matrix(host.parent_transform)
+		for u in host.battle.units:
+			if u.alive and AttackVisuals.body_visible(u):host.draw_bars(self,u,host.parent_transform)
+var bar_overlay: BarOverlay
 func _unit(u: BattleUnit,parent: Transform2D) -> void:
 	var at: Vector2=u.position;var radius: float=25*u.combat_scale();var color: Color=u.team_color()
 	var pose_override: Dictionary={}
@@ -593,20 +621,12 @@ func _unit(u: BattleUnit,parent: Transform2D) -> void:
 	# HP bar: dark outlined well and bright team-colour fill, never smaller than ~28x4 screen px
 	# however far the board is scaled down on a phone.
 	var px: float=1/maxf(.05,parent.get_scale().x)
-	var bar_w: float=maxf(48,28*px);var hp_h: float=maxf(6,4*px);var ult_h: float=maxf(3,2.5*px)
-	var hp_rect:=Rect2(at+Vector2(-bar_w*.5,-radius-6-hp_h-ult_h),Vector2(bar_w,hp_h));var hp_frac: float=clampf(u.current_hp/u.max_hp,0,1)
-	draw_rect(hp_rect.grow(px),Color(0,0,0,.85));draw_rect(hp_rect,Color("1a2232"))
-	draw_rect(Rect2(hp_rect.position,Vector2(hp_rect.size.x*hp_frac,hp_rect.size.y)),color.lightened(.15))
-	draw_rect(Rect2(hp_rect.position,Vector2(hp_rect.size.x*hp_frac,hp_h*.3)),Color(1,1,1,.3))
-	if u.data.ultimate_windup>=0:
-		# Ultimate gauge under the HP bar; glows when ready.
-		var gauge: float=clampf(u.ultimate_gauge/100,0,1);var ult_rect:=Rect2(Vector2(hp_rect.position.x,hp_rect.end.y+px),Vector2(bar_w,ult_h))
-		draw_rect(ult_rect.grow(px*.8),Color(0,0,0,.8));draw_rect(ult_rect,Color("1c2433"))
-		draw_rect(Rect2(ult_rect.position,Vector2(ult_rect.size.x*gauge,ult_rect.size.y)),Color("ffe28a") if gauge>=1 else Color("c49dff"))
-		if gauge>=1:VfxArt.glow(self,at+Vector2(0,-radius-6),30,Color("ffe28a"),.25+.15*sin(real_age*6),.2)
+	var ult_h: float=maxf(3,2.5*px)
+	var hp_rect: Rect2=draw_bars(self,u,parent)
+	if u.data.ultimate_windup>=0 and u.ultimate_gauge>=100:VfxArt.glow(self,at+Vector2(0,-radius-6),30,Color("ffe28a"),.25+.15*sin(real_age*6),.2)
 	stance_marks.draw(self,u,hp_rect,px,real_age)
 	if u.shield_hp>0:
-		VfxArt.shield(self,at,radius+9,Color("7ddfff"),real_age);draw_rect(Rect2(hp_rect.position-Vector2(0,ult_h+px),Vector2(bar_w*minf(1,u.shield_hp/100),ult_h)),Color("7ddfff"))
+		VfxArt.shield(self,at,radius+9,Color("7ddfff"),real_age)
 	if u.invincible_remaining>0:
 		VfxArt.glow(self,at,radius*1.8,Color("ffe4ab"),.2);VfxArt.sigil(self,at,radius+10,real_age,Color("ffe4ab"),.65)
 	if u.parry_remaining>.8:VfxArt.glow(self,at+Vector2.from_angle(u.facing)*20,radius+12,Color("c2f5ff"),.28)
@@ -756,7 +776,7 @@ func _hero_state(u: BattleUnit,p: Vector2,s: float) -> void:
 		for i in range(7):
 			var off: float=(i-3)*9*s;var len: float=(50+VisualParticles.noise(i*7.1+floorf(real_age*30))*60)*s
 			draw_line(p-dir*28*s+side*off,p-dir*(28*s+len)+side*off,Color("fff4dd",.75),2,true)
-		VfxArt.glow(self,p+dir*14*s,40*s,Color("ffd27a"),.5)
+		VfxArt.glow(self,p+dir*14*s,34*s,Color("ffd27a"),.28)
 	var cast: Dictionary=u.ultimate.cast
 	if cast.get("phase","")=="punch" and float(cast.get("punch_time",0))<FIST_CHARGE_END:
 		var k: float=clampf((float(cast.get("punch_time",0))-.14)/.5,0,1);var dir:=Vector2.from_angle(float(cast.get("angle",u.facing)))
@@ -789,7 +809,7 @@ func _status_emitters(dt: float) -> void:
 				dust-=.035;particles.burst(p-u.velocity.normalized()*20*s,Color("6b5a4a"),1,50,u.velocity.angle()+PI,"smoke",false)
 			clock["dash"]=dust
 		var burn: float=u.state_value("burnStacks")
-		for row in [["flame",burn>0,.07/(1+burn*.08)],["smoke",burn>0,.18],["poison",u.state_value("poisonStacks")>0,.11],["erosion",u.state_value("erosionTime")>0,.1],["frost",u.state_value("frostbiteTime")>0,.22]]:
+		for row in [["flame",burn>0 and not use_shader_fx,.07/(1+burn*.08)],["smoke",burn>0,.18],["poison",u.state_value("poisonStacks")>0,.11],["erosion",u.state_value("erosionTime")>0,.1],["frost",u.state_value("frostbiteTime")>0,.22]]:
 			if not row[1]:clock.erase(row[0]);continue
 			var t: float=float(clock.get(row[0],row[2]))+dt
 			while t>=row[2]:

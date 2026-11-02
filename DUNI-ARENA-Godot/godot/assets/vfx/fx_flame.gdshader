@@ -6,6 +6,8 @@ uniform sampler2D noise_tex : repeat_enable, filter_linear;
 uniform float clock = 0.0;
 uniform float intensity = 1.0;
 uniform float seed = 0.0;
+// The unit's body (centre and radii in UV) stays mostly clear so the fire burns around it.
+uniform vec4 hole = vec4(.5, .8, .37, .2);
 float tongue(vec2 uv, float centre, float height, float s) {
 	float y = (1.0 - uv.y) / height;
 	float x = (uv.x - centre) * 2.0 / height;
@@ -23,5 +25,6 @@ void fragment() {
 	float fire = max(tongue(UV, .5, 1.0, seed), max(tongue(UV, .3, .62, seed + .31) * .9, tongue(UV, .7, .7, seed + .67) * .9));
 	vec3 col = mix(vec3(.62, .08, .02), vec3(1.0, .42, .05), smoothstep(.08, .45, fire));
 	col = mix(col, vec3(1.0, .9, .55), smoothstep(.6, .95, fire));
-	COLOR = vec4(col, clamp(fire * 1.25, 0.0, 1.0) * smoothstep(0.0, .25, 1.0 - UV.y) * intensity);
+	float clear = mix(.18, 1.0, smoothstep(.75, 1.15, length((UV - hole.xy) / hole.zw)));
+	COLOR = vec4(col, clamp(fire * 1.25, 0.0, 1.0) * smoothstep(0.0, .25, 1.0 - UV.y) * clear * intensity);
 }

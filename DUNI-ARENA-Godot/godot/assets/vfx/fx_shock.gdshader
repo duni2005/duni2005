@@ -22,10 +22,10 @@ void fragment() {
 		float d = cos(a - angle);
 		dir = mix(1.0, smoothstep(-.35, .95, d) * 1.7 + .12, cone);
 	}
-	float flash = exp(-r * r * 34.0) * pow(1.0 - t, 2.5) * 1.5;
+	float flash = exp(-r * r * 40.0) * pow(1.0 - t, 3.0) * .85;
 	float streaks = pow(max(0.0, sin(a * 23.0 + n * 7.0)), 14.0) * smoothstep(front + .05, front * .25, r) * pow(1.0 - t, 1.5) * dir;
 	float inner = smoothstep(front, 0.0, r) * (1.0 - t) * .07 * (.4 + n);
 	float light = ring * (1.15 - t) * dir + flash + streaks * .75 + inner * dir;
 	vec3 hot = mix(tint.rgb, vec3(1.0, .97, .88), clamp(flash + ring * .45, 0.0, 1.0));
-	COLOR = vec4(hot, clamp(light, 0.0, .95) * step(r, 1.0));
+	COLOR = vec4(hot, clamp(light, 0.0, .8) * step(r, 1.0));
 }
