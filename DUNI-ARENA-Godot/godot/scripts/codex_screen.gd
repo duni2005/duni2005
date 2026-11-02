@@ -1,10 +1,11 @@
 class_name CodexScreen
 extends Control
-## 도감 from the main menu: every unit, item, strategy card, room event, damage tag and boss, as a
+## 도감 from the main menu: every unit, item, strategy card, room event, damage tag, boss and
+## 상태이상 (StatusCatalog), as a
 ## card grid (the only part that scrolls) above a fixed detail panel (beside it on wide screens).
 ## Read-only: built from the same catalogues the game plays with.
 signal closed
-const TABS = [["unit","유닛"],["item","아이템"],["card","전략카드"],["event","이벤트"],["tag","피해태그"],["boss","보스"]]
+const TABS = [["unit","유닛"],["item","아이템"],["card","전략카드"],["event","이벤트"],["tag","피해태그"],["status","상태이상"],["boss","보스"]]
 ## Rooms and events: [key, icon, name, description].
 const EVENTS = [
 	["battle","battle","전투","적을 모두 쓰러뜨리면 골드와 토큰을 얻는다. 지면 플레이어 HP가 줄고, 남은 적의 상태 그대로 다시 도전할 수 있다."],
@@ -64,7 +65,7 @@ func _ready() -> void:
 	var title := Label.new();title.text = "도감";title.size_flags_horizontal = Control.SIZE_EXPAND_FILL;title.add_theme_font_override("font", ArenaUI.heading_font());title.add_theme_font_size_override("font_size", 22);header.add_child(title)
 	TitleFx.attach(title, "CODEX").play()
 	header.add_child(ArenaUI.nav_button("close", func():closed.emit()))
-	var tabs := GridContainer.new();tabs.name = "Tabs";tabs.columns = 6 if get_viewport_rect().size.x >= 600 else 3;tabs.add_theme_constant_override("h_separation", 6);tabs.add_theme_constant_override("v_separation", 6);column.add_child(tabs)
+	var tabs := GridContainer.new();tabs.name = "Tabs";tabs.columns = TABS.size() if get_viewport_rect().size.x >= 600 else 4;tabs.add_theme_constant_override("h_separation", 6);tabs.add_theme_constant_override("v_separation", 6);column.add_child(tabs)
 	for pair in TABS:
 		var button := Button.new();button.text = pair[1];button.toggle_mode = true;button.custom_minimum_size.y = 36;button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		ArenaUI.tab(button);button.pressed.connect(show_tab.bind(pair[0]));tabs.add_child(button);tab_buttons[pair[0]] = button
@@ -136,6 +137,12 @@ func show_tab(key: String) -> void:
 			for row in TAGS:
 				var key_name: StringName = row[0]
 				_card(String(key_name), "slot", row[1], UnitStatTable.KIND_NAMES.get(key_name, UnitStatTable.TAG_NAMES.get(key_name, "")), "%d종" % _dealers(key_name).size(), Color("ffd36b") if key_name in UnitStatTable.ELEMENTS else Color(0, 0, 0, 0), Vector2(86, 72))
+		"status":
+			grid.columns = maxi(3, int(width / 96))
+			for kind in StatusCatalog.KIND_ORDER:
+				for status in StatusCatalog.ENTRIES:
+					var e: Array = StatusCatalog.ENTRIES[status]
+					if e[1] == kind:_card(String(status), "slot", e[2], e[0], StatusCatalog.kind_label(status), StatusCatalog.kind_color(status), Vector2(86, 72))
 	scroll.scroll_vertical = 0
 	if grid.get_child_count() > 0:_select(String(grid.get_child(0).name))
 
@@ -202,5 +209,10 @@ func _select(node_name: String) -> void:
 			for type in dealers.slice(0, 24):
 				var face := Control.new();face.custom_minimum_size = Vector2(26, 26);var t: int = type
 				face.draw.connect(func():UnitIcon.draw(face, Rect2(Vector2.ZERO, Vector2(26, 26)), t));detail_units.add_child(face)
-	if tab != "item":detail_title.remove_theme_color_override("font_color")
+		"status":
+			var e: Array = StatusCatalog.entry(StringName(key));icon_kind = e[2]
+			detail_title.text = e[0];detail_title.add_theme_color_override("font_color", StatusCatalog.kind_color(StringName(key)))
+			detail_sub.text = "%s · 상태이상" % StatusCatalog.kind_label(StringName(key))
+			detail_text.text = "%s\n전투 중 유닛이나 배치 화면의 적 · 아군 · 대기 유닛을 다시 눌러 연 설명창의 「상태」 탭에서 볼 수 있다." % e[3]
+	if tab not in ["item", "status"]:detail_title.remove_theme_color_override("font_color")
 	detail_icon.queue_redraw()

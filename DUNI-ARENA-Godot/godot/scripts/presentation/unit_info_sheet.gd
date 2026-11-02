@@ -5,7 +5,19 @@ extends Control
 ## ultimate and transcendence. Each skill can unfold its damage instances (kind, tags, base +
 ## ratio and the damage expected from the current stats). Opened by tapping an already selected
 ## unit; closes on the backdrop or ✕.
+## With a `subject` (a unit on the field, a placed enemy, or a guild member waiting to be placed)
+## the sheet has two tabs: 유닛 정보 and 상태 — current HP, ultimate and transcendence gauges and
+## every 상태이상 (StatusCatalog) the unit carries; a live battle unit refreshes as it changes.
 var type_id: int
+var subject = null
+var info_body: VBoxContainer
+var status_body: VBoxContainer
+var tab_buttons: Array[Button] = []
+var refresh_wait: float = 0
+## True when the subject is a unit on the field (it may be freed when the battle ends).
+var live: bool = false
+## The tab last chosen, kept for the next sheet.
+static var last_tab: String = "info"
 var stats: UnitCombatStats
 var member: GuildMemberState
 var panel: PanelContainer
@@ -13,8 +25,8 @@ var backdrop: ColorRect
 
 ## Shows the sheet over `host`'s window. `stats`/`member` add the member's own numbers and
 ## level; without them the unit's base numbers are shown.
-static func open(host: Node, unit_type: int, unit_stats: UnitCombatStats = null, unit_member: GuildMemberState = null) -> UnitInfoSheet:
-	var sheet := UnitInfoSheet.new();sheet.type_id = unit_type;sheet.stats = unit_stats;sheet.member = unit_member
+static func open(host: Node, unit_type: int, unit_stats: UnitCombatStats = null, unit_member: GuildMemberState = null, unit_subject = null) -> UnitInfoSheet:
+	var sheet := UnitInfoSheet.new();sheet.type_id = unit_type;sheet.stats = unit_stats;sheet.member = unit_member;sheet.subject = unit_subject;sheet.live = unit_subject is BattleUnit
 	host.get_window().add_child(sheet)
 	return sheet
 
@@ -91,9 +103,16 @@ func _build(column: VBoxContainer) -> void:
 	line.text = ("%s · Lv.%d" % [ArenaUI.member_label(member.member_id), member.level] if member != null else "기본 능력치") + "  ·  " + CharacterCatalog.damage_label(type_id) + " 피해"
 	names.add_child(line)
 	var story := Label.new();story.text = "“%s”" % UnitLore.story(type_id);story.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;story.add_theme_font_size_override("font_size", 13);story.add_theme_color_override("font_color", Color("c9d2ea"));names.add_child(story)
+	if subject != null:
+		var tabs := HBoxContainer.new();tabs.add_theme_constant_override("separation", 6);column.add_child(tabs)
+		for pair in [["info", "유닛 정보"], ["status", "상태"]]:
+			var b := Button.new();b.text = pair[1];b.toggle_mode = true;b.custom_minimum_size.y = 36;b.size_flags_horizontal = Control.SIZE_EXPAND_FILL;b.set_meta("tab", pair[0]);ArenaUI.tab(b)
+			b.pressed.connect(_show_tab.bind(pair[0]));tabs.add_child(b);tab_buttons.append(b)
 	# Everything below the header scrolls.
 	var scroll := ScrollContainer.new();scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL;scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED;scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER;column.add_child(scroll)
-	var body := VBoxContainer.new();body.size_flags_horizontal = Control.SIZE_EXPAND_FILL;body.add_theme_constant_override("separation", 10);scroll.add_child(body)
+	var pages := VBoxContainer.new();pages.size_flags_horizontal = Control.SIZE_EXPAND_FILL;scroll.add_child(pages)
+	var body := VBoxContainer.new();body.size_flags_horizontal = Control.SIZE_EXPAND_FILL;body.add_theme_constant_override("separation", 10);pages.add_child(body);info_body = body
+	status_body = VBoxContainer.new();status_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL;status_body.add_theme_constant_override("separation", 8);pages.add_child(status_body)
 	_stat_sections(body, data)
 	var traits: Array = TacticalMind.trait_names(data).filter(func(t):return UnitLore.TRAITS.has(t))
 	var trait_text: String = "\n".join(traits.map(func(t):return "[b]%s[/b]  %s" % [t, UnitLore.TRAITS[t]]))
@@ -103,6 +122,74 @@ func _build(column: VBoxContainer) -> void:
 	body.add_child(_section("evade", "패시브", UnitLore.passive(type_id), Color("9fe08a"), _instances(&"passive")))
 	body.add_child(_section("charge", "궁극기", UnitLore.ultimate(type_id), Color("c49dff"), _instances(&"ultimate")))
 	body.add_child(_section("star", "초월 스킬", UnitLore.TRANSCENDENCE, Color("ff9ec4"), _instances(&"transcend")))
+	_show_tab(last_tab if subject != null else "info")
+
+func _show_tab(key: String) -> void:
+	if subject == null:key = "info"
+	else:last_tab = key
+	for b in tab_buttons:b.set_pressed_no_signal(b.get_meta("tab") == key)
+	info_body.visible = key == "info";status_body.visible = key == "status"
+	if key == "status":_render_status()
+
+## A live battle unit's status follows the fight while the 상태 tab is open.
+func _process(dt: float) -> void:
+	if not live or not is_instance_valid(subject) or status_body == null or not status_body.visible:return
+	refresh_wait += dt
+	if refresh_wait >= .3:refresh_wait = 0;_render_status()
+
+## Current HP / ultimate / transcendence gauges, then every 상태이상 with its kind, value and a line
+## of explanation.
+func _render_status() -> void:
+	for child in status_body.get_children():status_body.remove_child(child);child.queue_free()
+	if live and not is_instance_valid(subject):return
+	var data: UnitData = CharacterCatalog.all()[type_id]
+	var hp: float = 0;var hp_max: float = 1;var ult = null;var trans = null
+	if subject is BattleUnit:
+		hp = subject.current_hp;hp_max = subject.max_hp;ult = subject.ultimate_gauge;trans = subject.transcendence_gauge
+	elif subject is GuildMemberState:
+		hp = subject.current_hp;hp_max = stats.max_hp;ult = subject.ultimate_gauge;trans = subject.transcendence_gauge
+	elif subject is EnemyRoomState:
+		hp = subject.current_hp;hp_max = subject.max_hp(data);ult = subject.ultimate_gauge
+	if data.ultimate_windup < 0:ult = null
+	var dead: bool = subject is BattleUnit and not subject.alive
+	status_body.add_child(_heading("현재 상태" + ("  ·  사망" if dead else ""), null))
+	status_body.add_child(_gauge("heart", "HP", hp, hp_max, "%s / %s" % [ArenaUI.number(hp), ArenaUI.number(hp_max)], Color("7fe0a0")))
+	status_body.add_child(_gauge("charge", "궁극기", float(ult) if ult != null else 0.0, 100, "%d%%" % roundi(float(ult)) if ult != null else "없음", Color("ffe28a") if ult != null and float(ult) >= 100 else Color("c49dff")))
+	status_body.add_child(_gauge("star", "초월", float(trans) if trans != null else 0.0, 100, "%d%%" % roundi(float(trans)) if trans != null else "—", Color("ff9ec4")))
+	var rows: Array[Dictionary] = StatusCatalog.collect(subject, stats, type_id)
+	status_body.add_child(_heading("상태이상  %d" % rows.size(), null))
+	if rows.is_empty():
+		var none := Label.new();none.text = "걸려 있는 상태이상이 없습니다.";none.add_theme_font_size_override("font_size", 13);none.add_theme_color_override("font_color", ArenaUI.MUTED);status_body.add_child(none)
+	for row in rows:status_body.add_child(_status_row(row.key, row.value))
+
+func _gauge(icon: String, caption: String, value: float, maximum: float, text: String, tint: Color) -> Control:
+	var bar := Control.new();bar.custom_minimum_size = Vector2(0, 30);bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bar.draw.connect(func():
+		var font: Font = get_theme_default_font()
+		ArenaIcon.draw(bar, Vector2(11, 15), icon, 18, Color.WHITE)
+		bar.draw_string(font, Vector2(26, 20), caption, HORIZONTAL_ALIGNMENT_LEFT, 60, 12, ArenaUI.MUTED)
+		var track := Rect2(Vector2(78, 9), Vector2(maxf(10, bar.size.x - 78 - 92), 12))
+		bar.draw_style_box(ArenaUI.box(Color("0b111d"), Color("26324f")), track)
+		var fill: float = clampf(value / maxf(.001, maximum), 0, 1)
+		if fill > 0:bar.draw_rect(Rect2(track.position + Vector2(1, 1), Vector2((track.size.x - 2) * fill, track.size.y - 2)), tint)
+		bar.draw_string(ArenaUI.numbers_font(), Vector2(bar.size.x - 86, 21), text, HORIZONTAL_ALIGNMENT_RIGHT, 86, 14, Color("eef1fa")))
+	return bar
+
+func _status_row(key: StringName, value: String) -> PanelContainer:
+	var tint: Color = StatusCatalog.kind_color(key);var e: Array = StatusCatalog.entry(key)
+	var card := PanelContainer.new()
+	var style: StyleBoxFlat = ArenaUI.box(Color("0c1322"), Color(tint, .3));style.border_width_left = 3;style.content_margin_left = 10;style.content_margin_right = 10;style.content_margin_top = 6;style.content_margin_bottom = 7
+	card.add_theme_stylebox_override("panel", style)
+	var column := VBoxContainer.new();column.add_theme_constant_override("separation", 2);card.add_child(column)
+	var row := HBoxContainer.new();row.add_theme_constant_override("separation", 6);column.add_child(row)
+	var glyph := Control.new();glyph.custom_minimum_size = Vector2(18, 18);glyph.draw.connect(func():ArenaIcon.draw(glyph, Vector2(9, 9), e[2], 16, tint));row.add_child(glyph)
+	var title := Label.new();title.text = e[0];title.add_theme_font_override("font", ArenaUI.heading_font());title.add_theme_font_size_override("font_size", 14);title.add_theme_color_override("font_color", Color("eef1fa"));row.add_child(title)
+	row.add_child(_chip(StatusCatalog.kind_label(key), tint))
+	var spacer := Control.new();spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL;row.add_child(spacer)
+	if not value.is_empty():
+		var v := Label.new();v.text = value;v.add_theme_font_override("font", ArenaUI.numbers_font());v.add_theme_font_size_override("font_size", 15);v.add_theme_color_override("font_color", tint.lightened(.2));row.add_child(v)
+	var text := Label.new();text.text = e[3];text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;text.add_theme_font_size_override("font_size", 12);text.add_theme_color_override("font_color", Color("b9c3dc"));column.add_child(text)
+	return card
 func _instances(skill: StringName) -> Array:
 	return UnitStatTable.instances(type_id).filter(func(d):return d.skill == skill)
 

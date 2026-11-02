@@ -62,7 +62,7 @@ func _ready() -> void:
 	cost_row=HBoxContainer.new();cost_row.add_theme_constant_override("separation",4);column.add_child(cost_row)
 	status_line=BattleStatusLine.new();column.add_child(status_line);status_line.hide()
 	board=CustomBattleBoard.new();board.setup=setup;board.size_flags_vertical=Control.SIZE_EXPAND_FILL;board.custom_minimum_size=Vector2(0,260);board.clip_contents=true;column.add_child(board)
-	board.unit_info_requested.connect(func(unit_type,_member,_stats):UnitInfoSheet.open(self,unit_type))
+	board.unit_info_requested.connect(func(unit_type,_member,_stats,subject):UnitInfoSheet.open(self,unit_type,subject.combat_stats if subject is BattleUnit else null,null,subject))
 	var field:=ArenaFieldBackdrop.new();field.board=board;add_child(field)
 	board.empty_tapped.connect(_place);board.unit_tapped.connect(_unit_tapped);board.unit_moved.connect(_move)
 	# Setup controls: teams, tools, character library, footer.

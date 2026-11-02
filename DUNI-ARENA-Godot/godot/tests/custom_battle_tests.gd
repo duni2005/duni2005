@@ -55,6 +55,7 @@ func run(tree: SceneTree) -> void:
 	attack_speed_pace(tree)
 	hero_moves(tree)
 	await custom_result_flow(tree)
+	await status_sheet(tree)
 	items(tree)
 	multikill(tree)
 	stairs()
@@ -676,3 +677,30 @@ func custom_result_flow(tree: SceneTree) -> void:
 	cs._process(.8);cs._process(.7)
 	verify(cs.winner_panel.visible,"the result shows about 1.4 s after the end")
 	cs.queue_free();await tree.process_frame
+
+## 상태이상 (0.70.0): StatusCatalog lists what a unit carries; the unit sheet's 상태 tab shows it.
+func status_sheet(tree: SceneTree) -> void:
+	var b:=duel(tree,[[12,0,Vector2(200,400)],[23,1,Vector2(480,400)]])
+	step(b,.05)
+	var predator: BattleUnit=b.units[0];var gunner: BattleUnit=b.units[1]
+	predator.set_state("predatorStacks",3);predator.set_state("burnStacks",4);predator.set_state("darkMark",gunner.actor_id())
+	StatusController.stun(predator,2);predator.shield_hp=40;predator.shield_remaining=5
+	var keys: Array=StatusCatalog.collect(predator).map(func(r):return r.key)
+	verify(keys.has(&"predator") and keys.has(&"burn") and keys.has(&"dark_mark") and keys.has(&"stun") and keys.has(&"shield"),"collect lists growth, debuffs, marks, control and buffs")
+	verify(StatusCatalog.collect(gunner).any(func(r):return r.key==&"ammo"),"unit resources such as ammo are listed")
+	for row in StatusCatalog.collect(predator):verify(StatusCatalog.ENTRIES.has(row.key),"every collected status is described in the codex")
+	var t:=TowerController.new();t.new_run(5,9);var m: GuildMemberState=t.guild.all_members()[0]
+	m.character_specific_state={"predatorStacks":2,"shieldHp":30.0,"shieldTime":4.0}
+	var member_keys: Array=StatusCatalog.collect(m,t.guild.member_stats(m)).map(func(r):return r.key)
+	verify(member_keys.has(&"predator") and member_keys.has(&"shield"),"a waiting guild member's carried statuses are listed")
+	var host:=Control.new();tree.root.add_child(host);await tree.process_frame
+	verify(host.get_window()!=null,"sheet host is in a window")
+	if host.get_window()==null:return
+	var sheet:=UnitInfoSheet.open(host,predator.data.type_id,predator.combat_stats,null,predator);await tree.process_frame
+	sheet._show_tab("status");await tree.process_frame
+	verify(sheet.tab_buttons.size()==2 and sheet.status_body.visible and not sheet.info_body.visible,"a field unit's sheet has 정보 / 상태 tabs")
+	verify(sheet.status_body.get_child_count()>=5+keys.size()-1,"상태 tab shows the gauges and one row per status")
+	sheet._show_tab("info");sheet.queue_free()
+	var plain:=UnitInfoSheet.open(host,3);await tree.process_frame
+	verify(plain.tab_buttons.is_empty() and plain.info_body.visible,"a sheet without a unit instance has no 상태 tab")
+	plain.queue_free();host.queue_free();b.queue_free();await tree.process_frame
