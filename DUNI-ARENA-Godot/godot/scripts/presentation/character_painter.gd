@@ -79,7 +79,7 @@ static func capture_unit(u: BattleUnit) -> Dictionary:
 	# Only primitive pose values. Never retain a Unit, target, ability or Resource.
 	var velocity: Vector2=u.velocity+u.knockback_velocity
 	if not velocity.is_finite():velocity=Vector2.ZERO
-	return {"position":u.position,"velocity":velocity.limit_length(220),"scale":u.combat_scale(),"type":u.data.type_id,"facing":u.facing,"frame":frame_for(u),"motion":WeaponMotion.pose(u),"weapon_visible":u.data.type_id!=10 or u.lost_sword.is_empty(),"color":u.team_color(),"hp":u.current_hp,"max_hp":u.max_hp,"shield":u.shield_hp,"hidden":u.hidden_from_enemies,"id":u.battle_id}
+	return {"position":u.position,"velocity":velocity.limit_length(220),"scale":u.combat_scale(),"type":u.data.type_id,"facing":u.facing,"frame":frame_for(u),"motion":WeaponMotion.pose(u),"weapon_visible":u.data.type_id!=10 or u.lost_sword.is_empty(),"color":u.team_color(),"hp":u.current_hp,"max_hp":u.max_hp,"shield":u.shield_hp,"hidden":u.hidden_from_enemies,"id":u.battle_id,"ult":u.ultimate_gauge if u.data.ultimate_windup>=0 else -1.0}
 
 static func draw_snapshot(canvas: CanvasItem,row: Dictionary,at: Vector2,parent: Transform2D,time: float) -> void:
 	var scale: float=row.scale;var color: Color=row.color
@@ -93,5 +93,15 @@ static func draw_snapshot(canvas: CanvasItem,row: Dictionary,at: Vector2,parent:
 	canvas.draw_set_transform_matrix(parent)
 	canvas.draw_arc(at+Vector2(0,24*scale),22*scale,.12,PI-.12,20,color,3)
 	if row.shield>0:VisualShapes.barrier(canvas,at,25*scale+9,Color("7ddfff"),time)
-	canvas.draw_rect(Rect2(at+Vector2(-25,-25*scale-13),Vector2(50,5)),Color("32455c"))
-	canvas.draw_rect(Rect2(at+Vector2(-25,-25*scale-13),Vector2(50*clampf(row.hp/maxf(1,row.max_hp),0,1),5)),color)
+	# Same HP bar and ultimate gauge as during the fight (CombatPresentation.draw_bars), so the
+	# bars stay put over the units when the ending freezes the picture.
+	var px: float=1/maxf(.05,parent.get_scale().x)
+	var bar_w: float=maxf(48,28*px);var hp_h: float=maxf(6,4*px);var ult_h: float=maxf(3,2.5*px)
+	var hp_rect:=Rect2(at+Vector2(-bar_w*.5,-25*scale-6-hp_h-ult_h),Vector2(bar_w,hp_h))
+	canvas.draw_rect(hp_rect.grow(px),Color(0,0,0,.85));canvas.draw_rect(hp_rect,Color("1a2232"))
+	canvas.draw_rect(Rect2(hp_rect.position,Vector2(hp_rect.size.x*clampf(row.hp/maxf(1,row.max_hp),0,1),hp_h)),color.lightened(.15))
+	var ult: float=float(row.get("ult",-1.0))
+	if ult>=0:
+		var ult_rect:=Rect2(Vector2(hp_rect.position.x,hp_rect.end.y+px),Vector2(bar_w,ult_h))
+		canvas.draw_rect(ult_rect.grow(px*.8),Color(0,0,0,.8));canvas.draw_rect(ult_rect,Color("1c2433"))
+		canvas.draw_rect(Rect2(ult_rect.position,Vector2(bar_w*clampf(ult/100,0,1),ult_h)),Color("ffe28a") if ult>=100 else Color("c49dff"))

@@ -95,6 +95,7 @@ func cleanup() -> void:
 		if battle.battle_finalizing.is_connected(_prepare_ending):battle.battle_finalizing.disconnect(_prepare_ending)
 	cinematic=BattleCinematicState.new()
 	kill_notices.clear();kill_streaks.clear();multi_banner.clear();multi_queue.clear()
+	if is_instance_valid(bar_overlay):bar_overlay.queue_redraw()
 	connected=false;battle=null;effects.clear();numbers.clear();previous.clear();feed.clear();event_total=0;end_age=0;camera.reset();particles.clear();flashes.clear();visual_positions.clear();freeze_positions.clear();impact_remaining=0;trans_active=false;explosive_seen.clear();tracked_projectiles.clear();projectile_trails.clear();projectile_origins.clear();release_counts.clear();weapon_releases.clear();ult_released.clear();ult_timers.clear();afterimages.clear();orbs.clear();emit_clock.clear();trail_tick=-1;queue_redraw()
 	if is_instance_valid(glow_layer):glow_layer.queue_redraw()
 	if is_instance_valid(field_layer):field_layer.clear()
@@ -256,6 +257,8 @@ func ensure_cinematic(reason: BattleEndReason.Value) -> BattleCinematicState:
 func _advance_ending(delta: float) -> void:
 	var before: float=BattleCinematicState.motion_seconds(cinematic.age)
 	cinematic.advance(delta);end_age=cinematic.age
+	# The live bar overlay stands down for the ending (the frozen units carry their own bars).
+	if is_instance_valid(bar_overlay):bar_overlay.queue_redraw()
 	# The last kills often end the fight: their streak banner plays over the ending.
 	_age_banner(delta)
 	var slow_dt: float=BattleCinematicState.motion_seconds(cinematic.age)-before
