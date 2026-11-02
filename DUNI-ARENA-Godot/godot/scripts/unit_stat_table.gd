@@ -120,7 +120,7 @@ const DAMAGE = {
 	"hero":{
 		&"basic":[&"basic", &"physical", 0, 1.0, [], "펀치"],
 		&"rescue":[&"passive", &"physical", 0, 1.6, [&"area"], "구조 일격"],
-		&"ult":[&"ultimate", &"physical", 0, 4.2, [], "강펀치"]},
+		&"ult":[&"ultimate", &"physical", 0, 3.0, [], "강펀치"]},
 	"tank":{
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"fire", &"explosion", &"area"], "포탄"],
 		&"enhanced":[&"ultimate", &"physical", 0, 1.7, [&"fire", &"explosion", &"area"], "화염 포탄"],
@@ -171,7 +171,7 @@ const DAMAGE = {
 		&"ult":[&"ultimate", &"physical", 15, 1.8, [&"explosion", &"wind", &"projectile"], "목표지정 탄 폭발 (10초 목표 상태)"]},
 	"slime":{
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"poison"], "몸통 박치기 (넉백 · 2초 둔화)"],
-		&"ult":[&"ultimate", &"physical", 10, 1.4, [&"area", &"poison"], "다 함께 낙하 착지"]},
+		&"ult":[&"ultimate", &"physical", 10, 0.9, [&"area", &"poison"], "다 함께 낙하 착지"]},
 }
 ## Damage every unit can deal regardless of character, using its main damage kind.
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]

@@ -1,12 +1,14 @@
 extends CharacterAbility
 ## 슬라임: when a blow would kill it, it splits instead — itself and a new slime, each with
-## SPLIT_FACTOR of its HP and damage and a smaller body (twice at most: 1 → 2 → 4). Slimes of the
+## SPLIT_HP of its HP, SPLIT_FACTOR of its damage and a smaller body (twice at most: 1 → 2 → 4). Slimes of the
 ## last split can no longer use the ultimate. Basic attack: hops at the target and
 ## body-slams around its landing spot (physical · poison), knocking enemies back and slowing them
 ## for SLOW_TIME. Ultimate: every slime of its family leaps high at once and slams down on the
 ## nearest enemy (physical · area · poison).
 const MAX_SPLITS: int = 2
 const SPLIT_FACTOR: float = .4
+## Share of HP each split keeps (lower than the damage share since 0.76.0).
+const SPLIT_HP: float = .3
 const SPLIT_SCALE: float = .8
 const HOP: float = 160
 const HOP_SPEED: float = 760
@@ -57,14 +59,14 @@ static func split(u) -> bool:
 	u.battle.queue_spawn(u,u.position-away*30,halved(u.combat_stats,1.0),state,-away*260)
 	u.battle.emit_combat_event(&"slime_split",u.position,{"actor_id":u.battle_id,"split":done+1})
 	return true
-## A copy of `stats` with HP and damage scaled by SPLIT_FACTOR (factor 1: an exact copy).
+## A copy of `stats` with HP scaled by SPLIT_HP and damage by SPLIT_FACTOR (factor 1: an exact copy).
 static func halved(stats: UnitCombatStats,factor: float=SPLIT_FACTOR) -> UnitCombatStats:
 	var copy:=UnitCombatStats.new()
 	for p in stats.get_property_list():
 		if p.usage & PROPERTY_USAGE_SCRIPT_VARIABLE:
 			var v=stats.get(p.name)
 			copy.set(p.name,v.duplicate(true) if v is Dictionary or v is Array else v)
-	copy.max_hp*=factor;copy.physical_damage*=factor;copy.magic_damage*=factor
+	copy.max_hp*=SPLIT_HP if factor<1 else factor;copy.physical_damage*=factor;copy.magic_damage*=factor
 	if factor<1:copy.scale*=SPLIT_SCALE
 	return copy
 

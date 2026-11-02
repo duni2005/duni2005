@@ -776,6 +776,8 @@ func balance_layer(_tree: SceneTree) -> void:
 	verify(is_equal_approx(stats.call(12).max_hp,all[12].max_hp*1.15) and is_equal_approx(stats.call(3).max_hp,all[3].max_hp*.95),"tier multiplier: 5 tokens ×1.15, 1 token ×0.95")
 	verify(UnitBalance.max_hp(all[27])==floorf(150*1.15*1.7+.5) and is_equal_approx(stats.call(27).physical_damage,UnitStatTable.base_physical(27)*1.15*1.25),"기관사: tier and its own correction stack")
 	verify(is_equal_approx(stats.call(0).max_hp,all[0].max_hp*.95*.9) and is_equal_approx(stats.call(13).physical_damage,UnitStatTable.base_physical(13)*.88),"strong cheap units are toned down")
+	verify(is_equal_approx(stats.call(33).max_hp,all[33].max_hp*1.1*1.2) and is_equal_approx(stats.call(33).magic_damage,UnitStatTable.base_magic(33)*1.1*.8),"그리핀: more HP, less damage (0.76.0)")
+	verify(is_equal_approx(UnitStatTable.spec(17,&"ult").ratio,3.0) and is_equal_approx(UnitStatTable.spec(35,&"ult").ratio,.9),"히어로 · 슬라임 ultimates hit softer (0.76.0)")
 	var setup:=CustomBattleSetup.new();setup.add(27,0,Vector2(200,400))
 	verify(is_equal_approx(setup.placements()[0].combat_stats.max_hp,UnitBalance.max_hp(all[27])),"custom battles use the balanced stats")
 	UnitBalance.enabled=false
@@ -821,9 +823,9 @@ func slime_unit(tree: SceneTree) -> void:
 	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0
 	var full_hp: float=slime.max_hp;var full_damage: float=slime.combat_stats.physical_damage
 	var slimes:=func():return b.units.filter(func(u):return u.alive and u.data.type_id==35)
-	var F: float=SlimeAbilityRef.SPLIT_FACTOR
+	var F: float=SlimeAbilityRef.SPLIT_FACTOR;var H: float=SlimeAbilityRef.SPLIT_HP
 	b.damage_resolver.resolve(foe,slime,9999,{"critical":false,"transcendent":true});step(b,1.0/60)
-	verify(slime.alive and is_equal_approx(slime.max_hp,full_hp*F) and is_equal_approx(slime.combat_stats.physical_damage,full_damage*F) and slimes.call().size()==2,"a lethal blow splits the slime into two weaker slimes (%d%%)"%roundi(F*100))
+	verify(slime.alive and is_equal_approx(slime.max_hp,full_hp*H) and is_equal_approx(slime.combat_stats.physical_damage,full_damage*F) and slimes.call().size()==2,"a lethal blow splits the slime into two weaker slimes (HP %d%%, damage %d%%)"%[roundi(H*100),roundi(F*100)])
 	# Family leap: every slime of the family jumps at once and lands on the nearest enemy.
 	for s in slimes.call():s.invincible_remaining=0
 	var hp: float=foe.current_hp
@@ -834,7 +836,7 @@ func slime_unit(tree: SceneTree) -> void:
 	for s in slimes.call():s.invincible_remaining=0
 	for s in slimes.call():b.damage_resolver.resolve(foe,s,9999,{"critical":false,"transcendent":true})
 	step(b,1.0/60)
-	verify(slimes.call().size()==4 and slimes.call().all(func(s):return is_equal_approx(s.max_hp,full_hp*F*F)),"each slime splits again: four smaller slimes")
+	verify(slimes.call().size()==4 and slimes.call().all(func(s):return is_equal_approx(s.max_hp,full_hp*H*H)),"each slime splits again: four smaller slimes")
 	# The last split can no longer use the ultimate, nor joins a family leap.
 	verify(slimes.call().all(func(s):return not s.ability.can_cast(s) and not s.ability.can_ultimate(s,foe)),"slimes of the last split cannot use the ultimate")
 	slimes.call()[0].ability.release_ultimate(slimes.call()[0],{},0)
