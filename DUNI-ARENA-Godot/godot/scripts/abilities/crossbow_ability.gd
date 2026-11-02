@@ -1,29 +1,37 @@
 extends CharacterAbility
-## 석궁: reloads during the windup, then fires SHOTS bolts in quick succession (physical · wind ·
-## projectile). Ultimate 목표지정: a marking shell that bursts where it hits or lands (physical ·
-## explosion · wind · projectile) and puts every enemy the blast strikes in the 목표 state for
-## TARGET_TIME seconds (ElementEffects: damage taken +10%, wind damage taken +15%).
+## 석궁: a magazine of SHOTS bolts. Every bolt is its own basic attack (physical · wind ·
+## projectile) — a short aim, the shot, and straight on to the next while bolts remain; once the
+## magazine is empty it reloads for RELOAD seconds (faster with attack speed). Ultimate 목표지정:
+## a marking shell that bursts where it hits or lands (physical · explosion · wind · projectile)
+## and puts every enemy the blast strikes in the 목표 state for TARGET_TIME seconds
+## (ElementEffects: damage taken +10%, wind damage taken +15%).
 const SHOTS: int = 7
-const SHOT_GAP: float = .08
+const RELOAD: float = 1.4
+## Pause after one bolt's recovery before the next may start.
+const SHOT_GAP: float = .04
 const BURST_RADIUS: float = 95
 const TARGET_TIME: float = 10
 const SHELL_SPEED: float = 720
 
+func on_spawn(u) -> void:
+	if not u.character_specific_state.has("bolts"):u.set_state("bolts",SHOTS)
+func tick(u,dt: float) -> void:
+	if u.state_value("reloadRemaining")<=0:return
+	u.set_state("reloadRemaining",maxf(0,u.state_value("reloadRemaining")-dt*EquipmentCombatEffects.attack_speed(u)))
+	if u.state_value("reloadRemaining")==0:u.set_state("bolts",SHOTS)
+func can_attack(u,_t) -> bool:return u.state_value("bolts")>0 and u.state_value("reloadRemaining")<=0
+## A fresh magazine waits for the right moment; once the volley has begun the bolts keep coming.
+func requires_initiative(u=null) -> bool:return u==null or int(u.state_value("bolts"))>=SHOTS
+func attack_cooldown(u,_rng: RandomNumberGenerator) -> float:
+	var p: AttackData=u.combat.profile(u)
+	return p.windup+p.active+p.recovery+SHOT_GAP
+func movement_rate(u) -> float:return .8 if u.state_value("reloadRemaining")>0 else 1
 func release_basic(u) -> void:
-	u.combat.attack_metadata["fired"]=0;_fire(u)
-func _fire(u) -> void:
 	var r: RandomNumberGenerator=u.battle.rng
-	shoot(u,u.combat.aim_angle+r.randf_range(-.05,.05),UnitStatTable.raw(u,&"basic"),{"dmg":&"basic","kind":"crossBolt","speed":980,"radius":13,"life":.75,"impulse":45})
-	u.combat.attack_metadata["fired"]=int(u.combat.attack_metadata.get("fired",0))+1
-## The rest of the volley, one bolt every SHOT_GAP, turning toward the target.
-func attack_tick(u,dt: float) -> bool:
-	if u.combat_state!=CombatController.State.ACTIVE or not u.combat.attack_metadata.has("fired"):return false
-	var t=u.combat.attack_target
-	if t!=null and is_instance_valid(t) and t.alive:
-		u.combat.aim_angle+=clampf(wrapf(u.combat.aim_direction(u,t)-u.combat.aim_angle,-PI,PI),-4*dt,4*dt);u.facing=u.combat.aim_angle
-	var fired: int=int(u.combat.attack_metadata.fired)
-	while fired<SHOTS and u.combat.phase_time+1e-8>=fired*SHOT_GAP:_fire(u);fired+=1
-	return false
+	shoot(u,u.combat.aim_angle+r.randf_range(-.04,.04),UnitStatTable.raw(u,&"basic"),{"dmg":&"basic","kind":"crossBolt","speed":980,"radius":13,"life":.75,"impulse":45})
+	u.set_state("bolts",u.state_value("bolts")-1)
+	if u.state_value("bolts")<=0:u.set_state("reloadRemaining",RELOAD)
+func debug_state(u) -> String:return "bolts:%d reload:%.2f"%[int(u.state_value("bolts")),u.state_value("reloadRemaining")]
 
 func can_ultimate(u,t) -> bool:return t!=null and u.position.distance_to(t.position)<520*u.combat_scale()
 func release_ultimate(u,a: Dictionary,_dt: float) -> bool:

@@ -1,5 +1,6 @@
 extends CharacterAbility
-## 그리핀 (고정): never walks — it only moves by dashing. Basic attack: dashes at the target (at most
+## 그리핀 (고정): never walks — it only moves by dashing. With no enemy within reach the basic attack
+## is used to travel: same dash, same storm, toward the target. Basic attack: dashes at the target (at most
 ## DASH) during the windup, then raises a storm around itself for STORM_LIFE seconds that strikes
 ## enemies inside every half second (magic · wind · area · over time). Ultimate: dashes at the target,
 ## then throws a gust in a cone ahead (magic · wind · area) that knocks enemies far back; one that
@@ -13,6 +14,11 @@ const GUST_CONE: float = .62
 const GUST_STUN: float = 2.0
 const GUST_IMPULSE: float = 900
 
+## No enemy within reach: the basic attack doubles as its only way to move, dashing at the target.
+func travel_attack(u,enemy) -> bool:
+	var reach: float=u.data.attack_profile.reach*u.combat_scale()
+	if enemy==null or u.position.distance_to(enemy.position)<reach:return false
+	return not u.enemies().any(func(e):return not e.unavailable() and u.position.distance_to(e.position)<reach)
 ## The windup is the dash: toward the target until DASH is spent or it is within reach.
 func attack_tick(u,dt: float) -> bool:
 	if u.combat_state!=CombatController.State.WINDUP:return false

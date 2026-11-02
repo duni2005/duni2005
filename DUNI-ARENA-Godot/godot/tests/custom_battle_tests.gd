@@ -57,6 +57,7 @@ func run(tree: SceneTree) -> void:
 	await custom_result_flow(tree)
 	await status_sheet(tree)
 	griffin_and_crossbow(tree)
+	stun_rush_and_travel(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -707,6 +708,7 @@ func status_sheet(tree: SceneTree) -> void:
 	verify(plain.tab_buttons.is_empty() and plain.info_body.visible,"a sheet without a unit instance has no 상태 tab")
 	plain.queue_free();host.queue_free();b.queue_free();await tree.process_frame
 
+const CrossbowAbilityRef=preload("res://scripts/abilities/crossbow_ability.gd")
 ## 그리핀 (33) and 석궁 (34), 0.72.0.
 func griffin_and_crossbow(tree: SceneTree) -> void:
 	# 그리핀: fixed (never walks), dashes in on its attack and leaves a wind storm.
@@ -739,24 +741,58 @@ func griffin_and_crossbow(tree: SceneTree) -> void:
 		if front.stun_remaining>0 or back.stun_remaining>0:stunned=true;break
 	verify(stunned,"a unit thrown into another is stunned")
 	b.queue_free()
-	# 석궁: seven bolts per volley; the marking shell bursts and marks enemies as 목표.
+	# 석궁: a magazine of seven bolts, each bolt its own basic attack, then a reload.
 	b=duel(tree,[[34,0,Vector2(200,400)],[4,1,Vector2(480,400)],[4,1,Vector2(520,450)]])
 	step(b,.05)
 	var bow: BattleUnit=b.units[0]
 	for u in b.units.slice(1):u.move_speed=0;u.combat.cooldown=1000
-	var seen: Dictionary={}
+	var seen: Dictionary={};var released0: int=bow.combat.attacks_released;var reloaded: bool=false
 	for i in range(60*10):
 		step(b,1.0/60)
 		for p in b.projectiles:
 			if p.source==bow and p.kind=="crossBolt":seen[p.projectile_id]=true
+		if bow.state_value("reloadRemaining")>0:reloaded=true
 		if seen.size()>=7:break
-	verify(seen.size()>=7,"crossbow fires a volley of seven bolts")
+	verify(seen.size()>=7 and bow.combat.attacks_released-released0==seen.size(),"crossbow: every bolt is one basic attack (%d bolts, %d attacks)"%[seen.size(),bow.combat.attacks_released-released0])
+	verify(reloaded and int(bow.state_value("bolts"))==0 and not bow.combat.can_start(bow,b.units[1]),"after seven bolts the crossbow reloads before shooting again")
+	step(b,CrossbowAbilityRef.RELOAD+.1)
+	verify(int(bow.state_value("bolts"))==7 and StatusCatalog.collect(bow).any(func(r):return r.key==&"bolts"),"the reload refills the magazine (shown in 상태이상)")
 	bow.ability.burst(bow,b.units[1].position)
 	var marked: Array=b.units.slice(1).filter(func(e):return e.state_value("targetedTime")>0)
 	verify(marked.size()==2,"the marking shell bursts and marks every enemy in the blast")
 	var spec: Dictionary=UnitStatTable.spec(34,&"basic");bow.set_state("windStacks",0)
 	verify(is_equal_approx(ElementEffects.taken(marked[0]),1.1*(ElementEffects.FROSTBITE_TAKEN if marked[0].state_value("frostbiteTime")>0 else 1.0)) and is_equal_approx(ElementEffects.outgoing(bow,marked[0],spec,{})*ElementEffects.TARGETED_TAKEN,ElementEffects.TARGETED_WIND),"목표: +10% damage taken, +15% wind damage taken")
 	verify(StatusCatalog.collect(marked[0]).any(func(r):return r.key==&"targeted"),"목표 shows in the unit's 상태이상")
+	b.queue_free()
+
+## 0.74.0: no standoff against a stunned enemy; 그리핀 dashes to travel when nothing is in reach.
+func stun_rush_and_travel(tree: SceneTree) -> void:
+	var first_swing:=func(stunned: bool) -> float:
+		var b:=duel(tree,[[17,0,Vector2(250,400)],[0,1,Vector2(520,400)]],9)
+		step(b,.05)
+		var hero: BattleUnit=b.units[0];var foe: BattleUnit=b.units[1]
+		foe.move_speed=0;foe.combat.cooldown=1000;foe.parry_cooldown=1000;foe.defense_cooldown=1000
+		var t: float=-1
+		for i in range(60*8):
+			if stunned:foe.stun_remaining=1.0
+			step(b,1.0/60)
+			if hero.combat.attacks_started>0:t=i/60.0;break
+		var calm: bool=hero.brain.defensive(hero)
+		b.queue_free()
+		return t if not stunned or not calm else -2.0
+	var slow: float=first_swing.call(false);var fast: float=first_swing.call(true)
+	verify(fast>=0 and fast<2.0 and (slow<0 or fast<slow),"a standoff unit rushes a stunned enemy (first swing %.2fs vs %.2fs)"%[fast,slow])
+	var b:=duel(tree,[[33,0,Vector2(100,400)],[4,1,Vector2(720,400)]])
+	step(b,.05)
+	var griffin: BattleUnit=b.units[0];var foe: BattleUnit=b.units[1]
+	foe.move_speed=0;foe.combat.cooldown=1000
+	var d0: float=griffin.position.distance_to(foe.position)
+	verify(griffin.ability.travel_attack(griffin,foe),"griffin: no enemy in reach → the basic attack is used to travel")
+	for i in range(60*4):
+		step(b,1.0/60)
+		if griffin.position.distance_to(foe.position)<griffin.data.attack_range:break
+	verify(griffin.position.distance_to(foe.position)<minf(d0-200,griffin.data.attack_range),"griffin dashes across the field toward a far enemy")
+	verify(not griffin.ability.travel_attack(griffin,foe),"within reach the dash is an ordinary attack again")
 	b.queue_free()
 
 ## 슬라임 (35), 0.73.0: splits twice on death, slam slows, the family leaps together.

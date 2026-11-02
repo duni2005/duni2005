@@ -167,7 +167,7 @@ const DAMAGE = {
 		&"basic":[&"basic", &"magic", 2, 0.42, [&"wind", &"area", &"dot"], "폭풍 (2초, 0.5초마다)"],
 		&"ult":[&"ultimate", &"magic", 15, 2.2, [&"wind", &"area"], "돌풍 (넉백 · 충돌 시 2초 기절)"]},
 	"crossbow":{
-		&"basic":[&"basic", &"physical", 0, 0.32, [&"wind", &"projectile"], "화살 (7연발)"],
+		&"basic":[&"basic", &"physical", 0, 0.32, [&"wind", &"projectile"], "화살 1발 (탄창 7발)"],
 		&"ult":[&"ultimate", &"physical", 15, 1.8, [&"explosion", &"wind", &"projectile"], "목표지정 탄 폭발 (10초 목표 상태)"]},
 	"slime":{
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"poison"], "몸통 박치기 (넉백 · 2초 둔화)"],

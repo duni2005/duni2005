@@ -127,7 +127,9 @@ func cast_area(_u,_a: Dictionary) -> Dictionary:return {}
 func can_cast(_u) -> bool:return true
 func defensive_ultimate() -> bool:return false
 func ultimate_point(_u,point: Vector2) -> Vector2:return point.clamp(Vector2(28,28),Vector2(772,772))
-func requires_initiative() -> bool:return true
+func requires_initiative(_u=null) -> bool:return true
+## True when this basic attack is used to close in on an enemy that is still out of reach.
+func travel_attack(_u,_enemy) -> bool:return false
 func debug_state(_u) -> String:return ""
 func reactive_ultimate() -> bool:return false
 ## True when this unit's own ability replaces a shared element rule (ElementEffects) for a hit:

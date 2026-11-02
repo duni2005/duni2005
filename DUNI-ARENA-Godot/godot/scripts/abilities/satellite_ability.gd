@@ -33,5 +33,5 @@ func release_basic(u) -> void:
 	if u.combat.attack_target!=null:missile(u,u.combat.attack_target,UnitStatTable.raw(u,&"basic")*(1+minf(3,CharacterLifecycle.cc_remaining(u.combat.attack_target))*.4))
 func can_ultimate(u,_t) -> bool:return u.enemies().any(func(e):return e.position.distance_to(u.position)<520)
 func release_ultimate(u,_a,_dt: float) -> bool:salvo(u,3+u.friends().size(),UnitStatTable.raw(u,&"ult"),true);return true
-func requires_initiative() -> bool:return false
+func requires_initiative(_u=null) -> bool:return false
 func debug_state(u) -> String:return " / ".join(["satelliteBursts"].map(func(k):return k+":"+str(u.character_specific_state.get(k,0))))

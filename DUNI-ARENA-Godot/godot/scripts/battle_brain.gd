@@ -56,8 +56,10 @@ func initialize(r: RandomNumberGenerator) -> void:
 	entry_plan=["observe","circle","feint","flank"][r.randi_range(0,3)]
 	next_initiative_at=r.randf_range(.4,3.8)*tempo
 	goal=Vector2(r.randf_range(100,700),r.randf_range(100,700))
+## A stunned enemy cannot answer: no standoff against it, everyone presses in at once.
+static func exposed(enemy) -> bool:return enemy!=null and enemy.alive and enemy.stun_remaining>0
 func defensive(u) -> bool:
-	return (u.stance==CombatStance.CAUTIOUS or u.data.tags.has("대치형") or u.mind.cautious(u)) and u.stance!=CombatStance.RUSH and u.state_value("shadowTime")<=0 and u.taunted_until<=u.battle.clock.elapsed
+	return (u.stance==CombatStance.CAUTIOUS or u.data.tags.has("대치형") or u.mind.cautious(u)) and u.stance!=CombatStance.RUSH and u.state_value("shadowTime")<=0 and u.taunted_until<=u.battle.clock.elapsed and not exposed(u.target)
 ## Attack speed also shortens the pauses between attacks (stepping back, deciding to go again,
 ## the aim before swinging); at 1x the pace is unchanged.
 static func haste(u) -> float:return EquipmentCombatEffects.attack_speed(u)
@@ -104,6 +106,9 @@ func advance(u, enemy, _dt: float) -> void:
 	if enemy==null or u.stun_remaining>0 or u.evade_remaining>0 or u.ability.locked(u) or not u.lost_sword.is_empty() or u.command_retreat_until>now:return
 	if not attack_decision.is_empty():attack_decision.actor=enemy.actor_id()
 	u.mind.pace(u,enemy)
+	if exposed(enemy) and u.threat_response.response.is_empty():
+		if now>=commit_until:begin(u,enemy,maxf(1.2,enemy.stun_remaining+.4),"pressure")
+		disengage_until=0;return_until=0;return
 	if not u.threat_response.response.is_empty() or u.combat.cooldown>0 or now<maxf(maxf(disengage_until,return_until),commit_until):return
 	if defensive(u):
 		if now<float(spacing.exit) or spacing.threatening or now<float(spacing.probe):return
@@ -127,7 +132,7 @@ func attack_ready(u, enemy) -> bool:
 		if anchor!=null and anchor.alive and anchor.position.distance_to(enemy.position)>240:return false
 	if ParryController.perfect(u) or u.threat_response.response.get("mode",&"")==&"parry":return false
 	if u.state_value("shadowTime")>0:return true
-	var pressure: bool=u.stance==CombatStance.RUSH or u.taunted_until>now or u.mind.charging(u)
+	var pressure: bool=u.stance==CombatStance.RUSH or u.taunted_until>now or u.mind.charging(u) or exposed(enemy)
 	if not pressure and (u.threat_response.response.get("mode",&"")==&"dodge" and now<float(u.threat_response.response.get("until",0)) or now>=commit_until and now>=punish_until or now<disengage_until or now<return_until):return false
 	if attack_decision.is_empty():attack_decision={"actor":enemy.actor_id(),"at":now+intent_delay(u,"pressure" if pressure else "counter" if u.threat_response.response.get("mode",&"")==&"counter" else "punish" if now<punish_until else "initiative")}
 	attack_decision.actor=enemy.actor_id()
@@ -137,7 +142,7 @@ func released(u) -> void:
 	disengage_until=0 if u.state_value("shadowTime")>0 else last_attack+u.battle.rng.randf_range(1.1,1.7)/haste(u) if defensive(u) else last_attack+u.battle.rng.randf_range(.6,1.3)/haste(u)
 	mode="shadow" if u.state_value("shadowTime")>0 else "retreat"
 	# Rush stance: no step back, straight on to the next attack.
-	if u.stance==CombatStance.RUSH:disengage_until=0;mode="approach";return
+	if u.stance==CombatStance.RUSH or exposed(u.target):disengage_until=0;mode="approach";return
 	if u.data.tags.has("호위형"):return_until=last_attack+u.battle.rng.randf_range(.8,1.4)/haste(u)
 func steer(u,direction: Vector2,dt: float,factor: float=1,style: String="archetype") -> void:
 	desired_direction=direction;movement_style=style
@@ -160,7 +165,7 @@ func steer(u,direction: Vector2,dt: float,factor: float=1,style: String="archety
 	u.position=MovementController.clamp_position(p+heading*u.move_speed*u.ability.movement_rate(u)*factor*dt);u.velocity=(u.position-p)/dt
 func move_precommit(u,enemy,dt: float) -> bool:
 	var now: float=u.battle.clock.elapsed
-	if enemy==null or u.combat_state!=CombatController.State.IDLE or not u.ultimate.cast.is_empty() or u.state_value("shadowTime")>0 or u.stance==CombatStance.RUSH or u.taunted_until>now or u.data.type_id in [6,11] or not u.friends().is_empty() and (u.data.tags.has("호위형") or u.data.type_id==5) or not u.lost_sword.is_empty() or u.command_retreat_until>now or u.threat_response.response.get("mode",&"")==&"counter" or now<commit_until or now<punish_until:return false
+	if enemy==null or exposed(enemy) or u.combat_state!=CombatController.State.IDLE or not u.ultimate.cast.is_empty() or u.state_value("shadowTime")>0 or u.stance==CombatStance.RUSH or u.taunted_until>now or u.data.type_id in [6,11] or not u.friends().is_empty() and (u.data.tags.has("호위형") or u.data.type_id==5) or not u.lost_sword.is_empty() or u.command_retreat_until>now or u.threat_response.response.get("mode",&"")==&"counter" or now<commit_until or now<punish_until:return false
 	var due: float=float(spacing.get("probe",next_initiative_at)) if defensive(u) else next_initiative_at
 	if now>=due:return false
 	var cautious: bool=u.stance==CombatStance.CAUTIOUS
@@ -285,7 +290,7 @@ func formation_pull(u,enemy) -> Vector2:
 ## to where it last fought and waits there; after a while it closes in again.
 func move_home(u,enemy,dt: float) -> bool:
 	var now: float=u.battle.clock.elapsed
-	if enemy==null or u.taunted_until>now or u.command_retreat_until>now or u.combat_state!=CombatController.State.IDLE:return false
+	if enemy==null or exposed(enemy) or u.taunted_until>now or u.command_retreat_until>now or u.combat_state!=CombatController.State.IDLE:return false
 	var d: float=u.position.distance_to(enemy.position);var reach: float=u.data.attack_range+30*u.combat_scale()
 	if d<=reach:home=u.position;home_set=true;home_since=-1;return false
 	if not home_set or d<=reach+StanceRules.CAUTIOUS_LEASH:return false
@@ -309,11 +314,11 @@ func move_stance(u,enemy,dt: float) -> bool:
 		var point: Vector2=cover_position(u,enemy);direction=(point-u.position).normalized()*(1 if u.position.distance_to(point)>18 else .12);movement_override="cover_intercept"
 	elif enemy!=null:
 		var f: Vector2=(enemy.position-u.position).normalized();var l: Vector2=-f.orthogonal();var d: float=u.position.distance_to(enemy.position);var reloading: bool=u.data.type_id==7 and u.state_value("reloadRemaining")>0
-		if (u.stance==CombatStance.RUSH or taunting) and not reloading:
+		if (u.stance==CombatStance.RUSH or taunting or exposed(enemy)) and not reloading:
 			desired_distance=minf(StanceRules.RUSH_RANGED_DISTANCE,u.data.attack_range*.5) if u.data.attack_range>100 else u.data.attack_range*.65
 			# Straight at the target: only a faint sway (taunted units keep their weave).
 			var sway: Vector2=l*(side*StanceRules.RUSH_SIDE+sin(now*3+u.movement_phase)*StanceRules.RUSH_SWAY) if u.stance==CombatStance.RUSH else l*(side*.25+sin(now*3+u.movement_phase)*.35)
-			direction=f*(1 if d>desired_distance else .12)+sway;disengage_until=0;return_until=0;mode="approach";factor=StanceRules.RUSH_SPEED;movement_override="rush"
+			direction=f*(1 if d>desired_distance else .12)+sway;disengage_until=0;return_until=0;mode="approach";factor=StanceRules.RUSH_SPEED if u.stance==CombatStance.RUSH or taunting else 1.0;movement_override="rush"
 		else:
 			var opening: bool=u.combat.cooldown<=0 and (now<commit_until or now<punish_until)
 			desired_distance=330 if reloading else u.data.attack_range*.75 if opening else maxf(155,u.data.attack_range*.98);direction=f*clampf((d-desired_distance)/95,-1,1)+l*side*.6;movement_override="stance_spacing"

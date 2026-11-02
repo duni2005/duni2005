@@ -6,9 +6,9 @@
 [sub_resource type="Resource" id="Attack"]
 script = ExtResource("2")
 kind = 1
-windup = 0.9
-active = 0.62
-recovery = 0.3
+windup = 0.12
+active = 0.05
+recovery = 0.08
 reach = 380
 cone = 0.2
 impulse = 40

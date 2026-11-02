@@ -51,8 +51,10 @@ func can_start(unit, enemy) -> bool:
 	if unit.battle.full_characters_enabled:
 		if not unit.battle.started or unit.battle.finished or unit.battle.clock.is_turning_paused() or not unit.alive or unit.combat_state!=State.IDLE or cooldown>0 or not unit.target_selector.is_valid_enemy(unit,enemy):return false
 		if unit.command_retreat_until>unit.battle.clock.elapsed or not unit.strategy_dash.is_empty() or unit.ability.locked(unit) or not unit.ultimate.cast.is_empty() or not unit.ability.can_attack(unit,enemy):return false
-		if unit.position.distance_to(enemy.position)>=unit.ability.profile(unit).reach*(.9 if unit.data.attack_range<100 else 1)*unit.combat_scale():return false
-		return not unit.ability.requires_initiative() or unit.brain.attack_ready(unit,enemy)
+		# A travel attack (그리핀's dash) may start out of reach: it is how the unit closes in.
+		var travel: bool=unit.ability.travel_attack(unit,enemy)
+		if not travel and unit.position.distance_to(enemy.position)>=unit.ability.profile(unit).reach*(.9 if unit.data.attack_range<100 else 1)*unit.combat_scale():return false
+		return travel or not unit.ability.requires_initiative(unit) or unit.brain.attack_ready(unit,enemy)
 	return unit.battle.started and not unit.battle.finished and not unit.battle.clock.is_turning_paused() and unit.command_retreat_until <= unit.battle.clock.elapsed and unit.strategy_dash.is_empty() and unit.alive and unit.combat_state == State.IDLE and cooldown <= 0.0 and unit.target_selector.is_valid_enemy(unit, enemy) and unit.position.distance_to(enemy.position) < unit.data.attack_profile.start_distance()
 
 func start(unit, enemy, rng: RandomNumberGenerator) -> bool:

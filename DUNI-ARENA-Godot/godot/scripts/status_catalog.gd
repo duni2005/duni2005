@@ -60,7 +60,8 @@ const ENTRIES = {
 	&"shrink":["축소 · 가속", &"growth", "boots", "챌런이 피해를 받을수록 작아지고 빨라진다(스택당 이동속도 +4%)."],
 	&"split":["분열", &"growth", "heart", "슬라임이 쓰러질 때마다 HP · 피해량이 절반인 두 마리로 나뉜다(최대 2번)."],
 	&"ammo":["탄약", &"unique", "supply", "기관총의 남은 탄약. 다 쓰면 4초 재장전."],
-	&"reload":["재장전", &"unique", "supply", "기관총이 탄약을 채우는 중이다(이동속도 -60%)."],
+	&"bolts":["화살 탄창", &"unique", "supply", "석궁의 남은 화살. 한 발이 기본공격 1회이며, 다 쓰면 1.4초 재장전."],
+	&"reload":["재장전", &"unique", "supply", "탄약을 다시 채우는 중이다(기관총은 이동속도 -60%, 석궁은 -20%)."],
 	&"oil":["기름", &"unique", "phoenixFeather", "화염방사기의 기름. 6 이상이어야 분사를 시작한다."],
 	&"sniper_burst":["연속 저격 준비", &"unique", "redThorn", "다음 저격이 연속 3발이 된다."],
 	&"tank_flame":["화염 포탄 준비", &"unique", "dragonHeart", "다음 포탄이 화염 포탄이 된다."],
@@ -157,6 +158,7 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if type_id == 35:add.call(&"split", "%d/2" % int(_num(s, "slimeSplits")))
 	# 고유
 	if type_id == 23 and s.has("ammo"):add.call(&"ammo", "%d/20" % int(_num(s, "ammo")))
+	if type_id == 34 and s.has("bolts"):add.call(&"bolts", "%d/7" % int(_num(s, "bolts")))
 	if _num(s, "reloadRemaining") > 0:add.call(&"reload", _secs(_num(s, "reloadRemaining")))
 	if type_id == 32 and s.has("oil"):add.call(&"oil", "%d/%d" % [int(_num(s, "oil")), 30])
 	if s.get("sniperBurstReady", false) == true:add.call(&"sniper_burst")

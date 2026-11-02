@@ -72,4 +72,4 @@ func release_ultimate(u,_a,_dt: float) -> bool:
 	return true
 func ultimate_danger(_u,_observer,_a: Dictionary) -> bool:return false
 func defensive_ultimate() -> bool:return true
-func requires_initiative() -> bool:return false
+func requires_initiative(_u=null) -> bool:return false
