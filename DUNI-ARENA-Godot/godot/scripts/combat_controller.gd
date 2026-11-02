@@ -78,11 +78,13 @@ func start(unit, enemy, rng: RandomNumberGenerator) -> bool:
 func advance(unit, delta: float, battle, tick_cooldown: bool=true) -> void:
 	if not unit.alive or battle.finished or battle.clock.is_turning_paused():
 		return
+	# Full characters: attack speed also plays the windup / active / recovery faster.
 	var rate: float=unit.ability.attack_rate(unit) if battle.full_characters_enabled else 1
+	var swing: float=rate*EquipmentCombatEffects.attack_speed(unit) if battle.full_characters_enabled else 1
 	if tick_cooldown:cooldown -= delta*rate
 	if unit.combat_state == State.IDLE:
 		return
-	phase_time += delta*rate
+	phase_time += delta*swing
 	if battle.common_combat_enabled and unit.stun_remaining > 0:
 		cancel(unit)
 		return

@@ -7,7 +7,8 @@ func tick(u,dt: float) -> void:
 		var goal: Vector2=CharacterPersistence.vector(u.machine_dash.goal)
 		if dash_to(u,goal,850,dt):u.machine_dash.clear()
 	if u.state_value("reloadRemaining")>0:
-		u.set_state("reloadRemaining",maxf(0,u.state_value("reloadRemaining")-dt))
+		# Attack speed reloads faster too.
+		u.set_state("reloadRemaining",maxf(0,u.state_value("reloadRemaining")-dt*EquipmentCombatEffects.attack_speed(u)))
 		if u.state_value("reloadRemaining")==0:refill(u)
 func refill(u) -> void:u.set_state("ammo",20);u.set_state("reloadRemaining",0);u.combat.cooldown=0;u.brain.disengage_until=0;u.brain.attack_decision.clear();u.brain.next_initiative_at=u.battle.clock.elapsed+u.battle.rng.randf_range(.15,.65)
 func can_attack(u,_t) -> bool:return u.state_value("ammo")>0 and u.state_value("reloadRemaining")<=0

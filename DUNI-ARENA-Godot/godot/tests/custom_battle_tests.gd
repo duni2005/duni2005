@@ -52,6 +52,7 @@ func run(tree: SceneTree) -> void:
 	b.queue_free()
 	await new_characters(tree)
 	element_effects(tree)
+	attack_speed_pace(tree)
 	items(tree)
 	multikill(tree)
 	stairs()
@@ -607,3 +608,20 @@ func element_effects(tree: SceneTree) -> void:
 	step(b,1.05)
 	verify(foe.current_hp<before and foe.state_value("erosionTime")>0,"galaxy state deals dark damage over time")
 	b.queue_free()
+
+## Attack speed must show in how often units actually attack, not only in the cooldown (0.66.0).
+func attack_speed_pace(tree: SceneTree) -> void:
+	var rates: Array=[]
+	for factor in [1.0,2.0]:
+		var released: float=0
+		for seed in range(1,4):
+			var b:=duel(tree,[[3,0,Vector2(250,330)],[3,0,Vector2(250,470)],[3,1,Vector2(550,330)],[3,1,Vector2(550,470)]],seed)
+			for u in b.units:
+				u.combat_stats.max_hp=6000;u.current_hp=6000
+				if u.team==0:u.combat_stats.attack_speed=factor
+			step(b,20)
+			for u in b.units:
+				if u.team==0:released+=u.combat.attacks_released
+			b.queue_free()
+		rates.append(released)
+	verify(rates[1]>=rates[0]*1.35,"double attack speed attacks clearly more often (%d -> %d)"%[rates[0],rates[1]])
