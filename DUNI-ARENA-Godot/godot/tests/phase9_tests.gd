@@ -242,5 +242,8 @@ func integration() -> void:
 	verify(t.guild.living_members().size()==4,"conquest revives eligible dead guild")
 	b.free()
 func run(tree: SceneTree) -> void:
+	# Source-parity formulas: checked without the 0.75.0 balance layer.
+	UnitBalance.enabled=false
 	host=tree;map_tests();encounters();golden_web_rules();navigation();progression();integration()
+	UnitBalance.enabled=true
 	print("PHASE 9 RESULT: ",groups," groups; ",checks," checks; ",failures," failures")

@@ -506,5 +506,8 @@ func invalid_operations() -> void:
 	for member in t.guild.all_members():member.current_hp=0
 	verify(not t.content_action(&"upgrade",{"member_id":t.guild.all_members()[0].member_id}).ok and t.guild.state.game_over,"content does not revive a gameover guild")
 func run(tree: SceneTree) -> void:
+	# Source-parity formulas: checked without the 0.75.0 balance layer.
+	UnitBalance.enabled=false
 	host=tree;golden();recruit_shop();equipment_growth();growth_rules();promotion();rest_events();token_shop();blacksmith();mango_sapling();gambler();rewards_transactions();prediction();combat();invalid_operations()
+	UnitBalance.enabled=true
 	print("PHASE 10 RESULT: ",groups," groups; ",checks," checks; ",failures," failures")

@@ -212,7 +212,7 @@ func render_recruit(node: RoomState) -> void:
 	for offer in node.recruit.offers:
 		var data: UnitData=controller.guild.definition(offer.unit_type_id)
 		var cell:=VBoxContainer.new();cell.add_theme_constant_override("separation",5);grid.add_child(cell)
-		var b:=ArenaCard.new();b.text=data.display_name+" · 정보";b.card_type="recruit";b.type_id=offer.unit_type_id;b.title=data.display_name;b.description=" / ".join(data.tags);b.stats_summary="HP %d · ATK %s"%[int(data.max_hp),ArenaUI.number(data.attack)];b.sold=offer.purchased;b.name=offer.offer_id
+		var b:=ArenaCard.new();b.text=data.display_name+" · 정보";b.card_type="recruit";b.type_id=offer.unit_type_id;b.title=data.display_name;b.description=" / ".join(data.tags);b.stats_summary="HP %d · ATK %s"%[int(UnitBalance.max_hp(data)),ArenaUI.number(data.attack)];b.sold=offer.purchased;b.name=offer.offer_id
 		b.tooltip_text="눌러서 유닛 정보 보기";b.custom_minimum_size=Vector2(width,height-49);cell.add_child(b)
 		var unit_type: int=offer.unit_type_id;ArenaUI.bind(b,func():UnitInfoSheet.open(self,unit_type))
 		var buy:=Button.new();buy.name="Buy";buy.custom_minimum_size=Vector2(width,44);cell.add_child(buy)

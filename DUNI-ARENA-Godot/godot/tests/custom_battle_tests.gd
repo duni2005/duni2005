@@ -58,6 +58,7 @@ func run(tree: SceneTree) -> void:
 	await status_sheet(tree)
 	griffin_and_crossbow(tree)
 	stun_rush_and_travel(tree)
+	balance_layer(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -352,7 +353,8 @@ func unit_sheet(tree: SceneTree) -> void:
 	sheet.queue_free()
 	# Without a member the sheet shows the table's base numbers.
 	sheet=UnitInfoSheet.open(host,30);await tree.process_frame
-	verify(sheet.stats.magic_damage==UnitStatTable.base_magic(30) and sheet.find_children("*","Label",true,false).any(func(l):return l.text=="10 + 마법 피해의 85%  →  예상 30"),"base sheet: magnet's pole hit is 10 + 85% of 24 magic damage")
+	var pole_magic: float=UnitStatTable.base_magic(30)*UnitBalance.damage(CharacterCatalog.all()[30])
+	verify(is_equal_approx(sheet.stats.magic_damage,pole_magic) and sheet.find_children("*","Label",true,false).any(func(l):return l.text=="10 + 마법 피해의 85%%  →  예상 %d"%roundi(10+.85*pole_magic)),"base sheet: magnet's pole hit is 10 + 85% of its (balanced) magic damage")
 	sheet.queue_free();host.queue_free()
 ## Player stances (StanceRules): numbers, the cautious counter, and effects the situational
 ## mind must never switch on.
@@ -471,10 +473,11 @@ func stat_damage(tree: SceneTree) -> void:
 	# Level growth: HP 12%, damage and defense 8% per level; elites scale attack %.
 	var g:=GuildManager.new();g.state.tower=TowerRunState.new();var m: GuildMemberState=g.create_member(2);m.total_exp=GrowthRules.exp_for_level(5)
 	var grown: UnitCombatStats=g.member_stats(m)
-	verify(is_equal_approx(grown.magic_damage,UnitStatTable.base_magic(2)*1.4) and is_equal_approx(grown.defense,35*1.4) and grown.magic_defense==10 and grown.attack==1,"growth raises damage stats and defense, attack % stays 100%")
+	var mage_bal: float=UnitBalance.damage(CharacterCatalog.all()[2])
+	verify(is_equal_approx(grown.magic_damage,UnitStatTable.base_magic(2)*1.4*mage_bal) and is_equal_approx(grown.defense,35*1.4) and grown.magic_defense==10 and grown.attack==1,"growth raises damage stats and defense, attack % stays 100%")
 	var entry:=EnemySpawnEntry.new();entry.level=0;entry.set_rank(&"elite")
 	var elite: UnitCombatStats=TowerEnemyStatsAssembler.assemble(CharacterCatalog.all()[2],entry)
-	verify(elite.attack==entry.damage_multiplier and elite.attack>1 and is_equal_approx(elite.magic_damage,UnitStatTable.base_magic(2)*.8),"elite damage multiplier becomes attack %")
+	verify(elite.attack==entry.damage_multiplier and elite.attack>1 and is_equal_approx(elite.magic_damage,UnitStatTable.base_magic(2)*.8*mage_bal),"elite damage multiplier becomes attack %")
 func tactical_mind(tree: SceneTree) -> void:
 	# Every unit has a base role, shown first among its traits.
 	var roles: bool=true
@@ -765,6 +768,20 @@ func griffin_and_crossbow(tree: SceneTree) -> void:
 	verify(StatusCatalog.collect(marked[0]).any(func(r):return r.key==&"targeted"),"목표 shows in the unit's 상태이상")
 	b.queue_free()
 
+## 0.75.0 balance layer: tier and per-unit HP/damage multipliers on the source values.
+func balance_layer(_tree: SceneTree) -> void:
+	var all: Dictionary=CharacterCatalog.all()
+	var stats:=func(t: int) -> UnitCombatStats:return UnitCombatStats.from_table(all[t])
+	verify(is_equal_approx(stats.call(14).max_hp,all[14].max_hp) and is_equal_approx(stats.call(14).physical_damage,UnitStatTable.base_physical(14)),"2-token units keep their source stats")
+	verify(is_equal_approx(stats.call(12).max_hp,all[12].max_hp*1.15) and is_equal_approx(stats.call(3).max_hp,all[3].max_hp*.95),"tier multiplier: 5 tokens ×1.15, 1 token ×0.95")
+	verify(UnitBalance.max_hp(all[27])==floorf(150*1.15*1.7+.5) and is_equal_approx(stats.call(27).physical_damage,UnitStatTable.base_physical(27)*1.15*1.25),"기관사: tier and its own correction stack")
+	verify(is_equal_approx(stats.call(0).max_hp,all[0].max_hp*.95*.9) and is_equal_approx(stats.call(13).physical_damage,UnitStatTable.base_physical(13)*.88),"strong cheap units are toned down")
+	var setup:=CustomBattleSetup.new();setup.add(27,0,Vector2(200,400))
+	verify(is_equal_approx(setup.placements()[0].combat_stats.max_hp,UnitBalance.max_hp(all[27])),"custom battles use the balanced stats")
+	UnitBalance.enabled=false
+	verify(is_equal_approx(stats.call(27).max_hp,all[27].max_hp),"the layer can be switched off for source-parity tests")
+	UnitBalance.enabled=true
+
 ## 0.74.0: no standoff against a stunned enemy; 그리핀 dashes to travel when nothing is in reach.
 func stun_rush_and_travel(tree: SceneTree) -> void:
 	var first_swing:=func(stunned: bool) -> float:
@@ -795,7 +812,8 @@ func stun_rush_and_travel(tree: SceneTree) -> void:
 	verify(not griffin.ability.travel_attack(griffin,foe),"within reach the dash is an ordinary attack again")
 	b.queue_free()
 
-## 슬라임 (35), 0.73.0: splits twice on death, slam slows, the family leaps together.
+const SlimeAbilityRef=preload("res://scripts/abilities/slime_ability.gd")
+## 슬라임 (35), 0.73.0: splits twice on death, slam slows, the family leaps together (0.75.0: the last split cannot).
 func slime_unit(tree: SceneTree) -> void:
 	var b:=duel(tree,[[35,0,Vector2(200,400)],[4,1,Vector2(560,400)]])
 	step(b,.05)
@@ -803,23 +821,28 @@ func slime_unit(tree: SceneTree) -> void:
 	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0
 	var full_hp: float=slime.max_hp;var full_damage: float=slime.combat_stats.physical_damage
 	var slimes:=func():return b.units.filter(func(u):return u.alive and u.data.type_id==35)
+	var F: float=SlimeAbilityRef.SPLIT_FACTOR
 	b.damage_resolver.resolve(foe,slime,9999,{"critical":false,"transcendent":true});step(b,1.0/60)
-	verify(slime.alive and is_equal_approx(slime.max_hp,full_hp*.5) and is_equal_approx(slime.combat_stats.physical_damage,full_damage*.5) and slimes.call().size()==2,"a lethal blow splits the slime into two halves")
-	for s in slimes.call():s.invincible_remaining=0
-	for s in slimes.call():b.damage_resolver.resolve(foe,s,9999,{"critical":false,"transcendent":true})
-	step(b,1.0/60)
-	verify(slimes.call().size()==4 and slimes.call().all(func(s):return is_equal_approx(s.max_hp,full_hp*.25)),"each half splits again: four quarter slimes")
-	var last=slimes.call()[0];last.invincible_remaining=0
-	b.damage_resolver.resolve(foe,last,9999,{"critical":false,"transcendent":true});step(b,1.0/60)
-	verify(not last.alive and slimes.call().size()==3,"after two splits a slime dies for good")
-	verify(b.units.filter(func(u):return u.data.type_id==35).all(func(s):return s.source_member_id.is_empty()) and b.units.filter(func(u):return u.data.type_id==35 and u!=slime).all(func(s):return s.character_specific_state.get("slimeFamily","")==slime.character_specific_state.get("slimeFamily","")),"split slimes are battle-only and share the family")
-	# Family leap: every slime jumps at once and lands on the nearest enemy.
+	verify(slime.alive and is_equal_approx(slime.max_hp,full_hp*F) and is_equal_approx(slime.combat_stats.physical_damage,full_damage*F) and slimes.call().size()==2,"a lethal blow splits the slime into two weaker slimes (%d%%)"%roundi(F*100))
+	# Family leap: every slime of the family jumps at once and lands on the nearest enemy.
 	for s in slimes.call():s.invincible_remaining=0
 	var hp: float=foe.current_hp
 	slimes.call()[0].ability.release_ultimate(slimes.call()[0],{},0)
 	verify(slimes.call().all(func(s):return s.character_specific_state.has("slimeLeap")),"the ultimate makes the whole family leap")
 	step(b,.9)
 	verify(foe.current_hp<hp and not slimes.call().any(func(s):return s.character_specific_state.has("slimeLeap")),"the slimes land on the enemy")
+	for s in slimes.call():s.invincible_remaining=0
+	for s in slimes.call():b.damage_resolver.resolve(foe,s,9999,{"critical":false,"transcendent":true})
+	step(b,1.0/60)
+	verify(slimes.call().size()==4 and slimes.call().all(func(s):return is_equal_approx(s.max_hp,full_hp*F*F)),"each slime splits again: four smaller slimes")
+	# The last split can no longer use the ultimate, nor joins a family leap.
+	verify(slimes.call().all(func(s):return not s.ability.can_cast(s) and not s.ability.can_ultimate(s,foe)),"slimes of the last split cannot use the ultimate")
+	slimes.call()[0].ability.release_ultimate(slimes.call()[0],{},0)
+	verify(not slimes.call().any(func(s):return s.character_specific_state.has("slimeLeap")),"last-split slimes do not leap")
+	var last=slimes.call()[0];last.invincible_remaining=0
+	b.damage_resolver.resolve(foe,last,9999,{"critical":false,"transcendent":true});step(b,1.0/60)
+	verify(not last.alive and slimes.call().size()==3,"after two splits a slime dies for good")
+	verify(b.units.filter(func(u):return u.data.type_id==35).all(func(s):return s.source_member_id.is_empty()) and b.units.filter(func(u):return u.data.type_id==35 and u!=slime).all(func(s):return s.character_specific_state.get("slimeFamily","")==slime.character_specific_state.get("slimeFamily","")),"split slimes are battle-only and share the family")
 	b.queue_free()
 	# Body slam: knockback and a 2 s slow.
 	b=duel(tree,[[35,0,Vector2(200,400)],[8,1,Vector2(320,400)]])

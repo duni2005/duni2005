@@ -48,6 +48,8 @@ var dragon_heart_count: int = 0
 ## Base stats of a character from UnitStatTable, with level-style growth factors.
 static func from_table(data: UnitData,hp_factor: float=1,damage_factor: float=1,defense_factor: float=1,speed_factor: float=1) -> UnitCombatStats:
 	var stats:=UnitCombatStats.new();var t: int=data.type_id
+	# UnitBalance: tier and per-unit corrections on top of the source values (0.75.0).
+	hp_factor*=UnitBalance.hp(data);damage_factor*=UnitBalance.damage(data)
 	stats.max_hp=data.max_hp*hp_factor;stats.speed=data.move_speed*speed_factor
 	stats.physical_damage=UnitStatTable.base_physical(t)*damage_factor;stats.magic_damage=UnitStatTable.base_magic(t)*damage_factor
 	stats.defense=UnitStatTable.base_defense(t)*defense_factor

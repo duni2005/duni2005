@@ -91,10 +91,12 @@ func flow(touch: bool) -> void:
 	await click(panel.inventory_grid.get_node("item_%d"%item.item_id),touch)
 	verify(panel.item_dialog.visible and item.equipped_to_member_id.is_empty(),"item description precedes equip")
 	await click(panel.item_dialog.get_ok_button(),touch)
-	verify(item.equipped_to_member_id==member.member_id and t.guild.member_max_hp(member)==180,"explicit equip input")
+	# The member's HP with the 0.75.0 balance layer: vital item ×1.2, then level 1 adds +12%.
+	var base_hp: float=t.guild.definition(member.unit_type_id).max_hp*UnitBalance.hp(t.guild.definition(member.unit_type_id))
+	verify(item.equipped_to_member_id==member.member_id and t.guild.member_max_hp(member)==floorf(base_hp*1.2+.5),"explicit equip input")
 	await click(panel.tabs["upgrade"],touch)
 	gold=run_state.gold;await click(panel.upgrade_button,touch)
-	verify(member.level==1 and member.total_exp==100 and run_state.gold==gold-100 and t.guild.member_max_hp(member)==202,"EXP pack UI +actual derived maxHP")
+	verify(member.level==1 and member.total_exp==100 and run_state.gold==gold-100 and t.guild.member_max_hp(member)==floorf(base_hp*1.12*1.2+.5),"EXP pack UI +actual derived maxHP")
 	await capture("mobile-guild" if touch else "desktop-guild")
 	await click(screen.guild_panel.close_button,touch)
 	await click(screen.room_buttons["0:3"],touch)
@@ -104,7 +106,7 @@ func flow(touch: bool) -> void:
 	verify(room_screen.plan.entries().size()==1,"input deployment")
 	await click(room_screen.start_button,touch)
 	var b: BattleManager=room_screen.battle;b.set_physics_process(false)
-	verify(b.started and b.units[0].max_hp==202 and b.units[0].attack_power==member_stats_attack(t,member),"equipment/growth actual battle")
+	verify(b.started and b.units[0].max_hp==floorf(base_hp*1.12*1.2+.5) and b.units[0].attack_power==member_stats_attack(t,member),"equipment/growth actual battle")
 	for u in b.units:
 		if u.original_team==1:u.receive_damage(10000,b.units[0])
 	b.check_outcome();room_screen.board.presentation.advance(BattleCinematicState.DURATION);await frames();await click(room_screen.next_button,touch)

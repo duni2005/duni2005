@@ -183,7 +183,7 @@ func _select(node_name: String) -> void:
 			if tab == "boss":
 				lines.append("챕터 보스 후보 · 5 · 10 · 15층 보스 방에 나온다. HP ×3.6 · 공격 ×2.15 · 방어 ×2 · 이동 ×1.12 · 몸집 ×1.85" if card.kind == "boss" else "미니보스(정예) 후보 · 각 챕터 3층에 나온다. HP ×2.5 · 공격 ×1.65 · 방어 ×1.5 · 이동 ×1.08 · 몸집 ×1.5")
 			lines.append("“%s”" % UnitLore.story(type))
-			lines.append("HP %d · %s" % [int(data.max_hp), " / ".join(data.tags)])
+			lines.append("HP %d · %s" % [int(UnitBalance.max_hp(data)), " / ".join(data.tags)])
 			detail_text.text = "\n".join(lines)
 			detail_action.visible = true;info_type = type
 		"item":
