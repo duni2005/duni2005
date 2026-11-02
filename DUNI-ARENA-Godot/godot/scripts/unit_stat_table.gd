@@ -40,7 +40,7 @@ const STATS = {
 	"paladin":[&"physical", 70, 0, 20, 30, 20],
 	"hero":[&"physical", 60, 0, 0, 40, 15],
 	"tank":[&"physical", 100, 10, -10, 62, 30],
-	"fanatic":[&"magic", 40, 0, 0, 15, 30],
+	"fanatic":[&"physical", 40, 0, 0, 30, 15],
 	"lightning":[&"magic", 40, 0, 10, 10, 30],
 	"mirror":[&"magic", 45, 0, 30, 10, 30],
 	"galaxy":[&"magic", 40, 0, 10, 10, 20],
@@ -63,8 +63,8 @@ const DAMAGE = {
 		&"ult_slash":[&"ultimate", &"physical", 10, 2.8, [&"area"], "넓게 베기"],
 		&"ult_wave":[&"ultimate", &"physical", 0, 2.3, [&"projectile"], "검기 발사"]},
 	"archer":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [&"projectile"], "화살 (3발째 부채꼴 · 튕김)"],
-		&"ult":[&"ultimate", &"physical", 20, 7.0, [&"projectile"], "거대한 화살"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"wind", &"projectile"], "화살 (3발째 부채꼴 · 튕김)"],
+		&"ult":[&"ultimate", &"physical", 20, 7.0, [&"wind", &"projectile"], "거대한 화살"]},
 	"mage":{
 		&"basic":[&"basic", &"magic", 0, 1.0, [&"projectile", &"explosion"], "마법탄"],
 		&"splash":[&"basic", &"magic", 0, 0.5, [&"explosion", &"area"], "폭발 여파"],
@@ -93,8 +93,8 @@ const DAMAGE = {
 		&"ult_slash":[&"ultimate", &"physical", 0, 1.5, [&"area"], "강타"],
 		&"ult_wave":[&"ultimate", &"physical", 0, 2.7, [&"projectile"], "충격파"]},
 	"dolphin":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [], "몸통 박치기"],
-		&"ult":[&"ultimate", &"physical", 0, 1.15, [], "연속 박치기"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"ice"], "몸통 박치기"],
+		&"ult":[&"ultimate", &"physical", 0, 1.15, [&"ice"], "연속 박치기"]},
 	"predator":{
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"area"], "물기 (최대 3명)"],
 		&"ult":[&"ultimate", &"physical", 0, 1.8, [&"area"], "강한 물기"]},
@@ -108,9 +108,9 @@ const DAMAGE = {
 		&"basic_3":[&"basic", &"physical", 0, 3.0, [], "베기 (3타)"],
 		&"ult":[&"ultimate", &"physical", 0, 3.6, [], "일섬"]},
 	"satellite":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [&"fire", &"projectile"], "추적 미사일 (제어된 적 +40%/초)"],
-		&"counter":[&"passive", &"physical", 0, 0.2, [&"fire", &"projectile"], "반격 미사일"],
-		&"ult":[&"ultimate", &"physical", 0, 1.8, [&"fire", &"projectile"], "미사일 일제 발사"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"light", &"projectile"], "추적 미사일 (제어된 적 +40%/초)"],
+		&"counter":[&"passive", &"physical", 0, 0.2, [&"light", &"projectile"], "반격 미사일"],
+		&"ult":[&"ultimate", &"physical", 0, 1.8, [&"light", &"projectile"], "미사일 일제 발사"]},
 	"paladin":{
 		&"basic":[&"basic", &"physical", 0, 1.25, [&"light"], "강타"],
 		&"bash":[&"basic", &"physical", 0, 0.65, [], "방패 밀치기"]},
@@ -123,20 +123,21 @@ const DAMAGE = {
 		&"enhanced":[&"ultimate", &"physical", 0, 1.7, [&"fire", &"explosion", &"area"], "화염 포탄"],
 		&"fire_zone":[&"ultimate", &"magic", 3, 0.2, [&"fire", &"area", &"dot"], "화염 지대 (0.5초마다)"]},
 	"fanatic":{
-		&"basic":[&"basic", &"magic", 0, 1.0, [&"light"], "광신의 일격"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"dark"], "광신의 일격"]},
 	"lightning":{
 		&"basic":[&"basic", &"magic", 0, 1.0, [&"lightning", &"projectile"], "연쇄 번개 (튈 때마다 -10%)"],
 		&"ult":[&"ultimate", &"magic", 10, 2.6, [&"lightning", &"area"], "대방전"]},
 	"mirror":{
 		&"basic":[&"basic", &"magic", 0, 1.0, [&"light", &"projectile"], "반사광 (튕길 때마다 +20%)"]},
 	"galaxy":{
-		&"basic":[&"basic", &"magic", 0, 1.0, [&"projectile"], "별 (5발)"]},
+		&"basic":[&"basic", &"magic", 0, 1.0, [&"dark", &"projectile"], "별 (5발)"],
+		&"ult":[&"ultimate", &"magic", 3, 0.15, [&"dark", &"dot"], "은하수 (0.5초마다)"]},
 	"machine_gun":{
 		&"basic":[&"basic", &"physical", 0, 0.35, [&"projectile"], "총알"]},
 	"frog":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [&"projectile"], "혀"],
-		&"spit":[&"ultimate", &"physical", 0, 1.0, [&"projectile"], "삼킨 적 발사 (무거울수록 +)"],
-		&"spit_landing":[&"ultimate", &"physical", 0, 0.7, [], "발사된 적 착지"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"poison", &"projectile"], "혀"],
+		&"spit":[&"ultimate", &"physical", 0, 1.0, [&"poison", &"projectile"], "삼킨 적 발사 (무거울수록 +)"],
+		&"spit_landing":[&"ultimate", &"physical", 0, 0.7, [&"poison"], "발사된 적 착지"]},
 	"puppet":{
 		&"basic":[&"basic", &"magic", 0, 1.0, [&"projectile"], "날카로운 실"]},
 	"stake":{

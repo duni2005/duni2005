@@ -590,3 +590,20 @@ func element_effects(tree: SceneTree) -> void:
 	hit.call(warrior,foe,&"basic")
 	verify(not foe.character_specific_state.has("darkMark"),"a direct hit pops the dark mark")
 	b.queue_free()
+	# Element tags per unit (0.65.0).
+	var tagged:=func(type: int,element: StringName) -> bool:
+		return UnitStatTable.instances(type).all(func(d):return d.key==&"transcend" or d.tags.has(element))
+	verify(tagged.call(1,&"wind") and tagged.call(11,&"ice") and tagged.call(24,&"poison"),"archer wind, dolphin ice, frog poison on every attack")
+	verify(tagged.call(15,&"light") and not UnitStatTable.instances(15).any(func(d):return d.tags.has(&"fire")) and CharacterCatalog.all()[15].recruit_tokens==4,"satellite deals light and is a hero-grade unit")
+	var zeal: Dictionary=UnitStatTable.spec(19,&"basic")
+	verify(zeal.kind==&"physical" and zeal.tags.has(&"dark") and not zeal.tags.has(&"light"),"fanatic basic is physical dark")
+	verify(tagged.call(22,&"dark") and UnitStatTable.spec(22,&"ult").tags.has(&"dot"),"galaxy deals dark, its ultimate over time")
+	b=duel(tree,[[22,0,Vector2(200,400)],[8,1,Vector2(480,400)]])
+	step(b,.05)
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0
+	var star: BattleUnit=b.units[0];foe=b.units[1]
+	b.zones.add(star,"galaxy",foe.position,270,7,{"target":foe.actor_id()})
+	before=foe.current_hp
+	step(b,1.05)
+	verify(foe.current_hp<before and foe.state_value("erosionTime")>0,"galaxy state deals dark damage over time")
+	b.queue_free()

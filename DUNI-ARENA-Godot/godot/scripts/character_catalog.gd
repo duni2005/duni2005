@@ -11,16 +11,16 @@ static func all() -> Dictionary:
 ## Every hit a character deals is physical or magic, optionally with an element. Items scale
 ## these: 목검 physical, 지팡이 magic, 에테르 any elemental hit.
 const DAMAGE = {
-	"warrior":[&"physical",&""],"archer":[&"physical",&""],"mage":[&"magic",&""],"assassin":[&"physical",&""],
+	"warrior":[&"physical",&""],"archer":[&"physical",&"wind"],"mage":[&"magic",&""],"assassin":[&"physical",&""],
 	"guardian":[&"physical",&""],"healer":[&"magic",&"light"],"sniper":[&"physical",&""],"shotgun":[&"physical",&""],
-	"rps":[&"physical",&""],"ufc":[&"physical",&""],"greatsword":[&"physical",&""],"dolphin":[&"physical",&""],
-	"predator":[&"physical",&""],"bomber":[&"physical",&"fire"],"swordsman":[&"physical",&""],"satellite":[&"physical",&"fire"],
-	"paladin":[&"physical",&"light"],"hero":[&"physical",&""],"tank":[&"physical",&"fire"],"fanatic":[&"magic",&"light"],
-	"lightning":[&"magic",&"lightning"],"mirror":[&"magic",&"light"],"galaxy":[&"magic",&""],"machine_gun":[&"physical",&""],
-	"frog":[&"physical",&""],"puppet":[&"magic",&""],"stake":[&"physical",&""],"conductor":[&"physical",&""],
+	"rps":[&"physical",&""],"ufc":[&"physical",&""],"greatsword":[&"physical",&""],"dolphin":[&"physical",&"ice"],
+	"predator":[&"physical",&""],"bomber":[&"physical",&"fire"],"swordsman":[&"physical",&""],"satellite":[&"physical",&"light"],
+	"paladin":[&"physical",&"light"],"hero":[&"physical",&""],"tank":[&"physical",&"fire"],"fanatic":[&"physical",&"dark"],
+	"lightning":[&"magic",&"lightning"],"mirror":[&"magic",&"light"],"galaxy":[&"magic",&"dark"],"machine_gun":[&"physical",&""],
+	"frog":[&"physical",&"poison"],"puppet":[&"magic",&""],"stake":[&"physical",&""],"conductor":[&"physical",&""],
 	"refraction":[&"magic",&"light"],"courier":[&"physical",&""],"magnet":[&"magic",&"lightning"],"frost":[&"magic",&"ice"],"flamethrower":[&"magic",&"fire"],
 }
-const ELEMENT_NAMES = {&"fire":"화염",&"ice":"얼음",&"lightning":"번개",&"light":"빛"}
+const ELEMENT_NAMES = {&"fire":"화염",&"ice":"얼음",&"lightning":"번개",&"light":"빛",&"dark":"어둠",&"poison":"맹독",&"wind":"바람"}
 static func damage_kind(type_id: int) -> StringName:
 	return DAMAGE[NAMES[type_id]][0] if type_id>=0 and type_id<NAMES.size() else &"physical"
 static func element(type_id: int) -> StringName:

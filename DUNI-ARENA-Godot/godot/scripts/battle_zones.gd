@@ -123,6 +123,9 @@ func advance(battle,dt: float) -> void:
 			for actor in battle.units:
 				if not actor.alive or point.distance_to(actor.position)>float(z.radius):continue
 				if z.kind=="healing" and actor.team==u.team:CharacterAbility.restore_hp(actor,1.75 if actor==u else 2.5,u)
+				elif z.kind=="galaxy" and actor.actor_id()==str(z.get("target","")):
+					# 은하수: the marked enemy takes dark damage over time while the stars are drawn in.
+					battle.damage_resolver.resolve(u,actor,UnitStatTable.raw(u,&"ult"),{"dmg":&"ult","critical":false,"impulse":0,"attack_origin":point,"visible_hazard":true,"attack_token":z.source+z.kind})
 				elif z.kind=="oilFire" and actor.team!=u.team and burning(z,actor.position,24*actor.combat_scale()):
 					battle.damage_resolver.resolve(u,actor,float(z.damage),{"dmg":&"fire_zone","critical":false,"impulse":0,"attack_origin":actor.position,"visible_hazard":true,"attack_token":z.source+z.kind})
 				elif z.kind in ["blackhole","tankFire"] and actor.team!=u.team:
