@@ -186,6 +186,8 @@ func _death(u,source) -> void:
 func _count_kill(victim,source) -> void:
 	kill_streaks.erase(victim.actor_id())
 	if source==null or not source.alive:return
+	# 슬라임: only the last slime of a family counts toward a kill streak.
+	if victim.data.type_id==35 and battle.units.any(func(v):return v!=victim and v.alive and v.data.type_id==35 and v.team==victim.team and str(v.character_specific_state.get("slimeFamily",""))==str(victim.character_specific_state.get("slimeFamily",""))):return
 	var previous: Dictionary=kill_streaks.get(source.actor_id(),{})
 	var count: int=int(previous.count)+1 if not previous.is_empty() and battle.clock.elapsed-float(previous.last)<=KILL_CHAIN_WINDOW else 1
 	kill_streaks[source.actor_id()]={"count":count,"last":battle.clock.elapsed}
@@ -439,6 +441,22 @@ func advance(delta: float) -> void:
 					if use_shader_fx:shader_fx.shock(e.point,br,.8,Color("bfe9ff"))
 					particles.burst(e.point,Color("e8f8ff"),40,480,0,"shard",true);particles.burst(e.point,Color("cfe6f2"),24,180,0,"smoke",true);particles.burst(e.point,Color("ffffff"),20,360,0,"spark",true)
 					impact_pause(110);camera.impact(14,e.point)
+				"flame_slash":
+					add_effect("flame_arc",e.point,Color("ff8a3d"),70,.32,float(e.metadata.get("angle",0)))
+					particles.burst(e.point,Color("ffb347"),10,220,float(e.metadata.get("angle",0)),"spark",true)
+				"flame_charge":
+					add_effect("flame_gather",e.point,Color("ff9a4a"),110,float(e.metadata.get("time",.5)))
+					particles.burst(e.point,Color("ffcf6e"),12,120,0,"spark",false)
+				"flame_whirl":
+					var fr: float=float(e.metadata.get("radius",135))
+					add_effect("flame_ring",e.point,Color("ff6a2a"),fr,.7)
+					add_effect("slime_ring",e.point,Color("ffd27a"),fr*1.25,.5)
+					if use_shader_fx:shader_fx.shock(e.point,fr,.7,Color("ff9a4a"))
+					particles.burst(e.point,Color("ff7a2f"),30,420,0,"spark",true);particles.burst(e.point,Color("3a2a22"),12,120,0,"smoke",true)
+					impact_pause(80);camera.impact(10,e.point)
+				"ignite":
+					add_effect("explosion",e.point,Color("ff6a2a"),40+4*float(e.metadata.get("stacks",1)),.45)
+					particles.burst(e.point,Color("ffb347"),8+int(e.metadata.get("stacks",1)),260,0,"spark",true)
 				"parrot_mimic":
 					# Feathers burst off the parrot; a thin streak links it to the enemy it copies.
 					particles.burst(e.point,Color("8fd47a"),16,260,0,"shard",true);particles.burst(e.point,Color("ffd65c"),10,200,0,"spark",true)
@@ -602,6 +620,25 @@ func _draw() -> void:
 				var h: float=(18+14*fmod(i*.37,1.0))*grow;var w:=Vector2.from_angle(a).orthogonal()*6
 				draw_colored_polygon(PackedVector2Array([base-w,base+w,base+Vector2(0,-h)]),Color("cfeeff",.9))
 				draw_line(base,base+Vector2(0,-h),Color("ffffff",.8),1.2,true)
+		elif e.kind=="flame_arc":
+			# A burning crescent swept in front of the swordsman.
+			var a0: float=float(e.angle);var sweep: float=-1.1+2.2*clampf(t*1.6,0,1)
+			draw_arc(e.point,e.radius*.8,a0-1.1,a0+sweep,24,Color(e.color,(1-t)),14*(1-t)+2,true)
+			draw_arc(e.point,e.radius*.8,a0-.6,a0+sweep,18,Color("fff1c4",(1-t)*.9),5*(1-t)+1,true)
+		elif e.kind=="flame_gather":
+			# Flames spiral in while the swordsman gathers power.
+			for i in range(6):
+				var a: float=float(e.age)*6+i*TAU/6;var rr: float=e.radius*(1-t)
+				draw_arc(e.point,rr,a,a+.9,10,Color(e.color,.5+.5*t),3+4*t,true)
+			VfxArt.glow(self,e.point,40+60*t,Color("ff8a3d"),.3+.4*t)
+		elif e.kind=="flame_ring":
+			# The circular cut: a full ring of fire racing outward with a bright edge.
+			var rr: float=e.radius*(1-pow(1-clampf(t*1.5,0,1),3))
+			draw_arc(e.point,rr,0,TAU,64,Color(e.color,(1-t)),22*(1-t)+2,true)
+			draw_arc(e.point,rr,0,TAU,64,Color("fff1c4",(1-t)*.9),6*(1-t)+1,true)
+			for i in range(16):
+				var a: float=i*TAU/16+float(e.age)*2;var q: Vector2=e.point+Vector2.from_angle(a)*rr
+				VfxArt.glow(self,q,18*(1-t)+4,Color("ff9a4a"),.6*(1-t))
 		elif e.kind=="slime_ring":
 			# A squashy ring of slime splashing outward.
 			var rr: float=e.radius*(.35+.65*(1-pow(1-t,2)))

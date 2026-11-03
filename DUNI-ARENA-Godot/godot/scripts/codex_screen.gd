@@ -35,7 +35,8 @@ const TAGS = [
 	[&"explosion","dragonHeart","폭발 태그. 폭발 피해 보너스가 붙는다."],
 	[&"area","event","범위 태그. 여러 적을 한 번에 맞히는 공격."],
 	[&"projectile","evade","투사체 태그. 날아가 맞히는 공격."],
-	[&"dot","hourglass","지속 태그. 시간을 두고 반복해서 맞히는 공격."]]
+	[&"dot","hourglass","지속 태그. 시간을 두고 반복해서 맞히는 공격."],
+	[&"melee","woodSword","근접공격 태그. 가까이 붙어 베고 찌르고 치는 공격."]]
 var tab: String = "unit"
 var selected: String = ""
 var tab_buttons: Dictionary = {}

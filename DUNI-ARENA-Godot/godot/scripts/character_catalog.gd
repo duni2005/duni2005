@@ -1,6 +1,6 @@
 class_name CharacterCatalog
 extends RefCounted
-const NAMES = ["warrior", "archer", "mage", "assassin", "guardian", "healer", "sniper", "shotgun", "rps", "ufc", "greatsword", "dolphin", "predator", "bomber", "swordsman", "satellite", "paladin", "hero", "tank", "fanatic", "lightning", "mirror", "galaxy", "machine_gun", "frog", "puppet","stake", "conductor", "refraction", "courier", "magnet", "frost", "flamethrower", "griffin", "crossbow", "slime", "parrot", "whisperer", "plague", "golem"]
+const NAMES = ["warrior", "archer", "mage", "assassin", "guardian", "healer", "sniper", "shotgun", "rps", "ufc", "greatsword", "dolphin", "predator", "bomber", "swordsman", "satellite", "paladin", "hero", "tank", "fanatic", "lightning", "mirror", "galaxy", "machine_gun", "frog", "puppet","stake", "conductor", "refraction", "courier", "magnet", "frost", "flamethrower", "griffin", "crossbow", "slime", "parrot", "whisperer", "plague", "golem", "flame_blade"]
 static var _data: Dictionary = {}
 static func all() -> Dictionary:
 	if _data.is_empty():
@@ -14,11 +14,11 @@ const DAMAGE = {
 	"warrior":[&"physical",&""],"archer":[&"physical",&"wind"],"mage":[&"magic",&""],"assassin":[&"physical",&""],
 	"guardian":[&"physical",&""],"healer":[&"magic",&"light"],"sniper":[&"physical",&""],"shotgun":[&"physical",&""],
 	"rps":[&"physical",&""],"ufc":[&"physical",&""],"greatsword":[&"physical",&""],"dolphin":[&"physical",&"ice"],
-	"predator":[&"physical",&""],"bomber":[&"physical",&"fire"],"swordsman":[&"physical",&""],"satellite":[&"physical",&"light"],
-	"paladin":[&"physical",&"light"],"hero":[&"physical",&""],"tank":[&"physical",&"fire"],"fanatic":[&"physical",&"dark"],
+	"predator":[&"physical",&""],"bomber":[&"physical",&"fire"],"swordsman":[&"physical",&""],"satellite":[&"physical",&"lightning"],
+	"paladin":[&"physical",&"light"],"hero":[&"physical",&"lightning"],"tank":[&"physical",&"fire"],"fanatic":[&"physical",&"dark"],
 	"lightning":[&"magic",&"lightning"],"mirror":[&"magic",&"light"],"galaxy":[&"magic",&"dark"],"machine_gun":[&"physical",&""],
 	"frog":[&"physical",&"poison"],"puppet":[&"magic",&""],"stake":[&"physical",&""],"conductor":[&"physical",&""],
-	"refraction":[&"magic",&"light"],"courier":[&"physical",&""],"magnet":[&"magic",&"lightning"],"frost":[&"magic",&"ice"],"flamethrower":[&"magic",&"fire"],"griffin":[&"magic",&"wind"],"crossbow":[&"physical",&"wind"],"slime":[&"physical",&"poison"],"parrot":[&"physical",&"wind"],"whisperer":[&"physical",&"dark"],"plague":[&"physical",&"poison"],"golem":[&"physical",&"ice"],
+	"refraction":[&"magic",&"light"],"courier":[&"physical",&""],"magnet":[&"magic",&"lightning"],"frost":[&"magic",&"ice"],"flamethrower":[&"magic",&"fire"],"griffin":[&"magic",&"wind"],"crossbow":[&"physical",&"wind"],"slime":[&"physical",&"poison"],"parrot":[&"physical",&"wind"],"whisperer":[&"physical",&"dark"],"plague":[&"physical",&"poison"],"golem":[&"physical",&"ice"],"flame_blade":[&"physical",&"fire"],
 }
 const ELEMENT_NAMES = {&"fire":"화염",&"ice":"얼음",&"lightning":"번개",&"light":"빛",&"dark":"어둠",&"poison":"맹독",&"wind":"바람"}
 static func damage_kind(type_id: int) -> StringName:

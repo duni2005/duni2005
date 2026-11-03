@@ -15,8 +15,8 @@ const MITIGATION: float = 100
 const CRIT_DAMAGE: float = 1.5
 ## Elements multiply with "element damage %"; every tag can carry its own bonus.
 const ELEMENTS = [&"ice", &"fire", &"poison", &"wind", &"light", &"dark", &"lightning"]
-const DAMAGE_TAGS = [&"explosion", &"area", &"projectile", &"dot"]
-const TAG_NAMES = {&"ice":"얼음", &"fire":"화염", &"poison":"맹독", &"wind":"바람", &"light":"빛", &"dark":"어둠", &"lightning":"번개", &"explosion":"폭발", &"area":"범위", &"projectile":"투사체", &"dot":"지속"}
+const DAMAGE_TAGS = [&"explosion", &"area", &"projectile", &"dot", &"melee"]
+const TAG_NAMES = {&"ice":"얼음", &"fire":"화염", &"poison":"맹독", &"wind":"바람", &"light":"빛", &"dark":"어둠", &"lightning":"번개", &"explosion":"폭발", &"area":"범위", &"projectile":"투사체", &"dot":"지속", &"melee":"근접공격"}
 const KIND_NAMES = {&"physical":"물리", &"magic":"마법"}
 const SKILL_NAMES = {&"basic":"기본공격", &"passive":"패시브", &"ultimate":"궁극기", &"transcend":"초월", &"item":"아이템", &"system":"공용"}
 
@@ -61,13 +61,14 @@ const STATS = {
 	"whisperer":[&"physical", 30, 0, 10, 28, 26],
 	"plague":[&"physical", 55, 0, 10, 40, 34],
 	"golem":[&"physical", 75, 10, 10, 34, 24],
+	"flame_blade":[&"physical", 45, 0, 10, 38, 26],
 }
 
 const DAMAGE = {
 	"warrior":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [], "검 베기"],
-		&"counter":[&"passive", &"physical", 0, 1.25, [], "패링 반격"],
-		&"ult_slash":[&"ultimate", &"physical", 10, 2.8, [&"area"], "넓게 베기"],
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee"], "검 베기"],
+		&"counter":[&"passive", &"physical", 0, 1.25, [&"melee"], "패링 반격"],
+		&"ult_slash":[&"ultimate", &"physical", 10, 2.8, [&"area", &"melee"], "넓게 베기"],
 		&"ult_wave":[&"ultimate", &"physical", 0, 2.3, [&"projectile"], "검기 발사"]},
 	"archer":{
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"wind", &"projectile"], "화살 (3발째 부채꼴 · 튕김)"],
@@ -77,9 +78,9 @@ const DAMAGE = {
 		&"splash":[&"basic", &"magic", 0, 0.5, [&"explosion", &"area"], "폭발 여파"],
 		&"ult":[&"ultimate", &"magic", 5, 0.05, [&"dark", &"area", &"dot"], "블랙홀 (0.5초마다)"]},
 	"assassin":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [], "단검 찌르기"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee"], "단검 찌르기"]},
 	"guardian":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [], "방패 내려치기"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee"], "방패 내려치기"]},
 	"healer":{
 		&"basic":[&"basic", &"magic", 0, 1.0, [&"light", &"projectile"], "빛 화살"]},
 	"sniper":{
@@ -91,46 +92,46 @@ const DAMAGE = {
 		&"basic":[&"basic", &"physical", 30, 1.2, [], "가위바위보 승리"],
 		&"ult":[&"ultimate", &"physical", 50, 1.6, [], "강화 승부 승리"]},
 	"ufc":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [], "펀치 (1·2타)"],
-		&"basic_last":[&"basic", &"physical", 0, 1.35, [], "펀치 (3타)"],
-		&"ult":[&"ultimate", &"physical", 15, 0.9, [&"area"], "돌진 충돌"],
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee"], "펀치 (1·2타)"],
+		&"basic_last":[&"basic", &"physical", 0, 1.35, [&"melee"], "펀치 (3타)"],
+		&"ult":[&"ultimate", &"physical", 15, 0.9, [&"area", &"melee"], "돌진 충돌"],
 		&"ring":[&"ultimate", &"physical", 10, 0.7, [&"area"], "링 줄 충돌"]},
 	"greatsword":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [], "특대검 내려치기"],
-		&"ult_slash":[&"ultimate", &"physical", 0, 1.5, [&"area"], "강타"],
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee"], "특대검 내려치기"],
+		&"ult_slash":[&"ultimate", &"physical", 0, 1.5, [&"area", &"melee"], "강타"],
 		&"ult_wave":[&"ultimate", &"physical", 0, 2.7, [&"projectile"], "충격파"]},
 	"dolphin":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [&"ice"], "몸통 박치기"],
-		&"ult":[&"ultimate", &"physical", 0, 1.15, [&"ice"], "연속 박치기"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"ice", &"melee"], "몸통 박치기"],
+		&"ult":[&"ultimate", &"physical", 0, 1.15, [&"ice", &"melee"], "연속 박치기"]},
 	"predator":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [&"area"], "물기 (최대 3명)"],
-		&"ult":[&"ultimate", &"physical", 0, 1.8, [&"area"], "강한 물기"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"area", &"melee"], "물기 (최대 3명)"],
+		&"ult":[&"ultimate", &"physical", 0, 1.8, [&"area", &"melee"], "강한 물기"]},
 	"bomber":{
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"fire", &"explosion", &"area"], "폭탄"],
 		&"ult":[&"ultimate", &"physical", 0, 2.6, [&"fire", &"explosion", &"area"], "대형 폭탄"],
 		&"self_destruct":[&"passive", &"physical", 0, 2.5, [&"fire", &"explosion", &"area"], "자폭"]},
 	"swordsman":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [], "베기 (1타)"],
-		&"basic_2":[&"basic", &"physical", 0, 1.1, [], "베기 (2타)"],
-		&"basic_3":[&"basic", &"physical", 0, 3.0, [], "베기 (3타)"],
-		&"ult":[&"ultimate", &"physical", 0, 3.6, [], "일섬"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee"], "베기 (1타)"],
+		&"basic_2":[&"basic", &"physical", 0, 1.1, [&"melee"], "베기 (2타)"],
+		&"basic_3":[&"basic", &"physical", 0, 3.0, [&"melee"], "베기 (3타)"],
+		&"ult":[&"ultimate", &"physical", 0, 3.6, [&"melee"], "일섬"]},
 	"satellite":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [&"light", &"projectile"], "추적 미사일 (제어된 적 +40%/초)"],
-		&"counter":[&"passive", &"physical", 0, 0.2, [&"light", &"projectile"], "반격 미사일"],
-		&"ult":[&"ultimate", &"physical", 0, 1.8, [&"light", &"projectile"], "미사일 일제 발사"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"lightning", &"projectile"], "추적 미사일 (제어된 적 +40%/초)"],
+		&"counter":[&"passive", &"physical", 0, 0.2, [&"lightning", &"projectile"], "반격 미사일"],
+		&"ult":[&"ultimate", &"physical", 0, 1.8, [&"lightning", &"projectile"], "미사일 일제 발사"]},
 	"paladin":{
-		&"basic":[&"basic", &"physical", 0, 1.25, [&"light"], "강타"],
-		&"bash":[&"basic", &"physical", 0, 0.65, [], "방패 밀치기"]},
+		&"basic":[&"basic", &"physical", 0, 1.25, [&"light", &"melee"], "강타"],
+		&"bash":[&"basic", &"physical", 0, 0.65, [&"melee"], "방패 밀치기"]},
 	"hero":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [], "펀치"],
-		&"rescue":[&"passive", &"physical", 0, 1.6, [&"area"], "구조 일격"],
-		&"ult":[&"ultimate", &"physical", 0, 3.0, [], "강펀치"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee", &"lightning"], "펀치"],
+		&"rescue":[&"passive", &"physical", 0, 1.6, [&"area", &"lightning"], "구조 일격"],
+		&"ult":[&"ultimate", &"physical", 0, 3.0, [&"melee", &"lightning"], "강펀치"]},
 	"tank":{
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"fire", &"explosion", &"area"], "포탄"],
 		&"enhanced":[&"ultimate", &"physical", 0, 1.7, [&"fire", &"explosion", &"area"], "화염 포탄"],
 		&"fire_zone":[&"ultimate", &"magic", 3, 0.2, [&"fire", &"area", &"dot"], "화염 지대 (0.5초마다)"]},
 	"fanatic":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [&"dark"], "광신의 일격"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"dark", &"melee"], "광신의 일격"]},
 	"lightning":{
 		&"basic":[&"basic", &"magic", 0, 1.0, [&"lightning", &"projectile"], "연쇄 번개 (튈 때마다 -10%)"],
 		&"ult":[&"ultimate", &"magic", 10, 2.6, [&"lightning", &"area"], "대방전"]},
@@ -149,8 +150,8 @@ const DAMAGE = {
 		&"basic":[&"basic", &"magic", 0, 1.0, [&"projectile"], "날카로운 실"]},
 	"stake":{
 		&"open":[&"passive", &"physical", 10, 0.4, [], "말뚝 박기"],
-		&"basic":[&"basic", &"physical", 0, 1.0, [], "망치"],
-		&"ult":[&"ultimate", &"physical", 30, 1.25, [], "도약 내려찍기"]},
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee"], "망치"],
+		&"ult":[&"ultimate", &"physical", 30, 1.25, [&"melee"], "도약 내려찍기"]},
 	"conductor":{
 		&"ult":[&"ultimate", &"physical", 40, 3.5, [&"area"], "기관차"]},
 	"refraction":{
@@ -174,7 +175,7 @@ const DAMAGE = {
 		&"basic":[&"basic", &"physical", 0, 0.32, [&"wind", &"projectile"], "화살 1발 (탄창 7발)"],
 		&"ult":[&"ultimate", &"physical", 15, 1.8, [&"explosion", &"wind", &"projectile"], "목표지정 탄 폭발 (10초 목표 상태)"]},
 	"slime":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [&"poison"], "몸통 박치기 (넉백 · 2초 둔화)"],
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"poison", &"melee"], "몸통 박치기 (넉백 · 2초 둔화)"],
 		&"ult":[&"ultimate", &"physical", 10, 0.9, [&"area", &"poison"], "다 함께 낙하 착지"]},
 	"parrot":{
 		&"basic":[&"basic", &"physical", 0, 0.5, [&"wind", &"projectile"], "깃털 세례 (부채꼴 5발)"],
@@ -184,13 +185,17 @@ const DAMAGE = {
 		&"burst":[&"passive", &"magic", 0, 0.0, [&"dark"], "속삭임 폭발 (3스택: 최대 HP 5%)"],
 		&"ult":[&"ultimate", &"magic", 10, 2.0, [&"projectile", &"dark"], "하트 (관통 · 5초 매혹)"]},
 	"plague":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [], "지팡이 찌르기"],
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee"], "지팡이 찌르기"],
 		&"plague":[&"passive", &"physical", 0, 0.0, [], "역병 추가 피해 (맹독 스택당 기본공격의 8%)"],
 		&"ult":[&"ultimate", &"magic", 2, 0.22, [&"dot", &"area", &"poison", &"dark"], "역병 안개 (맵 전체, 5초, 0.5초마다)"]},
 	"golem":{
-		&"basic":[&"basic", &"physical", 0, 1.0, [&"ice", &"area"], "지면 강타 (2초 둔화)"],
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"ice", &"area", &"melee"], "지면 강타 (2초 둔화)"],
 		&"aura":[&"passive", &"magic", 2, 0.18, [&"ice", &"area"], "냉기 (1초마다, 빙결 스택 1 확정)"],
 		&"ult":[&"ultimate", &"physical", 20, 2.4, [&"ice", &"area", &"explosion"], "증기 폭발 (4초 차징 · 즉시 빙결)"]},
+	"flame_blade":{
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee", &"fire"], "불의 검 베기 (화염 5스택)"],
+		&"ult":[&"ultimate", &"physical", 15, 2.2, [&"melee", &"area", &"fire"], "화염 회전 베기"],
+		&"ignite":[&"ultimate", &"magic", 4, 0.3, [&"fire"], "점화 (화염 스택당)"]},
 }
 ## Damage every unit can deal regardless of character, using its main damage kind.
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]

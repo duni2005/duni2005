@@ -61,6 +61,7 @@ func run(tree: SceneTree) -> void:
 	balance_layer(tree)
 	parrot_and_whisperer(tree)
 	plague_and_golem(tree)
+	flame_blade_and_tags(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -83,7 +84,7 @@ func step(b: BattleManager,seconds: float) -> void:
 		if b.finished:return
 		b.simulate(1.0/60)
 func new_characters(tree: SceneTree) -> void:
-	verify(CharacterCatalog.all().size()==40,"40 characters in the catalog")
+	verify(CharacterCatalog.all().size()==41,"41 characters in the catalog")
 	# 말뚝: opening stake tethers the nearest enemy to a small circle.
 	var b:=duel(tree,[[26,0,Vector2(150,400)],[1,1,Vector2(450,400)],[1,1,Vector2(700,700)]])
 	step(b,.2)
@@ -445,7 +446,7 @@ func stat_damage(tree: SceneTree) -> void:
 		if not UnitStatTable.STATS.has(unit_name) or not UnitStatTable.DAMAGE.has(unit_name):tagged=false
 		for d in UnitStatTable.instances(id):
 			if not UnitStatTable.KIND_NAMES.has(d.kind) or not d.tags.all(func(t):return t in UnitStatTable.ELEMENTS+UnitStatTable.DAMAGE_TAGS):tagged=false
-	verify(tagged and CharacterCatalog.NAMES.size()==40,"all 40 units have base stats and exactly one kind plus known tags per damage instance")
+	verify(tagged and CharacterCatalog.NAMES.size()==41,"all 41 units have base stats and exactly one kind plus known tags per damage instance")
 	verify(UnitStatTable.mitigation(0)==1 and UnitStatTable.mitigation(100)==.5 and is_equal_approx(UnitStatTable.mitigation(-100),1.5),"mitigation 100/(100+def), 2-100/(100-def) below zero")
 	# Bomber (fire · explosion · area) hits a mage.
 	var b:=duel(tree,[[13,0,Vector2(300,400)],[2,1,Vector2(380,400)]]);var src: BattleUnit=b.units[0];var tgt: BattleUnit=b.units[1];b.started=true
@@ -606,7 +607,7 @@ func element_effects(tree: SceneTree) -> void:
 	var tagged:=func(type: int,element: StringName) -> bool:
 		return UnitStatTable.instances(type).all(func(d):return d.key==&"transcend" or d.tags.has(element))
 	verify(tagged.call(1,&"wind") and tagged.call(11,&"ice") and tagged.call(24,&"poison"),"archer wind, dolphin ice, frog poison on every attack")
-	verify(tagged.call(15,&"light") and not UnitStatTable.instances(15).any(func(d):return d.tags.has(&"fire")) and CharacterCatalog.all()[15].recruit_tokens==4,"satellite deals light and is a hero-grade unit")
+	verify(tagged.call(15,&"lightning") and not UnitStatTable.instances(15).any(func(d):return d.tags.has(&"fire") or d.tags.has(&"light")) and CharacterCatalog.all()[15].recruit_tokens==4,"satellite deals lightning (0.81.0) and is a hero-grade unit")
 	var zeal: Dictionary=UnitStatTable.spec(19,&"basic")
 	verify(zeal.kind==&"physical" and zeal.tags.has(&"dark") and not zeal.tags.has(&"light"),"fanatic basic is physical dark")
 	verify(tagged.call(22,&"dark") and UnitStatTable.spec(22,&"ult").tags.has(&"dot"),"galaxy deals dark, its ultimate over time")
@@ -770,6 +771,29 @@ func griffin_and_crossbow(tree: SceneTree) -> void:
 	verify(StatusCatalog.collect(marked[0]).any(func(r):return r.key==&"targeted"),"목표 shows in the unit's 상태이상")
 	b.queue_free()
 
+## 불의 검사 (40) and the 0.81.0 tag changes.
+func flame_blade_and_tags(tree: SceneTree) -> void:
+	verify(UnitStatTable.spec(0,&"basic").tags.has(&"melee") and UnitStatTable.spec(17,&"ult").tags.has(&"melee") and not UnitStatTable.spec(1,&"basic").tags.has(&"melee") and UnitStatTable.TAG_NAMES[&"melee"]=="근접공격","근접공격 tag on melee hits only")
+	verify(UnitStatTable.instances(17).all(func(d):return d.key==&"transcend" or d.tags.has(&"lightning")) and CharacterCatalog.element(17)==&"lightning","히어로: every hit carries lightning")
+	verify(UnitStatTable.instances(15).all(func(d):return not d.tags.has(&"light") and (d.key==&"transcend" or d.tags.has(&"lightning"))),"소형 위성: lightning instead of light")
+	verify(CharacterCatalog.all()[38].tags.has("대치형"),"역병 is 대치형")
+	var b:=duel(tree,[[40,0,Vector2(300,400)],[4,1,Vector2(370,400)],[0,1,Vector2(330,470)]])
+	step(b,.05)
+	var fb: BattleUnit=b.units[0];var foe: BattleUnit=b.units[1];var side: BattleUnit=b.units[2]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0;u.evade_remaining=0
+	b.damage_resolver.resolve(fb,foe,10,{"dmg":&"basic","critical":false,"transcendent":true})
+	verify(int(foe.state_value("burnStacks"))==5,"불의 검: each slash sets 5 burn stacks")
+	side.set_state("burnStacks",8.0)
+	var hp: float=side.current_hp;fb.ultimate_gauge=100
+	verify(fb.ultimate.request(fb,foe),"the swordsman starts its ultimate")
+	var ignited: bool=false
+	for i in range(60*2):
+		step(b,1.0/60)
+		if b.combat_event_counts.get(&"ignite",0)>0:ignited=true;break
+	verify(ignited and side.state_value("burnStacks")==0 and side.current_hp<hp-UnitStatTable.raw(fb,&"ult")*.3,"the circular cut ignites every burn stack for extra damage")
+	b.queue_free()
+
+const FlameRef=preload("res://scripts/abilities/flame_blade_ability.gd")
 ## 역병 (38) and 빙하 골렘 (39), 0.79.0.
 func plague_and_golem(tree: SceneTree) -> void:
 	var b:=duel(tree,[[38,0,Vector2(200,400)],[4,1,Vector2(280,400)],[0,1,Vector2(740,740)]])
