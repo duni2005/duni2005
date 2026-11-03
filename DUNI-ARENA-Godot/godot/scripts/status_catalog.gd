@@ -62,6 +62,8 @@ const ENTRIES = {
 	&"shrink":["축소 · 가속", &"growth", "boots", "챌런이 피해를 받을수록 작아지고 빨라진다(스택당 이동속도 +4%)."],
 	&"split":["분열", &"growth", "heart", "슬라임이 쓰러질 때마다 HP 25% · 피해량 30%인 두 마리로 나뉜다(최대 2번). 마지막 분열체는 궁극기를 쓸 수 없다."],
 	&"mimic":["흉내", &"unique", "star", "앵무새가 적의 궁극기를 흉내 내는 중이다. 그 궁극기의 피해는 원래 주인의 표를 따른다."],
+	&"plague_fog":["역병 안개", &"unique", "skull", "역병이 맵 전체를 안개로 덮고 있다. 0.5초마다 모든 적이 피해를 받는다."],
+	&"golem_charge":["증기 차징", &"unique", "ether", "빙하 골렘이 증기를 모으는 중이다. 다 모이면 폭발해 주변 적을 빙결시킨다."],
 	&"ammo":["탄약", &"unique", "supply", "기관총의 남은 탄약. 다 쓰면 4초 재장전."],
 	&"bolts":["화살 탄창", &"unique", "supply", "석궁의 남은 화살. 한 발이 기본공격 1회이며, 다 쓰면 1.4초 재장전."],
 	&"reload":["재장전", &"unique", "supply", "탄약을 다시 채우는 중이다(기관총은 이동속도 -60%, 석궁은 -20%)."],
@@ -161,6 +163,8 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if _num(s, "predatorStacks") > 0:add.call(&"predator", _stacks(_num(s, "predatorStacks")))
 	if _num(s, "dolphinStacks") > 0:add.call(&"shrink", _stacks(_num(s, "dolphinStacks")))
 	if type_id == 35:add.call(&"split", "%d/2" % int(_num(s, "slimeSplits")))
+	if _num(s, "fogTime") > 0:add.call(&"plague_fog", _secs(_num(s, "fogTime")))
+	if _num(s, "golemCharge") > 0:add.call(&"golem_charge", "%d%%" % roundi(_num(s, "golemCharge") * 100))
 	if s.has("mimicType"):add.call(&"mimic", CharacterCatalog.all()[int(s.mimicType)].display_name)
 	# 고유
 	if type_id == 23 and s.has("ammo"):add.call(&"ammo", "%d/20" % int(_num(s, "ammo")))

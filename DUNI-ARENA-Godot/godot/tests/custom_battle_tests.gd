@@ -60,6 +60,7 @@ func run(tree: SceneTree) -> void:
 	stun_rush_and_travel(tree)
 	balance_layer(tree)
 	parrot_and_whisperer(tree)
+	plague_and_golem(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -82,7 +83,7 @@ func step(b: BattleManager,seconds: float) -> void:
 		if b.finished:return
 		b.simulate(1.0/60)
 func new_characters(tree: SceneTree) -> void:
-	verify(CharacterCatalog.all().size()==38,"38 characters in the catalog")
+	verify(CharacterCatalog.all().size()==40,"40 characters in the catalog")
 	# 말뚝: opening stake tethers the nearest enemy to a small circle.
 	var b:=duel(tree,[[26,0,Vector2(150,400)],[1,1,Vector2(450,400)],[1,1,Vector2(700,700)]])
 	step(b,.2)
@@ -444,7 +445,7 @@ func stat_damage(tree: SceneTree) -> void:
 		if not UnitStatTable.STATS.has(unit_name) or not UnitStatTable.DAMAGE.has(unit_name):tagged=false
 		for d in UnitStatTable.instances(id):
 			if not UnitStatTable.KIND_NAMES.has(d.kind) or not d.tags.all(func(t):return t in UnitStatTable.ELEMENTS+UnitStatTable.DAMAGE_TAGS):tagged=false
-	verify(tagged and CharacterCatalog.NAMES.size()==38,"all 38 units have base stats and exactly one kind plus known tags per damage instance")
+	verify(tagged and CharacterCatalog.NAMES.size()==40,"all 40 units have base stats and exactly one kind plus known tags per damage instance")
 	verify(UnitStatTable.mitigation(0)==1 and UnitStatTable.mitigation(100)==.5 and is_equal_approx(UnitStatTable.mitigation(-100),1.5),"mitigation 100/(100+def), 2-100/(100-def) below zero")
 	# Bomber (fire · explosion · area) hits a mage.
 	var b:=duel(tree,[[13,0,Vector2(300,400)],[2,1,Vector2(380,400)]]);var src: BattleUnit=b.units[0];var tgt: BattleUnit=b.units[1];b.started=true
@@ -769,6 +770,43 @@ func griffin_and_crossbow(tree: SceneTree) -> void:
 	verify(StatusCatalog.collect(marked[0]).any(func(r):return r.key==&"targeted"),"목표 shows in the unit's 상태이상")
 	b.queue_free()
 
+## 역병 (38) and 빙하 골렘 (39), 0.79.0.
+func plague_and_golem(tree: SceneTree) -> void:
+	var b:=duel(tree,[[38,0,Vector2(200,400)],[4,1,Vector2(280,400)],[0,1,Vector2(740,740)]])
+	step(b,.05)
+	var pl: BattleUnit=b.units[0];var foe: BattleUnit=b.units[1];var far: BattleUnit=b.units[2]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0;u.evade_remaining=0
+	var hp: float=foe.current_hp
+	b.damage_resolver.resolve(pl,foe,10,{"dmg":&"basic","critical":false,"transcendent":true})
+	var plain: float=hp-foe.current_hp
+	foe.set_state("poisonStacks",5);hp=foe.current_hp
+	b.damage_resolver.resolve(pl,foe,10,{"dmg":&"basic","critical":false,"transcendent":true})
+	verify(hp-foe.current_hp>plain+1,"역병: the staff hits harder per poison stack on the target")
+	foe.set_state("poisonStacks",0);var hp_near: float=foe.current_hp;var hp_far: float=far.current_hp
+	pl.ability.release_ultimate(pl,{},0);step(b,1.1)
+	verify(foe.current_hp<hp_near and far.current_hp<hp_far and pl.state_value("fogTime")>0,"the plague fog hurts every enemy anywhere on the map")
+	verify(UnitStatTable.spec(38,&"ult").tags.has(&"poison") and UnitStatTable.spec(38,&"ult").tags.has(&"dark") and UnitStatTable.spec(38,&"ult").kind==&"magic","fog: magic · dark · poison · area · over time")
+	step(b,PlagueRef.FOG_TIME)
+	verify(pl.state_value("fogTime")<=0,"the fog lifts after 5 s")
+	b.queue_free()
+	b=duel(tree,[[39,0,Vector2(300,400)],[4,1,Vector2(380,400)],[0,1,Vector2(700,400)]])
+	step(b,.05)
+	var golem: BattleUnit=b.units[0];foe=b.units[1];far=b.units[2]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0;u.evade_remaining=0
+	hp=foe.current_hp;step(b,1.1)
+	verify(foe.current_hp<hp and foe.state_value("frostStacks")>=1 and far.state_value("frostStacks")==0,"빙하 골렘's cold hurts nearby enemies and adds a sure frost stack")
+	hp=foe.current_hp;golem.combat.aim_angle=0;golem.ability.release_basic(golem)
+	verify(foe.current_hp<hp and foe.state_value("slowTime")>0,"the ground slam hurts and slows")
+	golem.ultimate_gauge=100
+	verify(golem.ultimate.request(golem,foe),"the golem starts charging")
+	step(b,GolemRef.CHARGE_TIME-.6)
+	verify(foe.state_value("frozenTime")<=0 and golem.state_value("golemCharge")>0,"no burst while the vapour is gathering")
+	foe.set_state("frostStacks",0);hp=foe.current_hp;step(b,1.2)
+	verify(foe.current_hp<hp and foe.state_value("frozenTime")>0,"after 4 s the burst hits and freezes at once")
+	b.queue_free()
+
+const PlagueRef=preload("res://scripts/abilities/plague_ability.gd")
+const GolemRef=preload("res://scripts/abilities/golem_ability.gd")
 ## 앵무새 (36) and 속삭이는 자 (37), 0.78.0.
 func parrot_and_whisperer(tree: SceneTree) -> void:
 	# 깃털 세례: five feathers fanned out.

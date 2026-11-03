@@ -1,7 +1,7 @@
 class_name AbilityMotifs
 extends RefCounted
 ## One motif per real ability identity. Exact gameplay telegraphs are rendered separately.
-const MOTIFS=["blade","arrow","vortex","veil","aegis","lotus","reticle","pellets","duel","fists","greatsword","ripples","jaws","fuse","issen","orbit","cross","comet","tracks","halo","storm","shards","spiral","tracers","tongue","threads","stake","rails","prism","parcel","magnet","frost","flame","gust","crosshair","slime","feathers","heart"]
+const MOTIFS=["blade","arrow","vortex","veil","aegis","lotus","reticle","pellets","duel","fists","greatsword","ripples","jaws","fuse","issen","orbit","cross","comet","tracks","halo","storm","shards","spiral","tracers","tongue","threads","stake","rails","prism","parcel","magnet","frost","flame","gust","crosshair","slime","feathers","heart","miasma","glacier"]
 static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: float=0) -> void:
 	var c: Color=CharacterVisuals.PROJECTILE_COLORS.get("star",Color("e8c78e"))
 	c=Color(AttackVisuals.ink(u.data.type_id),1-fade)
@@ -39,6 +39,16 @@ static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: f
 				var t: float=TAU*i/24.0
 				pts.append(p+Vector2(16*pow(sin(t),3),-(13*cos(t)-5*cos(2*t)-2*cos(3*t)-cos(4*t)))/16.0*hs)
 			canvas.draw_colored_polygon(pts,Color(c,.85))
+		"miasma":
+			# Slow green-violet fog puffs drifting around.
+			for i in range(5):
+				var q: Vector2=p+Vector2(cos(time*.6+i*1.3),sin(time*.5+i*2.1))*r*.55
+				canvas.draw_circle(q,r*(.22+.06*sin(time*2+i)),Color(c,.35))
+		"glacier":
+			# A ring of ice shards breathing in and out.
+			for i in range(8):
+				var a2: float=i*TAU/8+time*.3;var q: Vector2=p+Vector2.from_angle(a2)*r*(.6+.08*sin(time*3+i))
+				canvas.draw_colored_polygon(PackedVector2Array([q+Vector2.from_angle(a2)*r*.18,q+Vector2.from_angle(a2+1.6)*r*.06,q+Vector2.from_angle(a2-1.6)*r*.06]),Color(c,.85))
 		"slime":
 			# Bouncing droplets around the centre.
 			for i in range(6):

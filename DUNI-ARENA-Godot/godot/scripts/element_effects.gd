@@ -160,6 +160,11 @@ static func add_frost(source, target, stacks: int) -> void:
 		target.set_state("frostStacks", 0);target.set_state("frozenTime", FREEZE_TIME)
 		StatusController.stun(target, FREEZE_TIME)
 	else:target.set_state("frostStacks", total)
+## Freezes at once (빙하 골렘's blast), as if the frost stacks had filled.
+static func freeze(target, time: float = FREEZE_TIME) -> void:
+	if not target.alive or target.state_value("frozenTime") > 0:return
+	target.set_state("frostStacks", 0);target.set_state("frozenTime", time)
+	StatusController.stun(target, time)
 ## Shock stacks; none build up while the unit is stunned.
 static func add_shock(target, stacks: int = 1) -> void:
 	if not target.alive or target.stun_remaining > 0:return

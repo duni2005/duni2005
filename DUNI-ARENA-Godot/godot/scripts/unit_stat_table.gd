@@ -59,6 +59,8 @@ const STATS = {
 	"slime":[&"physical", 40, 0, 0, 30, 10],
 	"parrot":[&"physical", 30, 0, 10, 30, 26],
 	"whisperer":[&"physical", 30, 0, 10, 28, 26],
+	"plague":[&"physical", 55, 0, 10, 40, 34],
+	"golem":[&"physical", 75, 10, 10, 34, 24],
 }
 
 const DAMAGE = {
@@ -181,6 +183,14 @@ const DAMAGE = {
 		&"basic":[&"basic", &"physical", 0, 1.15, [&"projectile", &"dark"], "바늘 (속삭임 스택)"],
 		&"burst":[&"passive", &"magic", 0, 0.0, [&"dark"], "속삭임 폭발 (3스택: 최대 HP 5%)"],
 		&"ult":[&"ultimate", &"magic", 10, 2.0, [&"projectile", &"dark"], "하트 (관통 · 5초 매혹)"]},
+	"plague":{
+		&"basic":[&"basic", &"physical", 0, 1.0, [], "지팡이 찌르기"],
+		&"plague":[&"passive", &"physical", 0, 0.0, [], "역병 추가 피해 (맹독 스택당 기본공격의 8%)"],
+		&"ult":[&"ultimate", &"magic", 2, 0.22, [&"dot", &"area", &"poison", &"dark"], "역병 안개 (맵 전체, 5초, 0.5초마다)"]},
+	"golem":{
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"ice", &"area"], "지면 강타 (2초 둔화)"],
+		&"aura":[&"passive", &"magic", 2, 0.18, [&"ice", &"area"], "냉기 (1초마다, 빙결 스택 1 확정)"],
+		&"ult":[&"ultimate", &"physical", 20, 2.4, [&"ice", &"area", &"explosion"], "증기 폭발 (4초 차징 · 즉시 빙결)"]},
 }
 ## Damage every unit can deal regardless of character, using its main damage kind.
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]
