@@ -332,6 +332,7 @@ func move_stance(u,enemy,dt: float) -> bool:
 	steer(u,direction,dt,factor,"strategy");return true
 func movement(u,enemy,dt: float) -> void:
 	movement_override="";ability_override=""
+	if move_charmed(u,dt):return
 	if u.mind.active(u) and TacticalMind.role(u.data)==TacticalMind.FIXED:
 		u.velocity=Vector2.ZERO;heading=Vector2.ZERO;movement_override="fixed"
 		if enemy!=null:turn_face(u,enemy.position,dt)
@@ -419,6 +420,15 @@ func reset_clash(u,winner: bool) -> void:
 func stance_changed(u) -> void:
 	home_set=false;home_since=-1;hold=0;think=0;disengage_until=0;return_until=0;commit_until=0;punish_until=0;attack_decision.clear();u.threat_response.response.clear();next_initiative_at=u.battle.clock.elapsed+u.battle.rng.randf_range(.2,1.1)
 
+## 매혹 (속삭이는 자): walk slowly toward the charmer, nothing else.
+const CHARM_SPEED: float = .45
+func move_charmed(u,dt: float) -> bool:
+	if u.state_value("charmTime")<=0:return false
+	var by=u.battle.find_actor(str(u.character_specific_state.get("charmBy","")))
+	if by==null or not by.alive:u.set_state("charmTime",0.0);return false
+	var gap: Vector2=by.position-u.position
+	movement_override="charmed";turn_face(u,by.position,dt)
+	steer(u,gap.normalized()*(1 if gap.length()>60 else 0),dt,CHARM_SPEED,"strategy");return true
 func move_bomb_escape(u,dt: float) -> bool:
 	if u.combat_state!=CombatController.State.IDLE or not u.ultimate.cast.is_empty() or u.state_value("shadowTime")>0 or u.stance==CombatStance.COVER:return false
 	var threats: Array=u.battle.projectiles.filter(func(p):return p.live and p.kind=="bomb" and p.source.team!=u.team and not p.hidden_launch and CombatPerception.in_attack_view(u,p.position) and float(p.metadata.get("fuse",2))<.8 and u.position.distance_to(p.position)<float(p.metadata.get("blast_radius",120))+30)

@@ -207,7 +207,7 @@ static func advance(battle, dt: float) -> void:
 		if u.state_value("frozenTime") > 0:
 			u.set_state("frozenTime", maxf(0, u.state_value("frozenTime") - dt))
 			if u.state_value("frozenTime") <= 0:u.set_state("frostbiteTime", FROSTBITE_TIME)
-		for key in ["frostbiteTime", "headwindTime", "erosionTime", "targetedTime", "slowTime"]:
+		for key in ["frostbiteTime", "headwindTime", "erosionTime", "targetedTime", "slowTime", "charmTime"]:
 			if u.state_value(key) > 0:u.set_state(key, maxf(0, u.state_value(key) - dt))
 		for pair in [["frostbitePending", "frostbiteSource", &"frostbite", FROSTBITE_HIT], ["erodePending", "erosionSource", &"erosion", EROSION_DAMAGE]]:
 			var count: int = int(u.state_value(pair[0]))

@@ -25,6 +25,7 @@ const ENTRIES = {
 	&"rooted":["속박", &"control", "iron", "제자리에 묶여 이동할 수 없다."],
 	&"puppet":["조종", &"control", "guild", "인형술사에게 조종당해 원래 편을 공격한다."],
 	&"taunt":["도발", &"control", "taunt", "도발한 유닛만 노린다."],
+	&"charm":["매혹", &"control", "heart", "속삭이는 자에게 매혹되어 그쪽으로 천천히 걸어가며 공격 · 궁극기를 쓸 수 없다."],
 	&"duel":["결투", &"control", "battle", "가위바위보 승부 중이다. 다른 유닛의 공격은 크게 줄어든다."],
 	&"swallowed":["삼켜짐", &"control", "event", "개구리에게 삼켜져 있다."],
 	&"retreat":["후퇴 명령", &"control", "flag", "전략 명령에 따라 물러나는 중이다."],
@@ -38,6 +39,7 @@ const ENTRIES = {
 	&"erosion":["침식", &"debuff", "skull", "이동 외 행동마다 피해를 받고, 받는 치명타 피해 +25%."],
 	&"curse":["축소 저주", &"debuff", "dice", "챌런에게 맞아 몸이 작아졌다. 받는 피해 +15%."],
 	&"cosmic":["우주 표식", &"debuff", "star", "은하에게 찍혀 주는 피해 -30%."],
+	&"whisper":["속삭임", &"debuff", "skull", "속삭이는 자의 바늘 스택. 3스택이 되면 터지며 최대 HP의 5% 추가 피해(마법 · 어둠)."],
 	&"targeted":["목표", &"debuff", "event", "석궁의 목표지정 탄에 맞았다. 받는 피해 +10%, 받는 바람 피해 +15%."],
 	&"light_mark":["광휘 표식", &"mark", "star", "다른 유닛이 직접 공격으로 터뜨리면 터뜨린 유닛이 최대 HP 5% 회복."],
 	&"dark_mark":["암흑 표식", &"mark", "skull", "다른 유닛이 직접 공격으로 터뜨리면 그 공격 피해 +20%."],
@@ -59,6 +61,7 @@ const ENTRIES = {
 	&"predator":["포식 성장", &"growth", "predatorFang", "처치할 때마다 몸집과 힘이 커진다(스택당 크기 +4%)."],
 	&"shrink":["축소 · 가속", &"growth", "boots", "챌런이 피해를 받을수록 작아지고 빨라진다(스택당 이동속도 +4%)."],
 	&"split":["분열", &"growth", "heart", "슬라임이 쓰러질 때마다 HP 25% · 피해량 30%인 두 마리로 나뉜다(최대 2번). 마지막 분열체는 궁극기를 쓸 수 없다."],
+	&"mimic":["흉내", &"unique", "star", "앵무새가 적의 궁극기를 흉내 내는 중이다. 그 궁극기의 피해는 원래 주인의 표를 따른다."],
 	&"ammo":["탄약", &"unique", "supply", "기관총의 남은 탄약. 다 쓰면 4초 재장전."],
 	&"bolts":["화살 탄창", &"unique", "supply", "석궁의 남은 화살. 한 발이 기본공격 1회이며, 다 쓰면 1.4초 재장전."],
 	&"reload":["재장전", &"unique", "supply", "탄약을 다시 채우는 중이다(기관총은 이동속도 -60%, 석궁은 -20%)."],
@@ -119,6 +122,7 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 		if not u.duel.is_empty():add.call(&"duel")
 		if not u.frog_carrier.is_empty():add.call(&"swallowed")
 		if u.command_retreat_until > now:add.call(&"retreat", _secs(u.command_retreat_until - now))
+	if _num(s, "charmTime") > 0:add.call(&"charm", _secs(_num(s, "charmTime")))
 	# 약화
 	if _num(s, "burnStacks") > 0:add.call(&"burn", _stacks(_num(s, "burnStacks")))
 	if _num(s, "poisonStacks") > 0:add.call(&"poison", _stacks(_num(s, "poisonStacks")))
@@ -131,6 +135,7 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if _num(s, "curseTime") > 0:add.call(&"curse", _secs(_num(s, "curseTime")))
 	if u != null and u.cosmic_marked:add.call(&"cosmic")
 	if _num(s, "targetedTime") > 0:add.call(&"targeted", _secs(_num(s, "targetedTime")))
+	if _num(s, "whisperStacks") > 0:add.call(&"whisper", "%d/3" % int(_num(s, "whisperStacks")))
 	# 표식
 	if not str(s.get("lightMark", "")).is_empty():add.call(&"light_mark")
 	if not str(s.get("darkMark", "")).is_empty():add.call(&"dark_mark")
@@ -156,6 +161,7 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if _num(s, "predatorStacks") > 0:add.call(&"predator", _stacks(_num(s, "predatorStacks")))
 	if _num(s, "dolphinStacks") > 0:add.call(&"shrink", _stacks(_num(s, "dolphinStacks")))
 	if type_id == 35:add.call(&"split", "%d/2" % int(_num(s, "slimeSplits")))
+	if s.has("mimicType"):add.call(&"mimic", CharacterCatalog.all()[int(s.mimicType)].display_name)
 	# 고유
 	if type_id == 23 and s.has("ammo"):add.call(&"ammo", "%d/20" % int(_num(s, "ammo")))
 	if type_id == 34 and s.has("bolts"):add.call(&"bolts", "%d/7" % int(_num(s, "bolts")))

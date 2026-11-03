@@ -57,6 +57,8 @@ const STATS = {
 	"griffin":[&"magic", 50, 0, 10, 15, 32],
 	"crossbow":[&"physical", 30, 0, 0, 32, 10],
 	"slime":[&"physical", 40, 0, 0, 30, 10],
+	"parrot":[&"physical", 30, 0, 10, 30, 26],
+	"whisperer":[&"physical", 30, 0, 10, 28, 26],
 }
 
 const DAMAGE = {
@@ -172,6 +174,13 @@ const DAMAGE = {
 	"slime":{
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"poison"], "몸통 박치기 (넉백 · 2초 둔화)"],
 		&"ult":[&"ultimate", &"physical", 10, 0.9, [&"area", &"poison"], "다 함께 낙하 착지"]},
+	"parrot":{
+		&"basic":[&"basic", &"physical", 0, 0.5, [&"wind", &"projectile"], "깃털 세례 (부채꼴 5발)"],
+		&"ult":[&"ultimate", &"physical", 0, 1.0, [], "흉내 (가까운 적 궁극기 게이지 -50, 그 궁극기 사용)"]},
+	"whisperer":{
+		&"basic":[&"basic", &"physical", 0, 1.15, [&"projectile", &"dark"], "바늘 (속삭임 스택)"],
+		&"burst":[&"passive", &"magic", 0, 0.0, [&"dark"], "속삭임 폭발 (3스택: 최대 HP 5%)"],
+		&"ult":[&"ultimate", &"magic", 10, 2.0, [&"projectile", &"dark"], "하트 (관통 · 5초 매혹)"]},
 }
 ## Damage every unit can deal regardless of character, using its main damage kind.
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]
@@ -215,6 +224,11 @@ static func spec(type_id: int, key: StringName) -> Dictionary:
 	if table.has(&"basic"):return _spec(table[&"basic"], &"basic", main)
 	return {"key":&"", "skill":&"system", "kind":main, "base":0.0, "ratio":1.0, "tags":[], "label":""}
 
+## Whose table a damage instance comes from: the unit's own, except while 앵무새 is copying an
+## ultimate, when every non-basic instance uses the copied unit's table.
+static func spec_type(u, key: StringName) -> int:
+	if key != &"basic" and u is BattleUnit and u.character_specific_state.has("mimicType"):return int(u.character_specific_state.mimicType)
+	return u.data.type_id
 ## Physical or magic damage of a live unit or of stats (growth and items included).
 static func damage_stat(u, kind: StringName) -> float:
 	var stats = u.combat_stats if u is BattleUnit else u
@@ -222,7 +236,7 @@ static func damage_stat(u, kind: StringName) -> float:
 	return base_physical(u.data.type_id) if kind == &"physical" else base_magic(u.data.type_id)
 ## Raw damage of one instance before any multiplier or mitigation.
 static func raw(u, key: StringName) -> float:
-	var s: Dictionary = spec(u.data.type_id, key)
+	var s: Dictionary = spec(spec_type(u, key), key)
 	return s.base + damage_stat(u, s.kind) * s.ratio
 static func has_element(tags: Array) -> bool:
 	return tags.any(func(t):return t in ELEMENTS)

@@ -59,6 +59,7 @@ func run(tree: SceneTree) -> void:
 	griffin_and_crossbow(tree)
 	stun_rush_and_travel(tree)
 	balance_layer(tree)
+	parrot_and_whisperer(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -81,7 +82,7 @@ func step(b: BattleManager,seconds: float) -> void:
 		if b.finished:return
 		b.simulate(1.0/60)
 func new_characters(tree: SceneTree) -> void:
-	verify(CharacterCatalog.all().size()==36,"36 characters in the catalog")
+	verify(CharacterCatalog.all().size()==38,"38 characters in the catalog")
 	# 말뚝: opening stake tethers the nearest enemy to a small circle.
 	var b:=duel(tree,[[26,0,Vector2(150,400)],[1,1,Vector2(450,400)],[1,1,Vector2(700,700)]])
 	step(b,.2)
@@ -443,7 +444,7 @@ func stat_damage(tree: SceneTree) -> void:
 		if not UnitStatTable.STATS.has(unit_name) or not UnitStatTable.DAMAGE.has(unit_name):tagged=false
 		for d in UnitStatTable.instances(id):
 			if not UnitStatTable.KIND_NAMES.has(d.kind) or not d.tags.all(func(t):return t in UnitStatTable.ELEMENTS+UnitStatTable.DAMAGE_TAGS):tagged=false
-	verify(tagged and CharacterCatalog.NAMES.size()==36,"all 36 units have base stats and exactly one kind plus known tags per damage instance")
+	verify(tagged and CharacterCatalog.NAMES.size()==38,"all 38 units have base stats and exactly one kind plus known tags per damage instance")
 	verify(UnitStatTable.mitigation(0)==1 and UnitStatTable.mitigation(100)==.5 and is_equal_approx(UnitStatTable.mitigation(-100),1.5),"mitigation 100/(100+def), 2-100/(100-def) below zero")
 	# Bomber (fire · explosion · area) hits a mage.
 	var b:=duel(tree,[[13,0,Vector2(300,400)],[2,1,Vector2(380,400)]]);var src: BattleUnit=b.units[0];var tgt: BattleUnit=b.units[1];b.started=true
@@ -768,6 +769,65 @@ func griffin_and_crossbow(tree: SceneTree) -> void:
 	verify(StatusCatalog.collect(marked[0]).any(func(r):return r.key==&"targeted"),"목표 shows in the unit's 상태이상")
 	b.queue_free()
 
+## 앵무새 (36) and 속삭이는 자 (37), 0.78.0.
+func parrot_and_whisperer(tree: SceneTree) -> void:
+	# 깃털 세례: five feathers fanned out.
+	var b:=duel(tree,[[36,0,Vector2(200,400)],[33,1,Vector2(420,400)],[0,1,Vector2(560,250)],[24,1,Vector2(330,520)]])
+	step(b,.05)
+	var parrot: BattleUnit=b.units[0];var griffin: BattleUnit=b.units[1];var frog: BattleUnit=b.units[3]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000
+	for u in b.units.slice(1):u.move_speed=0
+	var before: int=b.projectiles.size();parrot.combat.aim_angle=0;parrot.ability.release_basic(parrot)
+	var feathers: Array=b.projectiles.slice(before).filter(func(p):return p.kind=="feather")
+	var spread: float=feathers.map(func(p):return p.velocity.angle()).max()-feathers.map(func(p):return p.velocity.angle()).min()
+	verify(feathers.size()==5 and spread>.5,"앵무새 fans out five feathers")
+	verify(UnitStatTable.spec(36,&"basic").tags.has(&"wind") and UnitStatTable.spec(36,&"basic").kind==&"physical","feathers are physical · wind · projectile")
+	# 흉내: the nearest copyable enemy loses 50 gauge and the parrot casts its ultimate. The frog is
+	# nearer than the griffin but its ultimate is reactive, so the griffin is copied.
+	verify(parrot.ability.mimic_source(parrot)==griffin and parrot.position.distance_to(frog.position)<parrot.position.distance_to(griffin.position),"an uncopyable ultimate (개구리) is skipped for the next nearest enemy")
+	griffin.ultimate_gauge=80;parrot.ultimate_gauge=100
+	verify(parrot.ultimate.request(parrot,griffin),"the parrot starts its ultimate")
+	var hp: float=griffin.current_hp+b.units[2].current_hp
+	for i in range(60*2):
+		step(b,1.0/60);griffin.ultimate_gauge=minf(griffin.ultimate_gauge,30)
+		if parrot.character_specific_state.has("mimicType"):break
+	verify(int(parrot.state_value("mimicType"))==33 and griffin.ultimate_gauge<=30.0001,"the parrot drains 50 gauge and copies the griffin's ultimate")
+	verify(UnitStatTable.spec_type(parrot,&"ult")==33 and UnitStatTable.spec_type(parrot,&"basic")==36,"while copying, ultimate damage follows the copied unit's table")
+	step(b,1.5)
+	verify(griffin.current_hp+b.units[2].current_hp<hp,"the copied ultimate hits")
+	verify(StatusCatalog.collect(parrot).any(func(r):return r.key==&"mimic"),"흉내 shows in the parrot's 상태이상")
+	step(b,ParrotRef.MIMIC_TIME+.5)
+	verify(not parrot.character_specific_state.has("mimicType"),"the copy wears off")
+	b.queue_free()
+	# 속삭이는 자: the third needle hit bursts for 5% of max HP.
+	b=duel(tree,[[37,0,Vector2(200,400)],[4,1,Vector2(400,400)],[0,1,Vector2(520,400)]])
+	step(b,.05)
+	var w: BattleUnit=b.units[0];var foe: BattleUnit=b.units[1];var back: BattleUnit=b.units[2]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.evade_remaining=0
+	for u in b.units.slice(1):u.move_speed=0
+	for i in range(2):b.damage_resolver.resolve(w,foe,5,{"dmg":&"basic","critical":false,"transcendent":true})
+	verify(int(foe.state_value("whisperStacks"))==2 and StatusCatalog.collect(foe).any(func(r):return r.key==&"whisper"),"needles stack 속삭임 (shown in 상태이상)")
+	var hp_before: float=foe.current_hp
+	b.damage_resolver.resolve(w,foe,5,{"dmg":&"basic","critical":false,"transcendent":true})
+	verify(int(foe.state_value("whisperStacks"))==0 and hp_before-foe.current_hp>=foe.max_hp*.05*.5,"the third stack bursts for extra damage (max HP 5%)")
+	# 하트: pierces and charms every enemy it hurts.
+	foe.move_speed=100;back.move_speed=100;w.move_speed=0
+	w.ability.release_ultimate(w,{"angle":0.0},0)
+	for i in range(60):
+		step(b,1.0/60)
+		if back.state_value("charmTime")>0:break
+	verify(foe.state_value("charmTime")>0 and back.state_value("charmTime")>0,"the heart flies through and charms both enemies")
+	foe.combat.cooldown=0
+	verify(not foe.combat.can_start(foe,w),"a charmed unit cannot attack")
+	var gap: float=foe.position.distance_to(w.position);step(b,1.0)
+	verify(foe.position.distance_to(w.position)<gap-10 and foe.brain.movement_override=="charmed","a charmed unit walks slowly toward the whisperer")
+	verify(StatusCatalog.collect(foe).any(func(r):return r.key==&"charm"),"매혹 shows in the unit's 상태이상")
+	step(b,WhispererRef.CHARM_TIME)
+	verify(foe.state_value("charmTime")<=0,"매혹 ends after 5 s")
+	b.queue_free()
+
+const ParrotRef=preload("res://scripts/abilities/parrot_ability.gd")
+const WhispererRef=preload("res://scripts/abilities/whisperer_ability.gd")
 ## 0.75.0 balance layer: tier and per-unit HP/damage multipliers on the source values.
 func balance_layer(_tree: SceneTree) -> void:
 	var all: Dictionary=CharacterCatalog.all()

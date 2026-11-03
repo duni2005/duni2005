@@ -34,7 +34,7 @@ func advance_action(u,dt: float) -> void:
 		if done:
 			cast.clear();EquipmentCombatEffects.after_ultimate(u);u.combat.cooldown=maxf(u.combat.cooldown,.6);u.brain.disengage_until=u.battle.clock.elapsed+u.battle.rng.randf_range(.45,.95)
 		return
-	if not u.ability.can_cast(u) or (u.area_evaluator.offense_blocked(u) and not u.character_specific_state.get("strategyUltimateReady",false) and not u.ability.defensive_ultimate()):return
+	if u.state_value("charmTime")>0 or not u.ability.can_cast(u) or (u.area_evaluator.offense_blocked(u) and not u.character_specific_state.get("strategyUltimateReady",false) and not u.ability.defensive_ultimate()):return
 	if u.ultimate_gauge<100 or think>0 or u.combat_state!=CombatController.State.IDLE or u.ability.locked(u) or u.stun_remaining>0 or u.evade_remaining>0 or ParryController.perfect(u) or u.command_retreat_until>u.battle.clock.elapsed:return
 	think=u.battle.rng.randf_range(.35,.95)
 	var target=u.ability.ultimate_target(u)

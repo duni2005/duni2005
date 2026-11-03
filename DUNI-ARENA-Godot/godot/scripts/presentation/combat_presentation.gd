@@ -407,6 +407,16 @@ func advance(delta: float) -> void:
 					particles.burst(e.point,Color("c8f7e6"),14,220,0,"spark",false);particles.burst(e.point,Color("9fb9ae"),6,60,0,"smoke",false)
 				"targeted":
 					add_effect("targeted",e.point,Color("ff6a5a"),40,.5)
+				"charmed":
+					add_effect("targeted",e.point,Color("ff6fb0"),36,.5)
+					particles.burst(e.point,Color("ff8cc4"),12,180,0,"spark",true)
+				"whisper_burst":
+					add_effect("slime_ring",e.point,Color("b78cff"),56,.45)
+					particles.burst(e.point,Color("8a5cd6"),14,220,0,"shard",true);particles.burst(e.point,Color("2b1f3d"),6,70,0,"smoke",true)
+				"parrot_mimic":
+					# Feathers burst off the parrot; a thin streak links it to the enemy it copies.
+					particles.burst(e.point,Color("8fd47a"),16,260,0,"shard",true);particles.burst(e.point,Color("ffd65c"),10,200,0,"spark",true)
+					add_effect("slime_ring",e.point,Color("c9f5a0"),60,.5)
 				"hero_grab":
 					add_effect("hero_grab",e.point,Color("ffd27a"),46,.4)
 					particles.burst(e.point,Color("fff1c4"),10,200,0,"spark",true);camera.impact(5,e.point)
@@ -934,6 +944,20 @@ func _element_status(u: BattleUnit,p: Vector2,s: float) -> void:
 	# 둔화: a sluggish lavender ring at the feet.
 	if u.state_value("slowTime")>0:
 		VfxArt.ellipse(self,p+Vector2(0,22*s),26*s,.35,Color("c9b8ff",.8),2.5)
+	# 매혹 (속삭이는 자): a pink heart bobbing over the head.
+	if u.state_value("charmTime")>0:
+		var hp_at: Vector2=p+Vector2(0,-60*s+sin(real_age*5)*3);var hs: float=9*s*(1+.12*sin(real_age*8))
+		VfxArt.glow(self,hp_at,22*s,Color("ff5fa8"),.4)
+		var pts:=PackedVector2Array()
+		for i in range(24):
+			var t: float=TAU*i/24.0
+			pts.append(hp_at+Vector2(16*pow(sin(t),3),-(13*cos(t)-5*cos(2*t)-2*cos(3*t)-cos(4*t)))/16.0*hs)
+		draw_colored_polygon(pts,Color("ff4f9a"))
+	# 속삭임 stacks: small violet needles orbiting the unit.
+	var whispers: int=int(u.state_value("whisperStacks"))
+	for i in range(whispers):
+		var a: float=-real_age*2+i*TAU/3
+		var q: Vector2=p+Vector2.from_angle(a)*26*s;draw_line(q,q+Vector2.from_angle(a+1.2)*8*s,Color("c9a6ff"),2,true)
 	# 목표 (석궁): a red reticle turning over the unit.
 	if u.state_value("targetedTime")>0:
 		var rr: float=31*s;var spin: float=real_age*1.5

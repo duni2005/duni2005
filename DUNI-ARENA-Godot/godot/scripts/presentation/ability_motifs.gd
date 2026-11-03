@@ -1,7 +1,7 @@
 class_name AbilityMotifs
 extends RefCounted
 ## One motif per real ability identity. Exact gameplay telegraphs are rendered separately.
-const MOTIFS=["blade","arrow","vortex","veil","aegis","lotus","reticle","pellets","duel","fists","greatsword","ripples","jaws","fuse","issen","orbit","cross","comet","tracks","halo","storm","shards","spiral","tracers","tongue","threads","stake","rails","prism","parcel","magnet","frost","flame","gust","crosshair","slime"]
+const MOTIFS=["blade","arrow","vortex","veil","aegis","lotus","reticle","pellets","duel","fists","greatsword","ripples","jaws","fuse","issen","orbit","cross","comet","tracks","halo","storm","shards","spiral","tracers","tongue","threads","stake","rails","prism","parcel","magnet","frost","flame","gust","crosshair","slime","feathers","heart"]
 static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: float=0) -> void:
 	var c: Color=CharacterVisuals.PROJECTILE_COLORS.get("star",Color("e8c78e"))
 	c=Color(AttackVisuals.ink(u.data.type_id),1-fade)
@@ -27,6 +27,18 @@ static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: f
 			for i in range(7):
 				var x: float=(i-3)*r*.28;var h: float=r*(.55+.35*sin(time*6+i*1.7))
 				canvas.draw_colored_polygon(PackedVector2Array([p+Vector2(x-9,r*.45),p+Vector2(x+9,r*.45),p+Vector2(x+sin(time*4+i)*6,r*.45-h)]),Color(c,.75))
+		"feathers":
+			# A fan of feathers sweeping back and forth.
+			for i in range(5):
+				var ang: float=-PI/2+(i-2)*.32+sin(time*2)*.12;var q: Vector2=p+Vector2.from_angle(ang)*r*.75
+				canvas.draw_line(q-Vector2.from_angle(ang)*r*.2,q+Vector2.from_angle(ang)*r*.2,Color(c,.85),2.5,true)
+		"heart":
+			# A heart beating at the centre.
+			var hs: float=r*.45*(1+.1*sin(time*6));var pts:=PackedVector2Array()
+			for i in range(24):
+				var t: float=TAU*i/24.0
+				pts.append(p+Vector2(16*pow(sin(t),3),-(13*cos(t)-5*cos(2*t)-2*cos(3*t)-cos(4*t)))/16.0*hs)
+			canvas.draw_colored_polygon(pts,Color(c,.85))
 		"slime":
 			# Bouncing droplets around the centre.
 			for i in range(6):

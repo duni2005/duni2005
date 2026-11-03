@@ -72,7 +72,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	var transcend: bool=options.get("transcendent",false) or status
 	var duel_result: bool=options.get("duel_result",false)
 	var full: bool=battle.full_characters_enabled
-	var spec: Dictionary=UnitStatTable.spec(int(options.get("dmg_type",source.data.type_id if is_instance_valid(source) else -1)),StringName(options.get("dmg",&"basic"))) if full else {}
+	var spec: Dictionary=UnitStatTable.spec(int(options.get("dmg_type",UnitStatTable.spec_type(source,StringName(options.get("dmg",&"basic"))) if is_instance_valid(source) else -1)),StringName(options.get("dmg",&"basic"))) if full else {}
 	var kind: StringName=spec.get("kind",&"physical")
 	var plain: bool=recoil or options.get("mirror_raw",false) or options.get("plain",false)
 	if not collision:
