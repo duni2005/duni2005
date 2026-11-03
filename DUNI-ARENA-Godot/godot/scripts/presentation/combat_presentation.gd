@@ -445,17 +445,18 @@ func advance(delta: float) -> void:
 					add_effect("flame_arc",e.point,Color("ff8a3d"),70,.32,float(e.metadata.get("angle",0)))
 					particles.burst(e.point,Color("ffb347"),10,220,float(e.metadata.get("angle",0)),"spark",true)
 				"flame_charge":
-					add_effect("flame_gather",e.point,Color("ff9a4a"),110,float(e.metadata.get("time",.5)))
-					particles.burst(e.point,Color("ffcf6e"),12,120,0,"spark",false)
+					# Winding up: the blade drawn back, flames licking along it.
+					add_effect("flame_windup",e.point,Color("ff9a4a"),70,float(e.metadata.get("time",.5)))
 				"flame_whirl":
+					# The sword spins twice, leaving a huge circular fire slash.
 					var fr: float=float(e.metadata.get("radius",135))
-					add_effect("flame_ring",e.point,Color("ff6a2a"),fr,.7)
-					add_effect("slime_ring",e.point,Color("ffd27a"),fr*1.25,.5)
-					if use_shader_fx:shader_fx.shock(e.point,fr,.7,Color("ff9a4a"))
-					particles.burst(e.point,Color("ff7a2f"),30,420,0,"spark",true);particles.burst(e.point,Color("3a2a22"),12,120,0,"smoke",true)
-					impact_pause(80);camera.impact(10,e.point)
+					add_effect("blade_whirl",e.point,Color("ff6a2a"),fr,.75,float(e.metadata.get("angle",0)))
+					for spark in range(12):
+						var sa: float=spark*TAU/12
+						particles.burst(e.point+Vector2.from_angle(sa)*fr*.9,Color("ffb347"),4,260,sa+PI/2,"spark",true)
+					camera.impact(7,e.point)
 				"ignite":
-					add_effect("explosion",e.point,Color("ff6a2a"),40+4*float(e.metadata.get("stacks",1)),.45)
+					add_effect("slime_ring",e.point,Color("ff8a3d"),26+2*float(e.metadata.get("stacks",1)),.35)
 					particles.burst(e.point,Color("ffb347"),8+int(e.metadata.get("stacks",1)),260,0,"spark",true)
 				"parrot_mimic":
 					# Feathers burst off the parrot; a thin streak links it to the enemy it copies.
@@ -625,6 +626,29 @@ func _draw() -> void:
 			var a0: float=float(e.angle);var sweep: float=-1.1+2.2*clampf(t*1.6,0,1)
 			draw_arc(e.point,e.radius*.8,a0-1.1,a0+sweep,24,Color(e.color,(1-t)),14*(1-t)+2,true)
 			draw_arc(e.point,e.radius*.8,a0-.6,a0+sweep,18,Color("fff1c4",(1-t)*.9),5*(1-t)+1,true)
+		elif e.kind=="flame_windup":
+			# The blade held back and burning brighter.
+			var a: float=float(e.angle)+PI*.75;var tip: Vector2=e.point+Vector2.from_angle(a)*e.radius
+			VfxArt.glow(self,tip,20+26*t,Color("ff8a3d"),.4+.4*t)
+			draw_line(e.point+Vector2.from_angle(a)*12,tip,Color("ffe9c8"),3+2*t,true)
+			for k in range(4):
+				var q: Vector2=e.point+Vector2.from_angle(a)*e.radius*(.3+.2*k)+Vector2(0,-6-10*fmod(float(e.age)*3+k*.25,1.0))
+				draw_circle(q,3+2*t,Color("ffb347",.7))
+		elif e.kind=="blade_whirl":
+			# Two fast turns of the sword: a burning crescent sweeps round with a fading trail, the
+			# blade itself drawn along the leading edge, and the full circle lingers as it fades.
+			var head: float=float(e.angle)+(1-pow(1-t,2))*TAU*2
+			var r: float=e.radius*(.9+.12*t);var fade: float=1-pow(t,2.5)
+			if t>.35:draw_arc(e.point,r,0,TAU,72,Color(e.color,.35*fade),10*fade+2,true)
+			for k in range(14):
+				var a1: float=head-k*.2;var w: float=(22-k*1.3)*fade+2
+				draw_arc(e.point,r,a1-.22,a1,6,Color(e.color,(1-k/14.0)*fade),w,true)
+			draw_arc(e.point,r,head-1.1,head,16,Color("fff4d0",fade),6*fade+1,true)
+			draw_arc(e.point,r*.64,head-1.6,head,18,Color("ffcf6e",.55*fade),4,true)
+			var dir:=Vector2.from_angle(head)
+			draw_line(e.point+dir*14,e.point+dir*r*.95,Color("fff1e0",fade),5,true)
+			draw_line(e.point+dir*14,e.point+dir*r*.95,Color("ff9a4a",.8*fade),2,true)
+			VfxArt.glow(self,e.point+dir*r,26,Color("ffb347"),.7*fade)
 		elif e.kind=="flame_gather":
 			# Flames spiral in while the swordsman gathers power.
 			for i in range(6):

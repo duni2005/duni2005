@@ -38,7 +38,7 @@ func release_ultimate(u,a: Dictionary,dt: float) -> bool:
 ## The circular cut: damage, then every hurt enemy's burn stacks ignite at once.
 func whirl(u) -> void:
 	var r: float=WHIRL_RADIUS*u.combat_scale()
-	u.battle.emit_combat_event(&"flame_whirl",u.position,{"actor_id":u.battle_id,"radius":r})
+	u.battle.emit_combat_event(&"flame_whirl",u.position,{"actor_id":u.battle_id,"radius":r,"angle":u.facing})
 	for e in u.enemies(false):
 		if e.unavailable() or e.position.distance_to(u.position)>r+24*e.combat_scale():continue
 		var out: DamageOutcome=u.battle.damage_resolver.resolve(u,e,UnitStatTable.raw(u,&"ult"),{"dmg":&"ult","critical":true,"impulse":320,"angle":(e.position-u.position).angle(),"attack_origin":u.position,"visible_hazard":true,"attack_token":"%s:whirl%d"%[u.actor_id(),u.ultimate.serial]})
