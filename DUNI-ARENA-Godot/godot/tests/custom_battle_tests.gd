@@ -777,6 +777,7 @@ func balance_layer(_tree: SceneTree) -> void:
 	verify(UnitBalance.max_hp(all[27])==floorf(150*1.15*1.7+.5) and is_equal_approx(stats.call(27).physical_damage,UnitStatTable.base_physical(27)*1.15*1.25),"기관사: tier and its own correction stack")
 	verify(is_equal_approx(stats.call(0).max_hp,all[0].max_hp*.95*.9) and is_equal_approx(stats.call(13).physical_damage,UnitStatTable.base_physical(13)*.88),"strong cheap units are toned down")
 	verify(is_equal_approx(stats.call(33).max_hp,all[33].max_hp*1.1*1.2) and is_equal_approx(stats.call(33).magic_damage,UnitStatTable.base_magic(33)*1.1*.8),"그리핀: more HP, less damage (0.76.0)")
+	verify(is_equal_approx(stats.call(35).physical_damage,UnitStatTable.base_physical(35)*1.05*.8),"슬라임: base damage ×0.8 (0.77.0)")
 	verify(is_equal_approx(UnitStatTable.spec(17,&"ult").ratio,3.0) and is_equal_approx(UnitStatTable.spec(35,&"ult").ratio,.9),"히어로 · 슬라임 ultimates hit softer (0.76.0)")
 	var setup:=CustomBattleSetup.new();setup.add(27,0,Vector2(200,400))
 	verify(is_equal_approx(setup.placements()[0].combat_stats.max_hp,UnitBalance.max_hp(all[27])),"custom battles use the balanced stats")

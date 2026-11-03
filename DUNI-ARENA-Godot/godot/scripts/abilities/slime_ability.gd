@@ -6,9 +6,9 @@ extends CharacterAbility
 ## for SLOW_TIME. Ultimate: every slime of its family leaps high at once and slams down on the
 ## nearest enemy (physical · area · poison).
 const MAX_SPLITS: int = 2
-const SPLIT_FACTOR: float = .4
+const SPLIT_FACTOR: float = .3
 ## Share of HP each split keeps (lower than the damage share since 0.76.0).
-const SPLIT_HP: float = .3
+const SPLIT_HP: float = .25
 const SPLIT_SCALE: float = .8
 const HOP: float = 160
 const HOP_SPEED: float = 760
