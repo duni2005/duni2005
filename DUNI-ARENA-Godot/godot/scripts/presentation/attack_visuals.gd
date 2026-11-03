@@ -152,8 +152,12 @@ static func projectile(canvas: CanvasItem,p: BattleProjectile,trail: Array,time:
 		canvas.draw_circle(at+dir*10*scale,1.6*scale,Color("e8d8ff"))
 	elif kind=="heart":
 		# The charm heart: a pink heart pulsing inside a soft glow.
-		var beat: float=1+.12*sin(p.lifetime*24);var hs: float=13*scale*beat
-		VfxArt.glow(canvas,at,30*scale,Color("ff5fa8"),.45)
+		var beat: float=1+.12*sin(p.lifetime*24);var hs: float=26*scale*beat
+		VfxArt.glow(canvas,at,56*scale,Color("ff5fa8"),.5)
+		VisualShapes.streak(canvas,at-dir*30*scale,dir.angle(),70*scale,18*scale,Color("ffb3d6"),.35)
+		for k in range(3):
+			var q: Vector2=at-dir*(26+k*16)*scale+dir.orthogonal()*sin(p.lifetime*18+k*2)*10*scale
+			canvas.draw_circle(q,(4-k)*scale,Color("ffd0e6",.7-k*.2))
 		var pts:=PackedVector2Array()
 		for i in range(28):
 			var t: float=TAU*i/28.0

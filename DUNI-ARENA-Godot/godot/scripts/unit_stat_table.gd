@@ -237,7 +237,10 @@ static func spec(type_id: int, key: StringName) -> Dictionary:
 ## Whose table a damage instance comes from: the unit's own, except while 앵무새 is copying an
 ## ultimate, when every non-basic instance uses the copied unit's table.
 static func spec_type(u, key: StringName) -> int:
-	if key != &"basic" and u is BattleUnit and u.character_specific_state.has("mimicType"):return int(u.character_specific_state.mimicType)
+	if u is BattleUnit and u.character_specific_state.has("mimicType"):
+		if key != &"basic":return int(u.character_specific_state.mimicType)
+		# A copied basic attack (armed by 대구경 저격수 / 탱크, or 샷건 / 굴절 that have no ultimate).
+		if u.character_specific_state.has("mimicBasic"):return int(u.character_specific_state.mimicBasic)
 	return u.data.type_id
 ## Physical or magic damage of a live unit or of stats (growth and items included).
 static func damage_stat(u, kind: StringName) -> float:

@@ -415,21 +415,30 @@ func advance(delta: float) -> void:
 					particles.burst(e.point,Color("8a5cd6"),14,220,0,"shard",true);particles.burst(e.point,Color("2b1f3d"),6,70,0,"smoke",true)
 				"plague_fog":
 					# The whole field sinks under green-violet plague fog.
-					add_effect("plague_fog",Vector2(400,400),Color("7fa35a"),600,float(e.metadata.get("time",5)))
-					particles.burst(e.point,Color("6b8f4a"),22,260,0,"smoke",true);particles.burst(e.point,Color("9b6bd6"),12,200,0,"smoke",true)
-					camera.impact(6,e.point)
+					add_effect("plague_fog",e.point,Color("6a4a8f"),1150,float(e.metadata.get("time",5)))
+					add_effect("plague_slam",e.point,Color("9b7bd6"),140,.7)
+					if use_shader_fx:shader_fx.shock(e.point,160,.7,Color("8a6bc6"))
+					particles.burst(e.point,Color("3a2a55"),30,420,0,"smoke",true);particles.burst(e.point,Color("7fa35a"),18,320,0,"smoke",true)
+					particles.burst(e.point,Color("c9a6ff"),16,360,0,"spark",true)
+					impact_pause(70);camera.impact(9,e.point)
 				"plague_bonus":
 					particles.burst(e.point,Color("9fd36a"),8,160,0,"spark",true)
 				"golem_slam":
-					add_effect("slime_ring",e.point,Color("bfe9ff"),float(e.metadata.get("radius",80))*1.3,.4)
-					particles.burst(e.point,Color("dff4ff"),12,240,0,"shard",true);particles.burst(e.point,Color("8a8f96"),6,80,0,"smoke",true);camera.impact(5,e.point)
+					var sr: float=float(e.metadata.get("radius",80))
+					add_effect("slime_ring",e.point,Color("bfe9ff"),sr*1.3,.4)
+					add_effect("ice_spikes",e.point,Color("cfeeff"),sr,.7,float(Time.get_ticks_msec()%628)/100.0);effects[-1]["count"]=9
+					particles.burst(e.point,Color("e8f8ff"),18,280,0,"shard",true);particles.burst(e.point,Color("9fb7c4"),8,90,0,"smoke",true);camera.impact(6,e.point)
 				"golem_aura":
 					add_effect("slime_ring",e.point,Color("cfeeff"),float(e.metadata.get("radius",120)),.6)
+					particles.burst(e.point,Color("eaf8ff"),8,90,0,"spark",false)
 				"golem_blast":
-					add_effect("hero_shock",e.point,Color("bfe9ff"),float(e.metadata.get("radius",170))*1.2,.9)
-					if use_shader_fx:shader_fx.shock(e.point,float(e.metadata.get("radius",170)),.8,Color("bfe9ff"))
-					particles.burst(e.point,Color("e8f8ff"),30,420,0,"shard",true);particles.burst(e.point,Color("cfe6f2"),16,160,0,"smoke",true)
-					impact_pause(90);camera.impact(12,e.point)
+					var br: float=float(e.metadata.get("radius",170))
+					add_effect("hero_shock",e.point,Color("bfe9ff"),br*1.2,.9)
+					add_effect("ice_spikes",e.point,Color("cfeeff"),br,1.1,0.0);effects[-1]["count"]=22
+					add_effect("slime_ring",e.point,Color("e8f8ff"),br*1.5,.8)
+					if use_shader_fx:shader_fx.shock(e.point,br,.8,Color("bfe9ff"))
+					particles.burst(e.point,Color("e8f8ff"),40,480,0,"shard",true);particles.burst(e.point,Color("cfe6f2"),24,180,0,"smoke",true);particles.burst(e.point,Color("ffffff"),20,360,0,"spark",true)
+					impact_pause(110);camera.impact(14,e.point)
 				"parrot_mimic":
 					# Feathers burst off the parrot; a thin streak links it to the enemy it copies.
 					particles.burst(e.point,Color("8fd47a"),16,260,0,"shard",true);particles.burst(e.point,Color("ffd65c"),10,200,0,"spark",true)
@@ -559,14 +568,40 @@ func _draw() -> void:
 				var v:=Vector2.from_angle(i*TAU/10+.3);var reach: float=e.radius*.42*minf(1,t*5)
 				draw_line(e.point+v*18,e.point+v*reach+v.orthogonal()*sin(i*2.3)*10,Color("4a3b2e",.75*(1-t)),3*(1-t)+1,true)
 		elif e.kind=="plague_fog":
-			# Drifting fog banks over the whole field, fading in and out.
-			var k: float=clampf(t/.08,0,1)*clampf((1-t)/.15,0,1)
-			draw_rect(Rect2(0,0,800,800),Color(.3,.42,.2,.26*k))
-			for i in range(16):
+			# Dark, eerie fog rolls out from the staff and swallows the map within 0.6 s, then churns.
+			var age: float=float(e.age);var spread: float=1-pow(1-clampf(age/.6,0,1),3)
+			var fade: float=clampf((1-t)/.12,0,1);var reach: float=e.radius*spread
+			draw_circle(e.point,reach,Color(.13,.08,.2,.42*fade))
+			for i in range(28):
+				# The rolling front: fog banks along the edge of the spreading circle.
+				var a: float=i*TAU/28+age*.4;var q: Vector2=e.point+Vector2.from_angle(a)*reach*(.92+.06*sin(age*3+i))
+				VfxArt.glow(self,q,70+20*sin(age*2+i),Color("4a3070") if i%2==0 else Color("5f7a45"),.5*fade*(1-spread*.5))
+			for i in range(18):
 				var seed_x: float=fmod(i*137.5,800.0);var seed_y: float=fmod(i*283.1+90,800.0)
-				var q: Vector2=Vector2(seed_x+sin(float(e.age)*.35+i)*60,seed_y+cos(float(e.age)*.28+i*1.7)*50)
-				var col: Color=Color("7fa35a") if i%3!=0 else Color("8a5cc0")
-				VfxArt.glow(self,q,120+30*sin(float(e.age)+i),col,.42*k)
+				var q: Vector2=Vector2(seed_x+sin(age*.5+i)*70,seed_y+cos(age*.4+i*1.7)*60)
+				if q.distance_to(e.point)>reach:continue
+				VfxArt.glow(self,q,110+40*sin(age*1.3+i),Color("6a4a8f") if i%3!=0 else Color("6f9a52"),.38*fade)
+			for i in range(40):
+				# Floating spores drifting upward through the fog.
+				var q: Vector2=Vector2(fmod(i*97.3+age*12,800.0),fmod(i*211.7-age*(18+i%5*4),800.0)+(800 if fmod(i*211.7-age*(18+i%5*4),800.0)<0 else 0))
+				if q.distance_to(e.point)>reach:continue
+				draw_circle(q,1.8+i%3,Color("c9a6ff",.55*fade) if i%2==0 else Color("b6e08a",.45*fade))
+		elif e.kind=="plague_slam":
+			# The staff strikes: a dark rune ring and cracks.
+			var rr: float=e.radius*(1-pow(1-t,3))
+			draw_arc(e.point,rr,0,TAU,48,Color(e.color,.9*(1-t)),5*(1-t)+1.5,true)
+			draw_arc(e.point,rr*.62,0,TAU,40,Color("5f7a45",.7*(1-t)),3,true)
+			for i in range(8):
+				var d:=Vector2.from_angle(i*TAU/8+.2);draw_line(e.point+d*rr*.2,e.point+d*rr*(.75+.15*sin(i*2.3)),Color("2a1a3d",.8*(1-t)),3,true)
+		elif e.kind=="ice_spikes":
+			# Ice spikes burst up in a ring and sink back.
+			var grow: float=sin(clampf(t*1.6,0,1)*PI*.5)*(1-clampf((t-.6)/.4,0,1))
+			for i in range(int(e.get("count",10))):
+				var a: float=i*TAU/float(e.get("count",10))+float(e.angle)
+				var base: Vector2=e.point+Vector2.from_angle(a)*e.radius*(.45+.5*fmod(i*.618,1.0))
+				var h: float=(18+14*fmod(i*.37,1.0))*grow;var w:=Vector2.from_angle(a).orthogonal()*6
+				draw_colored_polygon(PackedVector2Array([base-w,base+w,base+Vector2(0,-h)]),Color("cfeeff",.9))
+				draw_line(base,base+Vector2(0,-h),Color("ffffff",.8),1.2,true)
 		elif e.kind=="slime_ring":
 			# A squashy ring of slime splashing outward.
 			var rr: float=e.radius*(.35+.65*(1-pow(1-t,2)))
@@ -972,7 +1007,13 @@ func _element_status(u: BattleUnit,p: Vector2,s: float) -> void:
 		VfxArt.ellipse(self,p+Vector2(0,22*s),26*s,.35,Color("c9b8ff",.8),2.5)
 	# 빙하 골렘: a frosty ring at its feet; while charging, vapour spirals inward and the glow grows.
 	if u.data.type_id==39:
+		# Cold mist at the feet with snowflakes drifting around.
+		VfxArt.glow(self,p+Vector2(0,10*s),70*s,Color("cfeeff"),.18)
 		VfxArt.ellipse(self,p+Vector2(0,22*s),40*s,.35,Color("cfeeff",.55),2)
+		for i in range(7):
+			var a: float=real_age*.7+i*TAU/7;var rr: float=(48+10*sin(real_age*1.3+i))*s
+			var q: Vector2=p+Vector2(cos(a)*rr,sin(a)*rr*.5+(fmod(real_age*.6+i*.3,1.0)-.5)*30*s)
+			VfxArt.star(self,q,3.5*s,Color("eaf8ff"),.8,real_age+i)
 		var charge: float=u.state_value("golemCharge")
 		if charge>0:
 			VfxArt.glow(self,p,(40+60*charge)*s,Color("bfe9ff"),.25+.35*charge)
@@ -988,6 +1029,15 @@ func _element_status(u: BattleUnit,p: Vector2,s: float) -> void:
 			var t: float=TAU*i/24.0
 			pts.append(hp_at+Vector2(16*pow(sin(t),3),-(13*cos(t)-5*cos(2*t)-2*cos(3*t)-cos(4*t)))/16.0*hs)
 		draw_colored_polygon(pts,Color("ff4f9a"))
+		# Little hearts keep floating up from the charmed unit.
+		for k in range(5):
+			var cyc: float=fmod(real_age*.9+k*.2,1.0);var hx: float=sin(real_age*2+k*1.7)*14*s+(k-2)*7*s
+			var at: Vector2=p+Vector2(hx,(10-70*cyc)*s);var sz: float=(4+3*sin(k*1.3))*s*(1-cyc*.4)
+			var hp2:=PackedVector2Array()
+			for i in range(16):
+				var t2: float=TAU*i/16.0
+				hp2.append(at+Vector2(16*pow(sin(t2),3),-(13*cos(t2)-5*cos(2*t2)-2*cos(3*t2)-cos(4*t2)))/16.0*sz)
+			draw_colored_polygon(hp2,Color("ff7ab8",(1-cyc)*.85))
 	# 속삭임 stacks: small violet needles orbiting the unit.
 	var whispers: int=int(u.state_value("whisperStacks"))
 	for i in range(whispers):

@@ -21,7 +21,7 @@ func dealt_damage(u,target,_actual: float,options: Dictionary) -> void:
 
 func can_ultimate(u,t) -> bool:return t!=null and u.position.distance_to(t.position)<560*u.combat_scale()
 func release_ultimate(u,a: Dictionary,_dt: float) -> bool:
-	shoot(u,float(a.angle),UnitStatTable.raw(u,&"ult"),{"dmg":&"ult","kind":"heart","speed":HEART_SPEED,"radius":22,"life":1.4,"impulse":0,"piercing":true,"ultimate":true})
+	shoot(u,float(a.angle),UnitStatTable.raw(u,&"ult"),{"dmg":&"ult","kind":"heart","speed":HEART_SPEED,"radius":38,"life":1.4,"impulse":0,"piercing":true,"ultimate":true})
 	return true
 func projectile_hit(u,p,t) -> bool:
 	if p.kind!="heart":return false
@@ -37,7 +37,7 @@ static func charm(u,t) -> void:
 static func charmed(t) -> bool:return t.state_value("charmTime")>0
 func ultimate_danger(u,observer,a: Dictionary) -> bool:
 	var dir: Vector2=Vector2.from_angle(float(a.get("angle",0)));var offset: Vector2=observer.position-u.position
-	return offset.dot(dir)>0 and absf(offset.cross(dir))<60
+	return offset.dot(dir)>0 and absf(offset.cross(dir))<80
 func cast_area(u,a: Dictionary) -> Dictionary:
 	var dir: Vector2=Vector2.from_angle(float(a.get("angle",0)))
-	return {"shape":"path","from":CharacterPersistence.point(u.position),"to":CharacterPersistence.point(u.position+dir*HEART_SPEED*1.4),"radius":22*u.combat_scale()}
+	return {"shape":"path","from":CharacterPersistence.point(u.position),"to":CharacterPersistence.point(u.position+dir*HEART_SPEED*1.4),"radius":38*u.combat_scale()}

@@ -810,9 +810,9 @@ const GolemRef=preload("res://scripts/abilities/golem_ability.gd")
 ## 앵무새 (36) and 속삭이는 자 (37), 0.78.0.
 func parrot_and_whisperer(tree: SceneTree) -> void:
 	# 깃털 세례: five feathers fanned out.
-	var b:=duel(tree,[[36,0,Vector2(200,400)],[33,1,Vector2(420,400)],[0,1,Vector2(560,250)],[24,1,Vector2(330,520)]])
+	var b:=duel(tree,[[36,0,Vector2(200,400)],[33,1,Vector2(420,400)],[0,1,Vector2(560,250)],[24,1,Vector2(520,620)]])
 	step(b,.05)
-	var parrot: BattleUnit=b.units[0];var griffin: BattleUnit=b.units[1];var frog: BattleUnit=b.units[3]
+	var parrot: BattleUnit=b.units[0];var griffin: BattleUnit=b.units[1]
 	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000
 	for u in b.units.slice(1):u.move_speed=0
 	var before: int=b.projectiles.size();parrot.combat.aim_angle=0;parrot.ability.release_basic(parrot)
@@ -820,9 +820,8 @@ func parrot_and_whisperer(tree: SceneTree) -> void:
 	var spread: float=feathers.map(func(p):return p.velocity.angle()).max()-feathers.map(func(p):return p.velocity.angle()).min()
 	verify(feathers.size()==5 and spread>.5,"앵무새 fans out five feathers")
 	verify(UnitStatTable.spec(36,&"basic").tags.has(&"wind") and UnitStatTable.spec(36,&"basic").kind==&"physical","feathers are physical · wind · projectile")
-	# 흉내: the nearest copyable enemy loses 50 gauge and the parrot casts its ultimate. The frog is
-	# nearer than the griffin but its ultimate is reactive, so the griffin is copied.
-	verify(parrot.ability.mimic_source(parrot)==griffin and parrot.position.distance_to(frog.position)<parrot.position.distance_to(griffin.position),"an uncopyable ultimate (개구리) is skipped for the next nearest enemy")
+	# 흉내: the nearest enemy loses 50 gauge and the parrot casts its ultimate.
+	verify(parrot.ability.mimic_source(parrot)==griffin,"the nearest enemy is the one copied")
 	griffin.ultimate_gauge=80;parrot.ultimate_gauge=100
 	verify(parrot.ultimate.request(parrot,griffin),"the parrot starts its ultimate")
 	var hp: float=griffin.current_hp+b.units[2].current_hp
@@ -836,6 +835,21 @@ func parrot_and_whisperer(tree: SceneTree) -> void:
 	verify(StatusCatalog.collect(parrot).any(func(r):return r.key==&"mimic"),"흉내 shows in the parrot's 상태이상")
 	step(b,ParrotRef.MIMIC_TIME+.5)
 	verify(not parrot.character_specific_state.has("mimicType"),"the copy wears off")
+	b.queue_free()
+	# A next-basic ultimate (탱크) arms the parrot's next basic attack with the tank's flame shell.
+	b=duel(tree,[[36,0,Vector2(200,400)],[18,1,Vector2(450,400)]])
+	step(b,.05)
+	parrot=b.units[0];var tank: BattleUnit=b.units[1]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0
+	tank.ultimate_gauge=10;parrot.ultimate_gauge=100;parrot.ultimate.request(parrot,tank)
+	for i in range(60):
+		step(b,1.0/60);tank.combat.cooldown=1000
+		if parrot.character_specific_state.has("mimicBasic"):break
+	verify(int(parrot.state_value("mimicBasic"))==18 and tank.ultimate_gauge<1,"even an empty gauge can be stolen; the tank's ultimate arms the parrot's next basic")
+	var shot_from: int=b.projectiles.size();parrot.combat.aim_angle=0;parrot.ability.release_basic(parrot)
+	var shells: int=b.projectiles.slice(shot_from).filter(func(p):return p.kind=="tankShell").size()
+	parrot.ability.after_recovery(parrot)
+	verify(shells>0 and not parrot.character_specific_state.has("mimicBasic"),"the next basic attack is the tank's shell, then the parrot is back to feathers")
 	b.queue_free()
 	# 속삭이는 자: the third needle hit bursts for 5% of max HP.
 	b=duel(tree,[[37,0,Vector2(200,400)],[4,1,Vector2(400,400)],[0,1,Vector2(520,400)]])
