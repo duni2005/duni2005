@@ -32,6 +32,8 @@ var speed_row: HBoxContainer
 var speed_buttons: Dictionary={}
 var battle: BattleManager
 var rendered_prediction_finished: bool = false
+## "예측 실패 · N팀 전멸" + 빠른 종료 while the prediction battle runs on without the picked team.
+var fail_row: HBoxContainer
 var content_tab: String="goods"
 ## Shop and recruit rooms share the guild's inventory and upgrade tabs.
 const SHOP_TABS=[["goods","아이템/전략카드"],["inventory","인벤토리"],["upgrade","강화"]]
@@ -404,6 +406,9 @@ func _section(text: String) -> void:
 	var rule:=StyleBoxFlat.new();rule.bg_color=Color.TRANSPARENT;rule.border_color=Color(ArenaUI.GOLD,.2);rule.border_width_bottom=1;rule.content_margin_top=6;rule.content_margin_bottom=3;label.add_theme_stylebox_override("normal",rule);content_box.add_child(label)
 func _pick_prediction(team: int) -> void:controller.choose_prediction_team(team);call_deferred("render")
 func _stake_prediction(stake: int) -> void:controller.choose_prediction_stake(stake);call_deferred("render")
+## 빠른 종료: the picked team is gone, so end the watch at once (the stake is already lost).
+func _quick_end_prediction() -> void:
+	if is_instance_valid(battle) and PredictionModeScreen.picked_wiped(battle,controller.current_room().event.prediction.picked_team):battle.finish_with_reason(BattleEndReason.Value.DEFEAT,-1)
 func _start_prediction() -> void:
 	battle=BattleManager.new();battle.auto_start=false
 	board=DeploymentBoard.new();board.editing=false;board.size_flags_vertical=Control.SIZE_EXPAND_FILL;board.custom_minimum_size.y=240;column.add_child(board);board.add_child(battle)
@@ -415,6 +420,7 @@ func _start_prediction() -> void:
 	for speed in [1,2,4]:
 		var choice:=Button.new();choice.name="Speed%d"%speed;choice.text="%d×"%speed;choice.toggle_mode=true;choice.custom_minimum_size=Vector2(44,40);choice.add_theme_font_size_override("font_size",13)
 		ArenaUI.bind(choice,func():if is_instance_valid(battle):battle.clock.set_speed(float(speed)));ArenaUI.quiet(choice);speed_row.add_child(choice);speed_buttons[speed]=choice
+	fail_row=PredictionModeScreen.make_fail_row(column,controller.current_room().event.prediction.picked_team,_quick_end_prediction);column.move_child(fail_row,speed_row.get_index()+1)
 	if battle_cue==null:battle_cue=BattleCueOverlay.new();battle_cue.subtitle="예측한 팀이 이길까요?";add_child(battle_cue)
 	battle_cue.board=board
 	presentation_requested.emit({"point":get_tree().root.get_meta("action_point",get_viewport_rect().size*.5)})
@@ -429,6 +435,7 @@ func _process(_delta: float) -> void:
 		var choice: Button=speed_buttons[speed]
 		choice.disabled=not is_instance_valid(battle) or battle.finished or battle.clock.state!=BattleClock.State.NORMAL
 		choice.set_pressed_no_signal(is_instance_valid(battle) and int(battle.clock.speed)==speed)
+	if is_instance_valid(fail_row):fail_row.visible=PredictionModeScreen.picked_wiped(battle,controller.current_room().event.prediction.picked_team) if controller.current_room()!=null and controller.current_room().event!=null and controller.current_room().event.prediction!=null else false
 	if is_instance_valid(battle) and battle.finished and not rendered_prediction_finished:
 		if prediction_end==null:
 			if board.presentation.battle!=battle:board.presentation.attach(battle)
@@ -443,6 +450,7 @@ func _process(_delta: float) -> void:
 		presentation_requested.emit({"title":"승부예측 완료","icon":"gold","point":ArenaUI.control_center(board)})
 		if is_instance_valid(board):column.remove_child(board);board.queue_free();board=null
 		if is_instance_valid(speed_row):speed_row.queue_free();speed_row=null;speed_buttons.clear()
+		if is_instance_valid(fail_row):fail_row.queue_free();fail_row=null
 		call_deferred("render")
 func _return_map() -> void:
 	var node: RoomState=controller.current_room()

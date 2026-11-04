@@ -232,9 +232,14 @@ func _death(u,source) -> void:
 	kill_notices.push_front({"age":0.0,"target":u.data.type_id,"target_name":u.data.display_name,"target_color":u.team_color(),"source":source.data.type_id if killer else -1,"source_name":source.data.display_name if killer else "","source_color":source.team_color() if killer else Color("a9c9f0"),"team":u.original_team})
 	if kill_notices.size()>3:kill_notices.pop_back()
 	_count_kill(u,source if killer else null)
-	if u.original_team==1:
-		camera.focus(u.position,.5)
-		if battle.units.all(func(v):return v.original_team!=1 or not v.alive):add_effect("final_kill",u.position,ArenaUI.GOLD,150,1);camera.impact(9,u.position);impact_pause(80);camera.finish(u.position)
+	if u.original_team==1:camera.focus(u.position,.5)
+	# The final-kill close-up only for the kill that decides the battle: with three or more
+	# teams, wiping out one team (even team 1) leaves the others still fighting.
+	var left: Dictionary={}
+	for v in battle.units:
+		if v.alive:left[v.original_team]=true
+	var multi: bool=battle.custom_mode or not battle.team_colors.is_empty()
+	if left.size()<=1 and (u.original_team==1 or multi) and not left.has(u.original_team):add_effect("final_kill",u.position,ArenaUI.GOLD,150,1);camera.impact(9,u.position);impact_pause(80);camera.finish(u.position)
 func _count_kill(victim,source) -> void:
 	kill_streaks.erase(victim.actor_id())
 	if source==null or not source.alive:return

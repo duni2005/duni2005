@@ -892,6 +892,12 @@ func prediction_variety(tree: SceneTree) -> void:
 	var colors: Dictionary={}
 	for u in b.units:colors[u.team_color()]=true
 	verify(colors.size()==5 and b.units.size()==10,"each of the five teams has its own colour")
+	# 빠른 종료: once the picked team is wiped out the watch can end at once as a failed call.
+	verify(not PredictionModeScreen.picked_wiped(b,2),"no quick end while the picked team stands")
+	for u in b.units.filter(func(v):return v.original_team==2):u.receive_damage(u.current_hp+1,null)
+	verify(PredictionModeScreen.picked_wiped(b,2) and not b.finished,"the picked team is gone while four teams fight on")
+	b.finish_with_reason(BattleEndReason.Value.DEFEAT,-1)
+	verify(b.finished and not b.result.draw and b.result.winner_team!=2,"빠른 종료 ends the battle as a failed prediction")
 	b.queue_free()
 
 const SantaRef=preload("res://scripts/abilities/santa_ability.gd")
