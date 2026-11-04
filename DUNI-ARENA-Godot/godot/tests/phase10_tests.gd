@@ -414,7 +414,7 @@ func prediction() -> void:
 	var rng:=RandomNumberGenerator.new();rng.seed=73
 	for i in range(30):
 		var state: PredictionState=PredictionRules.create(rng);verify(state.teams.size()>=2 and state.teams.size()<=5 and PredictionRules.valid(state),"prediction 2-5 teams")
-		for team in state.teams:verify(team.types.size()>=1 and team.types.size()<=5 and team.types.all(func(type):return type>=0 and type<CharacterCatalog.NAMES.size()),"prediction types/size")
+		for team in state.teams:verify(team.types.size()>=1 and team.types.size()<=PredictionRules.MAX_CROWD and team.types.all(func(type):return type>=0 and type<CharacterCatalog.NAMES.size()),"prediction types/size")
 	for verdict in [&"correct",&"incorrect",&"draw"]:
 		var t:=tower();enter_event(t,&"prediction");var event: EventState=t.current_room().event;var state: PredictionState=event.prediction
 		verify(not t.return_map() and not t.choose_prediction_stake(51),"prediction navigation/invalid stake")
