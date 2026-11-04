@@ -52,3 +52,4 @@ func capture_enemy(unit: BattleUnit) -> void:
 	enemy_states[unit.source_enemy_id] = EnemyStateCodec.snapshot(unit)
 
 var member_victory_gold: Dictionary = {}
+var stats: Array = [] # BattleStats rows for the result screen's 통계 page

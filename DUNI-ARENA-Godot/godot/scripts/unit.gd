@@ -159,6 +159,7 @@ func announce_death(source) -> void:
 	# Legacy receive_damage still announces immediately through its default API.
 	if not alive and not death_emitted:
 		if battle.full_characters_enabled: battle.character_death(self,source)
+		battle.stats.kill(source,self)
 		death_emitted=true
 		died.emit(self,source)
 

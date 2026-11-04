@@ -121,6 +121,7 @@ func _build_winner() -> void:
 	var row:=HBoxContainer.new();row.alignment=BoxContainer.ALIGNMENT_CENTER;row.add_theme_constant_override("separation",10);col.add_child(row)
 	var again:=_button(row,"↻ 다시 전투",start_battle);again.custom_minimum_size.x=130;ArenaUI.primary(again)
 	var back:=_button(row,"전투 설정",return_setup);back.custom_minimum_size.x=110
+	var numbers:=_button(row,"통계",_open_stats);numbers.custom_minimum_size.x=84;ArenaUI.quiet(numbers)
 func _build_dialogs() -> void:
 	unit_dialog=AcceptDialog.new();add_child(unit_dialog);unit_dialog.min_size=Vector2i(300,0)
 	var col:=VBoxContainer.new();unit_dialog.add_child(col);ArenaUI.dialog_header(unit_dialog,col,"유닛 설정");ArenaModalBackdrop.new().connect_window(unit_dialog,self)
@@ -348,3 +349,10 @@ func _input(event: InputEvent) -> void:
 		if trans_press.get("activated",false):
 			battle.transcendence.update(event.position if trans_press.dragged else trans_press.origin);battle.transcendence.release()
 		trans_press.clear()
+
+## 통계: every unit's damage, healing, kills and ultimates from the finished battle, as bars.
+var stats_dialog: AcceptDialog
+func _open_stats() -> void:
+	if not is_instance_valid(battle) or battle.result==null:return
+	if stats_dialog==null:stats_dialog=BattleStatsView.make_dialog(self)
+	BattleStatsView.open(stats_dialog,self,battle.result.stats)

@@ -30,6 +30,7 @@ static func apply_shares(owner,shares: Array[Dictionary]) -> void:
 		if CharacterLifecycle.intercept_lethal(target,maxf(0,amount-target.shield_hp)):continue
 		var absorbed: float=StrategyEffects.absorb(target,amount)
 		var actual: float=target.receive_damage(amount-absorbed,s.source,true)
+		target.battle.stats.damage(s.source,target,actual+absorbed)
 		if actual>0:target.ability.on_damage(target,actual,{"puppet_shared":true})
 		target.ultimate.charge(target,actual+absorbed,false)
 		if s.source!=null and s.source.team!=target.team:s.source.damage_dealt+=actual;s.source.ultimate.charge(s.source,actual+absorbed,true)

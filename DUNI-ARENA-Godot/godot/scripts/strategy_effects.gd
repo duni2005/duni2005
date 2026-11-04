@@ -7,6 +7,7 @@ static func heal(unit: BattleUnit, base: float) -> float:
 	var gain: float = minf(maxf(0, base)*(unit.healing_received*ElementEffects.healing(unit) if unit.battle.full_characters_enabled else 1), unit.max_hp - unit.current_hp)
 	if not unit.alive or gain <= 0: return 0
 	unit.current_hp += gain
+	unit.battle.stats.heal(null, unit, gain)
 	unit.queue_redraw()
 	return gain
 static func advance(unit: BattleUnit, delta: float) -> void:

@@ -40,6 +40,7 @@ var knockback_serial: int = 0
 var collision_pairs: Dictionary = {}
 var combat_events: Array[Dictionary] = []
 var combat_event_counts: Dictionary = {}
+var stats := BattleStats.new() # per-unit totals for the result screen's 통계 page
 var zones := BattleZones.new()
 var transcendence: TranscendenceController
 var unit_factory := BattleUnitFactory.new(UNIT_SCENE)
@@ -80,6 +81,7 @@ func start_battle(placements: Array[Dictionary], seed_value: int = -1) -> bool:
 		unit.died.connect(_on_unit_died)
 		units.append(unit)
 		add_child(unit)
+		stats.register(unit)
 	if full_characters_enabled:
 		transcendence=TranscendenceController.new(self)
 		for actor in units:
@@ -240,7 +242,7 @@ func _flush_spawns() -> void:
 		unit.original_team = source.original_team;unit.stance = source.stance;unit.ultimate_gauge = source.ultimate_gauge
 		unit.character_specific_state = row.state.duplicate(true)
 		unit.set_state("heal", rng.randf_range(1, 3));unit.set_state("dash", rng.randf_range(2, 5))
-		unit.died.connect(_on_unit_died);units.append(unit);add_child(unit)
+		unit.died.connect(_on_unit_died);units.append(unit);add_child(unit);stats.register(unit, source)
 		unit.ability.on_spawn(unit)
 		unit.invincible_remaining = .35;unit.knockback_velocity = row.push
 		emit_combat_event(&"unit_spawned", unit.position, {"actor_id": unit.battle_id})
@@ -287,6 +289,7 @@ func finish_with_reason(reason: BattleEndReason.Value, winning_team: int) -> boo
 	result.draw = reason == BattleEndReason.Value.DRAW
 	result.winner_team = winning_team
 	result.elapsed = clock.elapsed
+	result.stats = stats.snapshot(self)
 	for unit in units:
 		if unit.alive:
 			result.survivors.append(unit.battle_id)
@@ -354,6 +357,7 @@ func find_unit(id: int) -> BattleUnit:
 	return null
 func emit_combat_event(kind: StringName, point: Vector2, metadata: Dictionary) -> void:
 	combat_event_counts[kind] = int(combat_event_counts.get(kind,0))+1
+	if kind == &"ultimate":stats.ultimate(find_actor(String(metadata.get("actor",""))))
 	combat_events.append({"kind":kind,"point":point,"metadata":metadata.duplicate(true),"time":clock.elapsed})
 	if combat_events.size() > 64: combat_events.pop_front()
 func spawn_melee_strike(unit: BattleUnit, profile: AttackData, damage: float) -> AttackInstance:

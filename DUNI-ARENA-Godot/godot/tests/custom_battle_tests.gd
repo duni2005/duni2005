@@ -63,6 +63,7 @@ func run(tree: SceneTree) -> void:
 	plague_and_golem(tree)
 	flame_blade_and_tags(tree)
 	snowman_and_santa(tree)
+	battle_stats(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -834,6 +835,29 @@ func snowman_and_santa(tree: SceneTree) -> void:
 	verify(foe.ultimate_gauge<1 and foe.position.distance_to(at)<2 and StatusCatalog.collect(foe).any(func(r):return r.key==&"rooted"),"the gauge empties and a rooted enemy cannot move")
 	var low: float=ally.max_hp*.4;ally.current_hp=low;santa.ability.give(santa,ally,&"heal30");ally.ultimate_gauge=0;santa.ability.give(santa,ally,&"ult_full")
 	verify(ally.current_hp>low+ally.max_hp*.25 and ally.ultimate_gauge>=99,"ally gifts heal and fill the gauge")
+	b.queue_free()
+
+## 통계 page totals (0.83.0).
+func battle_stats(tree: SceneTree) -> void:
+	var b:=duel(tree,[[0,0,Vector2(300,400)],[4,0,Vector2(240,460)],[35,1,Vector2(380,400)],[1,1,Vector2(600,600)]])
+	step(b,.05)
+	var w: BattleUnit=b.units[0];var ally: BattleUnit=b.units[1];var slime: BattleUnit=b.units[2];var archer: BattleUnit=b.units[3]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0;u.evade_remaining=0
+	var hp: float=archer.current_hp
+	b.damage_resolver.resolve(w,archer,40,{"dmg":&"basic","critical":false,"transcendent":true})
+	var hit: float=hp-archer.current_hp
+	ally.current_hp=ally.max_hp*.5;var healed: float=CharacterAbility.restore_hp(ally,30,w)
+	w.ultimate_gauge=100;w.ultimate.request(w,archer);step(b,.6)
+	# The slime splits instead of dying: only the last piece's fall is a kill.
+	for i in range(8):
+		for s in b.units.filter(func(v):return v.alive and v.data.type_id==35):b.damage_resolver.resolve(w,s,s.current_hp+s.shield_hp+500,{"dmg":&"basic","critical":false,"transcendent":true})
+		step(b,.5)
+	var rows: Array=b.stats.snapshot(b)
+	var mine: Dictionary=rows.filter(func(r):return r.type==0)[0];var arow: Dictionary=rows.filter(func(r):return r.type==1)[0]
+	var srows: Array=rows.filter(func(r):return r.type==35)
+	verify(rows.size()==4 and srows.size()==1,"one row per placed unit; slime splits add to their original's row")
+	verify(mine.dealt>=hit and arow.taken>=hit and mine.healed>=healed-.01 and rows.filter(func(r):return r.type==4)[0].heal_received>=healed-.01,"damage dealt / taken and healing done / received are recorded")
+	verify(mine.ultimates>=1 and mine.kills==1+int(not arow.alive) and not srows[0].alive and mine.group=="블루 팀","ultimates and kills count; a slime family is one kill once its last piece falls")
 	b.queue_free()
 
 const SantaRef=preload("res://scripts/abilities/santa_ability.gd")

@@ -44,6 +44,7 @@ func resolve_minimal(source, target, raw_damage: float) -> DamageOutcome:
 	outcome.resolved_damage = roundf(raw_damage * (CRITICAL_MULTIPLIER if outcome.critical else 1.0)*EquipmentCombatEffects.damage_factor(source,{}))
 	outcome.shield_absorbed = StrategyEffects.absorb(target, outcome.resolved_damage)
 	outcome.hp_damage = target.receive_damage(outcome.resolved_damage - outcome.shield_absorbed, source)
+	battle.stats.damage(source, target, outcome.hp_damage + outcome.shield_absorbed)
 	if outcome.hp_damage > 0.0:
 		damage_applied.emit(source, target, outcome.hp_damage, outcome.critical)
 	damage_resolved.emit(source, target, outcome)
@@ -166,6 +167,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	out.resolved_damage = amount
 	out.shield_absorbed = StrategyEffects.absorb(target, amount)
 	out.hp_damage = target.receive_damage(target.current_hp if executed else amount-out.shield_absorbed,source,true)
+	battle.stats.damage(source,target,out.hp_damage+out.shield_absorbed)
 	if battle.full_characters_enabled:
 		CharacterCombat.after_hit(source,target,out,options)
 		if target.state_value("guardRemaining")>0:impulse=0

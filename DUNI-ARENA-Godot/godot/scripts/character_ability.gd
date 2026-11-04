@@ -44,7 +44,7 @@ static func nearest(u,list: Array):
 static func restore_hp(target, base: float, source=null) -> float:
 	if target==null or not target.alive or base<=0:return 0
 	var gain: float=minf(target.max_hp-target.current_hp,base*(source.healing_power*ElementEffects.healing(source) if source!=null else 1)*target.healing_received*ElementEffects.healing(target))
-	target.current_hp+=gain;return gain
+	target.current_hp+=gain;target.battle.stats.heal(source,target,gain);return gain
 static func shoot(u,angle: float,damage: float,settings: Dictionary={}) -> BattleProjectile:
 	var p:=u.battle.PROJECTILE_SCENE.instantiate() as BattleProjectile
 	p.initialize(u,angle)

@@ -45,6 +45,8 @@ var actions_home: Control
 var result_overlay: ColorRect
 var result_scroll: ScrollContainer
 var result_actions: HBoxContainer
+var stats_button: Button
+var stats_dialog: AcceptDialog
 var end_sequence: BattleCinematicState
 var end_overlay: RetreatPresentation
 var end_presenting: bool=false
@@ -112,7 +114,8 @@ func _build_ui() -> void:
 	result_heading=Label.new();result_heading.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;result_heading.add_theme_font_size_override("font_size",24);result_column.add_child(result_heading)
 	result_scroll=ScrollContainer.new();result_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;result_column.add_child(result_scroll)
 	result_label=Label.new();result_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;result_label.add_theme_font_size_override("font_size",14);result_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;result_scroll.add_child(result_label)
-	result_actions=HBoxContainer.new();result_actions.alignment=BoxContainer.ALIGNMENT_CENTER;result_column.add_child(result_actions)
+	result_actions=HBoxContainer.new();result_actions.alignment=BoxContainer.ALIGNMENT_CENTER;result_actions.add_theme_constant_override("separation",10);result_column.add_child(result_actions)
+	stats_button=Button.new();stats_button.text="통계";stats_button.custom_minimum_size=Vector2(96,48);ArenaUI.quiet(stats_button);ArenaUI.bind(stats_button,_open_stats);result_actions.add_child(stats_button)
 	ArenaUI.primary(next_button);next_button.custom_minimum_size.y=48
 	result_panel.hide();result_overlay.hide()
 	column.add_child(turning_panel)
@@ -451,3 +454,9 @@ func _select_from_field(actor_id: String) -> void:
 		if current!=null:board.selected_actor_id=current.actor_id()
 		return
 	if unit.alive and not unit.source_member_id.is_empty() and unit.original_team==0:battle.turning.current.selected_member_id=unit.source_member_id
+
+## 통계: every unit's damage, healing, kills and ultimates from the finished battle, as bars.
+func _open_stats() -> void:
+	if not is_instance_valid(battle) or battle.result==null:return
+	if stats_dialog==null:stats_dialog=BattleStatsView.make_dialog(self)
+	BattleStatsView.open(stats_dialog,self,battle.result.stats)
