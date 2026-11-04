@@ -17,7 +17,11 @@ static func create(rng: RandomNumberGenerator) -> PredictionState:
 	for row in SCENARIOS:
 		roll-=int(row[1])
 		if roll<=0:kind=row[0];break
+	# No two teams may line up the same units: a mirror match would be a coin toss.
 	var teams: Array=_teams(kind,rng)
+	for attempt in range(20):
+		if not _has_mirror(teams):break
+		teams=_teams(kind,rng)
 	var state:=PredictionState.new()
 	for i in range(teams.size()):state.teams.append({"team":i,"types":teams[i]})
 	return state
@@ -38,9 +42,11 @@ static func _teams(kind: StringName,rng: RandomNumberGenerator) -> Array:
 			for t in range(count):out.append(_random_types(rng,rng.randi_range(1,2 if count==5 else 3)))
 		&"clones":
 			var count: int=rng.randi_range(2,4);var size: int=rng.randi_range(2,4 if count<=3 else 3)
+			# Every team clones a different unit.
+			var picks: Array=range(all);_shuffle(picks,rng)
 			for t in range(count):
-				var type: int=rng.randi_range(0,all-1);var row: Array=[]
-				for i in range(size):row.append(type)
+				var row: Array=[]
+				for i in range(size):row.append(picks[t])
 				out.append(row)
 		&"outnumbered":
 			var strong: Array=_tier_types(4,5);var weak: Array=_tier_types(1,2)
@@ -51,6 +57,17 @@ static func _teams(kind: StringName,rng: RandomNumberGenerator) -> Array:
 		_:
 			for t in range(rng.randi_range(4,5)):out.append([rng.randi_range(0,all-1)])
 	return out
+static func _shuffle(list: Array,rng: RandomNumberGenerator) -> void:
+	for i in range(list.size()-1,0,-1):
+		var j: int=rng.randi_range(0,i);var keep=list[i];list[i]=list[j];list[j]=keep
+## True when two teams have exactly the same units (order ignored).
+static func _has_mirror(teams: Array) -> bool:
+	var seen: Dictionary={}
+	for row in teams:
+		var key: Array=row.duplicate();key.sort()
+		if seen.has(str(key)):return true
+		seen[str(key)]=true
+	return false
 static func _random_types(rng: RandomNumberGenerator,size: int) -> Array:
 	var row: Array=[]
 	for i in range(size):row.append(rng.randi_range(0,CharacterCatalog.NAMES.size()-1))

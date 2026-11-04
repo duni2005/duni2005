@@ -863,13 +863,19 @@ func battle_stats(tree: SceneTree) -> void:
 
 ## 전투 예측 situations (0.84.0): up to five teams, clone teams, outnumbered fights, solo brawls.
 func prediction_variety(tree: SceneTree) -> void:
-	var rng:=RandomNumberGenerator.new();rng.seed=11;var labels: Dictionary={};var most: int=0;var valid: bool=true
+	var rng:=RandomNumberGenerator.new();rng.seed=11;var labels: Dictionary={};var most: int=0;var valid: bool=true;var mirrors: int=0;var clone_clash: int=0
 	for i in range(300):
 		var state: PredictionState=PredictionRules.create(rng);labels[PredictionRules.label(state)]=true;most=maxi(most,state.teams.size())
 		var units: int=0
 		for t in state.teams:units+=t.types.size()
 		valid=valid and PredictionRules.valid(state) and units<=PredictionRules.MAX_UNITS
+		mirrors+=int(PredictionRules._has_mirror(state.teams.map(func(t):return t.types)))
+		if PredictionRules.label(state)=="같은 유닛 팀전":
+			var firsts: Dictionary={}
+			for t in state.teams:firsts[t.types[0]]=true
+			clone_clash+=int(firsts.size()!=state.teams.size())
 	verify(valid and most==5,"every situation is valid, at most 12 units, up to five teams")
+	verify(mirrors==0 and clone_clash==0,"no two teams ever field the same units; clone teams each copy a different unit")
 	verify(labels.has("같은 유닛 팀전") and labels.has("개인전") and labels.has("수적 열세") and labels.keys().any(func(k):return k.ends_with("난전")),"clone teams, solo, outnumbered and brawl situations all appear")
 	var state:=PredictionState.new()
 	for i in range(5):state.teams.append({"team":i,"types":[i,i]})
