@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/unit_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/attack_data.gd" id="2"]
+
+[sub_resource type="Resource" id="Attack"]
+script = ExtResource("2")
+kind = 0
+windup = 0.3
+active = 0.12
+recovery = 0.3
+reach = 74
+cone = 0.9
+impulse = 340
+
+[resource]
+script = ExtResource("1")
+type_id = 42
+display_name = "산타"
+base_gold_cost = 270
+max_hp = 280
+attack = 18
+defense_power = 30
+move_speed = 110
+attack_range = 74
+attack_interval = 1.0
+critical_chance = 0.05
+tags = PackedStringArray("일반", "방황")
+emoji = "🎅"
+ultimate_windup = 0.4
+attack_profile = SubResource("Attack")
+recruit_tokens = 5

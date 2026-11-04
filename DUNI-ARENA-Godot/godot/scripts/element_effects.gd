@@ -84,10 +84,13 @@ static func outgoing(source, target, spec: Dictionary, options: Dictionary) -> f
 	if not mark.is_empty() and mark != source.actor_id() and direct(spec, options):factor *= DARK_POP
 	# 목표 (석궁): wind damage taken +15% in all (the general +10% comes from taken()).
 	if target.state_value("targetedTime") > 0 and spec.get("tags", []).has(&"wind"):factor *= TARGETED_WIND / TARGETED_TAKEN
+	if source.state_value("giftPowerTime") > 0:factor *= GIFT_FACTOR
 	return factor
 ## Extra critical damage an eroded unit takes (added to the attacker's critical damage).
 static func crit_taken(target) -> float:return EROSION_CRIT if target.state_value("erosionTime") > 0 else 0.0
-static func taken(u) -> float:return (FROSTBITE_TAKEN if u.state_value("frostbiteTime") > 0 else 1.0) * (TARGETED_TAKEN if u.state_value("targetedTime") > 0 else 1.0)
+## 산타의 선물: 받는 피해 +50% (giftWeakTime) / 공격력 +50% (giftPowerTime, in outgoing).
+const GIFT_FACTOR: float = 1.5
+static func taken(u) -> float:return (FROSTBITE_TAKEN if u.state_value("frostbiteTime") > 0 else 1.0) * (TARGETED_TAKEN if u.state_value("targetedTime") > 0 else 1.0) * (GIFT_FACTOR if u.state_value("giftWeakTime") > 0 else 1.0)
 static func attack_speed(u) -> float:
 	if u.character_specific_state.is_empty():return 1
 	return (1 + WIND_ATTACK_SPEED * u.state_value("windStacks")) * (HEADWIND_ATTACK_SPEED if u.state_value("headwindTime") > 0 else 1.0)
@@ -212,7 +215,7 @@ static func advance(battle, dt: float) -> void:
 		if u.state_value("frozenTime") > 0:
 			u.set_state("frozenTime", maxf(0, u.state_value("frozenTime") - dt))
 			if u.state_value("frozenTime") <= 0:u.set_state("frostbiteTime", FROSTBITE_TIME)
-		for key in ["frostbiteTime", "headwindTime", "erosionTime", "targetedTime", "slowTime", "charmTime"]:
+		for key in ["frostbiteTime", "headwindTime", "erosionTime", "targetedTime", "slowTime", "charmTime", "giftPowerTime", "giftWeakTime"]:
 			if u.state_value(key) > 0:u.set_state(key, maxf(0, u.state_value(key) - dt))
 		for pair in [["frostbitePending", "frostbiteSource", &"frostbite", FROSTBITE_HIT], ["erodePending", "erosionSource", &"erosion", EROSION_DAMAGE]]:
 			var count: int = int(u.state_value(pair[0]))

@@ -100,6 +100,28 @@ func cleanup() -> void:
 	if is_instance_valid(glow_layer):glow_layer.queue_redraw()
 	if is_instance_valid(field_layer):field_layer.clear()
 	if is_instance_valid(shader_fx):shader_fx.clear()
+const GIFT_LABELS: Dictionary = {"mid":"얼음 피해","high":"큰 얼음 피해!","stun":"기절 6초","drain":"궁극기 초기화","root":"속박 10초","weak":"받는 피해 +50%","heal20":"HP +20%","heal30":"HP +30%","ult_full":"궁극기 충전","ult_half":"궁극기 +50%","power":"공격력 +50%"}
+## Seconds since Santa left, or -1 once Santa is back (the sleigh and gifts then stop drawing).
+func _santa_clock(id: int) -> float:
+	for v in battle.units:
+		if v.battle_id==id:return v.state_value("santaClock") if v.state_value("santaAway")>0 else -1.0
+	return -1.0
+## The giant snowball rolling ahead of the snowman: a shaded white ball with turning streaks.
+func _draw_snowball(u: BattleUnit) -> void:
+	var ball: Dictionary=u.character_specific_state.snowball
+	var at: Vector2=Vector2(float(ball.x),float(ball.y));var dir: Vector2=Vector2.from_angle(float(ball.angle))
+	var r: float=(34+22*clampf(float(ball.get("rolled",0))/600.0,0,1))*u.combat_scale()
+	for k in range(6):
+		draw_circle(at-dir*(r*.6+k*14),r*(.5-k*.06),Color("eaf6ff",.22-k*.03))
+	draw_circle(at+Vector2(0,r*.5),r*.95,Color(0,0,0,.18))
+	draw_circle(at,r,Color("f4fbff"))
+	draw_circle(at+Vector2(-r*.25,-r*.3),r*.55,Color("ffffff"))
+	draw_arc(at,r,0,TAU,40,Color("9fc3dc"),3,true)
+	var spin: float=float(ball.get("rolled",0))/maxf(8,r)
+	for k in range(4):
+		var a: float=spin+k*TAU/4
+		draw_arc(at,r*.62,a,a+.8,10,Color("b8d6ea",.8),3,true)
+	VfxArt.glow(self,at,r*1.3,Color("dff4ff"),.25)
 func add_effect(kind: String,point: Vector2,color: Color=Color.WHITE,radius: float=28,life: float=.45,direction: float=0) -> void:
 	if not point.is_finite():return
 	if effects.size()>=MAX_EFFECTS:effects.pop_front()
@@ -458,6 +480,37 @@ func advance(delta: float) -> void:
 				"ignite":
 					add_effect("slime_ring",e.point,Color("ff8a3d"),26+2*float(e.metadata.get("stacks",1)),.35)
 					particles.burst(e.point,Color("ffb347"),8+int(e.metadata.get("stacks",1)),260,0,"spark",true)
+				"snow_charge":
+					# The snowman gathers itself: snow swirls inward.
+					add_effect("snow_gather",e.point,Color("e8f6ff"),70,float(e.metadata.get("time",.8)))
+				"snowball_burst":
+					var sb: float=float(e.metadata.get("radius",115))
+					add_effect("hero_shock",e.point,Color("dff4ff"),sb*1.15,.8)
+					add_effect("slime_ring",e.point,Color("ffffff"),sb*1.4,.7)
+					add_effect("ice_spikes",e.point,Color("cfeeff"),sb,.9,0.0);effects[-1]["count"]=16
+					if use_shader_fx:shader_fx.shock(e.point,sb,.7,Color("dff4ff"))
+					particles.burst(e.point,Color("ffffff"),36,460,0,"shard",true);particles.burst(e.point,Color("e6f2fa"),22,200,0,"smoke",true)
+					particles.burst(e.point,Color("bfe6ff"),14,320,0,"spark",true)
+					impact_pause(90);camera.impact(12,e.point)
+				"santa_away":
+					# Santa vanishes in a puff; the sleigh's shadow crosses the sky and gifts drop on everyone.
+					particles.burst(e.point,Color("ffffff"),20,260,0,"smoke",true);particles.burst(e.point,Color("e8525a"),14,240,0,"spark",true)
+					add_effect("slime_ring",e.point,Color("ffd0d4"),50,.45)
+					# Both follow Santa's own clock so they stay in step with the gifts actually landing.
+					var away: float=float(e.metadata.get("time",3.2));var santa_id: int=int(e.metadata.get("actor_id",0))
+					add_effect("santa_sleigh",e.point,Color("1a1426"),0,away+1);effects[-1]["santa"]=santa_id;effects[-1]["away"]=away
+					for gift in e.metadata.get("gifts",[]):
+						add_effect("gift_fall",e.point,Color("6fe08a") if bool(gift.get("ally",false)) else Color("e8525a"),20,away+1)
+						effects[-1]["target"]=int(gift.get("to",0));effects[-1]["santa"]=santa_id;effects[-1]["at"]=float(gift.get("at",1))
+				"santa_gift":
+					var ally_gift: bool=bool(e.metadata.get("ally",false))
+					var gc: Color=Color("6fe08a") if ally_gift else Color("e8525a")
+					particles.burst(e.point,gc,12,240,-PI*.5,"spark",true);particles.burst(e.point,Color("ffd65c"),10,220,-PI*.5,"shard",true)
+					add_effect("slime_ring",e.point,gc.lightened(.3),40,.4)
+					add_effect("gift_text",e.point,gc,0,1.3);effects[-1]["text"]=GIFT_LABELS.get(String(e.metadata.get("kind","")),"선물")
+				"santa_back":
+					particles.burst(e.point,Color("ffffff"),18,240,0,"smoke",true);particles.burst(e.point,Color("ffd65c"),10,200,0,"spark",true)
+					add_effect("slime_ring",e.point,Color("ffd0d4"),50,.45)
 				"parrot_mimic":
 					# Feathers burst off the parrot; a thin streak links it to the enemy it copies.
 					particles.burst(e.point,Color("8fd47a"),16,260,0,"shard",true);particles.burst(e.point,Color("ffd65c"),10,200,0,"spark",true)
@@ -566,6 +619,7 @@ func _draw() -> void:
 			draw_set_transform_matrix(parent_transform*Transform2D(0,difference));_unit(u,parent_transform*Transform2D(0,difference));draw_set_transform_matrix(parent_transform)
 	for u in ([] if battle.finished else battle.units):
 		if u.data.type_id==27 and u.state_value("trainFx")>0 and u.ultimate.cast.has("track"):_draw_train(u)
+		if u.alive and u.character_specific_state.has("snowball"):_draw_snowball(u)
 	particles.draw(self)
 	_draw_orbs()
 	for e in effects:
@@ -663,6 +717,55 @@ func _draw() -> void:
 			for i in range(16):
 				var a: float=i*TAU/16+float(e.age)*2;var q: Vector2=e.point+Vector2.from_angle(a)*rr
 				VfxArt.glow(self,q,18*(1-t)+4,Color("ff9a4a"),.6*(1-t))
+		elif e.kind=="snow_gather":
+			# Snowflakes spiral in toward the snowman while it winds up.
+			for i in range(10):
+				var a: float=float(e.age)*5+i*TAU/10;var rr: float=e.radius*(1.2-t)
+				draw_circle(e.point+Vector2.from_angle(a)*rr,2.5+2*t,Color("ffffff",.5+.5*t))
+			draw_arc(e.point,e.radius*(1-t*.6),0,TAU,40,Color(e.color,.3+.5*t),2+3*t,true)
+			VfxArt.glow(self,e.point,30+40*t,Color("dff4ff"),.25+.4*t)
+		elif e.kind=="santa_sleigh":
+			# A dark sleigh-and-reindeer shadow flying across the map, trailing sparkles.
+			var clock: float=_santa_clock(int(e.get("santa",0)))
+			if clock<0:continue
+			t=clampf(clock/float(e.get("away",3.2)),0,1)
+			var p: Vector2=Vector2(-160+1120*t,190+90*sin(t*PI*1.4))
+			var z: float=1.8
+			var shadow: Color=Color(.08,.06,.14,.55*sin(t*PI))
+			for k in range(14):
+				var q: Vector2=Vector2(-160+1120*maxf(0,t-k*.012),190+90*sin(maxf(0,t-k*.012)*PI*1.4))+Vector2(-60,6)*z
+				draw_circle(q+Vector2(0,sin(k*1.7+float(e.age)*8)*5),5-k*.3,Color("ffe68a",.7*(1-k/14.0)*sin(t*PI)))
+			draw_colored_polygon(PackedVector2Array([p+Vector2(-56,-6)*z,p+Vector2(-20,-6)*z,p+Vector2(-14,10)*z,p+Vector2(-60,10)*z]),shadow)
+			draw_line(p+Vector2(-66,14)*z,p+Vector2(-8,14)*z,shadow,5,true)
+			draw_line(p+Vector2(-20,0)*z,p+Vector2(20,-2)*z,shadow,2.5,true)
+			for k in range(2):
+				var d: Vector2=p+Vector2(26+k*30,-4)*z
+				draw_colored_polygon(PackedVector2Array([d+Vector2(-12,-4)*z,d+Vector2(12,-6)*z,d+Vector2(12,2)*z,d+Vector2(-12,3)*z]),shadow)
+				draw_line(d+Vector2(12,-5)*z,d+Vector2(18,-14)*z,shadow,3,true)
+				draw_line(d+Vector2(18,-14)*z,d+Vector2(14,-20)*z,shadow,2.5,true);draw_line(d+Vector2(18,-14)*z,d+Vector2(23,-19)*z,shadow,2.5,true)
+				var leg: float=sin(float(e.age)*14+k)*4
+				draw_line(d+Vector2(-8,2)*z,d+Vector2(-10+leg,11)*z,shadow,2.5,true);draw_line(d+Vector2(8,1)*z,d+Vector2(10-leg,10)*z,shadow,2.5,true)
+			draw_circle(p+Vector2(84,-18)*z,2.5,Color("ff6a6a",.8*sin(t*PI)))
+		elif e.kind=="gift_fall":
+			# A wrapped gift falls onto its target with a growing shadow beneath it.
+			var target: BattleUnit=null
+			for v in battle.units:
+				if v.battle_id==int(e.get("target",0)):target=v
+			var clock: float=_santa_clock(int(e.get("santa",0)))
+			if target==null or not target.alive or clock<0 or clock>=float(e.get("at",1)):continue
+			var drop: float=clampf((clock/float(e.get("at",1))-.45)/.55,0,1)
+			if drop<=0:continue
+			var land: Vector2=target.position;var at: Vector2=land+Vector2(0,-260*(1-drop*drop))
+			draw_circle(land+Vector2(0,10),5+9*drop,Color(0,0,0,.25*drop))
+			var box: Rect2=Rect2(at-Vector2(10,10),Vector2(20,18))
+			draw_rect(box,e.color);draw_rect(Rect2(at-Vector2(2.5,10),Vector2(5,18)),Color("ffd65c"))
+			draw_rect(Rect2(at-Vector2(10,3),Vector2(20,4)),Color("ffd65c"))
+			draw_circle(at+Vector2(-4,-12),3.5,Color("ffd65c"));draw_circle(at+Vector2(4,-12),3.5,Color("ffd65c"))
+		elif e.kind=="gift_text":
+			var label: String=String(e.get("text",""))
+			var ty: Vector2=e.point+Vector2(-60,-46-t*26)
+			draw_string_outline(ThemeDB.fallback_font,ty,label,HORIZONTAL_ALIGNMENT_CENTER,120,15,4,Color(0,0,0,.8*(1-t)))
+			draw_string(ThemeDB.fallback_font,ty,label,HORIZONTAL_ALIGNMENT_CENTER,120,15,Color(Color(e.color).lightened(.35),1-t*t))
 		elif e.kind=="slime_ring":
 			# A squashy ring of slime splashing outward.
 			var rr: float=e.radius*(.35+.65*(1-pow(1-t,2)))

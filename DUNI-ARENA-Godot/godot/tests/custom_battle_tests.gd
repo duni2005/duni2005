@@ -62,6 +62,7 @@ func run(tree: SceneTree) -> void:
 	parrot_and_whisperer(tree)
 	plague_and_golem(tree)
 	flame_blade_and_tags(tree)
+	snowman_and_santa(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -84,7 +85,7 @@ func step(b: BattleManager,seconds: float) -> void:
 		if b.finished:return
 		b.simulate(1.0/60)
 func new_characters(tree: SceneTree) -> void:
-	verify(CharacterCatalog.all().size()==41,"41 characters in the catalog")
+	verify(CharacterCatalog.all().size()==43,"43 characters in the catalog")
 	# 말뚝: opening stake tethers the nearest enemy to a small circle.
 	var b:=duel(tree,[[26,0,Vector2(150,400)],[1,1,Vector2(450,400)],[1,1,Vector2(700,700)]])
 	step(b,.2)
@@ -446,7 +447,7 @@ func stat_damage(tree: SceneTree) -> void:
 		if not UnitStatTable.STATS.has(unit_name) or not UnitStatTable.DAMAGE.has(unit_name):tagged=false
 		for d in UnitStatTable.instances(id):
 			if not UnitStatTable.KIND_NAMES.has(d.kind) or not d.tags.all(func(t):return t in UnitStatTable.ELEMENTS+UnitStatTable.DAMAGE_TAGS):tagged=false
-	verify(tagged and CharacterCatalog.NAMES.size()==41,"all 41 units have base stats and exactly one kind plus known tags per damage instance")
+	verify(tagged and CharacterCatalog.NAMES.size()==43,"all 43 units have base stats and exactly one kind plus known tags per damage instance")
 	verify(UnitStatTable.mitigation(0)==1 and UnitStatTable.mitigation(100)==.5 and is_equal_approx(UnitStatTable.mitigation(-100),1.5),"mitigation 100/(100+def), 2-100/(100-def) below zero")
 	# Bomber (fire · explosion · area) hits a mage.
 	var b:=duel(tree,[[13,0,Vector2(300,400)],[2,1,Vector2(380,400)]]);var src: BattleUnit=b.units[0];var tgt: BattleUnit=b.units[1];b.started=true
@@ -793,6 +794,49 @@ func flame_blade_and_tags(tree: SceneTree) -> void:
 	verify(ignited and side.state_value("burnStacks")==0 and side.current_hp<hp-UnitStatTable.raw(fb,&"ult")*.3,"the circular cut ignites every burn stack for extra damage")
 	b.queue_free()
 
+## 눈사람 (41) and 산타 (42), 0.82.0.
+func snowman_and_santa(tree: SceneTree) -> void:
+	verify(UnitStatTable.spec(41,&"basic").tags.has(&"melee") and UnitStatTable.spec(41,&"basic").tags.has(&"ice") and UnitStatTable.spec(41,&"basic").kind==&"magic","눈사람: ice club is magic · ice · melee")
+	verify(UnitStatTable.spec(41,&"burst").tags.has(&"explosion") and UnitStatTable.spec(42,&"basic").kind==&"physical" and CharacterCatalog.all()[42].tags.has("방황"),"burst is an explosion; 산타 is physical and 방황")
+	var b:=duel(tree,[[41,0,Vector2(200,400)],[4,1,Vector2(330,400)],[0,1,Vector2(400,460)]])
+	step(b,.05)
+	var sm: BattleUnit=b.units[0];var foe: BattleUnit=b.units[1];var foe2: BattleUnit=b.units[2]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0;u.evade_remaining=0
+	var hp: float=foe.current_hp+foe2.current_hp;sm.ultimate_gauge=100
+	verify(sm.ultimate.request(sm,foe),"the snowman starts its ultimate")
+	var furthest: float=0;var burst: bool=false
+	for i in range(60*4):
+		step(b,1.0/60);furthest=maxf(furthest,foe.position.x)
+		if b.combat_event_counts.get(&"snowball_burst",0)>0:burst=true;break
+	verify(burst and furthest>600,"the snowball drags the enemies it hits to the wall and bursts")
+	verify(foe.current_hp+foe2.current_hp<hp and (foe.state_value("frostStacks")>=3 or foe.state_value("frozenTime")>0),"the roll and burst hurt and put 3 frost stacks on")
+	verify(not sm.character_specific_state.has("snowball"),"the ball is gone after bursting")
+	b.queue_free()
+	b=duel(tree,[[42,0,Vector2(300,400)],[4,0,Vector2(240,400)],[0,1,Vector2(420,400)],[4,1,Vector2(460,460)]])
+	step(b,.05)
+	var santa: BattleUnit=b.units[0];var ally: BattleUnit=b.units[1];foe=b.units[2];foe2=b.units[3]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0;u.evade_remaining=0
+	santa.ultimate_gauge=100
+	verify(santa.ultimate.request(santa,foe),"Santa starts the ultimate")
+	var gone: bool=false
+	for i in range(60*2):
+		step(b,1.0/60)
+		if santa.state_value("santaAway")>0:gone=true;break
+	verify(gone and santa.unavailable() and not AttackVisuals.body_visible(santa),"Santa vanishes and cannot be targeted")
+	step(b,SantaRef.AWAY_TIME+.2)
+	verify(b.combat_event_counts.get(&"santa_gift",0)==3 and not santa.unavailable() and b.combat_event_counts.get(&"santa_back",0)==1,"a gift lands on every other unit, then Santa returns")
+	ally.set_state("giftPowerTime",0);foe.set_state("giftWeakTime",0)
+	var plain: float=ElementEffects.taken(foe)*ElementEffects.outgoing(ally,foe,UnitStatTable.spec(4,&"basic"),{})
+	santa.ability.give(santa,foe,&"weak");santa.ability.give(santa,ally,&"power")
+	verify(is_equal_approx(ElementEffects.taken(foe)*ElementEffects.outgoing(ally,foe,UnitStatTable.spec(4,&"basic"),{}),plain*2.25),"받는 피해 +50% and 공격력 +50% gifts stack")
+	foe.ultimate_gauge=80;santa.ability.give(santa,foe,&"drain");santa.ability.give(santa,foe,&"root")
+	foe.move_speed=100;foe.velocity=Vector2(100,0);var at: Vector2=foe.position;step(b,.5)
+	verify(foe.ultimate_gauge<1 and foe.position.distance_to(at)<2 and StatusCatalog.collect(foe).any(func(r):return r.key==&"rooted"),"the gauge empties and a rooted enemy cannot move")
+	var low: float=ally.max_hp*.4;ally.current_hp=low;santa.ability.give(santa,ally,&"heal30");ally.ultimate_gauge=0;santa.ability.give(santa,ally,&"ult_full")
+	verify(ally.current_hp>low+ally.max_hp*.25 and ally.ultimate_gauge>=99,"ally gifts heal and fill the gauge")
+	b.queue_free()
+
+const SantaRef=preload("res://scripts/abilities/santa_ability.gd")
 const FlameRef=preload("res://scripts/abilities/flame_blade_ability.gd")
 ## 역병 (38) and 빙하 골렘 (39), 0.79.0.
 func plague_and_golem(tree: SceneTree) -> void:

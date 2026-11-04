@@ -1,7 +1,7 @@
 class_name AbilityMotifs
 extends RefCounted
 ## One motif per real ability identity. Exact gameplay telegraphs are rendered separately.
-const MOTIFS=["blade","arrow","vortex","veil","aegis","lotus","reticle","pellets","duel","fists","greatsword","ripples","jaws","fuse","issen","orbit","cross","comet","tracks","halo","storm","shards","spiral","tracers","tongue","threads","stake","rails","prism","parcel","magnet","frost","flame","gust","crosshair","slime","feathers","heart","miasma","glacier","flameblade"]
+const MOTIFS=["blade","arrow","vortex","veil","aegis","lotus","reticle","pellets","duel","fists","greatsword","ripples","jaws","fuse","issen","orbit","cross","comet","tracks","halo","storm","shards","spiral","tracers","tongue","threads","stake","rails","prism","parcel","magnet","frost","flame","gust","crosshair","slime","feathers","heart","miasma","glacier","flameblade","snowball","gift"]
 static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: float=0) -> void:
 	var c: Color=CharacterVisuals.PROJECTILE_COLORS.get("star",Color("e8c78e"))
 	c=Color(AttackVisuals.ink(u.data.type_id),1-fade)
@@ -54,6 +54,15 @@ static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: f
 			var sw: float=time*2.4
 			canvas.draw_arc(p,r*.7,sw,sw+2.2,24,Color(c,.85),r*.14,true)
 			canvas.draw_arc(p,r*.7,sw,sw+1.2,16,Color("fff1c4",.8),r*.06,true)
+		"snowball":
+			# A snowball rolling round with its tumbling streaks.
+			var q: Vector2=p+Vector2.from_angle(time*1.2)*r*.25
+			canvas.draw_circle(q,r*.42,Color(c,.9));canvas.draw_arc(q,r*.3,time*4,time*4+1.8,10,Color(1,1,1,.8),2,true)
+		"gift":
+			# A gift box bobbing with a ribbon.
+			var q: Vector2=p+Vector2(0,sin(time*2.5)*r*.12);var s2: float=r*.32
+			canvas.draw_rect(Rect2(q-Vector2(s2,s2),Vector2(s2,s2)*2),Color(c,.9))
+			canvas.draw_line(q-Vector2(0,s2),q+Vector2(0,s2),Color(1,.9,.4),3);canvas.draw_line(q-Vector2(s2,0),q+Vector2(s2,0),Color(1,.9,.4),3)
 		"slime":
 			# Bouncing droplets around the centre.
 			for i in range(6):

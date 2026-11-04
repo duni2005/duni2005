@@ -214,7 +214,8 @@ func friends() -> Array:
 	return battle.units.filter(func(u):return u!=self and u.alive and u.team==team and not u.unavailable())
 func enemies(perceived: bool=true) -> Array:
 	return battle.units.filter(func(u):return u.alive and u.team!=team and (not perceived or CombatPerception.can_perceive(self,u)))
-func unavailable() -> bool:return not frog_carrier.is_empty() or frog_flight!=0
+## 산타 is out of the fight while its sleigh flies (santaAway).
+func unavailable() -> bool:return not frog_carrier.is_empty() or frog_flight!=0 or state_value("santaAway")>0
 func is_dashing() -> bool:return not hero_rescue.is_empty() or ultimate.cast.get("dashing",false)
 func combat_scale() -> float:
 	var permanent: float=maxf(.4,pow(.94,state_value("dolphinStacks"))) if data.type_id==11 else minf(2.4,1+state_value("predatorStacks")*.04) if data.type_id==12 else 1

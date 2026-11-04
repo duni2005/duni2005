@@ -62,6 +62,8 @@ const STATS = {
 	"plague":[&"physical", 55, 0, 10, 40, 34],
 	"golem":[&"physical", 75, 10, 10, 34, 24],
 	"flame_blade":[&"physical", 45, 0, 10, 38, 26],
+	"snowman":[&"magic", 55, 0, 15, 12, 34],
+	"santa":[&"physical", 60, 10, 10, 26, 30],
 }
 
 const DAMAGE = {
@@ -196,6 +198,14 @@ const DAMAGE = {
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee", &"fire"], "불의 검 베기 (화염 5스택)"],
 		&"ult":[&"ultimate", &"physical", 15, 2.2, [&"melee", &"area", &"fire"], "화염 회전 베기"],
 		&"ignite":[&"ultimate", &"magic", 4, 0.3, [&"fire"], "점화 (화염 스택당)"]},
+	"snowman":{
+		&"basic":[&"basic", &"magic", 0, 1.0, [&"melee", &"ice"], "얼음 몽둥이"],
+		&"ult":[&"ultimate", &"magic", 10, 1.4, [&"ice", &"area"], "거대 눈덩이 (관통 · 끌고 감)"],
+		&"burst":[&"ultimate", &"magic", 20, 1.8, [&"ice", &"area", &"explosion"], "눈덩이 폭발 (빙결 3스택)"]},
+	"santa":{
+		&"basic":[&"basic", &"physical", 0, 0.6, [&"melee"], "밀치기"],
+		&"gift_mid":[&"ultimate", &"magic", 10, 1.2, [&"ice"], "선물: 얼음 피해"],
+		&"gift_high":[&"ultimate", &"magic", 20, 2.4, [&"ice"], "선물: 큰 얼음 피해"]},
 }
 ## Damage every unit can deal regardless of character, using its main damage kind.
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]

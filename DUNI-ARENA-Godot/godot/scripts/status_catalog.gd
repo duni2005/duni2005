@@ -39,11 +39,13 @@ const ENTRIES = {
 	&"erosion":["침식", &"debuff", "skull", "이동 외 행동마다 피해를 받고, 받는 치명타 피해 +25%."],
 	&"curse":["축소 저주", &"debuff", "dice", "챌런에게 맞아 몸이 작아졌다. 받는 피해 +15%."],
 	&"cosmic":["우주 표식", &"debuff", "star", "은하에게 찍혀 주는 피해 -30%."],
+	&"gift_weak":["선물: 취약", &"debuff", "event", "산타의 선물. 받는 피해 +50%."],
 	&"whisper":["속삭임", &"debuff", "skull", "속삭이는 자의 바늘 스택. 3스택이 되면 터지며 최대 HP의 5% 추가 피해(마법 · 어둠)."],
 	&"targeted":["목표", &"debuff", "event", "석궁의 목표지정 탄에 맞았다. 받는 피해 +10%, 받는 바람 피해 +15%."],
 	&"light_mark":["광휘 표식", &"mark", "star", "다른 유닛이 직접 공격으로 터뜨리면 터뜨린 유닛이 최대 HP 5% 회복."],
 	&"dark_mark":["암흑 표식", &"mark", "skull", "다른 유닛이 직접 공격으로 터뜨리면 그 공격 피해 +20%."],
 	&"saint":["성자", &"mark", "crown", "광신도가 따르는 성자. 따르는 광신도마다 주는 피해 +10%."],
+	&"gift_power":["선물: 힘", &"buff", "event", "산타의 선물. 공격력 +50%."],
 	&"shield":["보호막", &"buff", "shield", "피해를 먼저 흡수한다."],
 	&"iron":["철벽", &"buff", "iron", "받는 피해가 크게 줄어든다."],
 	&"invincible":["무적", &"buff", "heart", "어떤 피해도 받지 않는다."],
@@ -137,6 +139,8 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if _num(s, "curseTime") > 0:add.call(&"curse", _secs(_num(s, "curseTime")))
 	if u != null and u.cosmic_marked:add.call(&"cosmic")
 	if _num(s, "targetedTime") > 0:add.call(&"targeted", _secs(_num(s, "targetedTime")))
+	if _num(s, "giftWeakTime") > 0:add.call(&"gift_weak", _secs(_num(s, "giftWeakTime")))
+	if _num(s, "giftPowerTime") > 0:add.call(&"gift_power", _secs(_num(s, "giftPowerTime")))
 	if _num(s, "whisperStacks") > 0:add.call(&"whisper", "%d/3" % int(_num(s, "whisperStacks")))
 	# 표식
 	if not str(s.get("lightMark", "")).is_empty():add.call(&"light_mark")

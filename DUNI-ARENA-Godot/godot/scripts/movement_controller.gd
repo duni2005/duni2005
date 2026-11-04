@@ -37,6 +37,8 @@ static func clamp_position(point: Vector2) -> Vector2:
 func advance_common(unit, delta: float) -> void:
 	if not unit.battle.full_characters_enabled:unit.velocity = Vector2.ZERO
 	if not unit.alive or unit.stun_remaining > 0 or delta <= 0:unit.velocity=Vector2.ZERO;return
+	# 속박 (산타의 선물): rooted in place, but still free to attack.
+	if unit.state_value("rootedUntil") > unit.battle.clock.elapsed:unit.velocity=Vector2.ZERO;return
 	if unit.battle.full_characters_enabled:
 		if unit.unavailable() or unit.ability.locked(unit) or not unit.ultimate.cast.is_empty():return
 		if unit.character_specific_state.get("bomberRush",false):return

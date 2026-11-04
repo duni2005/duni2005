@@ -1,10 +1,10 @@
 class_name AttackVisuals
 extends RefCounted
 ## Source-grounded geometry. All inputs are observed; never writes to combat objects.
-const INKS=["ffd39c","e2f5ad","bca9ee","a9eee5","f3dd9e","c5f4e5","ffe6ba","f0ca83","efb1de","efa794","e5d3ae","c2faff","d3e7b5","ffbc75","dceff5","d0fff0","fff0bc","ffc1a0","ebe5ba","e9d7ff","8bdbff","b4e5e8","d5c2ff","eed18f","ffc4c3","f4c0dc","e8c48f","ffb08c","bdf0ff","ffe08a","ff9aa4","bfeaff","ffb36b","c8f7e6","e9d7a4","c4f2a8","c9f5a0","f2b8ff","b9d98a","bfe9ff","ffb070"]
+const INKS=["ffd39c","e2f5ad","bca9ee","a9eee5","f3dd9e","c5f4e5","ffe6ba","f0ca83","efb1de","efa794","e5d3ae","c2faff","d3e7b5","ffbc75","dceff5","d0fff0","fff0bc","ffc1a0","ebe5ba","e9d7ff","8bdbff","b4e5e8","d5c2ff","eed18f","ffc4c3","f4c0dc","e8c48f","ffb08c","bdf0ff","ffe08a","ff9aa4","bfeaff","ffb36b","c8f7e6","e9d7a4","c4f2a8","c9f5a0","f2b8ff","b9d98a","bfe9ff","ffb070","dff4ff","ff6a6a"]
 static func ink(type: int) -> Color:return Color(INKS[type])
 static func body_visible(u: BattleUnit) -> bool:
-	if not u.alive or u.frog_flight!=0:return false
+	if not u.alive or u.frog_flight!=0 or u.state_value("santaAway")>0:return false
 	if u.frog_carrier.is_empty():return true
 	var owner: BattleUnit=u.battle.find_actor(u.frog_carrier)
 	return owner==null or owner.frog_action.get("phase","")!="hold"
