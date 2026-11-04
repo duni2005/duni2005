@@ -41,6 +41,8 @@ func passive_tick(u,dt: float) -> void:
 	if u.state_value("santaAway")<=0:
 		u.character_specific_state.erase("santaGifts")
 		u.battle.emit_combat_event(&"santa_back",u.position,{"actor_id":u.battle_id})
+## Presentation only: a candy-cane swing where the shove lands.
+func melee_hit(u,_attack,t,_out) -> void:u.battle.emit_combat_event(&"santa_shove",t.position,{"actor_id":u.battle_id,"angle":(t.position-u.position).angle()})
 static func _unit(u,id: int):
 	for v in u.battle.units:
 		if v.battle_id==id:return v

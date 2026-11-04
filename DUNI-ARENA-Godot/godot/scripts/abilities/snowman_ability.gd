@@ -15,11 +15,11 @@ func can_ultimate(u,t) -> bool:return t!=null and u.position.distance_to(t.posit
 func release_ultimate(u,a: Dictionary,dt: float) -> bool:
 	if not a.has("charge"):
 		a["charge"]=0.0
-		u.battle.emit_combat_event(&"snow_charge",u.position,{"actor_id":u.battle_id,"time":CHARGE_TIME})
+		u.battle.emit_combat_event(&"snow_charge",u.position,{"actor_id":u.battle_id,"time":CHARGE_TIME,"angle":float(a.angle)})
 	a.charge=float(a.charge)+dt;u.velocity=Vector2.ZERO
 	if float(a.charge)<CHARGE_TIME:return false
 	var start: Vector2=u.position+Vector2.from_angle(float(a.angle))*44*u.combat_scale()
-	u.character_specific_state["snowball"]={"x":start.x,"y":start.y,"angle":float(a.angle),"rolled":0.0,"hit":[],"t":0.0}
+	u.character_specific_state["snowball"]={"x":start.x,"y":start.y,"sx":start.x,"sy":start.y,"angle":float(a.angle),"rolled":0.0,"hit":[],"t":0.0}
 	return true
 ## The ball rolls on in tick; dragged enemies stay pressed against its front.
 func tick(u,dt: float) -> void:
@@ -41,6 +41,8 @@ func tick(u,dt: float) -> void:
 		e.position=MovementController.clamp_position(at+dir*(r*.7)+dir.orthogonal()*(fmod(int(id)*37.0,1.0)-.5)*r*.8)
 		e.velocity=Vector2.ZERO;e.knockback_velocity=Vector2.ZERO;StatusController.stun(e,.2)
 	if wall:burst(u,at,ball)
+## Presentation only: frost chips where the ice club lands.
+func melee_hit(u,_attack,t,_out) -> void:u.battle.emit_combat_event(&"snow_club",t.position,{"actor_id":u.battle_id,"angle":(t.position-u.position).angle()})
 static func radius(u,ball: Dictionary) -> float:return (BALL_RADIUS+BALL_GROWTH*clampf(float(ball.get("rolled",0))/600.0,0,1))*u.combat_scale()
 static func _unit(u,id: int):
 	for v in u.battle.units:
