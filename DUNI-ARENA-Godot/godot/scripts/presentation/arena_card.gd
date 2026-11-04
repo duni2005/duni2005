@@ -16,6 +16,8 @@ var gauge: float=0
 var price: String=""
 var stats_summary: String=""
 var portrait_types: Array[int]=[]
+## 전투 예측 team card: the team's colour (left strip and title).
+var team_tint: Color=Color(0,0,0,0)
 var dead: bool=false
 var sold: bool=false
 var spent: bool=false
@@ -241,11 +243,14 @@ func _draw() -> void:
 		else:ArenaIcon.draw(self,center,kind,minf(size.x,size.y)*.46,Color(1,1,1,.35 if disabled else 1))
 		return
 	if card_type=="prediction_team":
-		write(Vector2(15,23),title,15,gold if active else Color("eef1fa"))
-		if active:write(Vector2(size.x-76,23),"선택됨",12,gold)
-		for i in range(portrait_types.size()):UnitIcon.draw(self,Rect2(14+i*42,33,38,38),portrait_types[i],1)
-		var x: float=24+portrait_types.size()*42
-		draw_multiline_string(get_theme_default_font(),Vector2(x,49),description,HORIZONTAL_ALIGNMENT_LEFT,maxf(40,size.x-x-12),12,3,muted)
+		# Icons shrink to fit up to five units; the names sit beside them when there is room.
+		if team_tint.a>0:draw_rect(Rect2(4,8,4,size.y-16),team_tint)
+		write(Vector2(15,21),title,14,gold if active else (team_tint.lightened(.35) if team_tint.a>0 else Color("eef1fa")))
+		if active:write(Vector2(size.x-58,21),"선택됨",11,gold)
+		var count: int=maxi(1,portrait_types.size());var icon: float=clampf(minf(size.y-34,(size.x-30)/count-4),20,36)
+		for i in range(portrait_types.size()):UnitIcon.draw(self,Rect2(14+i*(icon+4),28,icon,icon),portrait_types[i],1)
+		var x: float=22+portrait_types.size()*(icon+4)
+		if size.x-x>70:draw_multiline_string(get_theme_default_font(),Vector2(x,40),description,HORIZONTAL_ALIGNMENT_LEFT,size.x-x-10,11,2,muted)
 		return
 	if card_type=="stake":
 		ArenaIcon.draw(self,Vector2(18,size.y*.5),"gold",18,Color.WHITE)

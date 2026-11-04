@@ -52,6 +52,7 @@ func snapshot(battle) -> Array:
 		row["alive"] = battle.units.any(func(v):return v.alive and owner.get(v.battle_id) == id)
 		var team: int = int(row.team)
 		if battle.custom_mode:row["group"] = "개인" if team >= CustomBattleSetup.SOLO_FACTION_BASE else CustomBattleSetup.TEAM_NAMES.get(team, "팀") + " 팀"
+		elif not battle.team_colors.is_empty():row["group"] = "%d팀" % (team + 1)
 		else:row["group"] = "아군" if team == 0 else "적"
 		out.append(row)
 	out.sort_custom(func(a, b):return a.team < b.team if a.team != b.team else a.dealt > b.dealt)

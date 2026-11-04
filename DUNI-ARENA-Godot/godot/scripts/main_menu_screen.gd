@@ -12,6 +12,8 @@ var new_button: Button
 var continue_button: Button
 var custom_button: Button
 var custom_screen: CustomBattleScreen
+var prediction_button: Button
+var prediction_screen: PredictionModeScreen
 var status: Label
 var menu_margin: MarginContainer
 var scenery: TitleScenery
@@ -41,6 +43,7 @@ func _ready() -> void:
 	var open:=Control.new();open.size_flags_vertical=Control.SIZE_EXPAND_FILL;open.size_flags_stretch_ratio=2.6;menu.add_child(open)
 	tower_button=_menu_button("타워 입장","crown",enter_tower,true)
 	custom_button=_menu_button("커스텀 전투","battle",open_custom,false)
+	prediction_button=_menu_button("전투 예측","prediction",open_prediction,false)
 	codex_button=_menu_button("도감","book",open_codex,false)
 	settings_button=_menu_button("설정","settings",open_settings,false)
 	var below:=Control.new();below.size_flags_vertical=Control.SIZE_EXPAND_FILL;menu.add_child(below)
@@ -152,18 +155,31 @@ func _dive_into(controller: TowerController,notice: String="") -> void:
 	create_tween().tween_property(menu,"modulate:a",0.0,.3)
 	scenery.dive_finished.connect(open,CONNECT_ONE_SHOT);scenery.play_dive()
 func _set_menu_disabled(on: bool) -> void:
-	for button in [tower_button,custom_button,codex_button,settings_button]:button.disabled=on
+	for button in [tower_button,custom_button,prediction_button,codex_button,settings_button]:button.disabled=on
 func open_custom() -> void:
-	if is_instance_valid(custom_screen) or is_instance_valid(tower_screen):return
+	if is_instance_valid(custom_screen) or is_instance_valid(prediction_screen) or is_instance_valid(tower_screen):return
 	_set_menu_disabled(true)
 	LoadingScreen.run(self,func():
 		menu.get_parent().hide();scenery.hide();_set_menu_disabled(false)
 		custom_screen=CustomBattleScreen.new();add_child(custom_screen)
 		custom_screen.closed.connect(func():call_deferred("close_custom"))
 		BackgroundMusic.play(&"battle"))
+## 전투 예측: random AI battles to call, with a reroll before each one.
+func open_prediction() -> void:
+	if is_instance_valid(custom_screen) or is_instance_valid(prediction_screen) or is_instance_valid(tower_screen):return
+	_set_menu_disabled(true)
+	LoadingScreen.run(self,func():
+		menu.get_parent().hide();scenery.hide();_set_menu_disabled(false)
+		prediction_screen=PredictionModeScreen.new();add_child(prediction_screen)
+		prediction_screen.closed.connect(func():call_deferred("close_prediction"))
+		BackgroundMusic.play(&"battle"))
+func close_prediction() -> void:
+	UiTransition.play("back",TypeArt.word(&"menu"));BackgroundMusic.play(&"menu")
+	if is_instance_valid(prediction_screen):remove_child(prediction_screen);prediction_screen.queue_free();prediction_screen=null
+	menu.get_parent().show();scenery.show();_reveal()
 ## 도감: a full page over the title screen.
 func open_codex() -> void:
-	if is_instance_valid(codex_screen) or is_instance_valid(custom_screen) or is_instance_valid(tower_screen):return
+	if is_instance_valid(codex_screen) or is_instance_valid(custom_screen) or is_instance_valid(prediction_screen) or is_instance_valid(tower_screen):return
 	UiTransition.play("forward","CODEX");menu.get_parent().hide();scenery.hide()
 	codex_screen=CodexScreen.new();add_child(codex_screen);codex_screen.closed.connect(func():call_deferred("close_codex"))
 func close_codex() -> void:

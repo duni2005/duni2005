@@ -2,6 +2,8 @@ class_name BattleCueOverlay
 extends Control
 ## Real-time banner/scan accents only. Does not pause or advance battle simulation.
 var board: DeploymentBoard
+## Line under "전투 시작"; prediction battles say it is the AI teams fighting.
+var subtitle: String = "길드원의 전투가 시작됩니다"
 var bound_battle: BattleManager
 var cue: String=""
 var age: float=0
@@ -52,4 +54,4 @@ func _draw() -> void:
 	var font: Font=ArenaUI.heading_font();var title: String={"start":"전투 시작"}.get(cue,"")
 	var title_w: float=font.get_string_size(title,HORIZONTAL_ALIGNMENT_LEFT,-1,24).x
 	TypeArt.letters(self,font,title,Vector2(center.x-title_w*.5,center.y+2),24,Color(tint,a),age-.12 if UiMotion.enabled else 99.0,14)
-	draw_string(get_theme_default_font(),Vector2(strip.position.x,center.y+26),"길드원의 전투가 시작됩니다",HORIZONTAL_ALIGNMENT_CENTER,strip.size.x,12,Color("e2e7f5",a*Motion.phase(age,.25,.2)))
+	draw_string(get_theme_default_font(),Vector2(strip.position.x,center.y+26),subtitle,HORIZONTAL_ALIGNMENT_CENTER,strip.size.x,12,Color("e2e7f5",a*Motion.phase(age,.25,.2)))

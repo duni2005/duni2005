@@ -48,10 +48,10 @@ func run():
 	ui.fx.advance(4);w.advance_view(4);ui.content_screen._return_map();await frames()
 	var room: RoomState=run_state.tower.map.get_room("0:4");room.event_type=&"prediction";room.event=null
 	ui.select_room("0:4");await frames();ui.fx.advance(3)
-	await click(ui.content_screen.content_box.get_node("team_1"))
-	var team: ArenaCard=ui.content_screen.content_box.get_node("team_1")
+	await click(ui.content_screen.content_box.find_child("team_1",true,false))
+	var team: ArenaCard=ui.content_screen.content_box.find_child("team_1",true,false)
 	verify(team.selected and team.button_pressed and team.card_type=="prediction_team","prediction team has real persistent selected styling")
-	verify(team.portrait_types.size()>0 and not ui.content_screen.content_box.get_node("team_0").selected,"prediction portraits and exclusive selection")
+	verify(team.portrait_types.size()>0 and not ui.content_screen.content_box.find_child("team_0",true,false).selected,"prediction portraits and exclusive selection")
 	await click(ui.content_screen.content_box.find_child("stake_200",true,false))
 	var stake: ArenaCard=ui.content_screen.content_box.find_child("stake_200",true,false)
 	verify(stake.selected and stake.button_pressed and stake.size.x>=44,"selected gold stake is readable/touch sized")

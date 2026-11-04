@@ -378,10 +378,8 @@ func render_prediction(node: RoomState) -> void:
 		elif state.result==&"draw":_result("prediction","무승부","승부가 나지 않아 판돈을 돌려받았습니다.",Color("9fb4d8"),["%d G 반환"%state.stake],picked,caption)
 		else:_result("skull","예측 실패","%d팀이 승리하지 못했습니다."%(state.picked_team+1),Color("ff8a8a"),["-%d G"%state.stake],picked,caption)
 		return
-	_section("승리할 팀 예측")
-	for team in state.teams:
-		var choice: ArenaCard=button(content_box,"%d팀\n%s"%[team.team+1," / ".join(team.types.map(func(t):return controller.guild.definition(t).display_name))],_pick_prediction.bind(team.team),"team_%d"%team.team)
-		choice.card_type="prediction_team";choice.title="%d팀"%(team.team+1);choice.kind="battle";choice.portrait_types.assign(team.types);choice.custom_minimum_size.y=92;choice.toggle_mode=true;choice.set_pressed_no_signal(state.picked_team==team.team);choice.selected=state.picked_team==team.team
+	_section("승리할 팀 예측 · "+PredictionRules.label(state))
+	PredictionTeamGrid.build(content_box,state,state.picked_team,_pick_prediction)
 	_section("판돈 선택")
 	var row:=HBoxContainer.new();content_box.add_child(row)
 	for stake in [50,100,200]:
@@ -417,7 +415,7 @@ func _start_prediction() -> void:
 	for speed in [1,2,4]:
 		var choice:=Button.new();choice.name="Speed%d"%speed;choice.text="%d×"%speed;choice.toggle_mode=true;choice.custom_minimum_size=Vector2(44,40);choice.add_theme_font_size_override("font_size",13)
 		ArenaUI.bind(choice,func():if is_instance_valid(battle):battle.clock.set_speed(float(speed)));ArenaUI.quiet(choice);speed_row.add_child(choice);speed_buttons[speed]=choice
-	if battle_cue==null:battle_cue=BattleCueOverlay.new();add_child(battle_cue)
+	if battle_cue==null:battle_cue=BattleCueOverlay.new();battle_cue.subtitle="예측한 팀이 이길까요?";add_child(battle_cue)
 	battle_cue.board=board
 	presentation_requested.emit({"point":get_tree().root.get_meta("action_point",get_viewport_rect().size*.5)})
 func _process(_delta: float) -> void:

@@ -140,7 +140,7 @@ func flow(touch: bool) -> void:
 	await finish_reveal(screen,touch)
 	var prediction_room: RoomState=run_state.tower.map.get_room("1:1");prediction_room.room_type=RoomType.EVENT;prediction_room.event_type=&"prediction";prediction_room.event=null
 	screen.show_map();await frames();await click(screen.room_buttons["1:1"],touch)
-	await click(screen.content_screen.content_box.get_node("team_0"),touch);await click(screen.content_screen.content_box.find_child("stake_50",true,false),touch)
+	await click(screen.content_screen.content_box.find_child("team_0",true,false),touch);await click(screen.content_screen.content_box.find_child("stake_50",true,false),touch)
 	verify(prediction_room.event.prediction.picked_team==0 and prediction_room.event.prediction.stake==50,"prediction team/stake UI")
 	await click(screen.content_screen.content_box.get_node("Watch"),touch)
 	b=screen.content_screen.battle;b.set_physics_process(false)

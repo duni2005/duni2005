@@ -15,6 +15,8 @@ const ARCHER: UnitData = preload("res://data/archer.tres")
 @export var common_combat_enabled: bool = true
 ## Custom battle: any number of teams/free-for-all units, every unit may use transcendence.
 var custom_mode: bool = false
+## Per-team colours when set (전투 예측: up to five teams); otherwise blue against red.
+var team_colors: Array[Color] = []
 ## The unit whose ultimate is releasing right now; attacks it spawns are tagged for presentation.
 var ultimate_actor = null
 @export var full_characters_enabled: bool = true

@@ -64,6 +64,7 @@ func run(tree: SceneTree) -> void:
 	flame_blade_and_tags(tree)
 	snowman_and_santa(tree)
 	battle_stats(tree)
+	prediction_variety(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -858,6 +859,25 @@ func battle_stats(tree: SceneTree) -> void:
 	verify(rows.size()==4 and srows.size()==1,"one row per placed unit; slime splits add to their original's row")
 	verify(mine.dealt>=hit and arow.taken>=hit and mine.healed>=healed-.01 and rows.filter(func(r):return r.type==4)[0].heal_received>=healed-.01,"damage dealt / taken and healing done / received are recorded")
 	verify(mine.ultimates>=1 and mine.kills==1+int(not arow.alive) and not srows[0].alive and mine.group=="블루 팀","ultimates and kills count; a slime family is one kill once its last piece falls")
+	b.queue_free()
+
+## 전투 예측 situations (0.84.0): up to five teams, clone teams, outnumbered fights, solo brawls.
+func prediction_variety(tree: SceneTree) -> void:
+	var rng:=RandomNumberGenerator.new();rng.seed=11;var labels: Dictionary={};var most: int=0;var valid: bool=true
+	for i in range(300):
+		var state: PredictionState=PredictionRules.create(rng);labels[PredictionRules.label(state)]=true;most=maxi(most,state.teams.size())
+		var units: int=0
+		for t in state.teams:units+=t.types.size()
+		valid=valid and PredictionRules.valid(state) and units<=PredictionRules.MAX_UNITS
+	verify(valid and most==5,"every situation is valid, at most 12 units, up to five teams")
+	verify(labels.has("같은 유닛 팀전") and labels.has("개인전") and labels.has("수적 열세") and labels.keys().any(func(k):return k.ends_with("난전")),"clone teams, solo, outnumbered and brawl situations all appear")
+	var state:=PredictionState.new()
+	for i in range(5):state.teams.append({"team":i,"types":[i,i]})
+	var b:=BattleManager.new();b.auto_start=false;b.common_combat_enabled=true;b.full_characters_enabled=true;b.team_colors=PredictionRules.TEAM_COLORS;tree.root.add_child(b)
+	verify(b.start_battle(PredictionRules.placements(state,rng),3),"a five-team prediction battle starts")
+	var colors: Dictionary={}
+	for u in b.units:colors[u.team_color()]=true
+	verify(colors.size()==5 and b.units.size()==10,"each of the five teams has its own colour")
 	b.queue_free()
 
 const SantaRef=preload("res://scripts/abilities/santa_ability.gd")

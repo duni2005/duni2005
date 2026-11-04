@@ -234,7 +234,7 @@ func start_prediction(manager: BattleManager) -> bool:
 	if not PredictionRules.valid(state) or state.status!=&"ready" or state.picked_team<0 or not state.stake in [50,100,200] or not ResourceTransaction.can_spend(guild.state,state.stake,0,receipt):return false
 	if not state.teams.any(func(t):return t.team==state.picked_team):return false
 	# Isolated full-mode battle. No guild/room session, death loss or guild settlement.
-	manager.common_combat_enabled=true;manager.full_characters_enabled=true
+	manager.common_combat_enabled=true;manager.full_characters_enabled=true;manager.team_colors=PredictionRules.TEAM_COLORS
 	var previous_rng: int=combat_rng.state
 	var seed_value: int=_attempt_seed("prediction");var placement_rng:=RandomNumberGenerator.new();placement_rng.seed=seed_value
 	var placements: Array[Dictionary]=PredictionRules.placements(state,placement_rng)
