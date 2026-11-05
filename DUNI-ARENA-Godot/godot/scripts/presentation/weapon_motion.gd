@@ -53,6 +53,17 @@ static func draw(canvas: CanvasItem,pose_data: Dictionary,alpha: float=1) -> voi
 	var frame: Dictionary=DATA.frames[int(bank[clampi(int(pose_data.index),0,bank.size()-1)])]
 	var r: Array=frame.rect;var offset: Array=frame.offset
 	canvas.draw_texture_rect_region(sheets[int(frame.sheet)],Rect2(offset[0],offset[1],r[2],r[3]),Rect2(r[0],r[1],r[2],r[3]),Color(1,1,1,alpha))
+## A weapon lying loose (두비두밤's dropped sword): the unit's idle weapon frame, centred on the
+## origin of `xf` and turned with it, so it matches the sword it carries.
+static func draw_loose(canvas: CanvasItem,type: int,xf: Transform2D,alpha: float=1) -> bool:
+	if sheets.is_empty():
+		for i in range(DATA.sheets):sheets.append(load("res://assets/motion/weapons_%d.png"%i))
+	var key: String="%d:basic"%type
+	if not DATA.banks.has(key):return false
+	var frame: Dictionary=DATA.frames[int(DATA.banks[key][0])];var r: Array=frame.rect
+	canvas.draw_set_transform_matrix(xf)
+	canvas.draw_texture_rect_region(sheets[int(frame.sheet)],Rect2(-r[2]*.5,-r[3]*.5,r[2],r[3]),Rect2(r[0],r[1],r[2],r[3]),Color(1,1,1,alpha))
+	return true
 static func _draw_prop(canvas: CanvasItem,type: int,index: float,alpha: float) -> void:
 	# Local space: +x is the facing / aim direction, origin at the unit centre.
 	var swing: float=sin(clampf(index/maxf(1,DATA.samples*3),0,1)*PI)*.9

@@ -12,8 +12,16 @@ static var enabled: bool = true
 ## Per-unit HP correction (type_id → factor).
 const HP: Dictionary = {0: .9, 5: 1.15, 16: 1.1, 18: .92, 19: 1.25, 20: 1.1, 24: .9, 25: 1.2, 27: 1.7, 33: 1.2}
 ## Per-unit physical/magic damage correction (type_id → factor).
-const DAMAGE: Dictionary = {0: .92, 2: .92, 5: 1.15, 13: .88, 15: .9, 16: 1.1, 18: .92, 19: 1.25, 20: 1.2, 24: .9, 25: 1.3, 27: 1.25, 31: 1.12, 33: .8, 35: .8}
+const DAMAGE: Dictionary = {0: .92, 2: .92, 3: .88, 5: 1.15, 13: .88, 15: .8, 16: 1.1, 18: .92, 19: 1.25, 20: 1.2, 24: .9, 25: 1.3, 27: 1.25, 31: 1.12, 33: .8, 35: .8}
+## Per-skill damage correction on top of DAMAGE (type_id → {damage key → factor}): 0.84.5 마법사
+## 블랙홀 -20%.
+const SKILL: Dictionary = {2: {&"ult": .8}}
+## Share of the ultimate gauge a unit still gains from damage its own ultimate deals (0.84.5:
+## 소형 위성's missile salvo refilled the gauge too fast).
+const ULT_SELF_CHARGE: Dictionary = {15: .7}
 
+static func skill(type_id: int, key: StringName) -> float:return float(SKILL.get(type_id, {}).get(key, 1.0)) if enabled else 1.0
+static func ult_self_charge(type_id: int) -> float:return float(ULT_SELF_CHARGE.get(type_id, 1.0)) if enabled else 1.0
 static func tier(data: UnitData) -> float:return TIER[clampi(data.recruit_tokens, 1, TIER.size()) - 1]
 static func hp(data: UnitData) -> float:return tier(data) * float(HP.get(data.type_id, 1.0)) if enabled else 1.0
 static func damage(data: UnitData) -> float:return tier(data) * float(DAMAGE.get(data.type_id, 1.0)) if enabled else 1.0

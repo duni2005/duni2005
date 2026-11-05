@@ -65,6 +65,7 @@ func run(tree: SceneTree) -> void:
 	snowman_and_santa(tree)
 	battle_stats(tree)
 	prediction_variety(tree)
+	balance_0845(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -898,6 +899,19 @@ func prediction_variety(tree: SceneTree) -> void:
 	verify(PredictionModeScreen.picked_wiped(b,2) and not b.finished,"the picked team is gone while four teams fight on")
 	b.finish_with_reason(BattleEndReason.Value.DEFEAT,-1)
 	verify(b.finished and not b.result.draw and b.result.winner_team!=2,"빠른 종료 ends the battle as a failed prediction")
+	b.queue_free()
+
+## 0.84.5 balance: 소형 위성 damage and its ult-to-gauge refill, 마법사 블랙홀, 암살자.
+func balance_0845(tree: SceneTree) -> void:
+	verify(is_equal_approx(UnitStatTable.spec(2,&"ult").ratio,.04) and is_equal_approx(UnitStatTable.spec(2,&"ult").base,4.0) and is_equal_approx(UnitStatTable.spec(2,&"basic").ratio,1.0),"마법사 블랙홀 -20% (basic unchanged)")
+	verify(is_equal_approx(UnitBalance.damage(CharacterCatalog.all()[3]),.88*UnitBalance.tier(CharacterCatalog.all()[3])) and is_equal_approx(UnitBalance.damage(CharacterCatalog.all()[15]),.8*UnitBalance.tier(CharacterCatalog.all()[15])),"암살자 ×0.88, 소형 위성 ×0.8 damage")
+	var b:=duel(tree,[[15,0,Vector2(300,400)],[18,1,Vector2(420,400)]])
+	step(b,.05)
+	var sat: BattleUnit=b.units[0];var foe: BattleUnit=b.units[1]
+	var out:=DamageOutcome.new();out.hp_damage=60
+	sat.ultimate_gauge=0;CharacterCombat.after_hit(sat,foe,out,{"dmg":&"basic"});var plain: float=sat.ultimate_gauge
+	sat.ultimate_gauge=0;CharacterCombat.after_hit(sat,foe,out,{"dmg":&"ult"});var from_ult: float=sat.ultimate_gauge
+	verify(plain>0 and is_equal_approx(from_ult,plain*.7),"소형 위성 gains 70% gauge from its own ultimate's damage")
 	b.queue_free()
 
 const SantaRef=preload("res://scripts/abilities/santa_ability.gd")

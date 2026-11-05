@@ -131,7 +131,7 @@ func _draw_snowball(u: BattleUnit) -> void:
 		var off: Vector2=dir.orthogonal()*(k-3)*r*.28
 		draw_line(at-dir*r*(1.1+fmod(k*.37,.4))+off,at-dir*r*(1.9+fmod(k*.53,.6))+off,Color("ffffff",.45),2,true)
 	for k in range(6):draw_circle(at-dir*(r*.6+k*14),r*(.5-k*.06),Color("eaf6ff",.22-k*.03))
-	draw_set_transform(at+Vector2(0,r*.75),0,Vector2(1,.35));draw_circle(Vector2.ZERO,r*1.05,Color(0,0,0,.22));draw_set_transform_matrix(parent_transform)
+	draw_set_transform_matrix(parent_transform*Transform2D(0,Vector2(1,.35),0,at+Vector2(0,r*.75)));draw_circle(Vector2.ZERO,r*1.05,Color(0,0,0,.22));draw_set_transform_matrix(parent_transform)
 	draw_circle(at,r,Color("eef7fd"))
 	draw_circle(at+Vector2(r*.18,r*.2),r*.82,Color("dcecf6"))
 	draw_circle(at+Vector2(-r*.25,-r*.3),r*.55,Color("ffffff"))
@@ -849,7 +849,7 @@ func _draw() -> void:
 			var p: Vector2=sleigh_point(t);var z: float=1.9;var vis: float=sin(t*PI)
 			var shadow: Color=Color(.09,.06,.15,.72*vis)
 			# Ground shadow, far below the sleigh.
-			draw_set_transform(p+Vector2(0,150),0,Vector2(1,.32));draw_circle(Vector2.ZERO,110,Color(0,0,0,.16*vis));draw_set_transform_matrix(parent_transform)
+			draw_set_transform_matrix(parent_transform*Transform2D(0,Vector2(1,.32),0,p+Vector2(0,150)));draw_circle(Vector2.ZERO,110,Color(0,0,0,.16*vis));draw_set_transform_matrix(parent_transform)
 			# Stardust ribbon: a widening, fading trail behind the runners.
 			for k in range(28):
 				var tk: float=maxf(0,t-k*.009);var q: Vector2=sleigh_point(tk)+Vector2(-62,10)*z
@@ -884,12 +884,12 @@ func _draw() -> void:
 			var drop: float=clampf((clock/float(e.get("at",1))-.35)/.65,0,1)
 			if drop<=0:continue
 			var land: Vector2=target.position;var at: Vector2=land+Vector2(sin(clock*5+int(e.get("target",0)))*6*(1-drop),-300*(1-drop*drop))
-			draw_set_transform(land+Vector2(0,12),0,Vector2(1,.4));draw_circle(Vector2.ZERO,8+14*drop,Color(0,0,0,.28*drop));draw_set_transform_matrix(parent_transform)
+			draw_set_transform_matrix(parent_transform*Transform2D(0,Vector2(1,.4),0,land+Vector2(0,12)));draw_circle(Vector2.ZERO,8+14*drop,Color(0,0,0,.28*drop));draw_set_transform_matrix(parent_transform)
 			draw_arc(land,22*(1.2-drop*.4),0,TAU,32,Color(e.color.lightened(.3),.5*drop),2,true)
 			draw_line(at+Vector2(0,-14),at+Vector2(0,-60),Color("fff3c4",.35),5,true)
 			VfxArt.glow(self,at,24,e.color.lightened(.3),.45)
 			var tilt: float=sin(clock*7+int(e.get("target",0)))*.25*(1-drop)
-			draw_set_transform(at,tilt,Vector2.ONE)
+			draw_set_transform_matrix(parent_transform*Transform2D(tilt,Vector2.ONE,0,at))
 			draw_rect(Rect2(Vector2(-12,-10),Vector2(24,21)),e.color);draw_rect(Rect2(Vector2(-12,-10),Vector2(24,21)),Color(0,0,0,.25),false,2)
 			draw_rect(Rect2(Vector2(-14,-14),Vector2(28,6)),e.color.lightened(.15))
 			draw_rect(Rect2(Vector2(-3,-14),Vector2(6,25)),Color("ffd65c"));draw_rect(Rect2(Vector2(-12,-2),Vector2(24,4)),Color("ffd65c"))
@@ -904,11 +904,11 @@ func _draw() -> void:
 		elif e.kind=="gift_open":
 			# The lid flips off and the box walls fall open.
 			var lid: Vector2=e.point+Vector2(30*float(e.angle)*t,-14-80*t+90*t*t)
-			draw_set_transform(lid,float(e.angle)*6*t,Vector2.ONE)
+			draw_set_transform_matrix(parent_transform*Transform2D(float(e.angle)*6*t,Vector2.ONE,0,lid))
 			draw_rect(Rect2(Vector2(-14,-4),Vector2(28,7)),Color(e.color,1-t));draw_rect(Rect2(Vector2(-3,-4),Vector2(6,7)),Color("ffd65c",1-t))
 			draw_set_transform_matrix(parent_transform)
 			for side in [-1,1]:
-				draw_set_transform(e.point+Vector2(side*12,0),side*t*1.3,Vector2.ONE)
+				draw_set_transform_matrix(parent_transform*Transform2D(side*t*1.3,Vector2.ONE,0,e.point+Vector2(side*12,0)))
 				draw_rect(Rect2(Vector2(-2 if side>0 else -2,-18),Vector2(4,20)),Color(e.color.darkened(.1),1-t))
 				draw_set_transform_matrix(parent_transform)
 		elif e.kind=="gift_mark":
@@ -928,7 +928,7 @@ func _draw() -> void:
 				"root":
 					for i in range(10):
 						var a: float=i*TAU/10+float(e.age);var q: Vector2=e.point+Vector2(cos(a)*24,sin(a)*10+6)
-						draw_set_transform(q,a,Vector2(1,.6));draw_arc(Vector2.ZERO,5,0,TAU,12,Color("b8c2d6",fade),2.5,true);draw_set_transform_matrix(parent_transform)
+						draw_set_transform_matrix(parent_transform*Transform2D(a,Vector2(1,.6),0,q));draw_arc(Vector2.ZERO,5,0,TAU,12,Color("b8c2d6",fade),2.5,true);draw_set_transform_matrix(parent_transform)
 				"heal20","heal30":
 					var cross: Vector2=e.point+Vector2(0,-30-20*t)
 					draw_rect(Rect2(cross-Vector2(4,12),Vector2(8,24)),Color("86e3a4",fade));draw_rect(Rect2(cross-Vector2(12,4),Vector2(24,8)),Color("86e3a4",fade))
@@ -1070,7 +1070,7 @@ func _unit(u: BattleUnit,parent: Transform2D) -> void:
 		var swing: float=1-pow(1-t,3)
 		pose_override={"key":"0:basic","index":13+roundi(swing*11),"angle":row.angle,"weapon_scale":1.4,"swing":swing}
 	CharacterPainter.draw_unit(self,u,parent,float(flashes.get(u.battle_id,0))/.15,pose_override)
-	_ability_state(u)
+	_ability_state(u,parent)
 	# HP bar: dark outlined well and bright team-colour fill, never smaller than ~28x4 screen px
 	# however far the board is scaled down on a phone.
 	var px: float=1/maxf(.05,parent.get_scale().x)
@@ -1114,7 +1114,7 @@ func _unit(u: BattleUnit,parent: Transform2D) -> void:
 	if camera.focus_remaining>0 and camera.focus_point.distance_to(at)<45:draw_arc(at,radius+17,0,TAU,40,Color("d4afff"),2)
 	if board.selected_actor_id==u.actor_id():draw_arc(at,radius+13,0,TAU,40,ArenaUI.GOLD,2)
 
-func _ability_state(u: BattleUnit) -> void:
+func _ability_state(u: BattleUnit,parent: Transform2D) -> void:
 	var p: Vector2=u.position;var s: float=u.combat_scale();var c:=Color("f1d48f")
 	if u.state_value("mirrorReflectTime")>0:VisualShapes.barrier(self,p,39*s,Color("c4f4f7"),real_age)
 	if u.state_value("paladinBlessingTime")>0:
@@ -1155,7 +1155,12 @@ func _ability_state(u: BattleUnit) -> void:
 		draw_line(cross-Vector2(0,8)*s,cross+Vector2(0,8)*s,Color("ffe6ee"),4*s)
 	if not u.lost_sword.is_empty():
 		var at: Vector2=CharacterPersistence.vector(u.lost_sword.get("point",CharacterPersistence.point(p)))
-		VisualShapes.streak(self,at,-.65,90*s,18*s,Color("e5d3b3"));draw_line(at+Vector2(-17,17),at+Vector2(2,36),Color("9c7149"),5)
+		# The same greatsword it swings, lying where it landed (spinning while still in flight).
+		var spin: float=float(u.lost_sword.get("rotation",0))
+		draw_set_transform_matrix(parent*Transform2D(0,Vector2(1,.35),0,at+Vector2(0,10*s)));draw_circle(Vector2.ZERO,40*s,Color(0,0,0,.18));draw_set_transform_matrix(parent)
+		if not WeaponMotion.draw_loose(self,u.data.type_id,parent*Transform2D(spin,Vector2.ONE*s*float(u.lost_sword.get("sizeBoost",1)),0,at)):
+			VisualShapes.streak(self,at,-.65,90*s,18*s,Color("e5d3b3"));draw_line(at+Vector2(-17,17),at+Vector2(2,36),Color("9c7149"),5)
+		draw_set_transform_matrix(parent)
 	if not u.puppet_control.is_empty():
 		for i in range(3):draw_line(p+Vector2((i-1)*12,-30)*s,p+Vector2((i-1)*23,-77)*s,Color("dca2e1"),1.5)
 	

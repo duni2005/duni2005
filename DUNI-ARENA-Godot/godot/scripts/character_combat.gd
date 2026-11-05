@@ -39,7 +39,7 @@ static func after_hit(source,target,out: DamageOutcome,options: Dictionary) -> v
 	var charge: float=out.hp_damage+out.shield_absorbed
 	if source!=null and source.team!=target.team:
 		source.damage_dealt+=out.hp_damage
-		source.ultimate.charge(source,charge,true)
+		source.ultimate.charge(source,charge*(UnitBalance.ult_self_charge(source.data.type_id) if options.get("dmg",&"")==&"ult" else 1.0),true)
 		if out.hp_damage>0:source.ability.dealt_damage(source,target,out.hp_damage,options)
 	if out.hp_damage>0:
 		target.last_damage_time=target.battle.clock.elapsed

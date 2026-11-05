@@ -233,15 +233,20 @@ static func _spec(entry: Array, key: StringName, main: StringName) -> Dictionary
 static func instances(type_id: int) -> Array[Dictionary]:
 	var out: Array[Dictionary] = []
 	var table: Dictionary = DAMAGE.get(_name(type_id), {})
-	for key in table:out.append(_spec(table[key], key, main_kind(type_id)))
+	for key in table:out.append(_skill(_spec(table[key], key, main_kind(type_id)), type_id))
 	out.append(_spec(TRANSCEND, &"transcend", main_kind(type_id)))
 	return out
 ## Spec for one damage instance; unknown keys fall back to the unit's basic attack (or a plain
 ## hit of its main kind).
+## UnitBalance.SKILL: a per-skill damage correction scales both the flat part and the ratio.
+static func _skill(d: Dictionary, type_id: int) -> Dictionary:
+	var f: float = UnitBalance.skill(type_id, d.key)
+	if f != 1.0:d.base *= f;d.ratio *= f
+	return d
 static func spec(type_id: int, key: StringName) -> Dictionary:
 	var main: StringName = main_kind(type_id)
 	var table: Dictionary = DAMAGE.get(_name(type_id), {})
-	if table.has(key):return _spec(table[key], key, main)
+	if table.has(key):return _skill(_spec(table[key], key, main), type_id)
 	if key == &"transcend":return _spec(TRANSCEND, key, main)
 	if ITEM.has(key):return _spec(ITEM[key], key, main)
 	if STRATEGY.has(key):return _spec(STRATEGY[key], key, main)
