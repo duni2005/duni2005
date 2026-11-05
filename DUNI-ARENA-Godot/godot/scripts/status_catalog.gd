@@ -46,6 +46,8 @@ const ENTRIES = {
 	&"dark_mark":["암흑 표식", &"mark", "skull", "다른 유닛이 직접 공격으로 터뜨리면 그 공격 피해 +20%."],
 	&"saint":["성자", &"mark", "crown", "광신도가 따르는 성자. 따르는 광신도마다 주는 피해 +10%."],
 	&"gift_power":["선물: 힘", &"buff", "event", "산타의 선물. 공격력 +50%."],
+	&"bounty":["현상금", &"mark", "gold", "바운티 헌터가 건 현상금. 받는 피해 +5%, 처치되면 헌터가 100 G를 받는다."],
+	&"top_boost":["폭주 회전", &"buff", "event", "팽이가 더 빠르고 강하게 회전한다."],
 	&"shield":["보호막", &"buff", "shield", "피해를 먼저 흡수한다."],
 	&"iron":["철벽", &"buff", "iron", "받는 피해가 크게 줄어든다."],
 	&"invincible":["무적", &"buff", "heart", "어떤 피해도 받지 않는다."],
@@ -141,6 +143,8 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if _num(s, "targetedTime") > 0:add.call(&"targeted", _secs(_num(s, "targetedTime")))
 	if _num(s, "giftWeakTime") > 0:add.call(&"gift_weak", _secs(_num(s, "giftWeakTime")))
 	if _num(s, "giftPowerTime") > 0:add.call(&"gift_power", _secs(_num(s, "giftPowerTime")))
+	if s.has("bountyBy"):add.call(&"bounty")
+	if _num(s, "topBoost") > 0:add.call(&"top_boost", _secs(_num(s, "topBoost")))
 	if _num(s, "whisperStacks") > 0:add.call(&"whisper", "%d/3" % int(_num(s, "whisperStacks")))
 	# 표식
 	if not str(s.get("lightMark", "")).is_empty():add.call(&"light_mark")

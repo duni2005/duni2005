@@ -52,4 +52,6 @@ func capture_enemy(unit: BattleUnit) -> void:
 	enemy_states[unit.source_enemy_id] = EnemyStateCodec.snapshot(unit)
 
 var member_victory_gold: Dictionary = {}
+## Gold from 바운티 헌터 bounties collected by guild members, paid however the battle ends.
+var bounty_gold: int = 0
 var stats: Array = [] # BattleStats rows for the result screen's 통계 page

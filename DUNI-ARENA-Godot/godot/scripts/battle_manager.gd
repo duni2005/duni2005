@@ -297,6 +297,7 @@ func finish_with_reason(reason: BattleEndReason.Value, winning_team: int) -> boo
 			result.survivors.append(unit.battle_id)
 		result.units.append({"battle_id": unit.battle_id, "type_id": unit.data.type_id, "team": unit.team, "hp": unit.current_hp, "alive": unit.alive, "position": unit.position})
 		result.capture_member(unit)
+		if not unit.source_member_id.is_empty():result.bounty_gold += int(unit.state_value("bountyGold"))
 		result.capture_enemy(unit)
 	# Discard runtime execution AFTER detached persistence snapshots are captured.
 	for unit in units:

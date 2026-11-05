@@ -121,6 +121,7 @@ func _settled(result: BattleResult,status: BattleSettlement.Status) -> void:
 	if state.processed_results.has(result.result_id):return
 	_defer_save=true
 	state.processed_results[result.result_id]=true
+	guild.state.gold+=result.bounty_gold
 	var room: RoomState=current_room()
 	# Settlement already performed healing and room clear before checking guild death.
 	if room.cleared:

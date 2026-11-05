@@ -1,7 +1,7 @@
 class_name AttackVisuals
 extends RefCounted
 ## Source-grounded geometry. All inputs are observed; never writes to combat objects.
-const INKS=["ffd39c","e2f5ad","bca9ee","a9eee5","f3dd9e","c5f4e5","ffe6ba","f0ca83","efb1de","efa794","e5d3ae","c2faff","d3e7b5","ffbc75","dceff5","d0fff0","fff0bc","ffc1a0","ebe5ba","e9d7ff","8bdbff","b4e5e8","d5c2ff","eed18f","ffc4c3","f4c0dc","e8c48f","ffb08c","bdf0ff","ffe08a","ff9aa4","bfeaff","ffb36b","c8f7e6","e9d7a4","c4f2a8","c9f5a0","f2b8ff","b9d98a","bfe9ff","ffb070","dff4ff","ff6a6a"]
+const INKS=["ffd39c","e2f5ad","bca9ee","a9eee5","f3dd9e","c5f4e5","ffe6ba","f0ca83","efb1de","efa794","e5d3ae","c2faff","d3e7b5","ffbc75","dceff5","d0fff0","fff0bc","ffc1a0","ebe5ba","e9d7ff","8bdbff","b4e5e8","d5c2ff","eed18f","ffc4c3","f4c0dc","e8c48f","ffb08c","bdf0ff","ffe08a","ff9aa4","bfeaff","ffb36b","c8f7e6","e9d7a4","c4f2a8","c9f5a0","f2b8ff","b9d98a","bfe9ff","ffb070","dff4ff","ff6a6a","c8f7e6","ffcf6e"]
 static func ink(type: int) -> Color:return Color(INKS[type])
 static func body_visible(u: BattleUnit) -> bool:
 	if not u.alive or u.frog_flight!=0 or u.state_value("santaAway")>0:return false
@@ -133,6 +133,11 @@ static func projectile(canvas: CanvasItem,p: BattleProjectile,trail: Array,time:
 		canvas.draw_circle(at,size,Color("ff6b25",.5*(1-k)))
 		canvas.draw_circle(at+dir*size*.2,size*.62,Color("ffc35a",.7*(1-k)))
 		canvas.draw_circle(at+dir*size*.3,size*.28,Color("fff4cf",.85*(1-k)))
+	elif kind=="deagle":
+		# A heavy .50 round: a hot white-gold tracer with a short smoky tail.
+		VisualShapes.streak(canvas,at-dir*14*scale,dir.angle(),46*scale,4*scale,Color("ffe6a8"),.75)
+		VfxArt.glow(canvas,at,12*scale,Color("ffcf6e"),.5)
+		canvas.draw_line(at-dir*7*scale,at+dir*5*scale,Color("fff6dc"),4,true)
 	elif kind=="crossBolt":
 		# A short steel-tipped bolt with a pale wind streak behind it.
 		VisualShapes.streak(canvas,at-dir*10*scale,dir.angle(),26*scale,3*scale,Color("dff7ec"),.55)

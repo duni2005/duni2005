@@ -515,6 +515,46 @@ func advance(delta: float) -> void:
 				"ignite":
 					add_effect("slime_ring",e.point,Color("ff8a3d"),26+2*float(e.metadata.get("stacks",1)),.35)
 					particles.burst(e.point,Color("ffb347"),8+int(e.metadata.get("stacks",1)),260,0,"spark",true)
+				"top_bounce":
+					# The top ricochets: a puff of wind and sparks where it struck the wall or a unit.
+					add_effect("slime_ring",e.point,Color("c8f7e6"),26,.3)
+					particles.burst(e.point,Color("e8fff6"),6,220,0,"spark",true)
+				"top_hit":
+					var ta: float=float(e.metadata.get("angle",0));var boosted: bool=bool(e.metadata.get("boost",false))
+					add_effect("griffin_gust",e.point-Vector2.from_angle(ta)*20,Color("c8f7e6"),70 if boosted else 52,.3,ta);effects[-1]["cone"]=.7
+					particles.burst(e.point,Color("ffb070") if boosted else Color("e8fff6"),10 if boosted else 7,280,ta,"spark",true)
+					if boosted:camera.impact(4,e.point)
+				"top_boost":
+					# 폭주 회전: a red-hot whirlwind flares round the top.
+					add_effect("hero_shock",e.point,Color("ff8a4a"),110,.6)
+					add_effect("slime_ring",e.point,Color("ffd0a0"),90,.5)
+					particles.burst(e.point,Color("ff9a4a"),24,360,0,"spark",true);particles.burst(e.point,Color("e8fff6"),16,260,0,"smoke",true)
+					camera.impact(7,e.point)
+				"bounty_marked":
+					add_effect("targeted",e.point,Color("ffcf6e"),42,.8)
+					particles.burst(e.point,Color("ffd65c"),10,160,-PI*.5,"spark",true)
+				"bounty_paid":
+					# Bounty collected: gold coins burst from the fallen target and a "+100 G" rises.
+					particles.burst(e.point,Color("ffd65c"),26,320,-PI*.5,"shard",true);particles.burst(e.point,Color("fff3c4"),12,200,-PI*.5,"spark",true)
+					add_effect("star_burst",e.point,Color("ffd65c"),90,.8)
+					add_effect("gift_text",e.point,Color("ffd65c"),0,1.6);effects[-1]["text"]="현상금 +%d G"%int(e.metadata.get("gold",100))
+				"deagle_shot":
+					# Muzzle flash, smoke and a spent casing flicked aside.
+					var ma: float=float(e.metadata.get("angle",0))
+					add_effect("muzzle_flash",e.point,Color("ffcf6e"),34,.12,ma)
+					particles.burst(e.point,Color("fff3c4"),8,260,ma,"spark",true);particles.burst(e.point,Color("8a8478"),5,70,ma,"smoke",true)
+					particles.burst(e.point-Vector2.from_angle(ma)*26,Color("e8c46a"),1,180,ma-PI*.5,"shard",true)
+					camera.impact(2.5,e.point)
+				"deagle_reload":
+					add_effect("gift_text",e.point,Color("d9a45a"),0,.8);effects[-1]["text"]="장전"
+				"bounty_shot":
+					# 현상금 집행: an instant shot straight to each marked target, which is chained in place.
+					var to: Vector2=CharacterPersistence.vector(e.metadata.get("to",{}),e.point)
+					add_effect("bounty_tracer",e.point,Color("ffcf6e"),0,.45);effects[-1]["to"]=to
+					add_effect("star_burst",to,Color("ffd65c"),70,.6)
+					add_effect("gift_mark",to,Color("b8c2d6"),40,1.6);effects[-1]["mark"]="root"
+					particles.burst(to,Color("fff3c4"),18,340,(to-e.point).angle(),"spark",true);particles.burst(e.point,Color("ffcf6e"),10,260,(to-e.point).angle(),"spark",true)
+					impact_pause(60);camera.impact(9,to)
 				"snow_club":
 					# The ice club lands: frost chips and a cold ring.
 					var ca: float=float(e.metadata.get("angle",0))
@@ -801,6 +841,16 @@ func _draw() -> void:
 			var front: Vector2=e.point+Vector2.from_angle(float(e.angle))*54;var br: float=8+26*t
 			draw_circle(front+Vector2(0,br*.5),br,Color(0,0,0,.15));draw_circle(front,br,Color("f4fbff"));draw_arc(front,br,0,TAU,24,Color("9fc3dc"),2,true)
 			draw_circle(front+Vector2(-br*.3,-br*.3),br*.45,Color("ffffff"))
+		elif e.kind=="bounty_tracer":
+			# A straight hot tracer from the hunter to its target.
+			var to: Vector2=e.get("to",e.point);var w: float=10*(1-t)+1.5
+			draw_line(e.point,to,Color("ffcf6e",.55*(1-t)),w*2,true);draw_line(e.point,to,Color("fff6dc",1-t),w*.6,true)
+			VfxArt.glow(self,to,26,Color("ffcf6e"),.6*(1-t))
+		elif e.kind=="muzzle_flash":
+			# A short star-shaped flash at the muzzle.
+			var md:=Vector2.from_angle(float(e.angle))
+			VfxArt.glow(self,e.point,e.radius*(1-t),Color("ffcf6e"),.8*(1-t))
+			draw_colored_polygon(PackedVector2Array([e.point-md.orthogonal()*7,e.point+md*e.radius*(1.2-t),e.point+md.orthogonal()*7]),Color("fff3c4",1-t))
 		elif e.kind=="frost_patch":
 			# A frozen patch of ground: pale ice with crystal cracks, fading at the end.
 			var fade: float=clampf(minf(t*4,(1-t)*3),0,1)
@@ -1153,6 +1203,19 @@ func _ability_state(u: BattleUnit,parent: Transform2D) -> void:
 		var cross: Vector2=p+Vector2(0,-48)*s
 		draw_line(cross-Vector2(12,0)*s,cross+Vector2(12,0)*s,Color("ffe6ee"),4*s)
 		draw_line(cross-Vector2(0,8)*s,cross+Vector2(0,8)*s,Color("ffe6ee"),4*s)
+	if u.data.type_id==43 and u.alive:
+		# 팽이: spinning wind arcs round the body; red-hot while 폭주 회전 lasts.
+		var hot: bool=u.state_value("topBoost")>0;var spin: float=real_age*(26 if hot else 16)
+		if hot:VfxArt.glow(self,p,46*s,Color("ff8a4a"),.35+.1*sin(real_age*20))
+		for k in range(3):
+			var turn: float=spin+k*TAU/3;draw_arc(p,(30+k*5)*s,turn,turn+1.6,14,Color("ffb070" if hot else "e8fff6",.75-.2*k),3-k*.6,true)
+	if u.character_specific_state.has("bountyBy") and u.alive:
+		# 현상금: a gold crosshair with a coin over the bountied unit.
+		var mark: Vector2=p+Vector2(0,-58)*s;var pulse: float=1+.08*sin(real_age*5)
+		draw_arc(mark,11*pulse,0,TAU,24,Color("ffcf6e"),2,true)
+		for k in range(4):
+			var arm: Vector2=Vector2.from_angle(k*PI*.5);draw_line(mark+arm*7,mark+arm*15*pulse,Color("ffcf6e"),2,true)
+		draw_circle(mark,4.5,Color("ffd65c"));draw_string(ThemeDB.fallback_font,mark+Vector2(-3,4),"$",HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("6b4a10"))
 	if not u.lost_sword.is_empty():
 		var at: Vector2=CharacterPersistence.vector(u.lost_sword.get("point",CharacterPersistence.point(p)))
 		# The same greatsword it swings, lying where it landed (spinning while still in flight).

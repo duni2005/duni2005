@@ -85,6 +85,17 @@ static func _draw_prop(canvas: CanvasItem,type: int,index: float,alpha: float) -
 			canvas.draw_rect(Rect2(18,1,18,8),Color(Color("172326"),alpha));canvas.draw_rect(Rect2(19,2,16,6),Color(Color("8d949e"),alpha))
 			canvas.draw_rect(Rect2(34,0,5,10),Color(Color("3a3f45"),alpha))
 			canvas.draw_circle(Vector2(42,5),3.5,Color(Color("ff8a3d"),alpha*.9));canvas.draw_circle(Vector2(42,5),1.8,Color(Color("ffe08a"),alpha))
+		44:
+			# A heavy Desert Eagle: short chunky gunmetal slide, brass-trimmed grip, kicked up a
+			# little at the end of each shot.
+			var kick:=Transform2D(-swing*.6,Vector2.ZERO)
+			canvas.draw_colored_polygon(PackedVector2Array([kick*Vector2(13,-1),kick*Vector2(35,-1),kick*Vector2(35,9),kick*Vector2(13,9)]),Color(Color("11161c"),alpha))
+			canvas.draw_colored_polygon(PackedVector2Array([kick*Vector2(14,0),kick*Vector2(34,0),kick*Vector2(34,8),kick*Vector2(14,8)]),Color(Color("4a525e"),alpha))
+			canvas.draw_line(kick*Vector2(15,2),kick*Vector2(33,2),Color(Color("9aa4b2"),alpha),1.5)
+			canvas.draw_rect(Rect2(kick*Vector2(33,3),Vector2(3,3)),Color(Color("11161c"),alpha))
+			canvas.draw_colored_polygon(PackedVector2Array([kick*Vector2(14,7),kick*Vector2(23,7),kick*Vector2(21,21),kick*Vector2(12,21)]),Color(Color("11161c"),alpha))
+			canvas.draw_colored_polygon(PackedVector2Array([kick*Vector2(15,8),kick*Vector2(22,8),kick*Vector2(20,20),kick*Vector2(13,20)]),Color(Color("8a5a36"),alpha))
+			canvas.draw_line(kick*Vector2(16,10),kick*Vector2(14,19),Color(Color("d9a45a"),alpha),1.2)
 		33:
 			# A pair of feathered wings half spread.
 			for side in [-1,1]:

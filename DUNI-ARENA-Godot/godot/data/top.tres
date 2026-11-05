@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/unit_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/attack_data.gd" id="2"]
+
+[sub_resource type="Resource" id="Attack"]
+script = ExtResource("2")
+kind = 0
+windup = 0.1
+active = 0.1
+recovery = 0.2
+reach = 40
+cone = 1.0
+impulse = 220
+
+[resource]
+script = ExtResource("1")
+type_id = 43
+display_name = "팽이"
+base_gold_cost = 210
+max_hp = 260
+attack = 20
+defense_power = 30
+move_speed = 165
+attack_range = 40
+attack_interval = 1.0
+critical_chance = 0.05
+tags = PackedStringArray("일반", "돌격형")
+emoji = "🌀"
+ultimate_windup = 0.2
+attack_profile = SubResource("Attack")
+recruit_tokens = 3

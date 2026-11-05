@@ -90,7 +90,9 @@ static func outgoing(source, target, spec: Dictionary, options: Dictionary) -> f
 static func crit_taken(target) -> float:return EROSION_CRIT if target.state_value("erosionTime") > 0 else 0.0
 ## 산타의 선물: 받는 피해 +50% (giftWeakTime) / 공격력 +50% (giftPowerTime, in outgoing).
 const GIFT_FACTOR: float = 1.5
-static func taken(u) -> float:return (FROSTBITE_TAKEN if u.state_value("frostbiteTime") > 0 else 1.0) * (TARGETED_TAKEN if u.state_value("targetedTime") > 0 else 1.0) * (GIFT_FACTOR if u.state_value("giftWeakTime") > 0 else 1.0)
+## 현상금 (바운티 헌터): a bountied unit takes 5% more damage.
+const BOUNTY_TAKEN: float = 1.05
+static func taken(u) -> float:return (FROSTBITE_TAKEN if u.state_value("frostbiteTime") > 0 else 1.0) * (TARGETED_TAKEN if u.state_value("targetedTime") > 0 else 1.0) * (GIFT_FACTOR if u.state_value("giftWeakTime") > 0 else 1.0) * (BOUNTY_TAKEN if u.character_specific_state.has("bountyBy") else 1.0)
 static func attack_speed(u) -> float:
 	if u.character_specific_state.is_empty():return 1
 	return (1 + WIND_ATTACK_SPEED * u.state_value("windStacks")) * (HEADWIND_ATTACK_SPEED if u.state_value("headwindTime") > 0 else 1.0)

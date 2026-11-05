@@ -187,6 +187,8 @@ func _format_result(result: BattleResult) -> void:
 		var equipment_gold: int=0
 		for id in result.surviving_member_ids:equipment_gold+=int(result.member_victory_gold.get(id,0))
 		result_rewards.text="승리 보상\n골드 +%d\n토큰 +%d"%[room.gold_reward+equipment_gold,room.token_reward]
+	if result.bounty_gold>0:
+		result_rewards.text=(result_rewards.text+"\n" if result_rewards.visible else "")+"현상금 +%d G"%result.bounty_gold;result_rewards.visible=true
 	result_label.hide();result_banner.hide()
 func _finish_retreat_presentation() -> void:
 	# The session and autosave already settled this retreat exactly once.

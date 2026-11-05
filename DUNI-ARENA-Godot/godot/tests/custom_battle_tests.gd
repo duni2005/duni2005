@@ -66,6 +66,7 @@ func run(tree: SceneTree) -> void:
 	battle_stats(tree)
 	prediction_variety(tree)
 	balance_0845(tree)
+	top_and_bounty(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -88,7 +89,7 @@ func step(b: BattleManager,seconds: float) -> void:
 		if b.finished:return
 		b.simulate(1.0/60)
 func new_characters(tree: SceneTree) -> void:
-	verify(CharacterCatalog.all().size()==43,"43 characters in the catalog")
+	verify(CharacterCatalog.all().size()==45,"45 characters in the catalog")
 	# 말뚝: opening stake tethers the nearest enemy to a small circle.
 	var b:=duel(tree,[[26,0,Vector2(150,400)],[1,1,Vector2(450,400)],[1,1,Vector2(700,700)]])
 	step(b,.2)
@@ -450,7 +451,7 @@ func stat_damage(tree: SceneTree) -> void:
 		if not UnitStatTable.STATS.has(unit_name) or not UnitStatTable.DAMAGE.has(unit_name):tagged=false
 		for d in UnitStatTable.instances(id):
 			if not UnitStatTable.KIND_NAMES.has(d.kind) or not d.tags.all(func(t):return t in UnitStatTable.ELEMENTS+UnitStatTable.DAMAGE_TAGS):tagged=false
-	verify(tagged and CharacterCatalog.NAMES.size()==43,"all 43 units have base stats and exactly one kind plus known tags per damage instance")
+	verify(tagged and CharacterCatalog.NAMES.size()==45,"all 45 units have base stats and exactly one kind plus known tags per damage instance")
 	verify(UnitStatTable.mitigation(0)==1 and UnitStatTable.mitigation(100)==.5 and is_equal_approx(UnitStatTable.mitigation(-100),1.5),"mitigation 100/(100+def), 2-100/(100-def) below zero")
 	# Bomber (fire · explosion · area) hits a mage.
 	var b:=duel(tree,[[13,0,Vector2(300,400)],[2,1,Vector2(380,400)]]);var src: BattleUnit=b.units[0];var tgt: BattleUnit=b.units[1];b.started=true
@@ -912,6 +913,40 @@ func balance_0845(tree: SceneTree) -> void:
 	sat.ultimate_gauge=0;CharacterCombat.after_hit(sat,foe,out,{"dmg":&"basic"});var plain: float=sat.ultimate_gauge
 	sat.ultimate_gauge=0;CharacterCombat.after_hit(sat,foe,out,{"dmg":&"ult"});var from_ult: float=sat.ultimate_gauge
 	verify(plain>0 and is_equal_approx(from_ult,plain*.7),"소형 위성 gains 70% gauge from its own ultimate's damage")
+	b.queue_free()
+
+## 팽이 (43) and 바운티 헌터 (44), 0.85.0.
+func top_and_bounty(tree: SceneTree) -> void:
+	verify(UnitStatTable.spec(43,&"basic").tags.has(&"melee") and UnitStatTable.spec(43,&"basic").tags.has(&"dot") and UnitStatTable.spec(43,&"basic").tags.has(&"wind"),"팽이: melee · over time · wind")
+	var b:=duel(tree,[[43,0,Vector2(200,400)],[4,1,Vector2(560,400)]])
+	step(b,.05)
+	var top: BattleUnit=b.units[0];var foe: BattleUnit=b.units[1]
+	foe.move_speed=0;foe.combat.cooldown=1000;foe.parry_cooldown=1000;foe.defense_cooldown=1000;foe.evade_remaining=0
+	top.set_state("topAngle",0.0);var hp: float=foe.current_hp;var bounced: bool=false;var moved: float=0;var last: Vector2=top.position
+	for i in range(60*10):
+		step(b,1.0/60);moved+=top.position.distance_to(last);last=top.position
+		if b.combat_event_counts.get(&"top_bounce",0)>0 and foe.current_hp<hp:bounced=true
+	verify(foe.current_hp<hp and b.combat_event_counts.get(&"top_hit",0)>=2 and bounced and moved>1200,"팽이 keeps spinning forward, bouncing, and hits the enemies it touches")
+	var base_rate: float=top.ability.movement_rate(top);top.set_state("topBoost",5.0)
+	verify(top.ability.movement_rate(top)>base_rate*1.5,"폭주 회전 speeds the top up")
+	b.queue_free()
+	b=duel(tree,[[44,0,Vector2(200,400)],[4,1,Vector2(500,300)],[0,1,Vector2(520,520)],[1,1,Vector2(600,420)]])
+	step(b,.05)
+	var hunter: BattleUnit=b.units[0]
+	var marked: Array=b.units.filter(func(v):return v.character_specific_state.has("bountyBy"))
+	verify(marked.size()==2 and marked.all(func(v):return v.team==1),"현상금 on two random enemies at the start")
+	var m: BattleUnit=marked[0]
+	verify(is_equal_approx(ElementEffects.taken(m),1.05),"a bountied enemy takes 5% more damage")
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0;u.evade_remaining=0
+	hunter.combat.cooldown=0;hunter.combat.aim_angle=0;var shots: int=0
+	for i in range(6):hunter.ability.release_basic(hunter);shots+=1
+	verify(int(hunter.state_value("rounds"))==0 and hunter.state_value("reloadRemaining")>0 and b.projectiles.filter(func(p):return p.kind=="deagle").size()==6,"six Desert Eagle rounds, then a reload")
+	var hp2: float=marked[1].current_hp;hunter.ultimate_gauge=100
+	verify(hunter.ultimate.request(hunter,marked[1]),"the hunter starts its ultimate")
+	step(b,1.0)
+	verify(marked[1].current_hp<hp2 and marked[1].state_value("rootedUntil")>b.clock.elapsed+3,"현상금 집행 hits every bountied enemy and roots them for 5 s")
+	m.receive_damage(m.current_hp+1,hunter);m.announce_death(hunter);step(b,.1)
+	verify(int(hunter.state_value("bountyGold"))==100 and b.combat_event_counts.get(&"bounty_paid",0)==1,"a fallen bounty pays 100 gold")
 	b.queue_free()
 
 const SantaRef=preload("res://scripts/abilities/santa_ability.gd")

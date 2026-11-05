@@ -64,6 +64,8 @@ const STATS = {
 	"flame_blade":[&"physical", 45, 0, 10, 38, 26],
 	"snowman":[&"magic", 55, 0, 15, 12, 34],
 	"santa":[&"physical", 60, 10, 10, 26, 30],
+	"top":[&"physical", 45, 10, 5, 30, 10],
+	"bounty_hunter":[&"physical", 30, 0, 5, 40, 10],
 }
 
 const DAMAGE = {
@@ -206,6 +208,12 @@ const DAMAGE = {
 		&"basic":[&"basic", &"physical", 0, 0.6, [&"melee"], "밀치기"],
 		&"gift_mid":[&"ultimate", &"magic", 10, 1.2, [&"ice"], "선물: 얼음 피해"],
 		&"gift_high":[&"ultimate", &"magic", 20, 2.4, [&"ice"], "선물: 큰 얼음 피해"]},
+	"top":{
+		&"basic":[&"basic", &"physical", 0, 0.5, [&"melee", &"dot", &"wind"], "회전 돌진 (닿을 때마다)"],
+		&"ult":[&"ultimate", &"physical", 0, 0.8, [&"melee", &"dot", &"wind"], "폭주 회전 (5초, 닿을 때마다)"]},
+	"bounty_hunter":{
+		&"basic":[&"basic", &"physical", 0, 1.25, [&"projectile"], "데저트 이글 (6발 · 장전)"],
+		&"ult":[&"ultimate", &"physical", 10, 2.2, [&"projectile"], "현상금 집행 (5초 속박)"]},
 }
 ## Damage every unit can deal regardless of character, using its main damage kind.
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]
