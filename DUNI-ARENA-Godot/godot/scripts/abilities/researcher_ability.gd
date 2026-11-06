@@ -4,12 +4,11 @@ extends CharacterAbility
 ##    shield for BOOST_TIME seconds.
 ##  · 억제 약물: a vial at the nearest enemy — damage (magic · projectile), and for SUPPRESS_TIME
 ##    seconds slower attacks (ElementEffects.SUPPRESS_ATTACK_SPEED) and slower movement (slowTime).
-## Ultimate 인지 각성 약물: a drug bomb lobbed where the enemies crowd; FUSE seconds after it lands it
-## bursts (magic · explosion · area) and drives everyone hit into 광란 for FRENZY_TIME seconds
+## Ultimate 인지 각성 약물: a drug bomb lobbed where the enemies crowd bursts the moment it lands
+## (magic · explosion · area) and drives everyone hit into 광란 for FRENZY_TIME seconds
 ## (ElementEffects.start_frenzy).
 const BOOST_TIME: float = 2
 const SUPPRESS_TIME: float = 2
-const FUSE: float = 2
 const FRENZY_TIME: float = 6
 const BURST_RADIUS: float = 150
 const BOMB_REACH: float = 420
@@ -52,20 +51,7 @@ func projectile_tick(u,dt: float) -> void:
 			var ally=u.battle.find_actor(str(p.metadata.get("ally","")))
 			if ally==null or not ally.alive:p.live=false;continue
 			if p.position.distance_to(ally.position)<28*ally.combat_scale() or p.lifetime<=dt*1.5:apply_boost(u,ally);p.live=false
-		elif p.kind=="drugBomb" and p.lifetime<=dt*1.5:
-			p.live=false;var bombs: Array=u.character_specific_state.get("drugBombs",[])
-			bombs.append({"x":p.position.x,"y":p.position.y,"fuse":FUSE});u.character_specific_state["drugBombs"]=bombs
-			u.battle.emit_combat_event(&"drug_bomb_land",p.position,{"actor_id":u.battle_id,"fuse":FUSE,"radius":BURST_RADIUS*u.combat_scale()})
-## Fuses burn down even while the researcher is busy.
-func passive_tick(u,dt: float) -> void:
-	var bombs: Array=u.character_specific_state.get("drugBombs",[])
-	if bombs.is_empty():return
-	var left: Array=[]
-	for b in bombs:
-		b.fuse=float(b.fuse)-dt
-		if float(b.fuse)>0:left.append(b);continue
-		burst(u,Vector2(float(b.x),float(b.y)))
-	u.character_specific_state["drugBombs"]=left
+		elif p.kind=="drugBomb" and p.lifetime<=dt*1.5:p.live=false;burst(u,p.position)
 func burst(u,at: Vector2) -> void:
 	var r: float=BURST_RADIUS*u.combat_scale()
 	u.battle.emit_combat_event(&"drug_bomb_burst",at,{"actor_id":u.battle_id,"radius":r})
@@ -94,4 +80,4 @@ func release_ultimate(u,a: Dictionary,_dt: float) -> bool:
 func ultimate_danger(u,observer,a: Dictionary) -> bool:
 	return observer.position.distance_to(CharacterPersistence.vector(a.get("point",{}),u.position))<BURST_RADIUS*u.combat_scale()+30
 func cast_area(u,a: Dictionary) -> Dictionary:return {"point":a.get("point",CharacterPersistence.point(u.position)),"radius":BURST_RADIUS*u.combat_scale()}
-func debug_state(u) -> String:return "turn:%d bombs:%d"%[int(u.state_value("drugTurn")),u.character_specific_state.get("drugBombs",[]).size()]
+func debug_state(u) -> String:return "turn:%d"%int(u.state_value("drugTurn"))

@@ -1016,7 +1016,7 @@ func researcher(tree: SceneTree) -> void:
 		step(b,1.0/60)
 		if b.combat_event_counts.get(&"drug_bomb_burst",0)>0:burst=true;break
 	var mad: Array=b.units.filter(func(v):return v.state_value("frenzyTime")>0)
-	verify(burst and not mad.is_empty() and mad.all(func(v):return v.original_team==1 and v.stance==CombatStance.RUSH and v.team!=1),"the bomb bursts 2 s after landing and drives the enemies it hits into 광란")
+	verify(burst and not mad.is_empty() and mad.all(func(v):return v.original_team==1 and v.stance==CombatStance.RUSH and v.team!=1),"the bomb bursts as it lands and drives the enemies it hits into 광란")
 	var m: BattleUnit=mad[0];var mates: Array=b.units.filter(func(v):return v!=m and v.alive and v.team==1)
 	if not mates.is_empty():verify(m.target_selector.select_target(m,b.units).team==1,"a frenzied unit goes for its own side first")
 	verify(not b.units.filter(func(v):return v!=m and v.alive and v.original_team==1 and v.state_value("frenzyTime")<=0).any(func(v):return v.enemies(false).has(m)),"its (calm) allies do not target it back")

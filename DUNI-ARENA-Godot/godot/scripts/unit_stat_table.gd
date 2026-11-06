@@ -218,7 +218,7 @@ const DAMAGE = {
 		&"ult":[&"ultimate", &"physical", 10, 2.2, [&"projectile"], "현상금 집행 (5초 속박)"]},
 	"researcher":{
 		&"basic":[&"basic", &"magic", 0, 0.8, [&"projectile"], "억제 약물 (2초 공속 저하 · 둔화)"],
-		&"ult":[&"ultimate", &"magic", 10, 1.6, [&"explosion", &"area"], "인지 각성 폭탄 (광란 6초)"]},
+		&"ult":[&"ultimate", &"magic", 6, 1.1, [&"explosion", &"area"], "인지 각성 폭탄 (광란 6초)"]},
 }
 ## Damage every unit can deal regardless of character, using its main damage kind.
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]

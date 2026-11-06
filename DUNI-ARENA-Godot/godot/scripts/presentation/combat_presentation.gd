@@ -558,9 +558,6 @@ func advance(delta: float) -> void:
 					# 억제 약물: a violet splash that drips down.
 					add_effect("slime_ring",e.point,Color("b07cff"),34,.4)
 					particles.burst(e.point,Color("b07cff"),10,160,PI*.5,"plume",true);particles.burst(e.point,Color("e2d0ff"),6,200,0,"shard",true)
-				"drug_bomb_land":
-					# The drug bomb lands and ticks: a warning ring that fills as the fuse burns.
-					particles.burst(e.point,Color("c8ff5a"),10,160,0,"shard",true)
 				"drug_bomb_burst":
 					# A huge chemical blast: a fireball tinted green-violet and a lingering gas cloud.
 					var gr: float=float(e.metadata.get("radius",150))
@@ -1297,16 +1294,6 @@ func _ability_state(u: BattleUnit,parent: Transform2D) -> void:
 		draw_line(cross-Vector2(12,0)*s,cross+Vector2(12,0)*s,Color("ffe6ee"),4*s)
 		draw_line(cross-Vector2(0,8)*s,cross+Vector2(0,8)*s,Color("ffe6ee"),4*s)
 	if not u.duel.is_empty() and u.alive:_rps_hands(u,p,maxf(s,1.0))
-	for bomb in u.character_specific_state.get("drugBombs",[]):
-		# 인지 각성 약물: a ticking ring over the blast area, filling as the fuse burns, and a bubbling bomb.
-		var at: Vector2=Vector2(float(bomb.x),float(bomb.y));var t: float=clampf(1-float(bomb.fuse)/2.0,0,1)
-		var radius: float=150*u.combat_scale();var pulse: float=.5+.5*sin(real_age*(8+t*14))
-		draw_circle(at,radius,Color(Color("9f6bd6"),.10+.08*pulse))
-		draw_arc(at,radius,0,TAU,64,Color(Color("c8ff5a"),.6),2,true)
-		draw_arc(at,radius*.92,-PI*.5,-PI*.5+TAU*t,64,Color(Color("ff5a5a"),.85),5,true)
-		draw_circle(at,10+2*pulse,Color("c8ff5a"));draw_circle(at+Vector2(-3,-3),3,Color(1,1,1,.8))
-		for k in range(3):
-			var rise: float=fmod(real_age*1.4+k*.33,1.0);draw_circle(at+Vector2((k-1)*6,-12-rise*22),3*(1-rise)+1,Color(Color("c8ff5a"),.8*(1-rise)))
 	if u.state_value("frenzyTime")>0 and u.alive:
 		# 광란: a pulsing red aura, an anger mark and wild red eyes over the head.
 		var pulse: float=.5+.5*sin(real_age*12)
