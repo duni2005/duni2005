@@ -168,7 +168,7 @@ func _refresh_map_cards() -> void:
 			var room: RoomState=state.map.get_room(id);var button: ArenaCard=room_buttons[id]
 			var kind: String=RoomType.LABELS.get(room.visible_kind(),"미탐험")
 			if room.discovered and room.room_type==RoomType.EVENT:kind=ArenaUI.EVENT_NAMES.get(room.event_type,kind)
-			var marker: String="✓ 클리어" if room.cleared else "소비 완료" if room.consumed else "방문함" if room.visited else "발견" if room.discovered or room.publicly_visible else "탐험 가능"
+			var marker: String="√ 클리어" if room.cleared else "소비 완료" if room.consumed else "방문함" if room.visited else "발견" if room.discovered or room.publicly_visible else "탐험 가능"
 			button.text="%d번 방\n%s\n%s"%[room.lane+1,kind,marker];button.title=kind;button.subtitle="%d"%(room.lane+1);button.status_text=marker
 			button.kind=String(room.event_type) if room.discovered and room.room_type==RoomType.EVENT else String(room.visible_kind()) if room.visible_kind()!=&"" else "hidden"
 			button.sold=room.cleared;button.spent=room.consumed or room.cleared and RoomType.is_combat(room.room_type)
@@ -178,7 +178,7 @@ func _refresh_map_cards() -> void:
 	map_scroll.title="%d층 · %s"%[depth+1,TowerSceneDirector.CHAPTER_NAMES.get(floor.chapter_index,"")]
 	map_scroll.chapter=floor.chapter_index
 	map_scroll.progress=_floor_progress(floor,state)
-	map_scroll.reward_button.text="층 정복 보상"+(" ✓" if floor.conquered else "");map_scroll.reward_button.fraction=float(floor.cleared_count)/maxi(1,floor.room_ids.size());map_scroll.reward_button.queue_redraw()
+	map_scroll.reward_button.text="층 정복 보상"+(" √" if floor.conquered else "");map_scroll.reward_button.fraction=float(floor.cleared_count)/maxi(1,floor.room_ids.size());map_scroll.reward_button.queue_redraw()
 	map_scroll.show_floor(depth,floor.room_ids,run.run_id)
 	# A stair opening still waiting for its cutscene keeps the stairs shut until it plays.
 	map_scroll.set_stairs(controller.can_ascend() and not map_shows.any(func(e):return e.kind=="unlock" and e.floor==depth+1))

@@ -356,12 +356,18 @@ func unit_sheet(tree: SceneTree) -> void:
 	for id in range(CharacterCatalog.NAMES.size()):
 		for text in [UnitLore.attack(id),UnitLore.passive(id),UnitLore.ultimate(id)]:
 			var lines: PackedStringArray=text.split("\n")
-			if lines[0].begins_with("• ") or lines.size()>5 or text.contains("(물리") or text.contains("(마법"):tidy=false
+			if lines[0].begins_with("· ") or lines.size()>5 or text.contains("(물리") or text.contains("(마법"):tidy=false
 			for line in lines.slice(1):
-				if not line.begins_with("• "):tidy=false
+				if not line.begins_with("· "):tidy=false
 		for e in UnitLore.EFFECTS.get(id,[]):
 			if not e[0] in [&"basic",&"passive",&"ultimate"] or not e[1] in ["회복","보호막","강화","약화","제어","기타"]:tidy=false
 	verify(tidy,"every description follows the writing rules (summary, bullet lines, no damage tags, typed effects)")
+	var font_chars: bool=true
+	for id in range(CharacterCatalog.NAMES.size()):
+		for text in [UnitLore.attack(id),UnitLore.passive(id),UnitLore.ultimate(id)]:
+			for ch in ["「","」","•","✓","↻","＋"]:
+				if text.contains(ch):font_chars=false
+	verify(font_chars,"descriptions use only characters the game font has")
 	var t:=TowerController.new();t.new_run(5,9);var m: GuildMemberState=t.guild.all_members()[0]
 	var host:=Control.new();tree.root.add_child(host)
 	var sheet:=UnitInfoSheet.open(host,m.unit_type_id,t.guild.member_stats(m),m);await tree.process_frame

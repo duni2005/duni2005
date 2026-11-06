@@ -255,14 +255,14 @@ func _section(icon: String, title: String, text: String, tint: Color, instances:
 	# Plain wrapped labels: a fitted RichTextLabel reported too little height for long texts, so
 	# the end of the sheet could not be scrolled to. "[b]x[/b]" marks a line's bold lead-in and
 	# "[color=#rrggbb]...[/color]" a coloured line.
-	# The first line is the summary; "• " lines are one effect each, a little smaller and indented.
+	# The first line is the summary; "· " lines are one effect each, a little smaller and indented.
 	for line in text.split("\n"):
 		var tint_line: Color = Color("eef1fa")
 		var plain: String = line
 		var colour := RegEx.create_from_string("^\\[color=(#[0-9a-fA-F]{6})\\](.*)\\[/color\\]$").search(plain)
 		if colour != null:tint_line = Color(colour.get_string(1));plain = colour.get_string(2)
 		plain = plain.replace("[b]", "").replace("[/b]", " ·")
-		var bullet: bool = plain.begins_with("• ")
+		var bullet: bool = plain.begins_with("· ")
 		if plain == "없음":tint_line = ArenaUI.MUTED
 		var label := Label.new();label.text = plain;label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		label.add_theme_font_size_override("font_size", 12 if bullet else 13);label.add_theme_color_override("font_color", Color("c9d2ea") if bullet else tint_line)

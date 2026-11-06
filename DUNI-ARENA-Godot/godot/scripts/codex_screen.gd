@@ -214,6 +214,6 @@ func _select(node_name: String) -> void:
 			var e: Array = StatusCatalog.entry(StringName(key));icon_kind = e[2]
 			detail_title.text = e[0];detail_title.add_theme_color_override("font_color", StatusCatalog.kind_color(StringName(key)))
 			detail_sub.text = "%s · 상태이상" % StatusCatalog.kind_label(StringName(key))
-			detail_text.text = "%s\n전투 중 유닛이나 배치 화면의 적 · 아군 · 대기 유닛을 다시 눌러 연 설명창의 「상태」 탭에서 볼 수 있다." % e[3]
+			detail_text.text = "%s\n전투 중 유닛이나 배치 화면의 적 · 아군 · 대기 유닛을 다시 눌러 연 설명창의 '상태' 탭에서 볼 수 있다." % e[3]
 	if tab not in ["item", "status"]:detail_title.remove_theme_color_override("font_color")
 	detail_icon.queue_redraw()

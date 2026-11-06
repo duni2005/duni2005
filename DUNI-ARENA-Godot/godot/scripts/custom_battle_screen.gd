@@ -96,7 +96,7 @@ func _ready() -> void:
 	for speed in [1,2,4]:
 		var s:=_button(speeds,"%d×"%speed,_set_speed.bind(speed));s.toggle_mode=true;s.custom_minimum_size.x=30;s.add_theme_font_size_override("font_size",12);ArenaUI.quiet(s);speed_buttons[speed]=s
 	var trail:=Control.new();trail.size_flags_horizontal=Control.SIZE_EXPAND_FILL;battle_toolbar.add_child(trail)
-	var rematch:=_button(battle_toolbar,"↻ 다시 전투",start_battle);rematch.custom_minimum_size.x=104;rematch.add_theme_font_size_override("font_size",11);ArenaUI.quiet(rematch)
+	var rematch:=_button(battle_toolbar,"다시 전투",start_battle);ArenaUI.with_icon(rematch,"redo",14);rematch.custom_minimum_size.x=104;rematch.add_theme_font_size_override("font_size",11);ArenaUI.quiet(rematch)
 	_build_winner();_build_dialogs()
 	var overlay:=TranscendenceOverlay.new();overlay.screen=self;add_child(overlay)
 	refresh()
@@ -119,7 +119,7 @@ func _build_winner() -> void:
 	winner_title=Label.new();winner_title.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;winner_title.add_theme_font_override("font",ArenaUI.heading_font());winner_title.add_theme_font_size_override("font_size",28);col.add_child(winner_title)
 	winner_detail=Label.new();winner_detail.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;winner_detail.add_theme_color_override("font_color",ArenaUI.MUTED);col.add_child(winner_detail)
 	var row:=HBoxContainer.new();row.alignment=BoxContainer.ALIGNMENT_CENTER;row.add_theme_constant_override("separation",10);col.add_child(row)
-	var again:=_button(row,"↻ 다시 전투",start_battle);again.custom_minimum_size.x=130;ArenaUI.primary(again)
+	var again:=_button(row,"다시 전투",start_battle);ArenaUI.with_icon(again,"redo",16);again.custom_minimum_size.x=130;ArenaUI.primary(again)
 	var back:=_button(row,"전투 설정",return_setup);back.custom_minimum_size.x=110
 	var numbers:=_button(row,"통계",_open_stats);numbers.custom_minimum_size.x=84;ArenaUI.quiet(numbers)
 func _build_dialogs() -> void:
@@ -211,7 +211,7 @@ func _render_unit() -> void:
 				var item: ItemData=ItemCatalog.get_item(entry.items[i])
 				var s:=_button(slots,item.display_name+"  ×",func():setup.unequip(unit_id,i);_render_unit();board.queue_redraw());s.size_flags_horizontal=Control.SIZE_EXPAND_FILL;s.add_theme_font_size_override("font_size",12);ArenaUI.with_icon(s,String(entry.items[i]),18)
 			else:
-				var empty:=Label.new();empty.text="＋ 빈 슬롯";empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;empty.custom_minimum_size.y=44;empty.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;empty.add_theme_color_override("font_color",ArenaUI.MUTED);slots.add_child(empty)
+				var empty:=Label.new();empty.text="+ 빈 슬롯";empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;empty.custom_minimum_size.y=44;empty.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;empty.add_theme_color_override("font_color",ArenaUI.MUTED);slots.add_child(empty)
 		var stat_line:=Label.new();stat_line.text="%s 피해 · HP %d · 공격력 %d%% · 물리 %s · 마법 %s · 방어 %s%s"%[CharacterCatalog.damage_label(int(entry.type)),int(stats.max_hp),roundi(stats.attack*100),ArenaUI.number(stats.physical_damage),ArenaUI.number(stats.magic_damage),ArenaUI.number(stats.defense+stats.armor)," · 치유 +%d%%"%int(round((stats.healing_power-1)*100)) if stats.healing_power>1 else ""];stat_line.add_theme_font_size_override("font_size",12);stat_line.add_theme_color_override("font_color",ArenaUI.HP);unit_body.add_child(stat_line)
 		var grid:=GridContainer.new();grid.columns=4;unit_body.add_child(grid)
 		for kind in CustomBattleSetup.equippable_items():

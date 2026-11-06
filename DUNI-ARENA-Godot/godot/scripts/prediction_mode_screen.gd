@@ -42,7 +42,7 @@ func _ready() -> void:
 	teams_box = VBoxContainer.new();pick_page.add_child(teams_box)
 	var gap := Control.new();gap.size_flags_vertical = Control.SIZE_EXPAND_FILL;pick_page.add_child(gap)
 	var row := HBoxContainer.new();row.add_theme_constant_override("separation", 8);pick_page.add_child(row)
-	var reroll := _button(row, "↻ 상황 새로고침", new_situation);reroll.name = "Reroll";reroll.custom_minimum_size = Vector2(140, 52);ArenaUI.quiet(reroll)
+	var reroll := _button(row, "상황 새로고침", new_situation);ArenaUI.with_icon(reroll, "redo", 14);reroll.name = "Reroll";reroll.custom_minimum_size = Vector2(140, 52);ArenaUI.quiet(reroll)
 	start_button = _button(row, "관전 시작", start_watch);start_button.name = "Watch";start_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL;start_button.custom_minimum_size.y = 52;ArenaUI.primary(start_button);ArenaUI.with_icon(start_button, "battle", 14)
 	start_button.add_theme_color_override("font_disabled_color", ArenaUI.MUTED)
 	# Watch page: the field and the speed buttons.
