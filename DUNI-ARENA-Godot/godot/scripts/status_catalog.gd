@@ -48,6 +48,8 @@ const ENTRIES = {
 	&"gift_power":["선물: 힘", &"buff", "event", "산타의 선물. 공격력 +50%."],
 	&"bounty":["현상금", &"mark", "gold", "바운티 헌터가 건 현상금. 받는 피해 +5%, 처치되면 헌터가 100 G를 받는다."],
 	&"top_boost":["폭주 회전", &"buff", "event", "팽이가 더 빠르고 강하게 회전한다."],
+	&"drug_frenzy":["광란", &"control", "skull", "금단의 약물로 이성을 잃었다. 저돌적으로 가장 가까운 아군부터 공격한다(아군이 없으면 적). 주는 피해 +5%, 받는 피해 +15%."],
+	&"suppress":["억제 약물", &"debuff", "event", "억제 약물에 맞았다. 공격 속도 -30%, 이동 속도 감소."],
 	&"shield":["보호막", &"buff", "shield", "피해를 먼저 흡수한다."],
 	&"iron":["철벽", &"buff", "iron", "받는 피해가 크게 줄어든다."],
 	&"invincible":["무적", &"buff", "heart", "어떤 피해도 받지 않는다."],
@@ -145,6 +147,8 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if _num(s, "giftPowerTime") > 0:add.call(&"gift_power", _secs(_num(s, "giftPowerTime")))
 	if s.has("bountyBy"):add.call(&"bounty")
 	if _num(s, "topBoost") > 0:add.call(&"top_boost", _secs(_num(s, "topBoost")))
+	if _num(s, "frenzyTime") > 0:add.call(&"drug_frenzy", _secs(_num(s, "frenzyTime")))
+	if _num(s, "suppressTime") > 0:add.call(&"suppress", _secs(_num(s, "suppressTime")))
 	if _num(s, "whisperStacks") > 0:add.call(&"whisper", "%d/3" % int(_num(s, "whisperStacks")))
 	# 표식
 	if not str(s.get("lightMark", "")).is_empty():add.call(&"light_mark")

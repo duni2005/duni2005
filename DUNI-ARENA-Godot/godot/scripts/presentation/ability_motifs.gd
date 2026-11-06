@@ -1,7 +1,7 @@
 class_name AbilityMotifs
 extends RefCounted
 ## One motif per real ability identity. Exact gameplay telegraphs are rendered separately.
-const MOTIFS=["blade","arrow","vortex","veil","aegis","lotus","reticle","pellets","duel","fists","greatsword","ripples","jaws","fuse","issen","orbit","cross","comet","tracks","halo","storm","shards","spiral","tracers","tongue","threads","stake","rails","prism","parcel","magnet","frost","flame","gust","crosshair","slime","feathers","heart","miasma","glacier","flameblade","snowball","gift","spin","bounty"]
+const MOTIFS=["blade","arrow","vortex","veil","aegis","lotus","reticle","pellets","duel","fists","greatsword","ripples","jaws","fuse","issen","orbit","cross","comet","tracks","halo","storm","shards","spiral","tracers","tongue","threads","stake","rails","prism","parcel","magnet","frost","flame","gust","crosshair","slime","feathers","heart","miasma","glacier","flameblade","snowball","gift","spin","bounty","flask"]
 static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: float=0) -> void:
 	var c: Color=CharacterVisuals.PROJECTILE_COLORS.get("star",Color("e8c78e"))
 	c=Color(AttackVisuals.ink(u.data.type_id),1-fade)
@@ -74,6 +74,12 @@ static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: f
 			for k in range(4):
 				var arm: Vector2=Vector2.from_angle(k*PI*.5+time*.6);canvas.draw_line(p+arm*r*.22,p+arm*r*.48,Color(c,.9),2.5,true)
 			canvas.draw_circle(p,r*.13,Color(1,.84,.35))
+		"flask":
+			# A bubbling round flask with rising bubbles.
+			var body: Vector2=p+Vector2(0,r*.08)
+			canvas.draw_circle(body,r*.3,Color(c,.85));canvas.draw_rect(Rect2(p+Vector2(-r*.07,-r*.38),Vector2(r*.14,r*.2)),Color(c,.85))
+			for k in range(3):
+				var rise: float=fmod(time*.8+k*.33,1.0);canvas.draw_circle(p+Vector2((k-1)*r*.1,-r*.2-rise*r*.35),r*.05*(1-rise)+1,Color(1,1,1,.8*(1-rise)))
 		"slime":
 			# Bouncing droplets around the centre.
 			for i in range(6):

@@ -1,7 +1,7 @@
 class_name AttackVisuals
 extends RefCounted
 ## Source-grounded geometry. All inputs are observed; never writes to combat objects.
-const INKS=["ffd39c","e2f5ad","bca9ee","a9eee5","f3dd9e","c5f4e5","ffe6ba","f0ca83","efb1de","efa794","e5d3ae","c2faff","d3e7b5","ffbc75","dceff5","d0fff0","fff0bc","ffc1a0","ebe5ba","e9d7ff","8bdbff","b4e5e8","d5c2ff","eed18f","ffc4c3","f4c0dc","e8c48f","ffb08c","bdf0ff","ffe08a","ff9aa4","bfeaff","ffb36b","c8f7e6","e9d7a4","c4f2a8","c9f5a0","f2b8ff","b9d98a","bfe9ff","ffb070","dff4ff","ff6a6a","c8f7e6","ffcf6e"]
+const INKS=["ffd39c","e2f5ad","bca9ee","a9eee5","f3dd9e","c5f4e5","ffe6ba","f0ca83","efb1de","efa794","e5d3ae","c2faff","d3e7b5","ffbc75","dceff5","d0fff0","fff0bc","ffc1a0","ebe5ba","e9d7ff","8bdbff","b4e5e8","d5c2ff","eed18f","ffc4c3","f4c0dc","e8c48f","ffb08c","bdf0ff","ffe08a","ff9aa4","bfeaff","ffb36b","c8f7e6","e9d7a4","c4f2a8","c9f5a0","f2b8ff","b9d98a","bfe9ff","ffb070","dff4ff","ff6a6a","c8f7e6","ffcf6e","b6f08a"]
 static func ink(type: int) -> Color:return Color(INKS[type])
 static func body_visible(u: BattleUnit) -> bool:
 	if not u.alive or u.frog_flight!=0 or u.state_value("santaAway")>0:return false
@@ -140,6 +140,18 @@ static func projectile(canvas: CanvasItem,p: BattleProjectile,trail: Array,time:
 		canvas.draw_circle(at,size,Color("ff6b25",.5*(1-k)))
 		canvas.draw_circle(at+dir*size*.2,size*.62,Color("ffc35a",.7*(1-k)))
 		canvas.draw_circle(at+dir*size*.3,size*.28,Color("fff4cf",.85*(1-k)))
+	elif kind in ["boostVial","suppressVial","drugBomb"]:
+		# Spinning glass vials: green 증폭, violet 억제, and the large bubbling drug bomb.
+		var tint: Color=Color("8fe86a") if kind=="boostVial" else Color("b07cff") if kind=="suppressVial" else Color("c8ff5a")
+		var size: float=(15 if kind=="drugBomb" else 8)*scale;var spin: float=time*14
+		var lift: float=-sin(clampf(1-p.lifetime/maxf(.05,float(p.metadata.get("life",.6))),0,1)*PI)*(34 if kind=="drugBomb" else 10)*scale
+		var c2: Vector2=at+Vector2(0,lift)
+		canvas.draw_circle(at+Vector2(0,6*scale),size*.8,Color(0,0,0,.18))
+		VfxArt.glow(canvas,c2,size*2.2,tint,.45)
+		canvas.draw_circle(c2,size,Color(tint,.9));canvas.draw_circle(c2+Vector2(-size*.3,-size*.3),size*.35,Color(1,1,1,.7))
+		var neck:=Vector2.from_angle(spin)*size;canvas.draw_line(c2+neck*.8,c2+neck*1.5,Color("dfe6ee"),3*scale,true)
+		if kind=="drugBomb":
+			for k in range(3):canvas.draw_circle(c2+Vector2.from_angle(spin*.5+k*2.1)*size*.55,2.5*scale,Color(1,1,1,.8))
 	elif kind=="deagle":
 		# A heavy .50 round: a hot white-gold tracer with a short smoky tail.
 		VisualShapes.streak(canvas,at-dir*14*scale,dir.angle(),46*scale,4*scale,Color("ffe6a8"),.75)

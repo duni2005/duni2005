@@ -549,6 +549,31 @@ func advance(delta: float) -> void:
 				"ignite":
 					add_effect("slime_ring",e.point,Color("ff8a3d"),26+2*float(e.metadata.get("stacks",1)),.35)
 					particles.burst(e.point,Color("ffb347"),8+int(e.metadata.get("stacks",1)),260,0,"spark",true)
+				"boost_drug":
+					# 증폭 약물: a green splash, rising heal motes and a shield ring.
+					add_effect("slime_ring",e.point,Color("8fe86a"),40,.45)
+					add_effect("shield_hit",e.point,Color("9ff0ff"),34,.5)
+					particles.burst(e.point,Color("8fe86a"),12,180,-PI*.5,"heal",true);particles.burst(e.point,Color("dfffd0"),6,140,-PI*.5,"spark",true)
+				"suppress_drug":
+					# 억제 약물: a violet splash that drips down.
+					add_effect("slime_ring",e.point,Color("b07cff"),34,.4)
+					particles.burst(e.point,Color("b07cff"),10,160,PI*.5,"plume",true);particles.burst(e.point,Color("e2d0ff"),6,200,0,"shard",true)
+				"drug_bomb_land":
+					# The drug bomb lands and ticks: a warning ring that fills as the fuse burns.
+					particles.burst(e.point,Color("c8ff5a"),10,160,0,"shard",true)
+				"drug_bomb_burst":
+					# A huge chemical blast: a fireball tinted green-violet and a lingering gas cloud.
+					var gr: float=float(e.metadata.get("radius",150))
+					add_effect("fireball",e.point,Color("9fd86a"),gr,1.1,randf()*TAU);effects[-1]["gas"]=true
+					add_effect("drug_gas",e.point,Color("9f6bd6"),gr*1.15,1.8)
+					add_effect("hero_shock",e.point,Color("c8ff5a"),gr*1.25,.8)
+					if use_shader_fx:shader_fx.shock(e.point,gr*1.2,.7,Color("b07cff"))
+					particles.burst(e.point,Color("c8ff5a"),40,gr*3,0,"shard",true);particles.burst(e.point,Color("9f6bd6"),26,gr*1.2,0,"smoke",true)
+					particles.burst(e.point,Color("e2d0ff"),18,gr*2.5,0,"spark",true)
+					impact_pause(100);camera.impact(14,e.point)
+				"frenzied":
+					add_effect("targeted",e.point,Color("ff4a4a"),40,.7)
+					particles.burst(e.point,Color("ff4a4a"),14,220,-PI*.5,"spark",true)
 				"puppet_cut":
 					# The control thread cuts its puppet: pink thread snaps and sparks.
 					add_effect("slime_ring",e.point,Color("ff8fad"),28,.3)
@@ -887,7 +912,7 @@ func _draw() -> void:
 				var a: float=float(e.angle)+i*2.399;var d: float=r*(.3+.28*fmod(i*.618,1.0))
 				var q: Vector2=e.point+Vector2.from_angle(a)*d+Vector2(0,lift*(.6+.4*fmod(i*.37,1.0)))
 				var lobe: float=r*(.34+.1*sin(i*2.7))*(1-t*.35)
-				var smoke: float=clampf(t*1.5-.25,0,1);var col: Color=Color("ff6a1f").lerp(Color("4a3e38"),smoke)
+				var smoke: float=clampf(t*1.5-.25,0,1);var col: Color=(Color("8fd86a") if e.get("gas",false) else Color("ff6a1f")).lerp(Color("5a3a78") if e.get("gas",false) else Color("4a3e38"),smoke)
 				draw_circle(q,lobe,Color(col,(.85-.4*smoke)*fade))
 				if heat>0:draw_circle(q+Vector2(0,-lobe*.15),lobe*.55,Color(Color("ffd36b"),.8*heat))
 			if heat>0:
@@ -903,6 +928,12 @@ func _draw() -> void:
 			for i in range(7):
 				var q: Vector2=e.point+Vector2.from_angle(float(e.angle)*2+i*2.1)*e.radius*(.2+.5*fmod(i*.53,1.0))
 				draw_circle(q,2.2,Color(Color("ff9a4a"),.9*cool*(.5+.5*sin(real_age*9+i))))
+		elif e.kind=="drug_gas":
+			# A violet-green cloud that drifts and thins out.
+			var fade: float=clampf((1-t)*2,0,1)
+			for i in range(12):
+				var a: float=i*2.399+float(e.age)*.3;var q: Vector2=e.point+Vector2.from_angle(a)*e.radius*(.25+.5*fmod(i*.618,1.0))+Vector2(0,-t*20)
+				VfxArt.glow(self,q,e.radius*.4,Color("9f6bd6") if i%2 else Color("8fd86a"),.35*fade)
 		elif e.kind=="bounty_tracer":
 			# A straight hot tracer from the hunter to its target.
 			var to: Vector2=e.get("to",e.point);var w: float=10*(1-t)+1.5
@@ -1266,6 +1297,27 @@ func _ability_state(u: BattleUnit,parent: Transform2D) -> void:
 		draw_line(cross-Vector2(12,0)*s,cross+Vector2(12,0)*s,Color("ffe6ee"),4*s)
 		draw_line(cross-Vector2(0,8)*s,cross+Vector2(0,8)*s,Color("ffe6ee"),4*s)
 	if not u.duel.is_empty() and u.alive:_rps_hands(u,p,maxf(s,1.0))
+	for bomb in u.character_specific_state.get("drugBombs",[]):
+		# 인지 각성 약물: a ticking ring over the blast area, filling as the fuse burns, and a bubbling bomb.
+		var at: Vector2=Vector2(float(bomb.x),float(bomb.y));var t: float=clampf(1-float(bomb.fuse)/2.0,0,1)
+		var radius: float=150*u.combat_scale();var pulse: float=.5+.5*sin(real_age*(8+t*14))
+		draw_circle(at,radius,Color(Color("9f6bd6"),.10+.08*pulse))
+		draw_arc(at,radius,0,TAU,64,Color(Color("c8ff5a"),.6),2,true)
+		draw_arc(at,radius*.92,-PI*.5,-PI*.5+TAU*t,64,Color(Color("ff5a5a"),.85),5,true)
+		draw_circle(at,10+2*pulse,Color("c8ff5a"));draw_circle(at+Vector2(-3,-3),3,Color(1,1,1,.8))
+		for k in range(3):
+			var rise: float=fmod(real_age*1.4+k*.33,1.0);draw_circle(at+Vector2((k-1)*6,-12-rise*22),3*(1-rise)+1,Color(Color("c8ff5a"),.8*(1-rise)))
+	if u.state_value("frenzyTime")>0 and u.alive:
+		# 광란: a pulsing red aura, an anger mark and wild red eyes over the head.
+		var pulse: float=.5+.5*sin(real_age*12)
+		VfxArt.glow(self,p,44*s,Color("ff3a3a"),.3+.15*pulse)
+		draw_arc(p,(32+3*pulse)*s,0,TAU,40,Color(Color("ff4a4a"),.8),2.5,true)
+		var mark: Vector2=p+Vector2(18,-44)*s
+		for k in range(4):
+			var d: Vector2=Vector2.from_angle(k*PI*.5+PI*.25);draw_line(mark+d*3,mark+d*(9+2*pulse),Color("ff3a3a"),3,true)
+	if u.state_value("suppressTime")>0 and u.alive:
+		var drip: float=fmod(real_age*1.5,1.0)
+		draw_circle(p+Vector2(-14,-30+drip*30)*s,3*(1-drip)+1.5,Color(Color("b07cff"),.8*(1-drip)))
 	if u.data.type_id==43 and u.alive:
 		# 팽이: spinning wind arcs round the body; red-hot while 폭주 회전 lasts.
 		var hot: bool=u.state_value("topBoost")>0;var spin: float=real_age*(26 if hot else 16)

@@ -29,7 +29,7 @@ func catalog() -> void:
 	var definitions: Dictionary=CharacterCatalog.all()
 	var file:=FileAccess.open("res://migration/phase8-web-catalog.json",FileAccess.READ)
 	var web: Array=JSON.parse_string(file.get_as_text())
-	verify(definitions.size()==45 and web.size()==26,"26 real web types plus 19 added types")
+	verify(definitions.size()==46 and web.size()==26,"26 real web types plus 20 added types")
 	for t in web:
 		var data: UnitData=definitions[int(t.type_id)]
 		for pair in [["display_name","name"],["max_hp","hp"],["attack","dmg"],["defense_power","defensePower"],["move_speed","speed"],["attack_range","range"],["attack_interval","cd"],["critical_chance","critChance"],["base_gold_cost","cost"]]:verify(data.get(pair[0])==t[pair[1]],"catalog %s/%s"%[t.name,pair[0]])

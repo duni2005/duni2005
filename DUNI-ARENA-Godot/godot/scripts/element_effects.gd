@@ -85,17 +85,23 @@ static func outgoing(source, target, spec: Dictionary, options: Dictionary) -> f
 	# 목표 (석궁): wind damage taken +15% in all (the general +10% comes from taken()).
 	if target.state_value("targetedTime") > 0 and spec.get("tags", []).has(&"wind"):factor *= TARGETED_WIND / TARGETED_TAKEN
 	if source.state_value("giftPowerTime") > 0:factor *= GIFT_FACTOR
+	if source.state_value("frenzyTime") > 0:factor *= FRENZY_DEALT
 	return factor
 ## Extra critical damage an eroded unit takes (added to the attacker's critical damage).
 static func crit_taken(target) -> float:return EROSION_CRIT if target.state_value("erosionTime") > 0 else 0.0
 ## 산타의 선물: 받는 피해 +50% (giftWeakTime) / 공격력 +50% (giftPowerTime, in outgoing).
 const GIFT_FACTOR: float = 1.5
+## 금단의 연구원: 억제 약물 (suppressTime) cuts attack speed; 광란 (frenzyTime) +5% damage dealt and
+## +15% damage taken.
+const SUPPRESS_ATTACK_SPEED: float = .7
+const FRENZY_DEALT: float = 1.05
+const FRENZY_TAKEN: float = 1.15
 ## 현상금 (바운티 헌터): a bountied unit takes 5% more damage.
 const BOUNTY_TAKEN: float = 1.05
-static func taken(u) -> float:return (FROSTBITE_TAKEN if u.state_value("frostbiteTime") > 0 else 1.0) * (TARGETED_TAKEN if u.state_value("targetedTime") > 0 else 1.0) * (GIFT_FACTOR if u.state_value("giftWeakTime") > 0 else 1.0) * (BOUNTY_TAKEN if u.character_specific_state.has("bountyBy") else 1.0)
+static func taken(u) -> float:return (FROSTBITE_TAKEN if u.state_value("frostbiteTime") > 0 else 1.0) * (TARGETED_TAKEN if u.state_value("targetedTime") > 0 else 1.0) * (GIFT_FACTOR if u.state_value("giftWeakTime") > 0 else 1.0) * (BOUNTY_TAKEN if u.character_specific_state.has("bountyBy") else 1.0) * (FRENZY_TAKEN if u.state_value("frenzyTime") > 0 else 1.0)
 static func attack_speed(u) -> float:
 	if u.character_specific_state.is_empty():return 1
-	return (1 + WIND_ATTACK_SPEED * u.state_value("windStacks")) * (HEADWIND_ATTACK_SPEED if u.state_value("headwindTime") > 0 else 1.0)
+	return (1 + WIND_ATTACK_SPEED * u.state_value("windStacks")) * (HEADWIND_ATTACK_SPEED if u.state_value("headwindTime") > 0 else 1.0) * (SUPPRESS_ATTACK_SPEED if u.state_value("suppressTime") > 0 else 1.0)
 static func move_speed(u) -> float:return (HEADWIND_MOVE if u.state_value("headwindTime") > 0 else 1.0) * (SLOW_MOVE if u.state_value("slowTime") > 0 else 1.0)
 static func healing(u) -> float:return POISON_HEAL if u.state_value("poisonStacks") > 0 else 1.0
 
@@ -217,11 +223,29 @@ static func advance(battle, dt: float) -> void:
 		if u.state_value("frozenTime") > 0:
 			u.set_state("frozenTime", maxf(0, u.state_value("frozenTime") - dt))
 			if u.state_value("frozenTime") <= 0:u.set_state("frostbiteTime", FROSTBITE_TIME)
-		for key in ["frostbiteTime", "headwindTime", "erosionTime", "targetedTime", "slowTime", "charmTime", "giftPowerTime", "giftWeakTime"]:
+		for key in ["frostbiteTime", "headwindTime", "erosionTime", "targetedTime", "slowTime", "charmTime", "giftPowerTime", "giftWeakTime", "suppressTime", "frenzyTime"]:
 			if u.state_value(key) > 0:u.set_state(key, maxf(0, u.state_value(key) - dt))
+		if u.state_value("frenzyTime") <= 0 and u.character_specific_state.has("frenzyTeam"):end_frenzy(u)
 		for pair in [["frostbitePending", "frostbiteSource", &"frostbite", FROSTBITE_HIT], ["erodePending", "erosionSource", &"erosion", EROSION_DAMAGE]]:
 			var count: int = int(u.state_value(pair[0]))
 			if count <= 0:continue
 			u.set_state(pair[0], 0)
 			var by = battle.find_actor(str(u.character_specific_state.get(pair[1], "")))
 			if by != null and u.alive:_hit(by, u, pair[2], pair[3] * count)
+
+## 광란 (금단의 연구원): the unit turns on its own side. It fights as a faction of its own (so its
+## allies are targets and the other side still is), charges in 저돌적, and prefers the nearest
+## former ally (TargetSelector). Its allies do not target it back (BattleUnit.enemies).
+static func start_frenzy(u, time: float) -> bool:
+	if not u.alive or u.unavailable() or not u.puppet_control.is_empty():return false
+	if not u.character_specific_state.has("frenzyTeam"):
+		u.character_specific_state["frenzyTeam"] = u.team;u.character_specific_state["frenzyStance"] = String(u.stance)
+		u.team = 1000 + u.battle_id;u.stance = CombatStance.RUSH
+		u.combat.cancel(u);u.target = null
+	u.set_state("frenzyTime", maxf(u.state_value("frenzyTime"), time))
+	return true
+static func end_frenzy(u) -> void:
+	if not u.character_specific_state.has("frenzyTeam"):return
+	u.team = int(u.character_specific_state["frenzyTeam"]);u.stance = StringName(str(u.character_specific_state.get("frenzyStance", "normal")))
+	u.character_specific_state.erase("frenzyTeam");u.character_specific_state.erase("frenzyStance");u.set_state("frenzyTime", 0.0)
+	u.combat.cancel(u);u.target = null

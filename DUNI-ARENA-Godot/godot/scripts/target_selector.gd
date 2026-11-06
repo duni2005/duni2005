@@ -8,6 +8,11 @@ func is_valid_enemy(unit, candidate) -> bool:
 func select_target(unit, candidates: Array):
 	if not unit.alive or unit.battle.finished:
 		return null
+	if unit.battle.full_characters_enabled and unit.character_specific_state.has("frenzyTeam"):
+		# 광란: the nearest former ally first; with none left, the nearest enemy.
+		var side: int=int(unit.character_specific_state.frenzyTeam)
+		var mates: Array=unit.battle.units.filter(func(v):return v!=unit and v.alive and not v.unavailable() and v.team==side)
+		return CharacterAbility.nearest(unit,mates if not mates.is_empty() else unit.enemies(false))
 	if unit.battle.full_characters_enabled and unit.data.type_id in [15,24]:return unit.ability.choose_target(unit,unit.enemies())
 	if unit.taunted_until > unit.battle.clock.elapsed:
 		for candidate in candidates:

@@ -181,6 +181,7 @@ static func interrupt(u) -> void:
 	u.frog_hop.clear();release_action(u,true);cancel_duel(u);u.machine_dash.clear()
 	if u.ultimate.cast.get("dashing",false) and u.data.type_id in [14,17]:u.ultimate.cast.clear()
 static func on_death(u) -> void:
+	ElementEffects.end_frenzy(u)
 	release_action(u,true);release_carried(u);cancel_duel(u);u.hero_rescue.clear();u.ultimate.cast.clear();u.set_state("mirrorReflectTime",0);end_control(u)
 
 static func bind_cover(u) -> void:

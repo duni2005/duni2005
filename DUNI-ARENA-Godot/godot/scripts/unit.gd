@@ -164,9 +164,11 @@ func announce_death(source) -> void:
 		died.emit(self,source)
 
 func team_color() -> Color:
-	if battle != null and battle.get("custom_mode") == true:return CustomBattleSetup.faction_color(team, data.type_id)
-	if battle != null and not battle.get("team_colors").is_empty():return battle.team_colors[team % battle.team_colors.size()]
-	return Color("88b7ff") if team == 0 else Color("ff947d")
+	# 광란 keeps the colour of the side the unit really belongs to.
+	var side: int = int(character_specific_state.get("frenzyTeam", team))
+	if battle != null and battle.get("custom_mode") == true:return CustomBattleSetup.faction_color(side, data.type_id)
+	if battle != null and not battle.get("team_colors").is_empty():return battle.team_colors[side % battle.team_colors.size()]
+	return Color("88b7ff") if side == 0 else Color("ff947d")
 
 func debug_state() -> String:
 	return CombatController.State.keys()[combat_state] if alive else "DEAD"
@@ -215,7 +217,7 @@ func set_state(key: String,value: Variant) -> void:character_specific_state[key]
 func friends() -> Array:
 	return battle.units.filter(func(u):return u!=self and u.alive and u.team==team and not u.unavailable())
 func enemies(perceived: bool=true) -> Array:
-	return battle.units.filter(func(u):return u.alive and u.team!=team and (not perceived or CombatPerception.can_perceive(self,u)))
+	return battle.units.filter(func(u):return u.alive and u.team!=team and (not perceived or CombatPerception.can_perceive(self,u)) and not (u.character_specific_state.has("frenzyTeam") and int(u.character_specific_state.frenzyTeam)==team))
 ## 산타 is out of the fight while its sleigh flies (santaAway).
 func unavailable() -> bool:return not frog_carrier.is_empty() or frog_flight!=0 or state_value("santaAway")>0
 func is_dashing() -> bool:return not hero_rescue.is_empty() or ultimate.cast.get("dashing",false)

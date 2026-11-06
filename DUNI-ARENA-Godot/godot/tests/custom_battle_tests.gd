@@ -69,6 +69,7 @@ func run(tree: SceneTree) -> void:
 	top_and_bounty(tree)
 	fixes_0860(tree)
 	puppet_0861(tree)
+	researcher(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -91,7 +92,7 @@ func step(b: BattleManager,seconds: float) -> void:
 		if b.finished:return
 		b.simulate(1.0/60)
 func new_characters(tree: SceneTree) -> void:
-	verify(CharacterCatalog.all().size()==45,"45 characters in the catalog")
+	verify(CharacterCatalog.all().size()==46,"46 characters in the catalog")
 	# 말뚝: opening stake tethers the nearest enemy to a small circle.
 	var b:=duel(tree,[[26,0,Vector2(150,400)],[1,1,Vector2(450,400)],[1,1,Vector2(700,700)]])
 	step(b,.2)
@@ -453,7 +454,7 @@ func stat_damage(tree: SceneTree) -> void:
 		if not UnitStatTable.STATS.has(unit_name) or not UnitStatTable.DAMAGE.has(unit_name):tagged=false
 		for d in UnitStatTable.instances(id):
 			if not UnitStatTable.KIND_NAMES.has(d.kind) or not d.tags.all(func(t):return t in UnitStatTable.ELEMENTS+UnitStatTable.DAMAGE_TAGS):tagged=false
-	verify(tagged and CharacterCatalog.NAMES.size()==45,"all 45 units have base stats and exactly one kind plus known tags per damage instance")
+	verify(tagged and CharacterCatalog.NAMES.size()==46,"all 46 units have base stats and exactly one kind plus known tags per damage instance")
 	verify(UnitStatTable.mitigation(0)==1 and UnitStatTable.mitigation(100)==.5 and is_equal_approx(UnitStatTable.mitigation(-100),1.5),"mitigation 100/(100+def), 2-100/(100-def) below zero")
 	# Bomber (fire · explosion · area) hits a mage.
 	var b:=duel(tree,[[13,0,Vector2(300,400)],[2,1,Vector2(380,400)]]);var src: BattleUnit=b.units[0];var tgt: BattleUnit=b.units[1];b.started=true
@@ -994,6 +995,34 @@ func puppet_0861(tree: SceneTree) -> void:
 	verify(CharacterLifecycle.control(foe,puppet,PuppetRef.CONTROL_TIME) and is_equal_approx(float(foe.puppet_control.remaining),10.0),"the control thread holds an enemy for 10 s")
 	var hp: float=foe.current_hp;step(b,1.6)
 	verify(foe.current_hp<hp and b.combat_event_counts.get(&"puppet_cut",0)>=3 and not foe.puppet_control.is_empty(),"the controlled unit takes magic damage every 0.5 s while held")
+	b.queue_free()
+
+## 금단의 연구원 (45), 0.87.0.
+func researcher(tree: SceneTree) -> void:
+	var b:=duel(tree,[[45,0,Vector2(200,400)],[0,0,Vector2(240,560)],[4,1,Vector2(420,400)],[0,1,Vector2(470,470)],[1,1,Vector2(520,380)]])
+	step(b,.05)
+	var r: BattleUnit=b.units[0];var ally: BattleUnit=b.units[1];var foe: BattleUnit=b.units[2]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0;u.evade_remaining=0
+	ally.current_hp=ally.max_hp*.4;var hp: float=ally.current_hp
+	r.ability.release_basic(r);step(b,.6)
+	verify(ally.current_hp>hp and ally.shield_hp>0 and b.combat_event_counts.get(&"boost_drug",0)==1,"증폭 약물 heals and shields the most hurt ally")
+	r.combat.aim_angle=0;r.ability.release_basic(r);step(b,.6)
+	verify(b.units.any(func(v):return v.team==1 and v.state_value("suppressTime")>0 and v.state_value("slowTime")>0) and b.combat_event_counts.get(&"suppress_drug",0)>=1,"억제 약물 slows the enemy's attacks and movement")
+	verify(is_equal_approx(ElementEffects.attack_speed(b.units.filter(func(v):return v.state_value("suppressTime")>0)[0]),.7),"억제 약물: attack speed ×0.7")
+	r.ultimate_gauge=100
+	verify(r.ultimate.request(r,foe),"the researcher throws the drug bomb")
+	var burst: bool=false
+	for i in range(60*4):
+		step(b,1.0/60)
+		if b.combat_event_counts.get(&"drug_bomb_burst",0)>0:burst=true;break
+	var mad: Array=b.units.filter(func(v):return v.state_value("frenzyTime")>0)
+	verify(burst and not mad.is_empty() and mad.all(func(v):return v.original_team==1 and v.stance==CombatStance.RUSH and v.team!=1),"the bomb bursts 2 s after landing and drives the enemies it hits into 광란")
+	var m: BattleUnit=mad[0];var mates: Array=b.units.filter(func(v):return v!=m and v.alive and v.team==1)
+	if not mates.is_empty():verify(m.target_selector.select_target(m,b.units).team==1,"a frenzied unit goes for its own side first")
+	verify(not b.units.filter(func(v):return v!=m and v.alive and v.original_team==1 and v.state_value("frenzyTime")<=0).any(func(v):return v.enemies(false).has(m)),"its (calm) allies do not target it back")
+	verify(ElementEffects.taken(m)>=1.149 and m.team_color()==b.units[2].team_color(),"광란 +15% damage taken; it keeps its side's colour")
+	step(b,6.2)
+	verify(m.state_value("frenzyTime")<=0 and m.team==1 and m.stance!=CombatStance.RUSH or not m.alive,"광란 ends after 6 s and the unit returns to its side")
 	b.queue_free()
 
 const PuppetRef=preload("res://scripts/abilities/puppet_ability.gd")

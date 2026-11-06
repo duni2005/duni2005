@@ -85,6 +85,10 @@ static func _draw_prop(canvas: CanvasItem,type: int,index: float,alpha: float) -
 			canvas.draw_rect(Rect2(18,1,18,8),Color(Color("172326"),alpha));canvas.draw_rect(Rect2(19,2,16,6),Color(Color("8d949e"),alpha))
 			canvas.draw_rect(Rect2(34,0,5,10),Color(Color("3a3f45"),alpha))
 			canvas.draw_circle(Vector2(42,5),3.5,Color(Color("ff8a3d"),alpha*.9));canvas.draw_circle(Vector2(42,5),1.8,Color(Color("ffe08a"),alpha))
+		45:
+			# A small glass flask of glowing green held out.
+			canvas.draw_circle(Vector2(26,8),7,Color(Color("172326"),alpha));canvas.draw_circle(Vector2(26,8),6,Color(Color("8fe86a"),alpha*.9))
+			canvas.draw_rect(Rect2(24,-3,4,6),Color(Color("dfe6ee"),alpha));canvas.draw_circle(Vector2(24,6),1.6,Color(1,1,1,alpha*.8))
 		44:
 			# A heavy Desert Eagle: short chunky gunmetal slide, brass-trimmed grip, kicked up a
 			# little at the end of each shot.
