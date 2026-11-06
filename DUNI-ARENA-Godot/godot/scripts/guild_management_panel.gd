@@ -115,9 +115,8 @@ func _ready() -> void:
  # Guild growth, right under the member card: promotion, then guild expansion (sortie size,
  # roster size, recruit odds), one row each (icon, name, what it does, action button on the right).
  growth_frame=PanelContainer.new();growth_frame.add_theme_stylebox_override("panel",ArenaUI.card_style());content.add_child(growth_frame);content.move_child(growth_frame,upgrade_frame.get_index()+1)
- var growth_column:=VBoxContainer.new();growth_column.add_theme_constant_override("separation",6);growth_frame.add_child(growth_column)
+ var growth_column:=VBoxContainer.new();growth_column.add_theme_constant_override("separation",3);growth_frame.add_child(growth_column)
  var promote: Array=_growth_row(growth_column,"star","승급",_open_promotion);promote_button=promote[0];promote_caption=promote[1];promote_button.text="승급하기"
- growth_column.add_child(HSeparator.new())
  var expansion_title:=Label.new();expansion_title.text="길드 확장";expansion_title.add_theme_font_override("font",ArenaUI.heading_font());expansion_title.add_theme_font_size_override("font_size",14);expansion_title.add_theme_color_override("font_color",Color("e8d6a6"));growth_column.add_child(expansion_title)
  var sortie: Array=_growth_row(growth_column,"flag","출정 가능 수",_expand.bind(&"sortie_upgrade"));sortie_button=sortie[0];sortie_caption=sortie[1]
  var roster_row: Array=_growth_row(growth_column,"guild","길드 인원 한도",_expand.bind(&"roster_upgrade"));roster_button=roster_row[0];roster_caption=roster_row[1]
@@ -160,8 +159,9 @@ func render() -> void:
  roster_scroll.size_flags_vertical=Control.SIZE_EXPAND_FILL if main_list else Control.SIZE_FILL
  roster_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_AUTO if main_list else ScrollContainer.SCROLL_MODE_DISABLED
  var upgrading: bool=active_tab=="upgrade"
- details.visible=active_tab=="inventory";upgrade_frame.visible=upgrading and upgrade_view=="unit";growth_frame.visible=upgrading and upgrade_view=="guild";inventory_heading.visible=active_tab=="inventory"
- upgrade_switch.visible=upgrading;roster_scroll.visible=not (upgrading and upgrade_view=="guild")
+ # 강화 is one page: the unit's upgrade card, then guild growth in the space below it.
+ details.visible=active_tab=="inventory";upgrade_frame.visible=upgrading;growth_frame.visible=upgrading;inventory_heading.visible=active_tab=="inventory"
+ upgrade_switch.visible=false;roster_scroll.visible=true
  for key in upgrade_views:upgrade_views[key].button_pressed=key==upgrade_view
  inventory_scroll.visible=active_tab=="inventory";status.visible=not status.text.is_empty()
  if active_tab=="inventory":inventory_scroll.custom_minimum_size.y=0
@@ -271,11 +271,11 @@ func _level_up() -> void:
 ## [button, caption].
 func _growth_row(column: VBoxContainer,icon: String,label: String,callback: Callable) -> Array:
  var row:=HBoxContainer.new();row.add_theme_constant_override("separation",10);column.add_child(row)
- var badge:=TextureRect.new();badge.texture=ArenaIcon.texture(icon);badge.custom_minimum_size=Vector2(30,30);badge.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;badge.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;badge.size_flags_vertical=Control.SIZE_SHRINK_CENTER;row.add_child(badge)
+ var badge:=TextureRect.new();badge.texture=ArenaIcon.texture(icon);badge.custom_minimum_size=Vector2(24,24);badge.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;badge.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;badge.size_flags_vertical=Control.SIZE_SHRINK_CENTER;row.add_child(badge)
  var text:=VBoxContainer.new();text.add_theme_constant_override("separation",1);text.size_flags_horizontal=Control.SIZE_EXPAND_FILL;text.alignment=BoxContainer.ALIGNMENT_CENTER;row.add_child(text)
  var title:=Label.new();title.text=label;title.add_theme_font_override("font",ArenaUI.heading_font());title.add_theme_font_size_override("font_size",14);text.add_child(title)
  var caption:=Label.new();caption.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;caption.add_theme_font_size_override("font_size",11);caption.add_theme_color_override("font_color",ArenaUI.MUTED);text.add_child(caption)
- var button:=Button.new();button.custom_minimum_size=Vector2(96,40);button.size_flags_vertical=Control.SIZE_SHRINK_CENTER;ArenaUI.bind(button,callback);row.add_child(button)
+ var button:=Button.new();button.custom_minimum_size=Vector2(96,36);button.size_flags_vertical=Control.SIZE_SHRINK_CENTER;ArenaUI.bind(button,callback);row.add_child(button)
  if icon!="star":ArenaUI.style_button(button,Color("7a5a22"),ArenaUI.GOLD);ArenaUI.with_icon(button,"gold",16)
  else:ArenaUI.secondary(button)
  return [button,caption]

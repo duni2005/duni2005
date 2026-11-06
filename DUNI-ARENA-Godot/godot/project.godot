@@ -7,7 +7,7 @@ config/use_custom_user_dir=true
 config/custom_user_dir_name="DUNI_ARENA"
 run/main_scene="res://scenes/main_menu.tscn"
 config/icon="res://assets/ui/app_icon.png"
-config/version="0.87.1-preview"
+config/version="0.88.0-preview"
 config/features=PackedStringArray("4.6", "GL Compatibility")
 boot_splash/bg_color=Color(0.863, 0.82, 0.953, 1)
 boot_splash/stretch_mode=4
@@ -25,7 +25,7 @@ window/size/viewport_height=1000
 window/size/window_width_override=720
 window/size/window_height_override=800
 window/stretch/mode="canvas_items"
-window/handheld/orientation=6
+window/handheld/orientation=1
 
 [physics]
 common/physics_ticks_per_second=60

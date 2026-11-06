@@ -359,6 +359,10 @@ func unit_sheet(tree: SceneTree) -> void:
 	var buttons: Array=sheet.find_children("*","Button",true,false)
 	var more: Array=buttons.filter(func(x):return x.text=="자세히 보기")
 	verify(buttons.any(func(x):return x.text=="전체 보기") and more.size()==4,"stats fold behind 전체 보기; each warrior skill unfolds its damage")
+	var special: Label=sheet.find_children("*","Label",true,false).filter(func(l):return l.text=="특수 스탯")[0]
+	verify(not special.is_visible_in_tree() and sheet.tab_buttons.size()==2,"special stats wait behind 전체 보기; an owned unit's sheet has the 상태 tab")
+	buttons.filter(func(x):return x.text=="전체 보기")[0].pressed.emit()
+	verify(special.is_visible_in_tree(),"전체 보기 shows the special stats")
 	more[0].pressed.emit()
 	verify(more[0].text=="접기" and sheet.find_children("*","Label",true,false).any(func(l):return l.is_visible_in_tree() and l.text.begins_with("물리 피해의 100%  →  예상 ")),"basic attack detail lists base + ratio and the estimate")
 	sheet.queue_free()

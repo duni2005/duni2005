@@ -11,7 +11,7 @@ var total_exp: int=0
 ## Compact (inside a room's tab): name, HP and EXP only, without the per-level growth chips.
 var compact: bool=false
 func _ready() -> void:
-	custom_minimum_size.y=84 if compact else 152;mouse_filter=Control.MOUSE_FILTER_IGNORE
+	custom_minimum_size.y=84 if compact else 120;mouse_filter=Control.MOUSE_FILTER_IGNORE
 func _draw() -> void:
 	var font: Font=get_theme_default_font();var bold: Font=ArenaUI.heading_font()
 	draw_string(bold,Vector2(0,23),member_name,HORIZONTAL_ALIGNMENT_LEFT,-1,18,Color("eef1fa"))
@@ -32,7 +32,8 @@ func _draw() -> void:
 	var labels: Array=["최대 HP","공격력","방어력","이동속도"];var values: Array=["+12%","+8%","+8%","+2%"]
 	var cell: float=(size.x-15)/4
 	for i in range(4):
-		var rect:=Rect2(i*(cell+5),88,cell,58)
+		# One slim chip per stat: name on the left, growth per level on the right.
+		var rect:=Rect2(i*(cell+5),86,cell,32)
 		draw_style_box(ArenaUI.box(Color("15251b"),Color.TRANSPARENT),rect)
-		draw_string(font,rect.position+Vector2(5,20),labels[i],HORIZONTAL_ALIGNMENT_LEFT,cell-10,10,ArenaUI.MUTED)
-		draw_string(bold,rect.position+Vector2(5,45),values[i],HORIZONTAL_ALIGNMENT_LEFT,cell-10,19,Color("9fdaa2"))
+		draw_string(font,rect.position+Vector2(5,13),labels[i],HORIZONTAL_ALIGNMENT_LEFT,cell-10,9,ArenaUI.MUTED)
+		draw_string(bold,rect.position+Vector2(5,28),values[i],HORIZONTAL_ALIGNMENT_LEFT,cell-10,14,Color("9fdaa2"))
