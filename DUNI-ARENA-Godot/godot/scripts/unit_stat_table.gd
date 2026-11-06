@@ -151,7 +151,8 @@ const DAMAGE = {
 		&"spit":[&"ultimate", &"physical", 0, 1.0, [&"poison", &"projectile"], "삼킨 적 발사 (무거울수록 +)"],
 		&"spit_landing":[&"ultimate", &"physical", 0, 0.7, [&"poison"], "발사된 적 착지"]},
 	"puppet":{
-		&"basic":[&"basic", &"magic", 0, 1.0, [&"projectile"], "날카로운 실"]},
+		&"basic":[&"basic", &"magic", 0, 1.0, [&"projectile"], "날카로운 실"],
+		&"control_dot":[&"ultimate", &"magic", 2, 0.12, [&"dot"], "조종 실 (조종 중 0.5초마다)"]},
 	"stake":{
 		&"open":[&"passive", &"physical", 10, 0.4, [], "말뚝 박기"],
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee"], "망치"],

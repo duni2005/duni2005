@@ -88,9 +88,16 @@ static func projectile(canvas: CanvasItem,p: BattleProjectile,trail: Array,time:
 		VfxArt.glow(canvas,at,26*scale,Color("79cfff"),.6);VfxArt.star(canvas,at,12*scale,Color("e5fcff"),.9);return
 	if kind in ["controlThread","sharpThread"]:
 		var start: Vector2=trail[0] if not trail.is_empty() else at-dir*30
-		canvas.draw_line(start,at,Color("db7698",.65),2*scale,true)
-		VisualShapes.streak(canvas,at,a,28*scale,4*scale,Color("ff8fad") if kind=="controlThread" else c)
-		if kind=="controlThread":canvas.draw_arc(at,12*scale,time*5,time*5+PI*1.6,18,Color("ff8fad"),2)
+		var big: bool=kind=="controlThread"
+		canvas.draw_line(start,at,Color("db7698",.65),(4.5 if big else 2)*scale,true)
+		if big:
+			# The control thread: a thick glowing cord ending in a spinning cross-shaped spool.
+			VfxArt.glow(canvas,at,38*scale,Color("ff8fad"),.45)
+			VisualShapes.streak(canvas,at,a,56*scale,9*scale,Color("ff8fad"))
+			for k in range(2):canvas.draw_arc(at,(20+k*8)*scale,time*(6-k*2)+k,time*(6-k*2)+k+PI*1.5,22,Color("ffc2d4" if k==0 else "ff8fad"),3,true)
+			var turn:=Vector2.from_angle(time*4)*12*scale
+			canvas.draw_line(at-turn,at+turn,Color("ffe6ee"),3,true);canvas.draw_line(at-turn.orthogonal(),at+turn.orthogonal(),Color("ffe6ee"),3,true)
+		else:VisualShapes.streak(canvas,at,a,28*scale,4*scale,c)
 		return
 	if kind in ["magic","light","star","mirrorLight","mirrorReflection"]:
 		VfxArt.glow(canvas,at,25*scale,c,.4)

@@ -63,7 +63,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	out.status = StringName(options.get("status", &""))
 	var collision: bool = options.get("collision", false)
 	if not battle.started or battle.finished or battle.clock.is_turning_paused() or not is_instance_valid(target) or not target.alive or not is_finite(raw_damage) or raw_damage <= 0: return out
-	if not collision and (battle.run_end_requested or not is_instance_valid(source) or source.team == target.team): return out
+	if not collision and (battle.run_end_requested or not is_instance_valid(source) or source.team == target.team and not options.get("ignore_team", false)): return out
 	if battle.full_characters_enabled and CharacterLifecycle.protected(target):return out
 	out.accepted = true
 	out.attempted_damage = raw_damage

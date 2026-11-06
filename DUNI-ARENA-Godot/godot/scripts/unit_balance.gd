@@ -10,9 +10,9 @@ const TIER: Array[float] = [.95, 1.0, 1.05, 1.10, 1.15]
 ## Off only for the source-parity tests (formulas checked against the original web game).
 static var enabled: bool = true
 ## Per-unit HP correction (type_id → factor).
-const HP: Dictionary = {0: .9, 5: 1.15, 16: 1.1, 18: .92, 19: 1.25, 20: 1.1, 24: .9, 25: 1.2, 27: 1.7, 33: 1.2}
+const HP: Dictionary = {0: .9, 5: 1.15, 16: 1.1, 18: .92, 19: 1.25, 20: 1.1, 24: .9, 25: 1.2, 27: 1.7, 33: 1.2, 43: .82}
 ## Per-unit physical/magic damage correction (type_id → factor).
-const DAMAGE: Dictionary = {0: .92, 2: .92, 3: .88, 5: 1.15, 13: .88, 15: .8, 16: 1.1, 18: .92, 19: 1.25, 20: 1.2, 24: .9, 25: 1.3, 27: 1.25, 31: 1.12, 33: .8, 35: .8}
+const DAMAGE: Dictionary = {0: .92, 2: .92, 3: .88, 5: 1.15, 13: .88, 15: .8, 16: 1.1, 18: .92, 19: 1.25, 20: 1.2, 24: .9, 25: 1.3, 27: 1.25, 31: 1.12, 33: .8, 34: .85, 35: .8}
 ## Per-skill damage correction on top of DAMAGE (type_id → {damage key → factor}): 0.84.5 마법사
 ## 블랙홀 -20%; 0.86.0 UFC 선수 링 줄 충돌 -30%.
 const SKILL: Dictionary = {2: {&"ult": .8}, 9: {&"ring": .7}}

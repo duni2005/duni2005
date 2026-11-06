@@ -130,23 +130,11 @@ func _rps_hands(u: BattleUnit,p: Vector2,s: float) -> void:
 	_rps_hand(at,hand,pop,Color(1,1,1,1) if not lost else Color(.6,.6,.65,1))
 	if lost:
 		draw_line(at+Vector2(-12,-12),at+Vector2(12,12),Color("ff5a5a"),3.5,true);draw_line(at+Vector2(12,-12),at+Vector2(-12,12),Color("ff5a5a"),3.5,true)
-## A hand: 0 rock (fist), 1 paper (open palm), 2 scissors (two fingers in a V).
+## A hand: 0 rock ✊, 1 paper 🖐, 2 scissors 👆 (emoji art, assets/ui/rps).
+const RPS_HANDS: Array = [preload("res://assets/ui/rps/rock.png"), preload("res://assets/ui/rps/paper.png"), preload("res://assets/ui/rps/scissors.png")]
 func _rps_hand(at: Vector2,kind: int,k: float,tint: Color) -> void:
-	var skin: Color=Color("ffd2a8")*tint;var line: Color=Color("6b4a32");k*=1.35;var r: float=11*k
-	match kind:
-		1:
-			for i in range(4):
-				var x: float=(i-1.5)*5.2*k;draw_line(at+Vector2(x,-r*.2),at+Vector2(x*1.15,-r*1.55),line,5.4*k,true);draw_line(at+Vector2(x,-r*.2),at+Vector2(x*1.15,-r*1.55),skin,3.6*k,true)
-			draw_line(at+Vector2(r*.7,r*.1),at+Vector2(r*1.35,-r*.55),line,5.4*k,true);draw_line(at+Vector2(r*.7,r*.1),at+Vector2(r*1.35,-r*.55),skin,3.6*k,true)
-			draw_circle(at,r,line);draw_circle(at,r-1.5,skin)
-		2:
-			for side in [-1,1]:
-				var tip: Vector2=at+Vector2(side*r*.75,-r*1.65);draw_line(at+Vector2(side*2.5*k,-r*.3),tip,line,5.6*k,true);draw_line(at+Vector2(side*2.5*k,-r*.3),tip,skin,3.8*k,true)
-			draw_circle(at,r,line);draw_circle(at,r-1.5,skin)
-			draw_arc(at+Vector2(0,r*.15),r*.55,PI*1.1,PI*1.9,8,line,1.4,true)
-		_:
-			draw_circle(at,r,line);draw_circle(at,r-1.5,skin)
-			for i in range(3):draw_arc(at+Vector2((i-1)*r*.55,-r*.35),r*.32,PI,TAU,8,line,1.4,true)
+	var size: float=30*k
+	draw_texture_rect(RPS_HANDS[clampi(kind,0,2)],Rect2(at-Vector2(size,size)*.5,Vector2(size,size)),false,tint)
 ## Seconds since Santa left, or -1 once Santa is back (the sleigh and gifts then stop drawing).
 func _santa_clock(id: int) -> float:
 	for v in battle.units:
@@ -561,6 +549,10 @@ func advance(delta: float) -> void:
 				"ignite":
 					add_effect("slime_ring",e.point,Color("ff8a3d"),26+2*float(e.metadata.get("stacks",1)),.35)
 					particles.burst(e.point,Color("ffb347"),8+int(e.metadata.get("stacks",1)),260,0,"spark",true)
+				"puppet_cut":
+					# The control thread cuts its puppet: pink thread snaps and sparks.
+					add_effect("slime_ring",e.point,Color("ff8fad"),28,.3)
+					particles.burst(e.point,Color("ffc2d4"),6,180,-PI*.5,"spark",true)
 				"top_bounce":
 					# The top ricochets: a puff of wind and sparks where it struck the wall or a unit.
 					add_effect("slime_ring",e.point,Color("c8f7e6"),26,.3)

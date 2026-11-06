@@ -68,6 +68,7 @@ func run(tree: SceneTree) -> void:
 	balance_0845(tree)
 	top_and_bounty(tree)
 	fixes_0860(tree)
+	puppet_0861(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -983,6 +984,19 @@ func fixes_0860(tree: SceneTree) -> void:
 	verify(d.has("ms") and d.has("ts") and int(d.ms) in [0,1,2],"both hands are recorded for the duel display")
 	b.queue_free()
 
+## 0.86.1: 인형술사 control lasts 10 s and its thread cuts the controlled unit; 석궁 / 팽이 nerfs.
+func puppet_0861(tree: SceneTree) -> void:
+	verify(is_equal_approx(UnitBalance.damage(CharacterCatalog.all()[34]),.85*UnitBalance.tier(CharacterCatalog.all()[34])) and is_equal_approx(UnitBalance.hp(CharacterCatalog.all()[43]),.82*UnitBalance.tier(CharacterCatalog.all()[43])),"석궁 damage ×0.85, 팽이 HP ×0.82")
+	var b:=duel(tree,[[25,0,Vector2(200,400)],[0,1,Vector2(420,400)],[4,1,Vector2(600,600)]])
+	step(b,.05)
+	var puppet: BattleUnit=b.units[0];var foe: BattleUnit=b.units[1]
+	for u in b.units:u.combat.cooldown=1000;u.parry_cooldown=1000;u.defense_cooldown=1000;u.move_speed=0;u.evade_remaining=0
+	verify(CharacterLifecycle.control(foe,puppet,PuppetRef.CONTROL_TIME) and is_equal_approx(float(foe.puppet_control.remaining),10.0),"the control thread holds an enemy for 10 s")
+	var hp: float=foe.current_hp;step(b,1.6)
+	verify(foe.current_hp<hp and b.combat_event_counts.get(&"puppet_cut",0)>=3 and not foe.puppet_control.is_empty(),"the controlled unit takes magic damage every 0.5 s while held")
+	b.queue_free()
+
+const PuppetRef=preload("res://scripts/abilities/puppet_ability.gd")
 const FlameRef2=preload("res://scripts/abilities/flamethrower_ability.gd")
 const SantaRef=preload("res://scripts/abilities/santa_ability.gd")
 const FlameRef=preload("res://scripts/abilities/flame_blade_ability.gd")
