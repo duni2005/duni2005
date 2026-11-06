@@ -351,6 +351,17 @@ func unit_sheet(tree: SceneTree) -> void:
 	for id in range(CharacterCatalog.NAMES.size()):
 		if UnitLore.story(id).is_empty() or UnitLore.attack(id).is_empty() or UnitLore.passive(id).is_empty() or UnitLore.ultimate(id).is_empty():complete=false
 	verify(complete and UnitLore.STORY.size()==CharacterCatalog.NAMES.size(),"unit description text for every unit")
+	# 설명 작성 규칙: a summary line, then "• " lines; no damage-kind tags in the text; effects typed.
+	var tidy: bool=true
+	for id in range(CharacterCatalog.NAMES.size()):
+		for text in [UnitLore.attack(id),UnitLore.passive(id),UnitLore.ultimate(id)]:
+			var lines: PackedStringArray=text.split("\n")
+			if lines[0].begins_with("• ") or lines.size()>5 or text.contains("(물리") or text.contains("(마법"):tidy=false
+			for line in lines.slice(1):
+				if not line.begins_with("• "):tidy=false
+		for e in UnitLore.EFFECTS.get(id,[]):
+			if not e[0] in [&"basic",&"passive",&"ultimate"] or not e[1] in ["회복","보호막","강화","약화","제어","기타"]:tidy=false
+	verify(tidy,"every description follows the writing rules (summary, bullet lines, no damage tags, typed effects)")
 	var t:=TowerController.new();t.new_run(5,9);var m: GuildMemberState=t.guild.all_members()[0]
 	var host:=Control.new();tree.root.add_child(host)
 	var sheet:=UnitInfoSheet.open(host,m.unit_type_id,t.guild.member_stats(m),m);await tree.process_frame
@@ -363,6 +374,10 @@ func unit_sheet(tree: SceneTree) -> void:
 	verify(not special.is_visible_in_tree() and sheet.tab_buttons.size()==2,"special stats wait behind 전체 보기; an owned unit's sheet has the 상태 tab")
 	buttons.filter(func(x):return x.text=="전체 보기")[0].pressed.emit()
 	verify(special.is_visible_in_tree(),"전체 보기 shows the special stats")
+	var researcher:=UnitInfoSheet.open(host,45);await tree.process_frame
+	var heal_row: bool=researcher.find_children("*","Label",true,false).any(func(l):return l.text=="증폭 약물: 회복")
+	verify(heal_row,"자세히 보기 lists heals and buffs with their numbers")
+	researcher.queue_free()
 	more[0].pressed.emit()
 	verify(more[0].text=="접기" and sheet.find_children("*","Label",true,false).any(func(l):return l.is_visible_in_tree() and l.text.begins_with("물리 피해의 100%  →  예상 ")),"basic attack detail lists base + ratio and the estimate")
 	sheet.queue_free()

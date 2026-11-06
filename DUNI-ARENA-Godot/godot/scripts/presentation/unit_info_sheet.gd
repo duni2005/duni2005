@@ -124,9 +124,9 @@ func _build(column: VBoxContainer) -> void:
 	var trait_text: String = "\n".join(traits.map(func(t):return "[b]%s[/b]  %s" % [t, UnitLore.TRAITS[t]]))
 	if member != null:trait_text += "\n[color=#8fe3ff]현재 성향 · %s[/color]  %s" % [ArenaUI.stance(member.stance), ArenaUI.STANCE_HELP.get(member.stance, "")]
 	body.add_child(_section("guild", "행동성향", trait_text, Color("8fe3ff")))
-	body.add_child(_section("battle", "기본공격", UnitLore.attack(type_id), Color("f3d48e"), _instances(&"basic")))
-	body.add_child(_section("evade", "패시브", UnitLore.passive(type_id), Color("9fe08a"), _instances(&"passive")))
-	body.add_child(_section("charge", "궁극기", UnitLore.ultimate(type_id), Color("c49dff"), _instances(&"ultimate")))
+	body.add_child(_section("battle", "기본공격", UnitLore.attack(type_id), Color("f3d48e"), _instances(&"basic"), UnitLore.effects(type_id, &"basic")))
+	body.add_child(_section("evade", "패시브", UnitLore.passive(type_id), Color("9fe08a"), _instances(&"passive"), UnitLore.effects(type_id, &"passive")))
+	body.add_child(_section("charge", "궁극기", UnitLore.ultimate(type_id), Color("c49dff"), _instances(&"ultimate"), UnitLore.effects(type_id, &"ultimate")))
 	body.add_child(_section("star", "초월 스킬", UnitLore.TRANSCENDENCE, Color("ff9ec4"), _instances(&"transcend")))
 	# Units on the field reopen on the last tab; owned or placed units start on 유닛 정보.
 	_show_tab(last_tab if live else "info")
@@ -244,7 +244,7 @@ func _stat_chip(icon: String, caption: String, value: String) -> Control:
 	return chip
 ## A titled card: icon, coloured title, wrapped text (BBCode allowed); with damage instances, a
 ## "자세히 보기" toggle unfolds one row per instance.
-func _section(icon: String, title: String, text: String, tint: Color, instances: Array = []) -> PanelContainer:
+func _section(icon: String, title: String, text: String, tint: Color, instances: Array = [], effects: Array = []) -> PanelContainer:
 	var card := PanelContainer.new()
 	var style: StyleBoxFlat = ArenaUI.box(Color("0c1322"), Color(tint, .35));style.border_width_left = 3;style.content_margin_left = 12;style.content_margin_right = 10;style.content_margin_top = 8;style.content_margin_bottom = 10
 	card.add_theme_stylebox_override("panel", style)
@@ -255,18 +255,26 @@ func _section(icon: String, title: String, text: String, tint: Color, instances:
 	# Plain wrapped labels: a fitted RichTextLabel reported too little height for long texts, so
 	# the end of the sheet could not be scrolled to. "[b]x[/b]" marks a line's bold lead-in and
 	# "[color=#rrggbb]...[/color]" a coloured line.
+	# The first line is the summary; "• " lines are one effect each, a little smaller and indented.
 	for line in text.split("\n"):
-		var tint_line: Color = Color("dfe6f7")
+		var tint_line: Color = Color("eef1fa")
 		var plain: String = line
 		var colour := RegEx.create_from_string("^\\[color=(#[0-9a-fA-F]{6})\\](.*)\\[/color\\]$").search(plain)
 		if colour != null:tint_line = Color(colour.get_string(1));plain = colour.get_string(2)
 		plain = plain.replace("[b]", "").replace("[/b]", " ·")
+		var bullet: bool = plain.begins_with("• ")
+		if plain == "없음":tint_line = ArenaUI.MUTED
 		var label := Label.new();label.text = plain;label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		label.add_theme_font_size_override("font_size", 13);label.add_theme_color_override("font_color", tint_line);column.add_child(label)
-	if instances.is_empty():return card
+		label.add_theme_font_size_override("font_size", 12 if bullet else 13);label.add_theme_color_override("font_color", Color("c9d2ea") if bullet else tint_line)
+		if bullet:
+			var indent := MarginContainer.new();indent.add_theme_constant_override("margin_left", 6);indent.add_child(label);column.add_child(indent)
+		else:column.add_child(label)
+	if instances.is_empty() and effects.is_empty():return card
 	var heading_spacer := Control.new();heading_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL;row.add_child(heading_spacer)
 	var list := VBoxContainer.new();list.visible = false;list.add_theme_constant_override("separation", 6);column.add_child(list)
+	list.add_child(HSeparator.new())
 	for d in instances:list.add_child(_instance_row(d))
+	for e in effects:list.add_child(_effect_row(e))
 	var more := Button.new();more.text = "자세히 보기";more.flat = true;more.custom_minimum_size = Vector2(88, 32);more.add_theme_font_size_override("font_size", 12);more.add_theme_color_override("font_color", tint)
 	more.pressed.connect(func():list.visible = not list.visible;more.text = "접기" if list.visible else "자세히 보기")
 	row.add_child(more)
@@ -286,6 +294,15 @@ func _instance_row(d: Dictionary) -> Control:
 	var formula := Label.new();formula.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;formula.add_theme_font_size_override("font_size", 12);formula.add_theme_color_override("font_color", ArenaUI.MUTED)
 	formula.text = "%s  →  예상 %d" % [" + ".join(parts), roundi(UnitStatTable.estimate(d, stats, stats.physical_damage, stats.magic_damage))]
 	box.add_child(formula)
+	return box
+## One heal / shield / buff / debuff / control effect: its name, a kind chip and the numbers.
+const EFFECT_COLORS = {"회복": Color("7fe0a0"), "보호막": Color("8fd0ff"), "강화": Color("ffd36b"), "약화": Color("ff7f8a"), "제어": Color("ffb05e"), "기타": Color("a9b6d6")}
+func _effect_row(e: Array) -> Control:
+	var box := VBoxContainer.new();box.add_theme_constant_override("separation", 3)
+	var line := HFlowContainer.new();line.add_theme_constant_override("h_separation", 4);line.add_theme_constant_override("v_separation", 4);box.add_child(line)
+	var title := Label.new();title.text = e[2];title.add_theme_font_size_override("font_size", 13);title.add_theme_color_override("font_color", Color("eef1fa"));line.add_child(title)
+	line.add_child(_chip(e[1], EFFECT_COLORS.get(e[1], Color("a9b6d6"))))
+	var detail := Label.new();detail.text = e[3];detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;detail.add_theme_font_size_override("font_size", 12);detail.add_theme_color_override("font_color", ArenaUI.MUTED);box.add_child(detail)
 	return box
 func _chip(text: String, tint: Color) -> PanelContainer:
 	var chip := PanelContainer.new()
