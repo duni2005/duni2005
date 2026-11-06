@@ -67,6 +67,7 @@ func run(tree: SceneTree) -> void:
 	prediction_variety(tree)
 	balance_0845(tree)
 	top_and_bounty(tree)
+	fixes_0860(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -949,6 +950,40 @@ func top_and_bounty(tree: SceneTree) -> void:
 	verify(int(hunter.state_value("bountyGold"))==100 and b.combat_event_counts.get(&"bounty_paid",0)==1,"a fallen bounty pays 100 gold")
 	b.queue_free()
 
+## 0.86.0: tank shell speed, mirror 6 s, UFC ring nerf, flamethrower throws at enemies, charmed
+## units always walk to the charmer, and the rock-paper-scissors hands are recorded for display.
+func fixes_0860(tree: SceneTree) -> void:
+	verify(is_equal_approx(UnitStatTable.spec(9,&"ring").ratio,.49) and is_equal_approx(UnitStatTable.spec(9,&"ring").base,7.0),"UFC 링 줄 충돌 -30%")
+	var b:=duel(tree,[[18,0,Vector2(200,400)],[21,1,Vector2(520,400)],[32,0,Vector2(200,600)],[0,1,Vector2(560,640)],[4,1,Vector2(640,700)]])
+	step(b,.05)
+	var tank: BattleUnit=b.units[0];var mirror: BattleUnit=b.units[1];var flame: BattleUnit=b.units[2]
+	var before: int=b.projectiles.size();tank.facing=0;tank.ability.release_basic(tank)
+	var shells: Array=b.projectiles.slice(before).filter(func(p):return p.kind=="tankShell")
+	verify(not shells.is_empty() and shells[0].velocity.length()>=1200,"tank shells fly about twice as fast")
+	mirror.ability.release_ultimate(mirror,{},0)
+	verify(is_equal_approx(mirror.state_value("mirrorReflectTime"),6.0),"금간 거울 reflects for 6 s")
+	var aim: Vector2=flame.ability.ultimate_point(flame,flame.position)
+	verify(aim.distance_to(Vector2(600,670))<90 and flame.position.distance_to(aim)<=FlameRef2.PATCH_REACH+1,"화염방사기 throws its bottles at the enemy group within the longer reach")
+	b.queue_free()
+	# 매혹: a charmed unit under a projectile threat still walks to its charmer.
+	b=duel(tree,[[37,0,Vector2(200,400)],[0,1,Vector2(500,400)],[1,0,Vector2(500,700)]])
+	step(b,.05)
+	var whisperer: BattleUnit=b.units[0];var victim: BattleUnit=b.units[1]
+	victim.set_state("charmTime",3.0);victim.character_specific_state["charmBy"]=whisperer.actor_id()
+	var gap: float=victim.position.distance_to(whisperer.position)
+	b.units[2].combat.aim_angle=-PI*.5;b.units[2].ability.release_basic(b.units[2])
+	step(b,.6)
+	verify(victim.position.distance_to(whisperer.position)<gap-12,"a charmed unit keeps walking to the charmer even with a projectile coming")
+	b.queue_free()
+	b=duel(tree,[[8,0,Vector2(300,400)],[0,1,Vector2(360,400)]])
+	step(b,.05)
+	verify(CharacterLifecycle.begin_duel(b.units[0],b.units[1]),"a rock-paper-scissors duel starts")
+	step(b,1.8)
+	var d: Dictionary=b.units[0].duel if not b.units[0].duel.is_empty() else {}
+	verify(d.has("ms") and d.has("ts") and int(d.ms) in [0,1,2],"both hands are recorded for the duel display")
+	b.queue_free()
+
+const FlameRef2=preload("res://scripts/abilities/flamethrower_ability.gd")
 const SantaRef=preload("res://scripts/abilities/santa_ability.gd")
 const FlameRef=preload("res://scripts/abilities/flame_blade_ability.gd")
 ## 역병 (38) and 빙하 골렘 (39), 0.79.0.

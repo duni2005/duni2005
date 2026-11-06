@@ -12,6 +12,6 @@ func after_damage(u,source,actual: float,options: Dictionary) -> void:
 	var amount: float=CombatRules.js_round(actual*.1)
 	if amount>0:u.battle.damage_resolver.resolve(u,source,amount,{"dmg":options.get("dmg",&"basic"),"dmg_type":int(options.get("dmg_type",source.data.type_id)),"mirror_shard":true,"mirror_raw":true,"critical":false,"impulse":0})
 func can_ultimate(u,t) -> bool:return t!=null and u.state_value("mirrorReflectTime")<=0 and (not u.threat_response.projectile_threat(u).is_empty() or u.enemies().any(func(e):return e.combat_state==CombatController.State.WINDUP and e.combat.attack_target==u) or u.current_hp/u.max_hp<.55 and u.position.distance_to(t.position)<260 or u.state_value("ultReadyAge")>4)
-func release_ultimate(u,_a,_dt: float) -> bool:u.set_state("mirrorReflectTime",3);return true
+func release_ultimate(u,_a,_dt: float) -> bool:u.set_state("mirrorReflectTime",6);return true
 func defensive_ultimate() -> bool:return true
 func debug_state(u) -> String:return " / ".join(["mirrorReflectTime"].map(func(k):return k+":"+str(u.character_specific_state.get(k,0))))

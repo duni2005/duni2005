@@ -110,6 +110,43 @@ func _star(at: Vector2,r: float,turn: float,color: Color) -> void:
 	var pts:=PackedVector2Array()
 	for k in range(10):pts.append(at+Vector2.from_angle(turn+k*PI/5-PI*.5)*(r if k%2==0 else r*.45))
 	draw_colored_polygon(pts,color)
+## 가위바위보 승부: each duelist pumps a fist over its head ("가위, 바위, 보!"), then both throw
+## their hands; the winner's glows gold, the loser's dims under a red cross.
+func _rps_hands(u: BattleUnit,p: Vector2,s: float) -> void:
+	var d: Dictionary=u.duel;var mine: bool=String(d.get("master",""))==u.actor_id()
+	var at: Vector2=p+Vector2(0,-64)*s;var time: float=float(d.get("time",0))
+	if not bool(d.get("resolved",false)) or not d.has("ms"):
+		var bob: float=absf(sin(time*PI*1.75))*10
+		_rps_hand(at+Vector2(0,-bob),0,1.0,Color(1,1,1,1))
+		if mine:
+			var words: Array=["가위","바위","보!"];var w: String=words[mini(2,int(time/.58))]
+			draw_string_outline(ThemeDB.fallback_font,at+Vector2(-40,-26),w,HORIZONTAL_ALIGNMENT_CENTER,80,15,4,Color(0,0,0,.8))
+			draw_string(ThemeDB.fallback_font,at+Vector2(-40,-26),w,HORIZONTAL_ALIGNMENT_CENTER,80,15,Color("ffe6a0"))
+		return
+	var hand: int=int(d.ms) if mine else int(d.ts);var other: int=int(d.ts) if mine else int(d.ms)
+	var won: bool=(hand-other+3)%3==1;var lost: bool=(other-hand+3)%3==1
+	var pop: float=1+.35*maxf(0,1-(time-1.7)*6)
+	if won:VfxArt.glow(self,at,30,Color("ffd65c"),.6)
+	_rps_hand(at,hand,pop,Color(1,1,1,1) if not lost else Color(.6,.6,.65,1))
+	if lost:
+		draw_line(at+Vector2(-12,-12),at+Vector2(12,12),Color("ff5a5a"),3.5,true);draw_line(at+Vector2(12,-12),at+Vector2(-12,12),Color("ff5a5a"),3.5,true)
+## A hand: 0 rock (fist), 1 paper (open palm), 2 scissors (two fingers in a V).
+func _rps_hand(at: Vector2,kind: int,k: float,tint: Color) -> void:
+	var skin: Color=Color("ffd2a8")*tint;var line: Color=Color("6b4a32");k*=1.35;var r: float=11*k
+	match kind:
+		1:
+			for i in range(4):
+				var x: float=(i-1.5)*5.2*k;draw_line(at+Vector2(x,-r*.2),at+Vector2(x*1.15,-r*1.55),line,5.4*k,true);draw_line(at+Vector2(x,-r*.2),at+Vector2(x*1.15,-r*1.55),skin,3.6*k,true)
+			draw_line(at+Vector2(r*.7,r*.1),at+Vector2(r*1.35,-r*.55),line,5.4*k,true);draw_line(at+Vector2(r*.7,r*.1),at+Vector2(r*1.35,-r*.55),skin,3.6*k,true)
+			draw_circle(at,r,line);draw_circle(at,r-1.5,skin)
+		2:
+			for side in [-1,1]:
+				var tip: Vector2=at+Vector2(side*r*.75,-r*1.65);draw_line(at+Vector2(side*2.5*k,-r*.3),tip,line,5.6*k,true);draw_line(at+Vector2(side*2.5*k,-r*.3),tip,skin,3.8*k,true)
+			draw_circle(at,r,line);draw_circle(at,r-1.5,skin)
+			draw_arc(at+Vector2(0,r*.15),r*.55,PI*1.1,PI*1.9,8,line,1.4,true)
+		_:
+			draw_circle(at,r,line);draw_circle(at,r-1.5,skin)
+			for i in range(3):draw_arc(at+Vector2((i-1)*r*.55,-r*.35),r*.32,PI,TAU,8,line,1.4,true)
 ## Seconds since Santa left, or -1 once Santa is back (the sleigh and gifts then stop drawing).
 func _santa_clock(id: int) -> float:
 	for v in battle.units:
@@ -184,6 +221,15 @@ func _explosion_once(key: int,point: Vector2,radius: float) -> void:
 	if explosive_seen.has(key):return
 	if explosive_seen.size()>=256:explosive_seen.erase(explosive_seen.keys()[0])
 	explosive_seen[key]=true;add_effect("explosion",point,Color("ffbc75"),radius,.48)
+	# A real blast: a billowing fireball that rolls up into smoke, a pressure ring, debris and
+	# embers thrown out, and a scorch mark left on the ground.
+	add_effect("fireball",point,Color("ff8a3d"),radius,1.1,randf()*TAU)
+	add_effect("scorch",point,Color("2a1a12"),radius*.62,3.2,randf()*TAU)
+	if use_shader_fx:shader_fx.shock(point,radius*1.1,.55,Color("ffb057"))
+	particles.burst(point,Color("4a3326"),int(10+radius/12),radius*3.4,0,"shard",true)
+	particles.burst(point,Color("ffb347"),int(12+radius/10),radius*3.0,0,"ember",true)
+	particles.burst(point,Color("5a4a42"),int(6+radius/20),radius*.9,-PI*.5,"smoke",true)
+	camera.impact(minf(14,4+radius/16),point)
 func _departed_projectile(reference: WeakRef) -> void:
 	var p=reference.get_ref()
 	if p==null or not is_instance_valid(battle) or not is_instance_valid(p.source) or p.source.battle!=battle:return
@@ -841,6 +887,30 @@ func _draw() -> void:
 			var front: Vector2=e.point+Vector2.from_angle(float(e.angle))*54;var br: float=8+26*t
 			draw_circle(front+Vector2(0,br*.5),br,Color(0,0,0,.15));draw_circle(front,br,Color("f4fbff"));draw_arc(front,br,0,TAU,24,Color("9fc3dc"),2,true)
 			draw_circle(front+Vector2(-br*.3,-br*.3),br*.45,Color("ffffff"))
+		elif e.kind=="fireball":
+			# Billowing lobes of fire that swell fast, then cool to dark smoke as they rise.
+			var grow: float=1-pow(1-clampf(t*2.4,0,1),3);var r: float=e.radius*grow;var lift: float=-e.radius*.55*t*t
+			var heat: float=clampf(1-t*1.4,0,1);var fade: float=clampf((1-t)*2.2,0,1)
+			for i in range(14):
+				var a: float=float(e.angle)+i*2.399;var d: float=r*(.3+.28*fmod(i*.618,1.0))
+				var q: Vector2=e.point+Vector2.from_angle(a)*d+Vector2(0,lift*(.6+.4*fmod(i*.37,1.0)))
+				var lobe: float=r*(.34+.1*sin(i*2.7))*(1-t*.35)
+				var smoke: float=clampf(t*1.5-.25,0,1);var col: Color=Color("ff6a1f").lerp(Color("4a3e38"),smoke)
+				draw_circle(q,lobe,Color(col,(.85-.4*smoke)*fade))
+				if heat>0:draw_circle(q+Vector2(0,-lobe*.15),lobe*.55,Color(Color("ffd36b"),.8*heat))
+			if heat>0:
+				draw_circle(e.point+Vector2(0,lift*.4),r*.42*heat,Color("fff4d6",.95*heat))
+				VfxArt.glow(self,e.point,e.radius*1.2,Color("ff8a3d"),.7*heat)
+		elif e.kind=="scorch":
+			# A blackened crater with glowing embers that cool and fade.
+			var fade: float=clampf((1-t)*3,0,1);var cool: float=clampf(1-t*2.5,0,1)
+			for i in range(9):
+				var a: float=float(e.angle)+i*TAU/9;var q: Vector2=e.point+Vector2.from_angle(a)*e.radius*(.35+.25*fmod(i*.618,1.0))
+				draw_circle(q,e.radius*(.3+.12*fmod(i*.37,1.0)),Color(e.color,.35*fade))
+			draw_circle(e.point,e.radius*.55,Color(e.color,.45*fade))
+			for i in range(7):
+				var q: Vector2=e.point+Vector2.from_angle(float(e.angle)*2+i*2.1)*e.radius*(.2+.5*fmod(i*.53,1.0))
+				draw_circle(q,2.2,Color(Color("ff9a4a"),.9*cool*(.5+.5*sin(real_age*9+i))))
 		elif e.kind=="bounty_tracer":
 			# A straight hot tracer from the hunter to its target.
 			var to: Vector2=e.get("to",e.point);var w: float=10*(1-t)+1.5
@@ -1203,6 +1273,7 @@ func _ability_state(u: BattleUnit,parent: Transform2D) -> void:
 		var cross: Vector2=p+Vector2(0,-48)*s
 		draw_line(cross-Vector2(12,0)*s,cross+Vector2(12,0)*s,Color("ffe6ee"),4*s)
 		draw_line(cross-Vector2(0,8)*s,cross+Vector2(0,8)*s,Color("ffe6ee"),4*s)
+	if not u.duel.is_empty() and u.alive:_rps_hands(u,p,maxf(s,1.0))
 	if u.data.type_id==43 and u.alive:
 		# 팽이: spinning wind arcs round the body; red-hot while 폭주 회전 lasts.
 		var hot: bool=u.state_value("topBoost")>0;var spin: float=real_age*(26 if hot else 16)

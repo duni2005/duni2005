@@ -11,7 +11,7 @@ const OIL_REGEN: float = 3.5
 const PUFF_EVERY: float = .1
 const PATCH_RADIUS: float = 140
 const PATCH_LIFE: float = 6
-const PATCH_REACH: float = 260
+const PATCH_REACH: float = 430
 const BOTTLES: int = 5
 const PUDDLE_RADIUS: float = 58
 ## Bottle i leaves at i * THROW_GAP and flies FLIGHT seconds; the fire is lit at IGNITE and runs
@@ -45,6 +45,19 @@ func attack_tick(u,dt: float) -> bool:
 		u.combat.attack_metadata.next_puff=next
 		if u.state_value("oil")<1:u.combat_state=CombatController.State.RECOVERY;u.combat.phase_time=0
 	return false
+func can_ultimate(u,t) -> bool:return t!=null and u.enemies(false).any(func(e):return e.alive and u.position.distance_to(e.position)<(PATCH_REACH+PATCH_RADIUS*.5)*u.combat_scale())
+## The bottles are thrown at the enemies: the spot within reach that covers the most of them.
+func ultimate_point(u,point: Vector2) -> Vector2:
+	var reach: float=PATCH_REACH*u.combat_scale();var radius: float=PATCH_RADIUS*u.combat_scale()
+	var foes: Array=u.enemies(false).filter(func(e):return e.alive and not e.unavailable() and u.position.distance_to(e.position)<reach+radius*.5)
+	var best: Vector2=point;var most: int=-1
+	for e in foes:
+		var near: Array=foes.filter(func(o):return o.position.distance_to(e.position)<radius)
+		if near.size()>most:
+			most=near.size();best=Vector2.ZERO
+			for o in near:best+=o.position+o.velocity*.35
+			best/=near.size()
+	return (u.position+(best-u.position).limit_length(reach)).clamp(Vector2(28,28),Vector2(772,772))
 func release_ultimate(u,a: Dictionary,_dt: float) -> bool:
 	var scale: float=u.combat_scale();var r: RandomNumberGenerator=u.battle.rng
 	var center: Vector2=u.position+(CharacterPersistence.vector(a.get("point",{}),u.position)-u.position).limit_length(PATCH_REACH*scale)

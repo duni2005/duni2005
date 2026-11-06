@@ -86,6 +86,7 @@ static func advance_duel(master,dt: float) -> void:
 		var ms: int=master.battle.rng.randi_range(0,2);var ts: int=master.battle.rng.randi_range(0,2)
 		if fm and not ft:ms=(ts+1)%3
 		if ft and not fm:ts=(ms+1)%3
+		d["ms"]=ms;d["ts"]=ts # shown over both heads (0 rock, 1 paper, 2 scissors)
 		if fm and ft:CharacterAbility.restore_hp(master,master.max_hp*.05,master);CharacterAbility.restore_hp(target,target.max_hp*.05,target)
 		elif ms!=ts:
 			var winner=master if (ms-ts+3)%3==1 else target;var loser=target if winner==master else master

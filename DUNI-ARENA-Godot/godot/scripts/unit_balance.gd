@@ -14,8 +14,8 @@ const HP: Dictionary = {0: .9, 5: 1.15, 16: 1.1, 18: .92, 19: 1.25, 20: 1.1, 24:
 ## Per-unit physical/magic damage correction (type_id → factor).
 const DAMAGE: Dictionary = {0: .92, 2: .92, 3: .88, 5: 1.15, 13: .88, 15: .8, 16: 1.1, 18: .92, 19: 1.25, 20: 1.2, 24: .9, 25: 1.3, 27: 1.25, 31: 1.12, 33: .8, 35: .8}
 ## Per-skill damage correction on top of DAMAGE (type_id → {damage key → factor}): 0.84.5 마법사
-## 블랙홀 -20%.
-const SKILL: Dictionary = {2: {&"ult": .8}}
+## 블랙홀 -20%; 0.86.0 UFC 선수 링 줄 충돌 -30%.
+const SKILL: Dictionary = {2: {&"ult": .8}, 9: {&"ring": .7}}
 ## Share of the ultimate gauge a unit still gains from damage its own ultimate deals (0.84.5:
 ## 소형 위성's missile salvo refilled the gauge too fast).
 const ULT_SELF_CHARGE: Dictionary = {15: .7}

@@ -42,6 +42,8 @@ func advance_common(unit, delta: float) -> void:
 	if unit.battle.full_characters_enabled:
 		if unit.unavailable() or unit.ability.locked(unit) or not unit.ultimate.cast.is_empty():return
 		if unit.character_specific_state.get("bomberRush",false):return
+		# 매혹: walking to the charmer comes before dodging, fleeing zones, bomb escapes or retreats.
+		if unit.state_value("charmTime") > 0 and unit.brain.move_charmed(unit,delta):return
 		# 팽이 spins on by itself, bouncing off walls and units.
 		if unit.data.type_id==43:unit.ability.modify_movement(unit,unit.target,delta);return
 		if unit.evade_remaining>0 and unit.dodge_state.is_empty() and unit.strategy_dash.is_empty():unit.velocity=Vector2.ZERO;unit.brain.heading=Vector2.ZERO;return
