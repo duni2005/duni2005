@@ -7,6 +7,8 @@ var response: Dictionary = {}
 var reaction: float = .2
 var side: float = 1
 var counts: Dictionary = {}
+## Reactions to a blow that is still this far off (seconds) get reconsidered.
+const RETHINK_MIN: float = .55
 func initialize(rng: RandomNumberGenerator) -> void:
 	reaction = rng.randf_range(.14, .29)
 	side = -1 if rng.randf() < .5 else 1
@@ -68,6 +70,15 @@ func advance(unit) -> void:
 		elif not matching or source.combat_state in [CombatController.State.RECOVERY,CombatController.State.IDLE] or now>=response.until:
 			if unit.battle.full_characters_enabled and response.mode==&"dodge" and is_instance_valid(source) and source.alive and unit.last_damage_time<float(response.get("observed_at",0)):unit.brain.punish_actor=source.actor_id();unit.brain.punish_until=now+1.6;unit.brain.begin(unit,source,1.9,"punish")
 			response.clear()
+	# A long windup is read again every so often: the unit may switch between stepping aside,
+	# going in to hit first, and getting a parry ready instead of sticking to its first guess.
+	if not response.is_empty() and battle.full_characters_enabled and not response.started and now>=float(response.get("rethink_at",INF)):
+		var source = battle.find_unit(response.source_id)
+		if is_instance_valid(source) and source.alive and impact_delay(unit,source)>RETHINK_MIN:
+			read_attacks["%d:%d"%[source.battle_id,int(response.serial)]]={"at":now+battle.rng.randf_range(.05,.14),"roll":battle.rng.randf(),"done":false}
+			if response.mode==&"counter" and unit.combat_state==CombatController.State.IDLE:unit.brain.commit_until=0
+			response.clear()
+		else:response.rethink_at=INF
 	if not response.is_empty() or ParryController.perfect(unit) or not unit.alive or unit.evade_remaining>0 or not unit.dodge_state.is_empty() or not unit.strategy_dash.is_empty() or not unit.ultimate.cast.is_empty() or unit.battle.full_characters_enabled and unit.ability.locked(unit) or unit.combat_state in [CombatController.State.ACTIVE,CombatController.State.RECOVERY]: return
 	var source = windup_threat(unit)
 	if source==null: return
@@ -83,9 +94,10 @@ func advance(unit) -> void:
 	var delay: float = impact_delay(unit,source)
 	response={"mode":mode,"observed_at":now+.00001,"source_id":source.battle_id,"serial":reaction_serial(source),"fired":false,"hidden":source.combat.hidden_launch,"started":false,"side":-1 if battle.rng.randf()<.5 else 1,"until":now+minf(1.05,delay+.4)}
 	counts[mode]=counts.get(mode,0)+1
+	if delay>RETHINK_MIN+.25:response.rethink_at=now+battle.rng.randf_range(.35,.6)
 	if mode==&"parry": response.merge(timing(unit,delay),true);response.advance=unit.mind.advance_while_parrying(unit,source)
 	if unit.battle.full_characters_enabled and mode==&"counter":unit.brain.begin(unit,source,1.5,"counter")
-	if unit.battle.full_characters_enabled and mode==&"hold":unit.brain.mode="circle";unit.brain.hold=battle.rng.randf_range(.15,.4)
+	if unit.battle.full_characters_enabled and mode==&"hold" and now>=unit.brain.commit_until:unit.brain.mode="circle";unit.brain.hold=battle.rng.randf_range(.15,.4)
 	if mode in [&"parry",&"dodge"]:
 		if unit.battle.full_characters_enabled:unit.brain.commit_until=0;unit.brain.mode="retreat"
 		if unit.combat_state==CombatController.State.WINDUP: unit.combat.cancel(unit)
@@ -132,9 +144,11 @@ func movement(unit, delta: float) -> bool:
 		# Keep moving normally until the blow is close; then plant and face it. A healthy unit
 		# parrying a shot aimed at it steps towards the shooter instead.
 		var stepping: bool=response.get("advance",false)
-		if unit.battle.full_characters_enabled and unit.battle.clock.elapsed<float(response.get("parry_at",0))-.3 and not stepping:return false
+		var early: bool=unit.battle.clock.elapsed<float(response.get("parry_at",0))-.3
+		if unit.battle.full_characters_enabled and early and not stepping:return false
 		unit.facing=lerp_angle(unit.facing,(source.position-unit.position).angle(),minf(1,delta*8))
-		direction=(source.position-unit.position).normalized()*.4 if stepping else (unit.position-source.position).normalized()*.15*.5
+		# Well before the blow lands, a unit that means to parry and answer walks straight in.
+		direction=(source.position-unit.position).normalized()*(1.0 if early and unit.battle.full_characters_enabled else .4) if stepping else (unit.position-source.position).normalized()*.15*.5
 	elif response.mode==&"dodge" and unit.combat_state==CombatController.State.IDLE:
 		var away: Vector2 = (unit.position-source.position).normalized()
 		direction=Vector2.from_angle(source.combat.aim_angle+PI/2)*response.side if source.data.attack_range>100 else away*.8-away.orthogonal()*response.side

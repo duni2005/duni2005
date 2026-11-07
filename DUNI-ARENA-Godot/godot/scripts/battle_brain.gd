@@ -46,6 +46,12 @@ var decisions: int = 0
 var home: Vector2 = Vector2.ZERO
 var home_set: bool = false
 var home_since: float = -1
+## Last moment this unit was attacking (or the battle start): STALL seconds without any attack
+## and it stops waiting for an opening and goes in.
+var last_action: float = 0
+const STALL: float = 3.2
+## Running away from a nearby enemy is slower (up to ×FLEE_SPEED straight away), so a chase ends.
+const FLEE_SPEED: float = .75
 func initialize(r: RandomNumberGenerator) -> void:
 	think=r.randf_range(.2,.65); hold=r.randf_range(.7,1.6)
 	boldness=r.randf_range(.7,1.35); caution=r.randf_range(.8,1.4)
@@ -54,7 +60,7 @@ func initialize(r: RandomNumberGenerator) -> void:
 	standoff=r.randf_range(135,190); side=-1 if r.randf()<.5 else 1
 	swerve=r.randf_range(.8,1.5); phase=r.randf_range(0,TAU); tempo=r.randf_range(.55,1.8)
 	entry_plan=["observe","circle","feint","flank"][r.randi_range(0,3)]
-	next_initiative_at=r.randf_range(.4,3.8)*tempo
+	next_initiative_at=r.randf_range(.3,2.2)*tempo
 	goal=Vector2(r.randf_range(100,700),r.randf_range(100,700))
 ## A stunned enemy cannot answer: no standoff against it, everyone presses in at once.
 static func exposed(enemy) -> bool:return enemy!=null and enemy.alive and enemy.stun_remaining>0
@@ -72,7 +78,7 @@ func begin(u, enemy, duration: float=2.2, reason: String="initiative") -> void:
 	duration=maxf(duration,minf(4.5,closing+1));hesitations=0
 	commit_until=now+duration;disengage_until=0;return_until=0;mode="approach";hold=duration;last_target=enemy.actor_id()
 	attack_decision={"actor":enemy.actor_id(),"at":now+intent_delay(u,reason),"reason":reason}
-	next_initiative_at=commit_until+u.battle.rng.randf_range(.45,1.7)*tempo
+	next_initiative_at=commit_until+u.battle.rng.randf_range(.3,1.1)*tempo
 func intent_delay(u,reason: String) -> float:
 	if u.stance==CombatStance.RUSH:return u.battle.rng.randf_range(StanceRules.RUSH_INTENT_DELAY.x,StanceRules.RUSH_INTENT_DELAY.y)
 	var delay: float=u.battle.rng.randf_range(.06,.42) if reason in ["counter","punish"] else u.battle.rng.randf_range(.06,.55) if reason=="pressure" else u.battle.rng.randf_range(.18,.95)
@@ -92,7 +98,7 @@ func update_spacing(u,enemy) -> void:
 	if spent and spacing.spent!=spacing.observed and visible:
 		spacing.spent=spacing.observed;spacing.opening=now+r.randf_range(1.25,1.9);spacing.probe=now+r.randf_range(.08,.6)*tempo/haste(u)
 	if last_attack>float(spacing.own)+.000001:
-		spacing.own=last_attack;spacing.exit=now+r.randf_range(1.1,1.7)/haste(u);spacing.opening=0;spacing.probe=float(spacing.exit)+r.randf_range(.65,1.35)/haste(u)
+		spacing.own=last_attack;spacing.exit=now+r.randf_range(.8,1.3)/haste(u);spacing.opening=0;spacing.probe=float(spacing.exit)+r.randf_range(.35,.9)/haste(u)
 	spacing.threatening=ThreatResponseController.windup_threat(u)!=null
 	spacing.mode="attack" if u.combat_state!=CombatController.State.IDLE else "withdraw" if now<float(spacing.exit) or now<disengage_until else "evade" if spacing.threatening else "counter" if now<float(spacing.opening) or now<punish_until or now<commit_until else "space"
 func advance(u, enemy, _dt: float) -> void:
@@ -100,9 +106,9 @@ func advance(u, enemy, _dt: float) -> void:
 	# The source invokes threat response twice per tick (second invocation is read-idempotent).
 	u.threat_response.advance(u)
 	var now: float=u.battle.clock.elapsed;var r: RandomNumberGenerator=u.battle.rng
-	if u.combat_state!=CombatController.State.IDLE or not u.ultimate.cast.is_empty():was_attacking=true;return
+	if u.combat_state!=CombatController.State.IDLE or not u.ultimate.cast.is_empty():was_attacking=true;last_action=now;return
 	if was_attacking:
-		was_attacking=false;attack_decision.clear();next_initiative_at=maxf(now,disengage_until)+r.randf_range(.3,2.3)*tempo*StanceRules.pick(u,1,StanceRules.CAUTIOUS_INITIATIVE,1)/haste(u)
+		was_attacking=false;attack_decision.clear();next_initiative_at=maxf(now,disengage_until)+r.randf_range(.2,1.3)*tempo*StanceRules.pick(u,1,StanceRules.CAUTIOUS_INITIATIVE,1)/haste(u)
 	if enemy==null or u.stun_remaining>0 or u.evade_remaining>0 or u.ability.locked(u) or not u.lost_sword.is_empty() or u.command_retreat_until>now:return
 	if not attack_decision.is_empty():attack_decision.actor=enemy.actor_id()
 	u.mind.pace(u,enemy)
@@ -110,6 +116,8 @@ func advance(u, enemy, _dt: float) -> void:
 		if now>=commit_until:begin(u,enemy,maxf(1.2,enemy.stun_remaining+.4),"pressure")
 		disengage_until=0;return_until=0;return
 	if not u.threat_response.response.is_empty() or u.combat.cooldown>0 or now<maxf(maxf(disengage_until,return_until),commit_until):return
+	# Nobody has swung for a while: stop circling and go in.
+	if now-last_action>STALL*patience and now>=punish_until:begin(u,enemy,r.randf_range(1.8,2.6),"pressure");return
 	if defensive(u):
 		if now<float(spacing.exit) or spacing.threatening or now<float(spacing.probe):return
 		# Cautious stance: let the enemy swing first and answer its recovery (up to a wait limit).
@@ -120,8 +128,8 @@ func advance(u, enemy, _dt: float) -> void:
 func decide_initiative(u,enemy,duration: float) -> bool:
 	var now: float=u.battle.clock.elapsed;var r: RandomNumberGenerator=u.battle.rng
 	var opening: bool=enemy.combat_state==CombatController.State.RECOVERY or enemy.combat.cooldown>.6
-	if not opening and now-last_attack<=5.5 and hesitations<2 and r.randf()<clampf(.32*patience,.15,.48):
-		hesitations+=1;entry_plan=["circle","feint","flank"][r.randi_range(0,2)];next_initiative_at=now+r.randf_range(.25,1.6)*tempo/haste(u);commit_until=0;return false
+	if not opening and now-last_attack<=5.5 and hesitations<1 and r.randf()<clampf(.22*patience,.1,.32):
+		hesitations+=1;entry_plan=["circle","feint","flank"][r.randi_range(0,2)];next_initiative_at=now+r.randf_range(.2,.9)*tempo/haste(u);commit_until=0;return false
 	begin(u,enemy,duration);return true
 func attack_ready(u, enemy) -> bool:
 	if enemy==null:return false
@@ -139,7 +147,7 @@ func attack_ready(u, enemy) -> bool:
 	return now>=float(attack_decision.at)
 func released(u) -> void:
 	last_attack=u.battle.clock.elapsed;commit_until=0;attack_decision.clear();hold=u.battle.rng.randf_range(.7,1.4)
-	disengage_until=0 if u.state_value("shadowTime")>0 else last_attack+u.battle.rng.randf_range(1.1,1.7)/haste(u) if defensive(u) else last_attack+u.battle.rng.randf_range(.6,1.3)/haste(u)
+	disengage_until=0 if u.state_value("shadowTime")>0 else last_attack+u.battle.rng.randf_range(.8,1.3)/haste(u) if defensive(u) else last_attack+u.battle.rng.randf_range(.45,1.0)/haste(u)
 	mode="shadow" if u.state_value("shadowTime")>0 else "retreat"
 	# Rush stance: no step back, straight on to the next attack.
 	if u.stance==CombatStance.RUSH or exposed(u.target):disengage_until=0;mode="approach";return
@@ -162,7 +170,14 @@ func steer(u,direction: Vector2,dt: float,factor: float=1,style: String="archety
 	steered_direction=direction.limit_length(1)
 	if not heading.is_finite():heading=Vector2.ZERO
 	heading=heading.limit_length(1).lerp(steered_direction,1-exp(-dt*(9 if style=="strategy" else 8)))
-	u.position=MovementController.clamp_position(p+heading*u.move_speed*u.ability.movement_rate(u)*factor*dt);u.velocity=(u.position-p)/dt
+	u.position=MovementController.clamp_position(p+heading*u.move_speed*u.ability.movement_rate(u)*factor*flee_rate(u)*dt);u.velocity=(u.position-p)/dt
+## Slower while heading straight away from an enemy that is close (bombs and charm excepted).
+func flee_rate(u) -> float:
+	if heading.length_squared()<.01 or movement_override in ["bomb_escape","charmed"]:return 1.0
+	var near=CharacterAbility.nearest(u,u.enemies())
+	if near==null or near.position.distance_to(u.position)>300:return 1.0
+	var away: float=heading.normalized().dot((u.position-near.position).normalized())
+	return lerpf(1.0,FLEE_SPEED,clampf((away-.3)/.6,0,1))
 func move_precommit(u,enemy,dt: float) -> bool:
 	var now: float=u.battle.clock.elapsed
 	if enemy==null or exposed(enemy) or u.combat_state!=CombatController.State.IDLE or not u.ultimate.cast.is_empty() or u.state_value("shadowTime")>0 or u.stance==CombatStance.RUSH or u.taunted_until>now or u.data.type_id in [6,11] or not u.friends().is_empty() and (u.data.tags.has("호위형") or u.data.type_id==5) or not u.lost_sword.is_empty() or u.command_retreat_until>now or u.threat_response.response.get("mode",&"")==&"counter" or now<commit_until or now<punish_until:return false
@@ -244,7 +259,7 @@ func move_rear(u,enemy,dt: float) -> bool:
 	var goal_point: Vector2=rear_goal.point;var d: float=u.position.distance_to(goal_point)
 	var direction: Vector2=(goal_point-u.position).normalized()*minf(1,d/35)
 	# Settled at the station: a slow side-to-side sway instead of standing frozen.
-	if d<30 and enemy!=null:direction+=(enemy.position-u.position).normalized().orthogonal()*sin(now*1.3+phase)*.35
+	if d<30 and enemy!=null:direction+=(enemy.position-u.position).normalized().orthogonal()*(sin(now*1.3+phase)*.45+side*.3)
 	if close:direction+=(u.position-nearest.position).normalized()*clampf((210-u.position.distance_to(nearest.position))/85,0,1.4)
 	# Cautious back line: shoot, step back, shoot again.
 	if u.stance==CombatStance.CAUTIOUS and enemy!=null and now<disengage_until:direction+=(u.position-enemy.position).normalized()*StanceRules.CAUTIOUS_SHOT_STEP
@@ -368,12 +383,14 @@ func move_general(u,enemy,dt: float) -> void:
 			"approach":
 				var committed: bool=now<commit_until;direction=f*(1.3 if committed else .95)+(-f.orthogonal())*(side*.16 if committed else side*.42+sin(now*(2.1+swerve)+phase)*.6)
 				if u.data.attack_range>100 and d<u.data.attack_range*.8 and not committed:direction=f*.1+l
-				if u.data.attack_range<100 and not committed and u.stance!=CombatStance.RUSH and u.taunted_until<=now:direction=f*clampf((d-standoff)/100,-.7,.8)+l*.5
+				if u.data.attack_range<100 and not committed and u.stance!=CombatStance.RUSH and u.taunted_until<=now and enemy.data.attack_range<100:direction=f*clampf((d-standoff)/100,-.7,.8)+l*.5
+				# A melee unit waiting outside a ranged enemy's reach only gets shot: it closes in.
+				elif u.data.attack_range<100 and not committed:direction=f+l*.25
 			"retreat":direction=f*(-1 if d<desired_distance else .65 if d>desired_distance+90 else 0)+l*.6
 			"feint":direction=f*(.7 if hold>.65 else -.8)+l*.55
 			"flank":direction=((enemy.position-f*140+l*150).clamp(Vector2(70,70),Vector2(730,730))-u.position).normalized()
 			"circle":direction=f*clampf((d-(u.data.attack_range*.76 if u.data.attack_range>100 else standoff))/120,-.65,.7)+l
-			_:direction=f*clampf((d-desired_distance)/110,-.7,.5)+l*.35;rate=.65
+			_:direction=f*clampf((d-desired_distance)/110,-.7,.5)+l*(.55+sin(now*1.7+phase)*.25);rate=.75
 		if u.data.type_id==5 and not u.friends().is_empty():
 			var friend=u.ability.support_anchor(u)
 			if friend!=null:
@@ -406,7 +423,7 @@ func decide_mode(u,enemy) -> void:
 	for i in range(6):
 		roll-=weights[i]
 		if roll<=0:mode=["observe","approach","circle","flank","feint","retreat"][i];break
-	hold=u.battle.rng.randf_range(.45,1.9)*patience
+	hold=u.battle.rng.randf_range(.35,1.3)*patience
 	if u.battle.rng.randf()<.28:side*=-1
 	think=u.battle.rng.randf_range(.25,.6)*reaction*2;decisions+=1;last_target=enemy.actor_id()
 func debug_snapshot(u) -> Dictionary:
@@ -418,7 +435,7 @@ func reset_clash(u,winner: bool) -> void:
 	if not spacing.is_empty():spacing.exit=disengage_until;spacing.probe=next_initiative_at;spacing.opening=0
 
 func stance_changed(u) -> void:
-	home_set=false;home_since=-1;hold=0;think=0;disengage_until=0;return_until=0;commit_until=0;punish_until=0;attack_decision.clear();u.threat_response.response.clear();next_initiative_at=u.battle.clock.elapsed+u.battle.rng.randf_range(.2,1.1)
+	last_action=u.battle.clock.elapsed;home_set=false;home_since=-1;hold=0;think=0;disengage_until=0;return_until=0;commit_until=0;punish_until=0;attack_decision.clear();u.threat_response.response.clear();next_initiative_at=u.battle.clock.elapsed+u.battle.rng.randf_range(.2,1.1)
 
 ## 매혹 (속삭이는 자): walk slowly toward the charmer, nothing else.
 const CHARM_SPEED: float = .45

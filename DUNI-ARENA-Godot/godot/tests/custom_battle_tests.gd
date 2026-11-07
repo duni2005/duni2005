@@ -70,6 +70,7 @@ func run(tree: SceneTree) -> void:
 	fixes_0860(tree)
 	puppet_0861(tree)
 	researcher(tree)
+	ai_fluid(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -1252,4 +1253,20 @@ func slime_unit(tree: SceneTree) -> void:
 	slime.ability.release_basic(slime)
 	verify(foe.current_hp<foe.max_hp and foe.knockback_velocity.length()>50 and foe.state_value("slowTime")>0,"the slam damages, knocks back and slows")
 	verify(foe.move_speed<walk and StatusCatalog.collect(foe).any(func(r):return r.key==&"slow"),"둔화 slows movement and shows as a status")
+	b.queue_free()
+func ai_fluid(tree: SceneTree) -> void:
+	var b:=duel(tree,[[0,0,Vector2(300,400)],[1,1,Vector2(420,400)]])
+	step(b,.05)
+	var w: BattleUnit=b.units[0];var a: BattleUnit=b.units[1]
+	a.brain.heading=Vector2.RIGHT;a.brain.movement_override=""
+	verify(a.brain.flee_rate(a)<.8,"running straight away from a close enemy is slower")
+	a.brain.heading=Vector2.LEFT
+	verify(is_equal_approx(a.brain.flee_rate(a),1.0),"moving toward the enemy keeps full speed")
+	a.brain.heading=Vector2.RIGHT;a.position=Vector2(760,400)
+	verify(is_equal_approx(a.brain.flee_rate(a),1.0),"no slowdown far from every enemy")
+	# Nobody swung for a while: the unit stops waiting and commits.
+	w.combat.cooldown=0;w.threat_response.response.clear();w.brain.commit_until=0;w.brain.disengage_until=0;w.brain.return_until=0;w.brain.punish_until=0
+	w.brain.next_initiative_at=b.clock.elapsed+30;w.brain.last_action=b.clock.elapsed-30
+	w.brain.advance(w,a,1.0/60)
+	verify(w.brain.commit_until>b.clock.elapsed and w.brain.mode=="approach","a long lull makes the unit go in")
 	b.queue_free()
