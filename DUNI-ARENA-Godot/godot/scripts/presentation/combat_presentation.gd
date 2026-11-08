@@ -736,7 +736,7 @@ func advance(delta: float) -> void:
 	if is_instance_valid(bar_overlay):bar_overlay.queue_redraw()
 	if is_instance_valid(field_layer) and board!=null:
 		var rect: Rect2=board.board_rect()
-		var at:=Transform2D(0,Vector2.ONE*rect.size.x/map_side,0,rect.position)*camera.transform()
+		var at:=Transform2D(0,Vector2.ONE*rect.size.x/ArenaCameraController.VIEW,0,rect.position)*camera.transform()
 		field_layer.sync(battle.zones.entries,at,real_age)
 		if is_instance_valid(shader_fx):
 			if use_shader_fx:shader_fx.advance(delta);shader_fx.sync(battle,at,real_age)
@@ -744,11 +744,11 @@ func advance(delta: float) -> void:
 func _draw() -> void:
 	if not is_instance_valid(battle) or board==null:return
 	map_side=ArenaMap.SIDES[battle.map];camera.side=map_side
-	var rect: Rect2=board.board_rect();var factor: float=rect.size.x/map_side
+	var rect: Rect2=board.board_rect();var factor: float=rect.size.x/ArenaCameraController.VIEW
 	# Screen-space fill covers the viewport beyond the arena at its edges.
 	# All actual map geometry must share the actor camera, including shake.
 	draw_set_transform(rect.position,0,Vector2.ONE*factor)
-	draw_rect(Rect2(0,0,map_side,map_side),Color("101a26"))
+	draw_rect(Rect2(0,0,ArenaCameraController.VIEW,ArenaCameraController.VIEW),Color("101a26"))
 	parent_transform=Transform2D(0,Vector2.ONE*factor,0,rect.position)*camera.transform()
 	draw_set_transform_matrix(parent_transform)
 	if is_instance_valid(field_layer):field_layer.align(parent_transform)

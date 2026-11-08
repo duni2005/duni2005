@@ -16,8 +16,9 @@ func _draw() -> void:
 	if not is_instance_valid(board) or not board.is_visible_in_tree():return
 	var rect: Rect2 = board.board_rect()
 	if rect.size.x < 2:return
-	var side: float = board.view_side() if board.has_method("view_side") else 800.0
-	var view := Transform2D(0, Vector2.ONE * rect.size.x / side, 0, board.global_position - global_position + rect.position)
+	var side: float = board.floor_side() if board.has_method("floor_side") else 800.0
+	var span: float = board.floor_span() if board.has_method("floor_span") else 800.0
+	var view := Transform2D(0, Vector2.ONE * rect.size.x / span, 0, board.global_position - global_position + rect.position)
 	if not board.editing and board.presentation != null and is_instance_valid(board.presentation.battle):view = view * board.presentation.camera.transform()
 	draw_set_transform_matrix(view)
 	VisualShapes.arena(self, ArenaFloor.MARGIN, side)

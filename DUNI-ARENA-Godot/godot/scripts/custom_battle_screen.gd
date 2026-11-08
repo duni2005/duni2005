@@ -73,7 +73,7 @@ func _ready() -> void:
 	for i in range(CustomBattleSetup.TEAM_ORDER.size()):
 		var team: int=CustomBattleSetup.TEAM_ORDER[i]
 		# Narrow phones drop the number so the five team names fit.
-		var b:=_button(tools,CustomBattleSetup.TEAM_NAMES[team] if get_viewport_rect().size.x<380 else "%d %s"%[i+1,CustomBattleSetup.TEAM_NAMES[team]],_select_team.bind(team));b.toggle_mode=true;b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.add_theme_font_size_override("font_size",12);b.clip_text=true;b.custom_minimum_size.x=36;_team_style(b,team);team_buttons[team]=b
+		var b:=_button(tools,CustomBattleSetup.TEAM_NAMES[team] if get_viewport_rect().size.x<440 else "%d %s"%[i+1,CustomBattleSetup.TEAM_NAMES[team]],_select_team.bind(team));b.toggle_mode=true;b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.add_theme_font_size_override("font_size",12);b.clip_text=true;b.custom_minimum_size.x=36;_team_style(b,team);team_buttons[team]=b
 	eraser_button=_button(tools,"",_toggle_eraser);eraser_button.toggle_mode=true;eraser_button.tooltip_text="지우개 · 유닛을 눌러 삭제";eraser_button.custom_minimum_size.x=44;ArenaUI.with_icon(eraser_button,"eraser",18);ArenaUI.quiet(eraser_button)
 	clear_button=_button(tools,"",_clear);clear_button.tooltip_text="전체 삭제";clear_button.custom_minimum_size.x=44;ArenaUI.with_icon(clear_button,"clear_all",18);ArenaUI.quiet(clear_button)
 	var library:=ScrollContainer.new();library.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;library.custom_minimum_size.y=96;setup_controls.add_child(library)

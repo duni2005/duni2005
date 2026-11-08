@@ -11,8 +11,13 @@ var strength: float=0
 var age: float=0
 var zoom: float=1
 var pan:=Vector2.ZERO
-## Side of the map in arena units (ArenaMap); the camera frames it all at zoom 1.
+## Side of the map in arena units (ArenaMap). The screen always shows VIEW units across at zoom
+## 1, so characters keep their size; on a bigger map the camera travels over it.
 var side: float=800
+const VIEW: float=800
+const VIEW_MID:=Vector2(400,400)
+## Big maps: the camera may pull back only this far to keep a spread-out fight in view.
+const BIG_MIN_ZOOM: float=.85
 var center:=Vector2(400,400)
 var focus_point:=Vector2(400,400)
 var focus_remaining: float=0
@@ -33,10 +38,10 @@ func user_zoom_by(factor: float,screen_point: Vector2) -> void:
 	if user_zoom<=1.001:user_zoom=1;return
 	# Keep the board point under the fingers where it is while the scale changes.
 	var anchor: Vector2=user_focus+(screen_point-user_focus)/before if before>1.001 else screen_point
-	user_focus=((anchor*user_zoom-screen_point)/(user_zoom-1)).clamp(Vector2.ZERO,Vector2.ONE*side)
+	user_focus=((anchor*user_zoom-screen_point)/(user_zoom-1)).clamp(Vector2.ZERO,Vector2.ONE*VIEW)
 func user_pan_by(screen_delta: Vector2) -> void:
 	if user_zoom<=1.001:return
-	user_focus=(user_focus-screen_delta/(user_zoom-1)).clamp(Vector2.ZERO,Vector2.ONE*side)
+	user_focus=(user_focus-screen_delta/(user_zoom-1)).clamp(Vector2.ZERO,Vector2.ONE*VIEW)
 func user_relax(real_delta: float) -> void:
 	if user_zoom>1:user_zoom=maxf(1,lerpf(user_zoom,1,1-exp(-real_delta*6))-.002)
 func advance_overview(real_delta: float,duration: float=2.0,target_zoom: float=1) -> void:
@@ -46,7 +51,7 @@ func advance_overview(real_delta: float,duration: float=2.0,target_zoom: float=1
 	overview_age+=maxf(0,real_delta)
 	var t: float=clampf(overview_age/maxf(.01,duration),0,1);t=t*t*(3-2*t)
 	zoom=lerpf(overview_zoom,target_zoom,t);center=overview_center.lerp(mid(),t)
-	pan=(mid()-center)*zoom;offset=Vector2.ZERO;strength=0
+	pan=(VIEW_MID-center)*zoom;offset=Vector2.ZERO;strength=0
 static func bounds(rows: Array,padding: float=0,predict: bool=false) -> Rect2:
 	var lower:=Vector2(INF,INF);var upper:=Vector2(-INF,-INF)
 	for row in rows:
@@ -56,12 +61,12 @@ static func bounds(rows: Array,padding: float=0,predict: bool=false) -> Rect2:
 		var left:=Vector2(32*scale+padding,52*scale+padding);var right:=Vector2(32*scale+padding,36*scale+padding)
 		lower=lower.min(at-left).min(ahead-left);upper=upper.max(at+right).max(ahead+right)
 	return Rect2(lower,upper-lower) if lower.is_finite() else Rect2()
-static func framing_for(rows: Array,map_side: float=800) -> Dictionary:
+static func framing_for(rows: Array) -> Dictionary:
 	var box: Rect2=bounds(rows,48,true)
 	if box.size==Vector2.ZERO:return {}
-	return {"center":box.get_center(),"zoom":minf(MAX_ZOOM,map_side/maxf(1,maxf(box.size.x,box.size.y)))}
+	return {"center":box.get_center(),"zoom":minf(MAX_ZOOM,VIEW/maxf(1,maxf(box.size.x,box.size.y)))}
 func set_framing(rows: Array) -> void:
-	framing=framing_for(rows,side);body_bounds=bounds(rows,12)
+	framing=framing_for(rows);body_bounds=bounds(rows,12)
 	if not framing.is_empty():framing.zoom=minf(VIEW_ZOOM_LIMIT,float(framing.zoom)*PRESENTATION_ZOOM)
 func impact(value: float,point: Vector2) -> void:
 	if GameSettings.shake_level<=0:return
@@ -76,6 +81,8 @@ func advance(real_delta: float,paused: bool=false,paused_zoom: float=1) -> void:
 	var dt: float=maxf(0,real_delta)
 	age+=dt;strength=maxf(0,strength-dt*22);focus_remaining=maxf(0,focus_remaining-dt)
 	if paused:
+		# A bigger map holds its view while paused instead of jumping to the middle.
+		if side>VIEW:offset=Vector2.ZERO;pan=(VIEW_MID-center)*zoom;return
 		offset=Vector2.ZERO;zoom=paused_zoom;pan=Vector2.ZERO;center=mid();return
 	var finale: bool=finale_remaining>0
 	finale_remaining=maxf(0,finale_remaining-dt)
@@ -88,15 +95,20 @@ func advance(real_delta: float,paused: bool=false,paused_zoom: float=1) -> void:
 		zoom=lerpf(zoom,target_zoom,1-exp(-dt*rate))
 		if not finale and body_bounds.size!=Vector2.ZERO:
 			var edge: float=maxf(maxf(center.x-body_bounds.position.x,body_bounds.end.x-center.x),maxf(center.y-body_bounds.position.y,body_bounds.end.y-center.y))
-			zoom=minf(zoom,side*.5/maxf(1,edge))
-		pan=(mid()-center)*zoom
+			zoom=minf(zoom,VIEW*.5/maxf(1,edge))
+		if side>VIEW:
+			zoom=maxf(zoom,BIG_MIN_ZOOM)
+			# Stay over the garden: a little of the fringe may show, never the void.
+			var half: float=VIEW*.5/zoom-60
+			center=center.clamp(Vector2.ONE*minf(half,side*.5),Vector2.ONE*maxf(side-half,side*.5))
+		pan=(VIEW_MID-center)*zoom
 	else:
 		# Standalone impact/focus remains useful for preview and isolated effects.
 		zoom=lerpf(zoom,1.028 if focus_remaining>0 else 1,clampf(dt*12,0,1))
-		pan=(mid()-focus_point)*(.025 if focus_remaining>0 else 0)
+		pan=(VIEW_MID-center)*zoom+(center-focus_point)*(.025 if focus_remaining>0 else 0.0)
 func transform() -> Transform2D:
-	var base:=Transform2D(0,Vector2.ONE*zoom,0,mid()*(1-zoom)+offset+pan)
+	var base:=Transform2D(0,Vector2.ONE*zoom,0,VIEW_MID*(1-zoom)+offset+pan)
 	if user_zoom<=1.001:return base
 	return Transform2D(0,Vector2.ONE*user_zoom,0,user_focus*(1-user_zoom))*base
 func reset() -> void:
-	user_zoom=1;user_focus=mid();overview_age=-1;zoom=1;pan=Vector2.ZERO;offset=Vector2.ZERO;strength=0;focus_remaining=0;finale_remaining=0;age=0;center=mid();focus_point=center;framing.clear();body_bounds=Rect2()
+	user_zoom=1;user_focus=VIEW_MID;overview_age=-1;zoom=1;pan=Vector2.ZERO;offset=Vector2.ZERO;strength=0;focus_remaining=0;finale_remaining=0;age=0;center=mid();focus_point=center;framing.clear();body_bounds=Rect2()

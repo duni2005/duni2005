@@ -24,7 +24,6 @@ static func arena(canvas: CanvasItem,margin: float=0,side: float=800) -> void:
 	if margin<=0:return
 	# The scenery darkens towards the edge of the view.
 	var clear:=Color("173a35",0);var fade:=Color("173a35",.85)
-	margin*=side/800.0
 	var inner:=Rect2(0,0,side,side).grow(margin*.5);var outer:=Rect2(0,0,side,side).grow(margin)
 	var a: Array=[inner.position,Vector2(inner.end.x,inner.position.y),inner.end,Vector2(inner.position.x,inner.end.y)]
 	var b: Array=[outer.position,Vector2(outer.end.x,outer.position.y),outer.end,Vector2(outer.position.x,outer.end.y)]

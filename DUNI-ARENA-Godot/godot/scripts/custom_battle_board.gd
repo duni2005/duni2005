@@ -31,11 +31,17 @@ func pointer_up(local: Vector2, id: int, canceled: bool = false) -> void:
 	elif board_rect().has_point(local) and (point - drag_origin).length() < 20:empty_tapped.emit(setup.clamp_point(point))
 	dragged = false;queue_redraw()
 
+## While placing, the board shows the whole chosen garden (placements stay in 800 board space
+## and spread out to the bigger map when the battle starts).
+func floor_side() -> float:
+	return super() if not editing or setup == null else ArenaMap.SIDES[setup.map]
+
 func _draw() -> void:
 	if not editing or setup == null:return
 	var rect: Rect2 = board_rect()
+	draw_set_transform(rect.position, 0.0, Vector2.ONE * rect.size.x / floor_side())
+	VisualShapes.arena(self, 0, floor_side())
 	draw_set_transform(rect.position, 0.0, Vector2.ONE * rect.size.x / 800.0)
-	VisualShapes.arena(self)
 	draw_rect(Rect2(40, 40, 720, 720), Color(1, 1, 1, .025))
 	draw_rect(Rect2(40, 40, 720, 720), Color("5d6c96"), false, 1.5)
 	var font: Font = ThemeDB.fallback_font

@@ -32,9 +32,16 @@ func board_rect() -> Rect2:
 	var side: float = minf(size.x, size.y)
 	return Rect2((size - Vector2.ONE * side) / 2.0, Vector2.ONE * side)
 
-## Arena units across the board: 800 while placing, the battle's map size once it runs.
-func view_side() -> float:
+## Arena units across the board rect: always 800 (board space while placing, the camera's view
+## in battle), so characters keep their size on every map.
+func view_side() -> float:return ArenaMap.BOARD
+## Side of the garden (사각 정원 · 소/중/대) the board shows.
+func floor_side() -> float:
 	return ArenaMap.SIDES[battle.map] if not editing and is_instance_valid(battle) else ArenaMap.BOARD
+## Arena units the floor drawing spans across the board rect: the camera view in battle, the
+## whole garden while placing.
+func floor_span() -> float:
+	return view_side() if not editing and is_instance_valid(battle) else floor_side()
 
 func logical_point(local: Vector2) -> Vector2:
 	var rect: Rect2 = board_rect()

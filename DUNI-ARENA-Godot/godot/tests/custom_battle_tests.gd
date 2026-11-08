@@ -1308,6 +1308,14 @@ func fixes_0910(tree: SceneTree) -> void:
 	var small:=duel(tree,[[0,0,Vector2(200,400)],[0,1,Vector2(600,400)]])
 	verify(is_equal_approx(ArenaMap.side,800) and MovementController.clamp_position(Vector2(1000,1000)).x<=772,"the next battle is back on the small map")
 	small.queue_free()
+	# A big map keeps characters at their size: the camera travels instead of shrinking the view.
+	var cam:=ArenaCameraController.new();cam.side=1400;cam.reset()
+	cam.set_framing([{"position":Vector2(100,100)},{"position":Vector2(1300,1300)}])
+	for i in range(240):cam.advance(1.0/60)
+	verify(cam.zoom>=ArenaCameraController.BIG_MIN_ZOOM-.001 and cam.center.x>0 and cam.center.x<1400,"big map camera keeps units near full size and stays over the map")
+	cam.set_framing([{"position":Vector2(1250,1250)}])
+	for i in range(300):cam.advance(1.0/60)
+	verify(cam.center.distance_to(Vector2(1250,1250))<300,"the camera follows the fight across the big map")
 	verify(ArenaMap.for_units(6)==ArenaMap.SMALL and ArenaMap.for_units(12)==ArenaMap.MEDIUM and ArenaMap.for_units(24)==ArenaMap.LARGE,"prediction map grows with the crowd")
 	# The unit sheet keeps drags to itself (the list behind it does not scroll).
 	var host:=Control.new();tree.root.add_child(host)

@@ -1,7 +1,8 @@
 shader_type canvas_item;
 render_mode unshaded, blend_disabled;
 // Arena floor as a clean vector-style meadow, rendered once into textures (see ArenaFloor).
-// Coordinates are arena units: the 800-unit arena sits inside `margin` units of scenery.
+// Coordinates are arena units: the `side`-unit arena (사각 정원 · 소 800, 중 1100, 대 1400) sits
+// inside `margin` units of scenery. Bigger gardens get more paths, a crossing, a pond and puddles.
 // layer 0: the floor — flat grass tones, a winding worn path with a few stepping stones and
 //          puddles, sparse flowers and tufts, the static shade of the bush fringe and pillars;
 //          outside (the arena sits inside the tower), a bush fringe, rune pillars, boulders,
@@ -10,6 +11,7 @@ render_mode unshaded, blend_disabled;
 // layer 1, 2: two sets of canopy shadows as an alpha mask; drawn every frame with a little
 //          sway so the shade moves like leaves in the wind.
 uniform float margin = 320.0;
+uniform float side = 800.0;
 uniform int layer = 0;
 
 const vec3 GRASS = vec3(.42, .64, .26);
@@ -58,20 +60,31 @@ mat2 turn(float a) {
 	return mat2(vec2(cos(a), sin(a)), vec2(-sin(a), cos(a)));
 }
 float outside(vec2 c) {
-	return max(max(-c.x, c.x - 800.0), max(-c.y, c.y - 800.0));
+	return max(max(-c.x, c.x - side), max(-c.y, c.y - side));
 }
 
 float path_x(float y) {
-	return 400.0 + 180.0 * sin(y * .0055 + 1.1) + 45.0 * sin(y * .017 + 2.0);
+	return side * .5 + 180.0 * sin(y * .0055 + 1.1) + 45.0 * sin(y * .017 + 2.0) + (side - 800.0) * .22 * sin(y * .0024 + .4);
+}
+// Bigger gardens: a second path winding across from left to right.
+float cross_y(float x) {
+	return side * .5 + 150.0 * sin(x * .0049 + 2.3) + 40.0 * sin(x * .015 + .7);
 }
 // A broad worn path winding down the arena with branches left and right; grass breaks it here
 // and there.
 float path(vec2 p) {
 	float d = 36.0 + 14.0 * noise(vec2(p.y * .012, 3.0)) - abs(p.x - path_x(p.y));
-	float right = 28.0 + 10.0 * noise(vec2(p.x * .015, 7.0)) - abs(p.y - (600.0 + 60.0 * sin(p.x * .008)));
-	if (p.x > path_x(600.0)) d = max(d, right);
-	float left = 26.0 + 10.0 * noise(vec2(p.x * .013, 11.0)) - abs(p.y - (220.0 + 55.0 * sin(p.x * .01 + 1.0)));
-	if (p.x < path_x(220.0)) d = max(d, left);
+	float ry = side * .75;
+	float right = 28.0 + 10.0 * noise(vec2(p.x * .015, 7.0)) - abs(p.y - (ry + 60.0 * sin(p.x * .008)));
+	if (p.x > path_x(ry)) d = max(d, right);
+	float ly = side * .275;
+	float left = 26.0 + 10.0 * noise(vec2(p.x * .013, 11.0)) - abs(p.y - (ly + 55.0 * sin(p.x * .01 + 1.0)));
+	if (p.x < path_x(ly)) d = max(d, left);
+	if (side > 900.0) {
+		d = max(d, 32.0 + 12.0 * noise(vec2(p.x * .011, 19.0)) - abs(p.y - cross_y(p.x)));
+		// 대: one more branch running up from the crossing on the right.
+		if (side > 1200.0 && p.y < cross_y(side * .8)) d = max(d, 26.0 + 10.0 * noise(vec2(p.y * .014, 23.0)) - abs(p.x - (side * .8 + 70.0 * sin(p.y * .007 + .5))));
+	}
 	d += (noise(p * .16) - .5) * 8.0;
 	d -= smoothstep(.8, .9, noise(vec2(p.y * .01 + p.x * .004, 1.0))) * 50.0;
 	return d;
@@ -96,12 +109,12 @@ const vec3 MOSS = vec3(.47, .63, .29);
 // front face h units tall, a crack and a little moss.
 void boulder(vec2 p, vec2 c, float r, float h, float seed, inout vec3 col) {
 	vec2 top_c = c - vec2(0.0, h);
-	float side = -1.0;
-	for (int k = 0; k <= 8; k++) side = max(side, rock(p - c + vec2(0.0, h * float(k) / 8.0), r, seed));
-	if (side > -1.5) {
+	float front = -1.0;
+	for (int k = 0; k <= 8; k++) front = max(front, rock(p - c + vec2(0.0, h * float(k) / 8.0), r, seed));
+	if (front > -1.5) {
 		vec3 face = mix(ROCK_SIDE, ROCK_DARK, smoothstep(-.6, .9, (p.x - c.x) / r));
 		face *= 1.0 - .1 * step(.5, fract((p.y - top_c.y) / 9.0 + hash(vec2(seed, 3.0))));
-		col = mix(col, face, fill(side));
+		col = mix(col, face, fill(front));
 	}
 	float top = rock(p - top_c, r, seed);
 	if (top > -1.5) {
@@ -227,15 +240,32 @@ void sand_and_stones(vec2 p, inout vec3 col) {
 	col = mix(col, SAND, fill(d));
 	col = mix(col, SAND * .93, fill(d) * fill(5.0 - d) * .6);
 	// Puddles sitting on the path, ringed with sand.
-	for (int k = 0; k < 2; k++) {
-		float y = k == 0 ? 300.0 : 680.0;
+	int puddles = side > 1200.0 ? 4 : side > 900.0 ? 3 : 2;
+	for (int k = 0; k < 4; k++) {
+		if (k >= puddles) break;
+		// Two on the main path; bigger gardens add one on the crossing and one in the open.
+		float y = k == 0 ? side * .375 : side * .85;
 		vec2 c = vec2(path_x(y) + (k == 0 ? -14.0 : 18.0), y);
+		if (k == 2) c = vec2(side * .2, cross_y(side * .2) + 8.0);
+		if (k == 3) c = vec2(side * .3, side * .14);
 		vec2 v = (p - c) * vec2(1.0, 1.45);
 		float rim = lobed(v, 46.0, 3.0, .12, float(k) * 2.0);
 		float water = lobed(v, 34.0, 3.0, .12, float(k) * 2.0);
 		col = mix(col, SAND * 1.02, fill(rim));
 		col = mix(col, vec3(.60, .78, .74), fill(water));
 		col = mix(col, vec3(.72, .86, .82), fill(water) * fill(lobed(v - vec2(-9.0, -7.0), 18.0, 2.0, .1, 1.0)));
+	}
+	// Bigger gardens: a reed-ringed pond on the grass.
+	if (side > 900.0) {
+		vec2 c = vec2(side * .2, side * .82);
+		vec2 v = (p - c) * vec2(1.0, 1.35);
+		float r = side > 1200.0 ? 92.0 : 70.0;
+		float bank = lobed(v, r + 16.0, 4.0, .1, 3.0);
+		float water = lobed(v, r, 4.0, .1, 3.0);
+		col = mix(col, GRASS_DARK * .9, fill(bank));
+		col = mix(col, vec3(.50, .72, .70), fill(water));
+		col = mix(col, vec3(.62, .82, .79), fill(water - 10.0));
+		col = mix(col, vec3(.78, .90, .86), fill(water) * fill(lobed(v - vec2(-r * .3, -r * .25), r * .35, 2.0, .1, 1.0)));
 	}
 	// A few flat stepping stones, only on the path.
 	vec2 cell = floor(p / 70.0);
@@ -267,17 +297,17 @@ void sand_and_stones(vec2 p, inout vec3 col) {
 // Canopy shadows reaching in from beyond each edge; `set` picks one of two alternating sets.
 float canopy_shadow(vec2 p, int set) {
 	float shade = 0.0;
-	for (int side = 0; side < 4; side++) {
-		float along = side < 2 ? p.x : p.y;
-		float across = side == 0 ? p.y : side == 1 ? 800.0 - p.y : side == 2 ? p.x : 800.0 - p.x;
+	for (int edge = 0; edge < 4; edge++) {
+		float along = edge < 2 ? p.x : p.y;
+		float across = edge == 0 ? p.y : edge == 1 ? side - p.y : edge == 2 ? p.x : side - p.x;
 		float slot = floor(along / 150.0);
 		for (int k = -1; k <= 1; k++) {
 			float s = slot + float(k);
-			if (int(mod(s + float(side), 2.0)) != set || hash(vec2(s, float(side) + 40.0)) < .2) continue;
-			float centre = (s + .2 + hash(vec2(s, float(side) + 41.0)) * .6) * 150.0;
-			float r = 70.0 + hash(vec2(s, float(side) + 42.0)) * 55.0;
+			if (int(mod(s + float(edge), 2.0)) != set || hash(vec2(s, float(edge) + 40.0)) < .2) continue;
+			float centre = (s + .2 + hash(vec2(s, float(edge) + 41.0)) * .6) * 150.0;
+			float r = 70.0 + hash(vec2(s, float(edge) + 42.0)) * 55.0;
 			vec2 v = vec2(along - centre, across + r * .4);
-			shade = max(shade, fill(lobed(v, r, 6.0, .07, s * 3.0 + float(side))));
+			shade = max(shade, fill(lobed(v, r, 6.0, .07, s * 3.0 + float(edge))));
 		}
 	}
 	return shade;
@@ -285,10 +315,10 @@ float canopy_shadow(vec2 p, int set) {
 
 // Static shade inside the arena: under the bush fringe and from pillars.
 float fixed_shade(vec2 p) {
-	float inside = min(min(p.x, 800.0 - p.x), min(p.y, 800.0 - p.y));
+	float inside = min(min(p.x, side - p.x), min(p.y, side - p.y));
 	float shade = (1.0 - smoothstep(0.0, 12.0, inside)) * .8;
 	for (int k = 0; k < 4; k++) {
-		vec2 base = k == 0 ? vec2(320.0, -34.0) : k == 1 ? vec2(480.0, -34.0) : k == 2 ? vec2(-34.0, 520.0) : vec2(834.0, 280.0);
+		vec2 base = k == 0 ? vec2(side * .4, -34.0) : k == 1 ? vec2(side * .6, -34.0) : k == 2 ? vec2(-34.0, side * .65) : vec2(side + 34.0, side * .35);
 		vec2 q = p - base;
 		q.x -= max(q.y, 0.0) * .45;
 		shade = max(shade, fill(min(min(q.x + 13.0, 13.0 - q.x), min(q.y, 74.0 - q.y))));
@@ -351,24 +381,24 @@ void scenery(vec2 p, float out_d, inout vec3 col) {
 		}
 	}
 	// Bush fringe hugging the arena edge.
-	bool vertical_side = abs(p.x - 400.0) > abs(p.y - 400.0);
+	bool vertical_side = abs(p.x - side * .5) > abs(p.y - side * .5);
 	float along = vertical_side ? p.y : p.x;
 	float slot = floor(along / 40.0);
 	for (int k = -1; k <= 1; k++) {
 		float s = slot + float(k);
-		vec2 seed = vec2(s, vertical_side ? 50.0 : 60.0) + (p.x + p.y > 800.0 ? 7.0 : 0.0);
+		vec2 seed = vec2(s, vertical_side ? 50.0 : 60.0) + (p.x + p.y > side ? 7.0 : 0.0);
 		if (hash(seed) < .14) continue;
 		float r = 15.0 + hash(seed + 1.0) * 10.0;
 		float centre = (s + .5 + (hash(seed + 2.0) - .5) * .4) * 40.0;
 		vec2 v = vertical_side ? vec2(out_d - (r + 4.0), along - centre) : vec2(along - centre, out_d - (r + 4.0));
-		if (vertical_side && p.x < 400.0) v.x = -v.x;
-		if (!vertical_side && p.y < 400.0) v.y = -v.y;
+		if (vertical_side && p.x < side * .5) v.x = -v.x;
+		if (!vertical_side && p.y < side * .5) v.y = -v.y;
 		col = mix(col, col * .72, fill(lobed(v - vec2(5.0, 7.0), r, 5.0, .12, s)));
 		col = bush(v, r, s, col);
 	}
 	// Rune pillars: grey stone with a lit cap and a glowing cyan mark.
 	for (int k = 0; k < 4; k++) {
-		vec2 base = k == 0 ? vec2(320.0, -34.0) : k == 1 ? vec2(480.0, -34.0) : k == 2 ? vec2(-34.0, 520.0) : vec2(834.0, 280.0);
+		vec2 base = k == 0 ? vec2(side * .4, -34.0) : k == 1 ? vec2(side * .6, -34.0) : k == 2 ? vec2(-34.0, side * .65) : vec2(side + 34.0, side * .35);
 		vec2 q = p - base;
 		if (abs(q.x) < 15.0 && abs(q.y) < 17.0) {
 			col = q.y < -7.0 ? vec3(.74, .77, .78) : vec3(.56, .60, .63);
@@ -379,7 +409,7 @@ void scenery(vec2 p, float out_d, inout vec3 col) {
 }
 
 void fragment() {
-	vec2 p = UV * (800.0 + margin * 2.0) - margin;
+	vec2 p = UV * (side + margin * 2.0) - margin;
 	float out_d = outside(p);
 	if (layer > 0) {
 		// Shadow mask only (inside the arena and a little beyond its edge).
