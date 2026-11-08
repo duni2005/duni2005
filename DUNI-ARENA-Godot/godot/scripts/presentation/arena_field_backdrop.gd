@@ -20,6 +20,9 @@ func _draw() -> void:
 	var span: float = board.floor_span() if board.has_method("floor_span") else 800.0
 	var view := Transform2D(0, Vector2.ONE * rect.size.x / span, 0, board.global_position - global_position + rect.position)
 	if not board.editing and board.presentation != null and is_instance_valid(board.presentation.battle):view = view * board.presentation.camera.transform()
+	elif board.editing and board.has_method("edit_transform"):
+		# Placing: the zoomable board view, with the garden drawn at its own scale.
+		view = Transform2D(0, Vector2.ONE * rect.size.x / ArenaMap.BOARD, 0, board.global_position - global_position + rect.position) * board.edit_transform() * Transform2D(0, Vector2.ONE * ArenaMap.BOARD / side, 0, Vector2.ZERO)
 	draw_set_transform_matrix(view)
 	VisualShapes.arena(self, ArenaFloor.MARGIN, side)
 	# The screen darkens towards its top and bottom edges, stopping at the visible field.

@@ -9,6 +9,7 @@ var setup: CustomBattleSetup
 var drag_unit: int = -1
 var drag_point := Vector2.ZERO
 
+func grabbing() -> bool:return drag_unit >= 0
 func pointer_down(local: Vector2, id: int) -> void:
 	if setup == null or not board_rect().has_point(local):return
 	var point: Vector2 = logical_point(local)
@@ -18,7 +19,7 @@ func pointer_motion(local: Vector2, id: int) -> void:
 	if drag_unit < 0 or id != pointer_id:return
 	var point: Vector2 = logical_point(local)
 	# Same 6px dead zone as the web drag, measured in screen pixels.
-	if not dragged and (point - drag_origin).length() * board_rect().size.x / 800.0 < 6:return
+	if not dragged and (point - drag_origin).length() * edit_zoom * board_rect().size.x / 800.0 < 6:return
 	dragged = true;drag_point = setup.clamp_point(point);queue_redraw()
 func pointer_up(local: Vector2, id: int, canceled: bool = false) -> void:
 	if id != pointer_id:return
@@ -38,10 +39,9 @@ func floor_side() -> float:
 
 func _draw() -> void:
 	if not editing or setup == null:return
-	var rect: Rect2 = board_rect()
-	draw_set_transform(rect.position, 0.0, Vector2.ONE * rect.size.x / floor_side())
+	draw_set_transform_matrix(edit_canvas() * Transform2D(0, Vector2.ONE * ArenaMap.BOARD / floor_side(), 0, Vector2.ZERO))
 	VisualShapes.arena(self, 0, floor_side())
-	draw_set_transform(rect.position, 0.0, Vector2.ONE * rect.size.x / 800.0)
+	draw_set_transform_matrix(edit_canvas())
 	draw_rect(Rect2(40, 40, 720, 720), Color(1, 1, 1, .025))
 	draw_rect(Rect2(40, 40, 720, 720), Color("5d6c96"), false, 1.5)
 	var font: Font = ThemeDB.fallback_font

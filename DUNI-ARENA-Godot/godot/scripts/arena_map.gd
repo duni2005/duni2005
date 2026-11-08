@@ -8,6 +8,11 @@ const MEDIUM: int = 1
 const LARGE: int = 2
 const SIDES: Array[float] = [800.0, 1100.0, 1400.0]
 const NAMES: Array[String] = ["사각 정원 · 소", "사각 정원 · 중", "사각 정원 · 대"]
+## Arena units shown across the screen in battle: a bigger garden is seen from a little higher
+## up, so its characters look smaller (×1, ×0.85, ×0.73).
+const VIEWS: Array[float] = [800.0, 940.0, 1100.0]
+## How far the player may pinch in during a battle on each map.
+const ZOOMS: Array[float] = [1.5, 1.8, 2.1]
 ## Board space the deployment screens and placements use.
 const BOARD: float = 800.0
 static var side: float = 800.0

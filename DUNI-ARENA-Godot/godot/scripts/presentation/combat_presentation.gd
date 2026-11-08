@@ -83,7 +83,7 @@ func _ready() -> void:
 func attach(value: BattleManager) -> void:
 	cleanup();battle=value
 	if not is_instance_valid(battle):return
-	map_side=ArenaMap.SIDES[battle.map];camera.side=map_side;camera.reset()
+	map_side=ArenaMap.SIDES[battle.map];camera.side=map_side;camera.view=ArenaMap.VIEWS[battle.map];camera.reset()
 	show()
 	battle.hide()
 	battle.damage_resolver.damage_resolved.connect(_damage)
@@ -726,7 +726,7 @@ func advance(delta: float) -> void:
 	var rows: Array=[]
 	for unit in battle.units:
 		if unit.alive:rows.append({"position":unit.position,"velocity":unit.velocity,"scale":unit.combat_scale()})
-	map_side=ArenaMap.SIDES[battle.map];camera.side=map_side
+	map_side=ArenaMap.SIDES[battle.map];camera.side=map_side;camera.view=ArenaMap.VIEWS[battle.map]
 	camera.set_framing(rows)
 	var ending: bool=battle.finished and end_age<1.55 and camera.finale_remaining>0
 	if battle.clock.state==BattleClock.State.TURNING_SLOWDOWN and not battle.finished:camera.advance_overview(ui_delta,2.0,ArenaCameraController.TURNING_ZOOM)
@@ -736,19 +736,19 @@ func advance(delta: float) -> void:
 	if is_instance_valid(bar_overlay):bar_overlay.queue_redraw()
 	if is_instance_valid(field_layer) and board!=null:
 		var rect: Rect2=board.board_rect()
-		var at:=Transform2D(0,Vector2.ONE*rect.size.x/ArenaCameraController.VIEW,0,rect.position)*camera.transform()
+		var at:=Transform2D(0,Vector2.ONE*rect.size.x/camera.view,0,rect.position)*camera.transform()
 		field_layer.sync(battle.zones.entries,at,real_age)
 		if is_instance_valid(shader_fx):
 			if use_shader_fx:shader_fx.advance(delta);shader_fx.sync(battle,at,real_age)
 			else:shader_fx.clear()
 func _draw() -> void:
 	if not is_instance_valid(battle) or board==null:return
-	map_side=ArenaMap.SIDES[battle.map];camera.side=map_side
-	var rect: Rect2=board.board_rect();var factor: float=rect.size.x/ArenaCameraController.VIEW
+	map_side=ArenaMap.SIDES[battle.map];camera.side=map_side;camera.view=ArenaMap.VIEWS[battle.map]
+	var rect: Rect2=board.board_rect();var factor: float=rect.size.x/camera.view
 	# Screen-space fill covers the viewport beyond the arena at its edges.
 	# All actual map geometry must share the actor camera, including shake.
 	draw_set_transform(rect.position,0,Vector2.ONE*factor)
-	draw_rect(Rect2(0,0,ArenaCameraController.VIEW,ArenaCameraController.VIEW),Color("101a26"))
+	draw_rect(Rect2(0,0,camera.view,camera.view),Color("101a26"))
 	parent_transform=Transform2D(0,Vector2.ONE*factor,0,rect.position)*camera.transform()
 	draw_set_transform_matrix(parent_transform)
 	if is_instance_valid(field_layer):field_layer.align(parent_transform)

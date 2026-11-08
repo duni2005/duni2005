@@ -32,9 +32,10 @@ func board_rect() -> Rect2:
 	var side: float = minf(size.x, size.y)
 	return Rect2((size - Vector2.ONE * side) / 2.0, Vector2.ONE * side)
 
-## Arena units across the board rect: always 800 (board space while placing, the camera's view
-## in battle), so characters keep their size on every map.
-func view_side() -> float:return ArenaMap.BOARD
+## Arena units across the board rect: 800-unit board space while placing; in battle the camera's
+## view for the map (ArenaMap.VIEWS), so characters look a little smaller on a bigger garden.
+func view_side() -> float:
+	return ArenaMap.VIEWS[battle.map] if not editing and is_instance_valid(battle) else ArenaMap.BOARD
 ## Side of the garden (사각 정원 · 소/중/대) the board shows.
 func floor_side() -> float:
 	return ArenaMap.SIDES[battle.map] if not editing and is_instance_valid(battle) else ArenaMap.BOARD
@@ -46,7 +47,47 @@ func floor_span() -> float:
 func logical_point(local: Vector2) -> Vector2:
 	var rect: Rect2 = board_rect()
 	var point: Vector2=(local-rect.position)*view_side()/maxf(rect.size.x,1)
-	return presentation.camera.transform().affine_inverse()*point if not editing and presentation!=null else point
+	if editing:return edit_transform().affine_inverse()*point
+	return presentation.camera.transform().affine_inverse()*point if presentation!=null else point
+
+## 준비 시간: the placing view zooms (pinch / wheel) and pans (drag on empty ground when zoomed).
+## edit_focus is the board point that stays fixed while zoomed.
+var edit_zoom: float = 1
+var edit_focus := Vector2(400, 400)
+var edit_panned: bool = false
+var edit_pan_from := Vector2.ZERO
+var edit_pan_last := Vector2.ZERO
+func edit_transform() -> Transform2D:
+	return Transform2D(0, Vector2.ONE * edit_zoom, 0, edit_focus * (1 - edit_zoom))
+## Board space to screen while placing (floor drawings add their own garden scale on top).
+func edit_canvas() -> Transform2D:
+	var rect: Rect2 = board_rect()
+	return Transform2D(0, Vector2.ONE * rect.size.x / ArenaMap.BOARD, 0, rect.position) * edit_transform()
+## A bigger garden is drawn smaller while placing, so it may be zoomed in further.
+func edit_zoom_max() -> float:return 2.2 * floor_side() / ArenaMap.BOARD
+func edit_zoom_by(factor: float, screen_point: Vector2) -> void:
+	var before: float = edit_zoom;edit_zoom = clampf(edit_zoom * factor, 1, edit_zoom_max())
+	if edit_zoom <= 1.001:edit_zoom = 1;queue_redraw();return
+	var anchor: Vector2 = edit_focus + (screen_point - edit_focus) / before if before > 1.001 else screen_point
+	edit_focus = ((anchor * edit_zoom - screen_point) / (edit_zoom - 1)).clamp(Vector2.ZERO, Vector2.ONE * ArenaMap.BOARD);queue_redraw()
+func edit_pan_by(screen_delta: Vector2) -> void:
+	if edit_zoom <= 1.001:return
+	edit_focus = (edit_focus - screen_delta / (edit_zoom - 1)).clamp(Vector2.ZERO, Vector2.ONE * ArenaMap.BOARD);queue_redraw()
+## Whether a finger currently holds a unit (subclasses track their own drag).
+func grabbing() -> bool:return not dragging_id.is_empty()
+func _edit_view(event: InputEvent) -> bool:
+	var button: bool = event is InputEventScreenTouch or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT)
+	if button:
+		if event.pressed:edit_pan_from = event.position;edit_pan_last = event.position;edit_panned = false;return false
+		if edit_panned:
+			edit_panned = false;pointer_up(event.position, event.index if event is InputEventScreenTouch else -1, true);return true
+		return false
+	var motion: bool = event is InputEventScreenDrag or (event is InputEventMouseMotion and event.button_mask & MOUSE_BUTTON_MASK_LEFT)
+	if not motion or touches.size() >= 2 or edit_zoom <= 1.001 or grabbing() or pointer_id == -2:return false
+	if not edit_panned and event.position.distance_to(edit_pan_from) > 10:edit_panned = true
+	if edit_panned:edit_pan_by(_board_space(event.position) - _board_space(edit_pan_last))
+	edit_pan_last = event.position
+	return edit_panned
 
 func select(member_id: String) -> void:
 	selected_id = member_id
@@ -60,8 +101,14 @@ func _process(_delta: float) -> void:
 		battle.position = rect.position
 		battle.scale = Vector2.ONE * rect.size.x / view_side()
 	elif presentation!=null and is_instance_valid(presentation.battle):presentation.cleanup()
-	# The pinch zoom belongs to the turning point; ease back once the battle runs again.
-	if presentation!=null and not _zoomable():presentation.camera.user_relax(_delta)
+	# Pinch limit: the turning point allows the most; in battle it depends on the map. A turning
+	# point zoom eases back to the battle limit once the battle runs again.
+	if presentation!=null:
+		var cam: ArenaCameraController=presentation.camera
+		var turning: bool=is_instance_valid(battle) and battle.clock.is_turning_paused()
+		cam.user_zoom_max=ArenaCameraController.USER_ZOOM_MAX if turning else ArenaMap.ZOOMS[battle.map] if is_instance_valid(battle) else 1.0
+		if not _zoomable():cam.user_relax(_delta)
+		elif cam.user_zoom>cam.user_zoom_max:cam.user_relax(_delta,cam.user_zoom_max)
 	queue_redraw()
 
 func hit_member(point: Vector2) -> String:
@@ -123,12 +170,13 @@ func pointer_up(local: Vector2, id: int, canceled: bool = false) -> void:
 	edit_finished.emit()
 	queue_redraw()
 
-## Two-finger pinch (and mouse wheel / trackpad pinch) zooms the field during a turning point.
+## Two-finger pinch (and mouse wheel / trackpad pinch) zooms the field: in battle (most during a
+## turning point) and while placing.
 var touches: Dictionary={}
 var pinch_span: float=0
 var pinch_mid:=Vector2.ZERO
 func _zoomable() -> bool:
-	return not editing and is_instance_valid(battle) and battle.clock.is_turning_paused() and presentation!=null
+	return not editing and is_instance_valid(battle) and not battle.finished and presentation!=null
 func _board_space(local: Vector2) -> Vector2:
 	var rect: Rect2=board_rect();return (local-rect.position)*view_side()/maxf(rect.size.x,1)
 func _pinch(event: InputEvent) -> bool:
@@ -137,9 +185,16 @@ func _pinch(event: InputEvent) -> bool:
 		else:touches.erase(event.index)
 		if touches.size()==2:
 			var points: Array=touches.values();pinch_span=points[0].distance_to(points[1]);pinch_mid=(points[0]+points[1])*.5
+			# A second finger turns a placing touch into a pinch: the first touch places nothing.
+			if editing and pointer_id!=-2:pointer_up(event.position,pointer_id,true)
 		return touches.size()>=2
 	if event is InputEventScreenDrag and touches.has(event.index):
 		touches[event.index]=event.position
+		if touches.size()==2 and editing:
+			var points: Array=touches.values();var span: float=points[0].distance_to(points[1]);var mid: Vector2=(points[0]+points[1])*.5
+			if pinch_span>8:edit_zoom_by(span/pinch_span,_board_space(mid))
+			edit_pan_by(_board_space(mid)-_board_space(pinch_mid))
+			pinch_span=span;pinch_mid=mid;return true
 		if touches.size()==2 and _zoomable():
 			var points: Array=touches.values();var span: float=points[0].distance_to(points[1]);var mid: Vector2=(points[0]+points[1])*.5
 			var cam: ArenaCameraController=presentation.camera
@@ -147,6 +202,10 @@ func _pinch(event: InputEvent) -> bool:
 			cam.user_pan_by(_board_space(mid)-_board_space(pinch_mid))
 			pinch_span=span;pinch_mid=mid;return true
 		return touches.size()>=2
+	if editing and event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
+		edit_zoom_by(1.12 if event.button_index==MOUSE_BUTTON_WHEEL_UP else 1/1.12,_board_space(event.position));return true
+	if editing and event is InputEventMagnifyGesture:
+		edit_zoom_by(event.factor,_board_space(event.position));return true
 	if _zoomable() and event is InputEventMouseButton and event.pressed and event.button_index in [MOUSE_BUTTON_WHEEL_UP,MOUSE_BUTTON_WHEEL_DOWN]:
 		presentation.camera.user_zoom_by(1.12 if event.button_index==MOUSE_BUTTON_WHEEL_UP else 1/1.12,_board_space(event.position));return true
 	if _zoomable() and event is InputEventMagnifyGesture:
@@ -190,6 +249,7 @@ func _gui_input(event: InputEvent) -> void:
 				selected_actor_id=u.actor_id();battle_unit_selected.emit(selected_actor_id);accept_event();return
 	if not editing:
 		return
+	if _edit_view(event):accept_event();return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			pointer_down(event.position, -1)
@@ -211,9 +271,7 @@ func _gui_input(event: InputEvent) -> void:
 func _draw() -> void:
 	if not editing or plan == null:
 		return
-	var rect: Rect2 = board_rect()
-	var factor: float = rect.size.x / 800.0
-	draw_set_transform(rect.position, 0.0, Vector2.ONE * factor)
+	draw_set_transform_matrix(edit_canvas())
 	VisualShapes.arena(self)
 	draw_rect(Rect2(40,40,340,720),Color(.35,.5,.95,.09))
 	draw_rect(Rect2(40,40,340,720),Color("7f9cd6"),false,2)

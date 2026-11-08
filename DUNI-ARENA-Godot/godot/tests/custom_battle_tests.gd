@@ -1316,6 +1316,21 @@ func fixes_0910(tree: SceneTree) -> void:
 	cam.set_framing([{"position":Vector2(1250,1250)}])
 	for i in range(300):cam.advance(1.0/60)
 	verify(cam.center.distance_to(Vector2(1250,1250))<300,"the camera follows the fight across the big map")
+	# Per-map battle view (characters ×1 / ×0.85 / ×0.73) and pinch limit; 준비 시간 zoom and pan.
+	var board:=CustomBattleBoard.new();board.setup=CustomBattleSetup.new();board.size=Vector2(400,400);tree.root.add_child(board)
+	verify(is_equal_approx(board.view_side(),800) and board.edit_zoom==1,"placing view starts on the whole board")
+	board.edit_zoom_by(2,Vector2(400,400))
+	verify(is_equal_approx(board.edit_zoom,2) and board.logical_point(Vector2(200,200)).distance_to(Vector2(400,400))<1 and board.logical_point(Vector2(0,0)).distance_to(Vector2(200,200))<1,"pinching the placing view zooms around the fingers and taps land where they are drawn")
+	board.edit_pan_by(Vector2(100,0))
+	verify(board.logical_point(Vector2(200,200)).x<400,"dragging the zoomed placing view pans it")
+	board.setup.map=ArenaMap.LARGE
+	verify(board.edit_zoom_max()>3,"a large garden may be zoomed in further while placing")
+	var lb:=BattleManager.new();lb.auto_start=false;lb.custom_mode=true;board.add_child(lb)
+	var ls:=CustomBattleSetup.new();ls.add(0,0,Vector2(300,400));ls.add(0,1,Vector2(500,400))
+	lb.start_battle(ls.placements(),5,ArenaMap.LARGE);lb.set_physics_process(false);board.battle=lb;board.editing=false;board._process(.016)
+	verify(is_equal_approx(board.view_side(),ArenaMap.VIEWS[ArenaMap.LARGE]) and ArenaMap.VIEWS[ArenaMap.LARGE]>ArenaMap.VIEWS[ArenaMap.SMALL],"a large map shows more of itself in battle (smaller characters)")
+	verify(board._zoomable() and is_equal_approx(board.presentation.camera.user_zoom_max,ArenaMap.ZOOMS[ArenaMap.LARGE]),"pinch zoom works in battle, limited by the map")
+	board.queue_free()
 	verify(ArenaMap.for_units(6)==ArenaMap.SMALL and ArenaMap.for_units(12)==ArenaMap.MEDIUM and ArenaMap.for_units(24)==ArenaMap.LARGE,"prediction map grows with the crowd")
 	# The unit sheet keeps drags to itself (the list behind it does not scroll).
 	var host:=Control.new();tree.root.add_child(host)
