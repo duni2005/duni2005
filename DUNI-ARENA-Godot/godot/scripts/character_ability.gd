@@ -126,7 +126,7 @@ func cast_area(_u,_a: Dictionary) -> Dictionary:return {}
 
 func can_cast(_u) -> bool:return true
 func defensive_ultimate() -> bool:return false
-func ultimate_point(_u,point: Vector2) -> Vector2:return point.clamp(Vector2(28,28),Vector2(772,772))
+func ultimate_point(_u,point: Vector2) -> Vector2:return point.clamp(Vector2(28,28),ArenaMap.hi(28))
 func requires_initiative(_u=null) -> bool:return true
 ## True when this basic attack is used to close in on an enemy that is still out of reach.
 func travel_attack(_u,_enemy) -> bool:return false

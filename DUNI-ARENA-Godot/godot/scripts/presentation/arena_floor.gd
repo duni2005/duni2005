@@ -27,16 +27,18 @@ static func texture(layer: int = 0) -> Texture2D:
 
 ## Draws the floor in 800-unit arena space with `margin` units of scenery around it; the canopy
 ## shade sways with `time` (seconds).
-static func draw(canvas: CanvasItem, margin: float, time: float = 0) -> void:
+## `side`: the map size (사각 정원 · 소 is 800); the painted meadow stretches to fit it.
+static func draw(canvas: CanvasItem, margin: float, time: float = 0, side: float = 800) -> void:
 	margin = clampf(margin, 0, MARGIN)
-	var dest := Rect2(-margin, -margin, 800 + margin * 2, 800 + margin * 2)
+	var k: float = side / 800.0
+	var dest := Rect2(Vector2.ONE * -margin * k, Vector2.ONE * (800 + margin * 2) * k)
 	# Plain grass colour shows for the frame before the texture is first painted.
 	canvas.draw_rect(dest, BASE)
 	canvas.draw_texture_rect_region(texture(0), dest, _source(margin, MARGIN, SIZE))
 	var shade: float = minf(margin, SHADOW_MARGIN)
 	for i in [1, 2]:
 		var sway := Vector2(sin(time * .55 + i * 2.1), cos(time * .4 + i * 1.3)) * 5.0
-		canvas.draw_texture_rect_region(texture(i), Rect2(Vector2(-shade, -shade) + sway, Vector2.ONE * (800 + shade * 2)), _source(shade, SHADOW_MARGIN, SHADOW_SIZE))
+		canvas.draw_texture_rect_region(texture(i), Rect2((Vector2(-shade, -shade) + sway) * k, Vector2.ONE * (800 + shade * 2) * k), _source(shade, SHADOW_MARGIN, SHADOW_SIZE))
 static func _source(margin: float, painted: float, side: int) -> Rect2:
 	var px: float = side / (800 + painted * 2)
 	return Rect2(Vector2.ONE * (painted - margin) * px, Vector2.ONE * (800 + margin * 2) * px)

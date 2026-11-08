@@ -24,17 +24,17 @@ static func prepare(p,dt: float) -> void:
 			p.velocity=p.velocity.rotated(turn)
 		p.metadata.guide=maxf(0,float(p.metadata.guide)-dt)
 static func boundary(p) -> bool:
-	var tx: bool=(p.position.x<=20.00001 and p.velocity.x<0) or (p.position.x>=779.99999 and p.velocity.x>0)
-	var ty: bool=(p.position.y<=20.00001 and p.velocity.y<0) or (p.position.y>=779.99999 and p.velocity.y>0)
+	var tx: bool=(p.position.x<=20.00001 and p.velocity.x<0) or (p.position.x>=ArenaMap.side-20.00001 and p.velocity.x>0)
+	var ty: bool=(p.position.y<=20.00001 and p.velocity.y<0) or (p.position.y>=ArenaMap.side-20.00001 and p.velocity.y>0)
 	if not tx and not ty:return true
 	if p.kind=="frogBody":CharacterLifecycle.finish_body(p);return false
 	if p.kind=="tankShell":explode(p);return false
-	if p.kind=="bomb":p.position=p.position.clamp(Vector2(20.001,20.001),Vector2(779.999,779.999));p.velocity=Vector2.ZERO;p.metadata.flight=0;return true
+	if p.kind=="bomb":p.position=p.position.clamp(Vector2(20.001,20.001),ArenaMap.hi(20.001));p.velocity=Vector2.ZERO;p.metadata.flight=0;return true
 	if p.bounces>0:
 		p.bounces-=1;p.bounce_count+=1
 		if tx:p.velocity.x*=-1
 		if ty:p.velocity.y*=-1
-		p.position=p.position.clamp(Vector2(20.001,20.001),Vector2(779.999,779.999))
+		p.position=p.position.clamp(Vector2(20.001,20.001),ArenaMap.hi(20.001))
 		if p.kind=="mirrorLight":p.damage*=1.2;p.power=p.damage
 		p.attack_instance.damage=p.damage;p.attack_instance.power=p.power;p.attack_instance.velocity=p.velocity
 		return true

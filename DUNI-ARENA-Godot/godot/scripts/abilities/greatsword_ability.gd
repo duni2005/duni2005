@@ -13,7 +13,7 @@ func passive_tick(u,dt: float) -> void:
 	if u.lost_sword.is_empty():return
 	var s: Dictionary=u.lost_sword
 	if float(s.flight)>0:
-		s.point=CharacterPersistence.point((CharacterPersistence.vector(s.point)+Vector2(s.vx,s.vy)*minf(dt,float(s.flight))).clamp(Vector2(35,35),Vector2(765,765)));s.flight=maxf(0,float(s.flight)-dt);s.rotation+=dt*13
+		s.point=CharacterPersistence.point((CharacterPersistence.vector(s.point)+Vector2(s.vx,s.vy)*minf(dt,float(s.flight))).clamp(Vector2(35,35),ArenaMap.hi(35)));s.flight=maxf(0,float(s.flight)-dt);s.rotation+=dt*13
 	if float(s.flight)<=0 and u.stun_remaining<=0 and u.state_value("guardRemaining")<=0 and u.position.distance_to(CharacterPersistence.vector(s.point))<34:
 		u.set_state("pickupTime",u.state_value("pickupTime")+dt)
 		if u.state_value("pickupTime")>=.25:u.lost_sword.clear();u.set_state("pickupTime",0);u.combat.cooldown=minf(u.combat.cooldown,.3)

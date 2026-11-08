@@ -16,7 +16,7 @@ func modify_movement(u,_t,dt: float) -> bool:
 	wander_clock-=dt
 	if u.position.distance_to(u.brain.goal)<45 or wander_clock<=0:
 		wander_clock=u.battle.rng.randf_range(1.2,3)
-		u.brain.goal=Vector2(u.battle.rng.randf_range(65,735),u.battle.rng.randf_range(65,735))
+		u.brain.goal=Vector2(u.battle.rng.randf_range(65,ArenaMap.side-65),u.battle.rng.randf_range(65,ArenaMap.side-65))
 	var dir: Vector2=(u.brain.goal-u.position).normalized();u.brain.steer(u,dir-dir.orthogonal()*sin(u.battle.clock.elapsed*2.2+u.brain.phase)*.3,dt,.75 if u.combat_state==CombatController.State.WINDUP else 1)
 	if u.combat_state==CombatController.State.IDLE:u.facing=u.brain.heading.angle()
 	return true

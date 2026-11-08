@@ -57,7 +57,7 @@ func ultimate_point(u,point: Vector2) -> Vector2:
 			most=near.size();best=Vector2.ZERO
 			for o in near:best+=o.position+o.velocity*.35
 			best/=near.size()
-	return (u.position+(best-u.position).limit_length(reach)).clamp(Vector2(28,28),Vector2(772,772))
+	return (u.position+(best-u.position).limit_length(reach)).clamp(Vector2(28,28),ArenaMap.hi(28))
 func release_ultimate(u,a: Dictionary,_dt: float) -> bool:
 	var scale: float=u.combat_scale();var r: RandomNumberGenerator=u.battle.rng
 	var center: Vector2=u.position+(CharacterPersistence.vector(a.get("point",{}),u.position)-u.position).limit_length(PATCH_REACH*scale)

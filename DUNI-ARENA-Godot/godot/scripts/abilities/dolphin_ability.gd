@@ -8,7 +8,7 @@ func modify_movement(u,t,dt: float) -> bool:
 	wander_clock-=dt
 	if u.position.distance_to(u.brain.goal)<45 or wander_clock<=0:
 		wander_clock=u.battle.rng.randf_range(0.55,1.35)
-		u.brain.goal=Vector2(u.battle.rng.randf_range(70,730),u.battle.rng.randf_range(70,730))
+		u.brain.goal=Vector2(u.battle.rng.randf_range(70,ArenaMap.side-70),u.battle.rng.randf_range(70,ArenaMap.side-70))
 	var goal: Vector2=t.position+t.velocity*.2 if t!=null and (u.position.distance_to(t.position)<235 and u.combat.cooldown<.4 or u.battle.clock.elapsed<u.brain.commit_until) else u.brain.goal
 	var direction: Vector2=(goal-u.position).normalized();direction-=direction.orthogonal()*sin(u.battle.clock.elapsed*5+u.brain.phase)*.3
 	var incoming: Dictionary=u.threat_response.projectile_threat(u)

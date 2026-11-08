@@ -380,7 +380,7 @@ func render_prediction(node: RoomState) -> void:
 		elif state.result==&"draw":_result("prediction","무승부","승부가 나지 않아 판돈을 돌려받았습니다.",Color("9fb4d8"),["%d G 반환"%state.stake],picked,caption)
 		else:_result("skull","예측 실패","%d팀이 승리하지 못했습니다."%(state.picked_team+1),Color("ff8a8a"),["-%d G"%state.stake],picked,caption)
 		return
-	_section("승리할 팀 예측 · "+PredictionRules.label(state))
+	_section("승리할 팀 예측 · "+PredictionRules.label(state)+" · "+ArenaMap.label(PredictionRules.map_for(state)))
 	PredictionTeamGrid.build(content_box,state,state.picked_team,_pick_prediction)
 	_section("판돈 선택")
 	var row:=HBoxContainer.new();content_box.add_child(row)

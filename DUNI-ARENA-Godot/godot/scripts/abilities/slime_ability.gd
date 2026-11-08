@@ -47,7 +47,9 @@ func slam(u,point: Vector2,radius: float,key: StringName,impulse: float,slow: bo
 ## split MAX_SPLITS times.
 static func split(u) -> bool:
 	var done: int=int(u.state_value("slimeSplits"))
-	if done>=MAX_SPLITS or u.combat_stats==null:return false
+	if done>=MAX_SPLITS:return false
+	# Units placed without stats (전투 예측) split from their table stats.
+	if u.combat_stats==null:u.combat_stats=UnitCombatStats.from_table(u.data)
 	var stats: UnitCombatStats=halved(u.combat_stats)
 	u.combat_stats=stats;u.current_hp=stats.max_hp
 	u.set_state("slimeSplits",done+1)

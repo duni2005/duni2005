@@ -61,7 +61,7 @@ func initialize(r: RandomNumberGenerator) -> void:
 	swerve=r.randf_range(.8,1.5); phase=r.randf_range(0,TAU); tempo=r.randf_range(.55,1.8)
 	entry_plan=["observe","circle","feint","flank"][r.randi_range(0,3)]
 	next_initiative_at=r.randf_range(.3,2.2)*tempo
-	goal=Vector2(r.randf_range(100,700),r.randf_range(100,700))
+	goal=Vector2(r.randf_range(100,ArenaMap.side-100),r.randf_range(100,ArenaMap.side-100))
 ## A stunned enemy cannot answer: no standoff against it, everyone presses in at once.
 static func exposed(enemy) -> bool:return enemy!=null and enemy.alive and enemy.stun_remaining>0
 func defensive(u) -> bool:
@@ -166,7 +166,7 @@ func steer(u,direction: Vector2,dt: float,factor: float=1,style: String="archety
 	var p: Vector2=u.position;var wall: float=85 if style=="general" else 55
 	for axis in range(2):
 		if p[axis]<wall:direction[axis]+=(wall-p[axis])/(30 if style=="strategy" else wall)*(2 if style=="general" else 1)
-		if p[axis]>800-wall:direction[axis]-=(p[axis]-800+wall)/(30 if style=="strategy" else wall)*(2 if style=="general" else 1)
+		if p[axis]>ArenaMap.side-wall:direction[axis]-=(p[axis]-ArenaMap.side+wall)/(30 if style=="strategy" else wall)*(2 if style=="general" else 1)
 	steered_direction=direction.limit_length(1)
 	if not heading.is_finite():heading=Vector2.ZERO
 	heading=heading.limit_length(1).lerp(steered_direction,1-exp(-dt*(9 if style=="strategy" else 8)))
@@ -210,7 +210,7 @@ func move_defensive(u,enemy,dt: float) -> bool:
 	if not counter and nearest!=null and nearest!=enemy and near<190:direction+=(u.position-nearest.position).normalized()*1.3
 	var incoming: Dictionary=u.threat_response.projectile_threat(u)
 	if not incoming.is_empty() and incoming.time<reaction*StanceRules.pick(u,1,StanceRules.CAUTIOUS_DEFENSIVE_SIDESTEP,1) and not counter:direction=direction*.45-incoming.arrow.velocity.normalized().orthogonal()*side
-	if u.position.x<65 and direction.x<0 or u.position.x>735 and direction.x>0 or u.position.y<65 and direction.y<0 or u.position.y>735 and direction.y>0:
+	if u.position.x<65 and direction.x<0 or u.position.x>ArenaMap.side-65 and direction.x>0 or u.position.y<65 and direction.y<0 or u.position.y>ArenaMap.side-65 and direction.y>0:
 		var options: Array[Vector2]=[-f.orthogonal(),f.orthogonal()]
 		options.sort_custom(func(a,b):return wall_clearance(u.position+a*100)>wall_clearance(u.position+b*100));direction=options[0]
 	if u.data.type_id==5 and not u.friends().is_empty() and not counter and near>155:
@@ -218,7 +218,7 @@ func move_defensive(u,enemy,dt: float) -> bool:
 		if friend!=null and u.position.distance_to(friend.position)>130:direction+=(friend.position-u.position).normalized()*.7
 	movement_override="defensive_"+String(spacing.get("mode","space"));var withdraw: bool=spacing.get("mode","")=="withdraw"
 	steer(u,direction,dt,1.45 if counter else StanceRules.CAUTIOUS_BACKPEDAL if cautious and withdraw and not closing else 1.12 if closing or withdraw else 1);return true
-static func wall_clearance(p: Vector2) -> float:return minf(minf(p.x,800-p.x),minf(p.y,800-p.y))
+static func wall_clearance(p: Vector2) -> float:return minf(minf(p.x,ArenaMap.side-p.x),minf(p.y,ArenaMap.side-p.y))
 func rear_station(u,enemy) -> Dictionary:
 	var friend=u.ability.support_anchor(u) if u.data.tags.has("의존형") else null
 	var preferred: float=u.data.attack_range*StanceRules.pick(u,StanceRules.REAR_RANGE,StanceRules.CAUTIOUS_REAR_RANGE,StanceRules.REAR_RANGE)
@@ -227,10 +227,10 @@ func rear_station(u,enemy) -> Dictionary:
 		var threat=CharacterAbility.nearest(friend,u.enemies());if threat==null:threat=enemy
 		support_angle=(friend.position-threat.position).angle() if threat!=null else friend.facing+PI
 		for off in [-.4,0,.4]:
-			for distance in [110,155]:options.append((friend.position+Vector2.from_angle(support_angle+off)*distance).clamp(Vector2(55,55),Vector2(745,745)))
+			for distance in [110,155]:options.append((friend.position+Vector2.from_angle(support_angle+off)*distance).clamp(Vector2(55,55),ArenaMap.hi(55)))
 	if enemy!=null:
-		for i in range(-4,5):options.append((enemy.position+Vector2.from_angle((u.position-enemy.position).angle()+i*.28)*preferred).clamp(Vector2(55,55),Vector2(745,745)))
-	for i in range(8):options.append((u.position+Vector2.from_angle(i*PI/4)*100).clamp(Vector2(55,55),Vector2(745,745)))
+		for i in range(-4,5):options.append((enemy.position+Vector2.from_angle((u.position-enemy.position).angle()+i*.28)*preferred).clamp(Vector2(55,55),ArenaMap.hi(55)))
+	for i in range(8):options.append((u.position+Vector2.from_angle(i*PI/4)*100).clamp(Vector2(55,55),ArenaMap.hi(55)))
 	var best: Vector2=u.position;var best_score: float=-INF
 	for point in options:
 		var near: float=400 if u.enemies().is_empty() else INF
@@ -276,11 +276,11 @@ func cover_position(u,enemy) -> Vector2:
 		if not p.live or p.source.team==u.team or not CombatPerception.can_see_attack(u,p.source,p.position,p.hidden_launch):continue
 		var speed: float=maxf(1,p.velocity.length());var time: float=(anchor.position-p.position).dot(p.velocity)/(speed*speed)
 		if time<0 or time>1.2 or (p.position+p.velocity*time).distance_to(anchor.position)>p.hit_radius+28*anchor.combat_scale():continue
-		if time<hit_time:hit_time=time;best=(anchor.position-p.velocity/speed*58).clamp(Vector2(35,35),Vector2(765,765))
+		if time<hit_time:hit_time=time;best=(anchor.position-p.velocity/speed*58).clamp(Vector2(35,35),ArenaMap.hi(35))
 	if hit_time<INF:return best
 	var threats: Array=u.enemies().filter(func(e):return e.position.distance_to(anchor.position)<320);var threat=CharacterAbility.nearest(anchor,threats)
-	if threat!=null:return (anchor.position+(threat.position-anchor.position).normalized()*minf(60,anchor.position.distance_to(threat.position)*.45)).clamp(Vector2(35,35),Vector2(765,765))
-	if enemy!=null and not friends.is_empty() and friends.all(func(a):return a.stance==CombatStance.COVER) and u.battle.clock.elapsed<commit_until:return (anchor.position+(enemy.position-anchor.position).normalized()*65).clamp(Vector2(35,35),Vector2(765,765))
+	if threat!=null:return (anchor.position+(threat.position-anchor.position).normalized()*minf(60,anchor.position.distance_to(threat.position)*.45)).clamp(Vector2(35,35),ArenaMap.hi(35))
+	if enemy!=null and not friends.is_empty() and friends.all(func(a):return a.stance==CombatStance.COVER) and u.battle.clock.elapsed<commit_until:return (anchor.position+(enemy.position-anchor.position).normalized()*65).clamp(Vector2(35,35),ArenaMap.hi(35))
 	return best
 ## Cautious stance: the side that curves the approach toward the target's flank (away from the
 ## direction it faces); beside or behind it, the unit keeps its own side.
@@ -365,7 +365,7 @@ func move_general(u,enemy,dt: float) -> void:
 	if u.state_value("shadowTime")<=0 and mode=="shadow":mode="approach";hold=0;think=0
 	think-=dt;hold-=dt;var direction: Vector2;var rate: float=1
 	if enemy==null:
-		if u.position.distance_to(goal)<45 or hold<=0:goal=Vector2(r.randf_range(85,715),r.randf_range(85,715));hold=r.randf_range(1.5,3)
+		if u.position.distance_to(goal)<45 or hold<=0:goal=Vector2(r.randf_range(85,ArenaMap.side-85),r.randf_range(85,ArenaMap.side-85));hold=r.randf_range(1.5,3)
 		direction=(goal-u.position).normalized()*.8
 	else:
 		var d: float=u.position.distance_to(enemy.position);var f: Vector2=(enemy.position-u.position).normalized();var l: Vector2=-f.orthogonal()*side
@@ -388,18 +388,18 @@ func move_general(u,enemy,dt: float) -> void:
 				elif u.data.attack_range<100 and not committed:direction=f+l*.25
 			"retreat":direction=f*(-1 if d<desired_distance else .65 if d>desired_distance+90 else 0)+l*.6
 			"feint":direction=f*(.7 if hold>.65 else -.8)+l*.55
-			"flank":direction=((enemy.position-f*140+l*150).clamp(Vector2(70,70),Vector2(730,730))-u.position).normalized()
+			"flank":direction=((enemy.position-f*140+l*150).clamp(Vector2(70,70),ArenaMap.hi(70))-u.position).normalized()
 			"circle":direction=f*clampf((d-(u.data.attack_range*.76 if u.data.attack_range>100 else standoff))/120,-.65,.7)+l
 			_:direction=f*clampf((d-desired_distance)/110,-.7,.5)+l*(.55+sin(now*1.7+phase)*.25);rate=.75
 		if u.data.type_id==5 and not u.friends().is_empty():
 			var friend=u.ability.support_anchor(u)
 			if friend!=null:
-				var point: Vector2=(friend.position+(friend.position-enemy.position).normalized()*95).clamp(Vector2(55,55),Vector2(745,745))
+				var point: Vector2=(friend.position+(friend.position-enemy.position).normalized()*95).clamp(Vector2(55,55),ArenaMap.hi(55))
 				if u.position.distance_to(point)>45:direction=direction*.25+(point-u.position).normalized()*1.05
 		if u.data.tags.has("호위형"):
 			var friend=u.ability.support_anchor(u)
 			if friend!=null:
-				var anchor: Vector2=(friend.position+(enemy.position-friend.position).normalized()*65).clamp(Vector2(55,55),Vector2(745,745))
+				var anchor: Vector2=(friend.position+(enemy.position-friend.position).normalized()*65).clamp(Vector2(55,55),ArenaMap.hi(55))
 				var group: bool=u.friends().all(func(a):return a.data.tags.has("호위형"));var leader: int=u.battle_id
 				for a in u.friends():leader=mini(leader,a.battle_id)
 				if now>=commit_until and (now<return_until or u.position.distance_to(friend.position)>145 or not group and friend.position.distance_to(enemy.position)>250 and d<135):direction=direction*.15+(anchor-u.position).normalized()*1.2;rate=1.05;mode="guard"
@@ -409,7 +409,7 @@ func move_general(u,enemy,dt: float) -> void:
 		if not incoming.is_empty() and u.combat_state==CombatController.State.IDLE and incoming.time<reaction:
 			var normal: Vector2=-incoming.arrow.velocity.normalized().orthogonal();var line_side: float=(u.position-incoming.arrow.position).dot(normal);var ex: Vector2=normal*(signf(line_side) if absf(line_side)>4 else side)
 			var candidate: Vector2=u.position+ex*90
-			if candidate.x<45 or candidate.x>755 or candidate.y<45 or candidate.y>755:ex=-ex
+			if candidate.x<45 or candidate.x>ArenaMap.side-45 or candidate.y<45 or candidate.y>ArenaMap.side-45:ex=-ex
 			direction=direction*.3+ex*.85;rate=1.04
 		if u.combat_state!=CombatController.State.IDLE:rate*=.3 if u.combat_state==CombatController.State.WINDUP else .55
 	movement_override="general_"+mode;steer(u,direction,dt,rate,"general")

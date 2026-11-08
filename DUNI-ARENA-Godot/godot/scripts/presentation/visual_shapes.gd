@@ -19,12 +19,13 @@ static func bolt(canvas: CanvasItem,a: Vector2,b: Vector2,color: Color,seed: flo
 	points.append(b);canvas.draw_polyline(points,Color(color,.25),width*3);canvas.draw_polyline(points,color,width);canvas.draw_polyline(points,Color("f3fbff"),maxf(1,width*.35))
 	canvas.draw_line(points[3],points[3]+n*14+diff.normalized()*18,Color(color,.6),1.5)
 ## Meadow arena; `margin` arena units of scenery show around it, fading out. Canopy shade sways.
-static func arena(canvas: CanvasItem,margin: float=0) -> void:
-	ArenaFloor.draw(canvas,margin,Time.get_ticks_msec()/1000.0)
+static func arena(canvas: CanvasItem,margin: float=0,side: float=800) -> void:
+	ArenaFloor.draw(canvas,margin,Time.get_ticks_msec()/1000.0,side)
 	if margin<=0:return
 	# The scenery darkens towards the edge of the view.
 	var clear:=Color("173a35",0);var fade:=Color("173a35",.85)
-	var inner:=Rect2(0,0,800,800).grow(margin*.5);var outer:=Rect2(0,0,800,800).grow(margin)
+	margin*=side/800.0
+	var inner:=Rect2(0,0,side,side).grow(margin*.5);var outer:=Rect2(0,0,side,side).grow(margin)
 	var a: Array=[inner.position,Vector2(inner.end.x,inner.position.y),inner.end,Vector2(inner.position.x,inner.end.y)]
 	var b: Array=[outer.position,Vector2(outer.end.x,outer.position.y),outer.end,Vector2(outer.position.x,outer.end.y)]
 	for k in range(4):canvas.draw_polygon(PackedVector2Array([a[k],a[(k+1)%4],b[(k+1)%4],b[k]]),PackedColorArray([clear,clear,fade,fade]))

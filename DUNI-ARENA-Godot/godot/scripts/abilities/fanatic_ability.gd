@@ -16,16 +16,18 @@ func modify_movement(u,t,dt: float) -> bool:
 		var d: float=u.position.distance_to(t.position);var dir: Vector2=(t.position-u.position).normalized()
 		u.brain.steer(u,dir*(1.2 if d>58 else -.3 if d<40 else .15)-dir.orthogonal()*u.brain.side*.18,dt,.35 if u.combat_state==CombatController.State.WINDUP else .6 if u.combat_state==CombatController.State.ACTIVE else 1.12);return true
 	var angle: float=(t.position-s.position).angle() if t!=null else s.facing
-	var dir: Vector2=Vector2.from_angle(angle);var point: Vector2=(s.position-dir*70-dir.orthogonal()*u.brain.side*58).clamp(Vector2(45,45),Vector2(755,755))
+	var dir: Vector2=Vector2.from_angle(angle);var point: Vector2=(s.position-dir*70-dir.orthogonal()*u.brain.side*58).clamp(Vector2(45,45),ArenaMap.hi(45))
 	var move: Vector2=(point-u.position).normalized()*minf(1,u.position.distance_to(point)/50)
 	if t!=null and u.position.distance_to(s.position)<120 and s.position.distance_to(t.position)<170 and u.battle.clock.elapsed<u.brain.commit_until:move=move*.25+(t.position-u.position).normalized()*.8
 	if u.position.distance_to(s.position)>145:move=(s.position-u.position).normalized()
 	u.brain.steer(u,move,dt,.3 if u.combat_state==CombatController.State.WINDUP else .6 if u.combat_state==CombatController.State.ACTIVE else 1);return true
+## Ultimate gauge the saint gains from one cast.
+const CHARGE: float = 35
 func ultimate_target(u):return saint(u)
 func can_ultimate(_u,t) -> bool:return t!=null and t.data.ultimate_windup>=0 and t.ultimate_gauge<100 and t.ultimate.cast.is_empty()
 func release_ultimate(u,a,_dt: float) -> bool:
 	var t=saint(u)
-	if t!=null and t.actor_id()==a.target:t.ultimate.gain(t,20)
+	if t!=null and t.actor_id()==a.target:t.ultimate.gain(t,CHARGE)
 	return true
 func ultimate_danger(_u,_observer,_a: Dictionary) -> bool:return false
 func defensive_ultimate() -> bool:return true

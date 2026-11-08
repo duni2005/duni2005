@@ -25,6 +25,8 @@ var library_row: HBoxContainer
 var summary: Label
 var validation: Label
 var start_button: Button
+## 사각 정원 size: tap to cycle 소 → 중 → 대.
+var map_button: Button
 var battle_header: HBoxContainer
 var setup_header: HBoxContainer
 var status_line: BattleStatusLine
@@ -70,7 +72,8 @@ func _ready() -> void:
 	var tools:=HBoxContainer.new();tools.add_theme_constant_override("separation",4);setup_controls.add_child(tools)
 	for i in range(CustomBattleSetup.TEAM_ORDER.size()):
 		var team: int=CustomBattleSetup.TEAM_ORDER[i]
-		var b:=_button(tools,"%d %s"%[i+1,CustomBattleSetup.TEAM_NAMES[team]],_select_team.bind(team));b.toggle_mode=true;b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.add_theme_font_size_override("font_size",12);_team_style(b,team);team_buttons[team]=b
+		# Narrow phones drop the number so the five team names fit.
+		var b:=_button(tools,CustomBattleSetup.TEAM_NAMES[team] if get_viewport_rect().size.x<380 else "%d %s"%[i+1,CustomBattleSetup.TEAM_NAMES[team]],_select_team.bind(team));b.toggle_mode=true;b.size_flags_horizontal=Control.SIZE_EXPAND_FILL;b.add_theme_font_size_override("font_size",12);b.clip_text=true;b.custom_minimum_size.x=36;_team_style(b,team);team_buttons[team]=b
 	eraser_button=_button(tools,"",_toggle_eraser);eraser_button.toggle_mode=true;eraser_button.tooltip_text="지우개 · 유닛을 눌러 삭제";eraser_button.custom_minimum_size.x=44;ArenaUI.with_icon(eraser_button,"eraser",18);ArenaUI.quiet(eraser_button)
 	clear_button=_button(tools,"",_clear);clear_button.tooltip_text="전체 삭제";clear_button.custom_minimum_size.x=44;ArenaUI.with_icon(clear_button,"clear_all",18);ArenaUI.quiet(clear_button)
 	var library:=ScrollContainer.new();library.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;library.custom_minimum_size.y=96;setup_controls.add_child(library)
@@ -84,7 +87,8 @@ func _ready() -> void:
 	var texts:=VBoxContainer.new();texts.size_flags_horizontal=Control.SIZE_EXPAND_FILL;texts.add_theme_constant_override("separation",0);footer.add_child(texts)
 	summary=Label.new();summary.add_theme_font_size_override("font_size",13);texts.add_child(summary)
 	validation=Label.new();validation.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;validation.add_theme_font_size_override("font_size",11);validation.add_theme_color_override("font_color",ArenaUI.MUTED);texts.add_child(validation)
-	start_button=_button(footer,"전투 시작",start_battle);start_button.custom_minimum_size=Vector2(140,52);ArenaUI.primary(start_button);ArenaUI.with_icon(start_button,"play",12,true)
+	map_button=_button(footer,"",_cycle_map);map_button.custom_minimum_size=Vector2(58,52);map_button.add_theme_font_size_override("font_size",11);ArenaUI.quiet(map_button)
+	start_button=_button(footer,"전투 시작",start_battle);start_button.custom_minimum_size=Vector2(124,52);ArenaUI.primary(start_button);ArenaUI.with_icon(start_button,"play",12,true)
 	# Battle controls: transcendence for every unit, pause / speed / rematch.
 	trans_scroll=ScrollContainer.new();trans_scroll.set_meta("hold_drag",true);trans_scroll.vertical_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;trans_scroll.custom_minimum_size.y=60;column.add_child(trans_scroll);trans_scroll.hide()
 	trans_row=HBoxContainer.new();trans_row.add_theme_constant_override("separation",6);trans_scroll.add_child(trans_row)
@@ -152,11 +156,14 @@ func refresh() -> void:
 	eraser_button.set_pressed_no_signal(erasing);clear_button.disabled=setup.entries.is_empty()
 	for card in library_row.get_children():card.set_pressed_no_signal(card.type_id==selected_type and not erasing);card.queue_redraw()
 	summary.text="%d / %d명 · %d개 진영"%[setup.entries.size(),CustomBattleSetup.MAX_PARTICIPANTS,setup.faction_count()]
+	map_button.text="맵\n%s"%["소","중","대"][setup.map];map_button.tooltip_text=ArenaMap.label(setup.map)
 	if validation.get_meta("sticky",false):validation.set_meta("sticky",false)
 	elif erasing:validation.text="지울 유닛을 누르세요."
 	elif selected_type<0:validation.text="카드를 선택하고 맵에 배치하세요."
 	else:validation.text="%s · %s 배치 · 다시 누르면 정보"%[CharacterCatalog.all()[selected_type].display_name,"개인" if selected_team<0 else CustomBattleSetup.TEAM_NAMES[selected_team]+" 팀"]
 	board.queue_redraw()
+func _cycle_map() -> void:
+	setup.map=(setup.map+1)%ArenaMap.SIDES.size();_say(ArenaMap.label(setup.map)+" · 전투 시작 시 이 크기로 펼쳐집니다.");refresh()
 func _say(text: String) -> void:
 	validation.text=text;validation.set_meta("sticky",true)
 func _select_team(team: int) -> void:
@@ -183,7 +190,7 @@ func _unit_tapped(id: int) -> void:
 	unit_id=id;unit_tab="stance";item_choice=&"";_render_unit();_popup(unit_dialog)
 func _show_settings() -> void:
 	info_dialog.get_child(0).get_child(0).get_child(0).text="맵 · 모드"
-	info_label.text="전투 맵 · 스퀘어 아레나\n장애물 없는 정사각형 경기장\n\n전투 모드 · 최후의 생존자\n마지막까지 남은 개인 또는 팀이 승리합니다.\n\n커스텀 전투 자금은 무제한입니다. 카드 가격은 임시 비용이며 팀별 합계만 기록합니다."
+	info_label.text="전투 맵 · "+ArenaMap.label(setup.map)+"\n장애물 없는 정사각형 정원. 소 · 중 · 대 세 크기 (맵 버튼으로 변경)\n\n전투 모드 · 최후의 생존자\n마지막까지 남은 개인 또는 팀이 승리합니다.\n\n커스텀 전투 자금은 무제한입니다. 카드 가격은 임시 비용이며 팀별 합계만 기록합니다."
 	_popup(info_dialog)
 func _render_unit() -> void:
 	for child in unit_body.get_children():unit_body.remove_child(child);child.queue_free()
@@ -241,7 +248,7 @@ func start_battle() -> void:
 	UiTransition.play("battle")
 	_dispose_battle()
 	battle=BattleManager.new();battle.auto_start=false;battle.custom_mode=true;board.add_child(battle)
-	if not battle.start_battle(setup.placements(),int(Time.get_ticks_usec()&0x7fffffff)):
+	if not battle.start_battle(setup.placements(),int(Time.get_ticks_usec()&0x7fffffff),setup.map):
 		_dispose_battle();_say("전투를 시작할 수 없습니다.");refresh();return
 	for i in range(setup.entries.size()):
 		battle.units[i].stance=setup.entries[i].stance

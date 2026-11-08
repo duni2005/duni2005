@@ -91,7 +91,8 @@ static func advance_duel(master,dt: float) -> void:
 		elif ms!=ts:
 			var winner=master if (ms-ts+3)%3==1 else target;var loser=target if winner==master else master
 			CharacterAbility.restore_hp(winner,winner.max_hp*.05,winner)
-			master.battle.damage_resolver.resolve(winner,loser,UnitStatTable.raw(master,&"ult" if d.ultimate else &"basic"),{"dmg":&"ult" if d.ultimate else &"basic","dmg_type":master.data.type_id,"duel_result":true,"critical":false,"impulse":0})
+			# The master's ultimate duel is a free roll: losing it costs the master nothing.
+			if not (d.ultimate and loser==master):master.battle.damage_resolver.resolve(winner,loser,UnitStatTable.raw(master,&"ult" if d.ultimate else &"basic"),{"dmg":&"ult" if d.ultimate else &"basic","dmg_type":master.data.type_id,"duel_result":true,"critical":false,"impulse":0})
 	if float(d.time)>=2.2:cancel_duel(master)
 static func capture(frog,v,rescue: bool=false) -> bool:
 	if not frog.alive or not v.alive or not frog.frog_action.is_empty() or v.unavailable() or protected(v) or not v.hero_rescue.is_empty() or (not v.duel.is_empty() and not rescue):return false
@@ -133,8 +134,8 @@ static func advance_frog(frog,dt: float) -> void:
 		if float(a.hold)>=(.35 if a.rescue else .65):spit(frog,victim,a.rescue)
 static func safest(u) -> Vector2:
 	var best: Vector2=u.position;var score: float=-INF
-	for x in range(75,726,65):
-		for y in range(75,726,65):
+	for x in range(75,int(ArenaMap.side)-74,65):
+		for y in range(75,int(ArenaMap.side)-74,65):
 			var p:=Vector2(x,y);var near: float=400
 			for enemy in u.enemies(false):near=minf(near,p.distance_to(enemy.position))
 			var value: float=near-u.battle.zones.risk(u,p)*500-u.position.distance_to(p)*.06
@@ -144,7 +145,7 @@ static func safest(u) -> Vector2:
 	return best
 static func spit(frog,v,rescue: bool) -> void:
 	var enemy=CharacterAbility.nearest(frog,frog.enemies().filter(func(e):return e!=v and not e.unavailable()))
-	var goal: Vector2=safest(v) if rescue else enemy.position if enemy!=null else Vector2(400,400)
+	var goal: Vector2=safest(v) if rescue else enemy.position if enemy!=null else ArenaMap.center()
 	var angle: float=(goal-frog.position).angle();var speed: float=850 if rescue else 650
 	var travel: float=maxf(1,frog.position.distance_to(goal)) if rescue else maxf(150,frog.position.distance_to(goal)+100 if enemy!=null else 230)
 	var p: BattleProjectile=CharacterAbility.shoot(frog,angle,UnitStatTable.raw(frog,&"spit")*(1+floorf(v.max_hp/60)*.1),{"dmg":&"spit","kind":"frogBody","offset":0,"speed":speed,"radius":36*v.combat_scale()/frog.combat_scale(),"life":minf(1.3 if rescue else 1.15,travel/speed),"cargo":v.actor_id(),"rescue":rescue,"visual_scale":v.combat_scale(),"impulse":390})

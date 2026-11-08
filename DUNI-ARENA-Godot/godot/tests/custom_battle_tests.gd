@@ -71,6 +71,7 @@ func run(tree: SceneTree) -> void:
 	puppet_0861(tree)
 	researcher(tree)
 	ai_fluid(tree)
+	fixes_0910(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -1270,3 +1271,46 @@ func ai_fluid(tree: SceneTree) -> void:
 	w.brain.advance(w,a,1.0/60)
 	verify(w.brain.commit_until>b.clock.elapsed and w.brain.mode=="approach","a long lull makes the unit go in")
 	b.queue_free()
+func fixes_0910(tree: SceneTree) -> void:
+	# 가위바위보 마스터: losing its ultimate duel costs it nothing.
+	var b:=duel(tree,[[8,0,Vector2(300,400)],[0,1,Vector2(360,400)]])
+	step(b,.05)
+	var m: BattleUnit=b.units[0];var t: BattleUnit=b.units[1];var hurt: bool=false
+	for i in range(30):
+		m.duel={};t.duel={};m.current_hp=m.max_hp*.5;t.current_hp=t.max_hp;m.set_state("duelRounds",1.0+i*3)
+		var hp: float=m.current_hp
+		CharacterLifecycle.begin_duel(m,t,true)
+		for k in range(12):CharacterLifecycle.advance_duel(m,.15)
+		if m.current_hp<hp-.01:hurt=true
+	verify(not hurt,"가위바위보 ultimate duel: the master never loses HP")
+	b.queue_free()
+	# 광신도: the saint gains CHARGE gauge per cast.
+	verify(load("res://scripts/abilities/fanatic_ability.gd").CHARGE>=35,"광신도 ultimate charges the saint by 35")
+	# 슬라임 splits in 전투 예측 too (placements carry no combat stats there).
+	var st:=PredictionState.new();st.teams=[{"team":0,"types":[35]},{"team":1,"types":[0]}]
+	var mgr:=BattleManager.new();mgr.auto_start=false;mgr.common_combat_enabled=true;mgr.full_characters_enabled=true;tree.root.add_child(mgr)
+	var rng:=RandomNumberGenerator.new();rng.seed=4
+	mgr.start_battle(PredictionRules.placements(st,rng),4,PredictionRules.map_for(st));mgr.set_physics_process(false)
+	var slime: BattleUnit=mgr.units.filter(func(u):return u.data.type_id==35)[0]
+	verify(slime.combat_stats==null,"prediction units start without combat stats")
+	verify(CharacterLifecycle.intercept_lethal(slime,slime.current_hp+10),"a prediction slime splits instead of dying")
+	step(mgr,.1)
+	verify(mgr.units.filter(func(u):return u.data.type_id==35 and u.alive).size()==2,"the split slime appears")
+	mgr.queue_free()
+	# 사각 정원 · 소/중/대
+	verify(ArenaMap.label(ArenaMap.SMALL)=="사각 정원 · 소" and ArenaMap.label(ArenaMap.LARGE)=="사각 정원 · 대","map names")
+	var big:=BattleManager.new();big.auto_start=false;big.custom_mode=true;tree.root.add_child(big)
+	var setup:=CustomBattleSetup.new();setup.add(0,0,Vector2(700,700));setup.add(0,1,Vector2(100,100))
+	big.start_battle(setup.placements(),3,ArenaMap.LARGE);big.set_physics_process(false)
+	verify(is_equal_approx(ArenaMap.side,1400) and big.units[0].position.distance_to(Vector2(1225,1225))<1,"a large map scales placements to 1400 units")
+	verify(MovementController.clamp_position(Vector2(1390,1390)).x>1300,"units can stand past the old 800 edge on a large map")
+	big.queue_free()
+	var small:=duel(tree,[[0,0,Vector2(200,400)],[0,1,Vector2(600,400)]])
+	verify(is_equal_approx(ArenaMap.side,800) and MovementController.clamp_position(Vector2(1000,1000)).x<=772,"the next battle is back on the small map")
+	small.queue_free()
+	verify(ArenaMap.for_units(6)==ArenaMap.SMALL and ArenaMap.for_units(12)==ArenaMap.MEDIUM and ArenaMap.for_units(24)==ArenaMap.LARGE,"prediction map grows with the crowd")
+	# The unit sheet keeps drags to itself (the list behind it does not scroll).
+	var host:=Control.new();tree.root.add_child(host)
+	var sheet=UnitInfoSheet.open(host,0,null,null,null)
+	verify(sheet.is_in_group(DragScroll.MODAL),"unit sheet is a drag-scroll modal")
+	sheet.queue_free();host.queue_free()

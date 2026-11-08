@@ -47,6 +47,8 @@ var zones := BattleZones.new()
 var transcendence: TranscendenceController
 var unit_factory := BattleUnitFactory.new(UNIT_SCENE)
 
+## ArenaMap size this battle runs on.
+var map: int = ArenaMap.SMALL
 func _ready() -> void:
 	if auto_start:
 		start_battle(default_placements(), random_seed)
@@ -61,7 +63,8 @@ static func default_placements() -> Array[Dictionary]:
 		{"data": ARCHER, "team": 1, "position": Vector2(720, 400)},
 	]
 
-func start_battle(placements: Array[Dictionary], seed_value: int = -1) -> bool:
+## `map_id`: ArenaMap size (사각 정원 · 소/중/대). Placements are in 800-unit board space.
+func start_battle(placements: Array[Dictionary], seed_value: int = -1, map_id: int = ArenaMap.SMALL) -> bool:
 	# One manager instance represents one battle; no implicit restart/persistence.
 	if started:
 		return false
@@ -78,7 +81,10 @@ func start_battle(placements: Array[Dictionary], seed_value: int = -1) -> bool:
 	battle_result_id = "battle_" + Crypto.new().generate_random_bytes(16).hex_encode()
 	source_run_id = validation.source_run_id
 	started = true
-	for placement in placements:
+	ArenaMap.use(map_id);map = ArenaMap.id
+	for board_placement in placements:
+		var placement: Dictionary = board_placement
+		if ArenaMap.id != ArenaMap.SMALL and placement.get("position") is Vector2:placement = board_placement.duplicate();placement.position = ArenaMap.from_board(placement.position)
 		var unit: BattleUnit = unit_factory.create(placement, units.size() + 1, self, rng)
 		unit.died.connect(_on_unit_died)
 		units.append(unit)
@@ -320,11 +326,12 @@ func finish_with_reason(reason: BattleEndReason.Value, winning_team: int) -> boo
 	return true
 
 func _draw() -> void:
-	draw_rect(Rect2(0, 0, 800, 800), Color("101824"))
-	for grid in range(0, 801, 100):
-		draw_line(Vector2(grid, 0), Vector2(grid, 800), Color("1a2636"))
-		draw_line(Vector2(0, grid), Vector2(800, grid), Color("1a2636"))
-	draw_rect(Rect2(0, 0, 800, 800), Color("34445d"), false, 2.0)
+	var side: float = ArenaMap.SIDES[map]
+	draw_rect(Rect2(0, 0, side, side), Color("101824"))
+	for grid in range(0, int(side) + 1, 100):
+		draw_line(Vector2(grid, 0), Vector2(grid, side), Color("1a2636"))
+		draw_line(Vector2(0, grid), Vector2(side, grid), Color("1a2636"))
+	draw_rect(Rect2(0, 0, side, side), Color("34445d"), false, 2.0)
 	if full_characters_enabled:
 		for zone in zones.entries:
 			var color: Color=Color(.5,.9,.6,.18) if zone.kind in ["healing","holy"] else Color(.8,.5,1,.2)

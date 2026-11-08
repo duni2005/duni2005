@@ -7,12 +7,12 @@ func modify_movement(u,t,dt: float) -> bool:
 	if u.frog_hop.is_empty():
 		u.velocity=Vector2.ZERO;u.frog_hop_wait-=dt
 		if u.frog_hop_wait>0:return true
-		var r: RandomNumberGenerator=u.battle.rng;var goal:=Vector2(r.randf_range(75,725),r.randf_range(75,725))
+		var r: RandomNumberGenerator=u.battle.rng;var goal:=Vector2(r.randf_range(75,ArenaMap.side-75),r.randf_range(75,ArenaMap.side-75))
 		var near=nearest(u,u.enemies())
 		if near!=null and (u.position.distance_to(near.position)<130 or u.current_hp/u.max_hp<.35 and u.position.distance_to(near.position)<200):goal=u.position+Vector2.from_angle((u.position-near.position).angle()+r.randf_range(-.5,.5))*210
 		elif t!=null and (u.position.distance_to(t.position)>u.data.attack_range*.9 or u.stance==CombatStance.RUSH):goal=u.position+Vector2.from_angle((t.position-u.position).angle()+r.randf_range(-.45,.45))*200
 		var offset: Vector2=(goal-u.position).normalized()*minf(u.position.distance_to(goal),r.randf_range(85,155))
-		var end: Vector2=(u.position+offset).clamp(Vector2(35,35),Vector2(765,765))
+		var end: Vector2=(u.position+offset).clamp(Vector2(35,35),ArenaMap.hi(35))
 		u.frog_hop={"dx":end.x-u.position.x,"dy":end.y-u.position.y,"duration":clampf(.5*105/u.move_speed,.28,.65),"t":0.0}
 	var h: Dictionary=u.frog_hop;var before: Vector2=u.position;var step: float=minf(dt,float(h.duration)-float(h.t));h.t=float(h.t)+step
 	u.position=MovementController.clamp_position(u.position+Vector2(h.dx,h.dy)*step/float(h.duration));u.velocity=(u.position-before)/dt

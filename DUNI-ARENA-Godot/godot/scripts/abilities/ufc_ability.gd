@@ -8,7 +8,7 @@ func can_ultimate(u,t) -> bool:return t!=null and (u.enemies().filter(func(e):re
 func ultimate_target(u):
 	var choices: Array=u.enemies();choices.sort_custom(func(a,b):return u.enemies().filter(func(e):return e.position.distance_to(a.position)<240).size()>u.enemies().filter(func(e):return e.position.distance_to(b.position)<240).size());return choices[0] if not choices.is_empty() else null
 func release_ultimate(u,a,dt: float) -> bool:
-	var point: Vector2=CharacterPersistence.vector(a.point).clamp(Vector2(175,175),Vector2(625,625))
+	var point: Vector2=CharacterPersistence.vector(a.point).clamp(Vector2(175,175),ArenaMap.hi(175))
 	var from: Vector2=u.position
 	var arrived: bool=dash_to(u,point,680,dt)
 	a.dashing=true;a["rush_time"]=float(a.get("rush_time",0))+dt
@@ -27,5 +27,5 @@ func release_ultimate(u,a,dt: float) -> bool:
 func ultimate_danger(u,observer,a: Dictionary) -> bool:return observer.position.distance_to(CharacterPersistence.vector(a.point))<240 or PhysicalAttackSystem.point_distance(observer.position,u.position,CharacterPersistence.vector(a.point))<120
 func attack_cooldown(u,rng: RandomNumberGenerator) -> float:return 1.2+u.data.attack_interval*rng.randf_range(.3,.55)
 func cast_area(u,a: Dictionary) -> Dictionary:return {"point":a.point,"radius":180*u.combat_scale()}
-func ultimate_point(_u,point: Vector2) -> Vector2:return point.clamp(Vector2(175,175),Vector2(625,625))
+func ultimate_point(_u,point: Vector2) -> Vector2:return point.clamp(Vector2(175,175),ArenaMap.hi(175))
 func debug_state(u) -> String:return "Combo %d" % int(u.combat.attack_metadata.get("combo",0))

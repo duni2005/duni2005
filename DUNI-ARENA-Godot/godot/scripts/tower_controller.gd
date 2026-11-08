@@ -243,7 +243,7 @@ func start_prediction(manager: BattleManager) -> bool:
 	if save_manager!=null and not save_manager.checkpoint(self,"prediction",seed_value).ok():combat_rng.state=previous_rng;return false
 	ResourceTransaction.spend(guild.state,state.stake,0,receipt);state.status=&"running";prediction_battle=manager
 	manager.battle_finished.connect(_prediction_finished)
-	if not manager.start_battle(placements,seed_value):
+	if not manager.start_battle(placements,seed_value,PredictionRules.map_for(state)):
 		guild.state.gold+=state.stake;guild.state.transaction_receipts.erase(receipt);state.status=&"ready";prediction_battle=null;combat_rng.state=previous_rng;return false
 	return true
 func _prediction_finished(result: BattleResult) -> void:

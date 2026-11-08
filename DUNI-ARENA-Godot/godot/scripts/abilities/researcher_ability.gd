@@ -72,7 +72,7 @@ func ultimate_point(u,point: Vector2) -> Vector2:
 			most=near.size();best=Vector2.ZERO
 			for o in near:best+=o.position
 			best/=near.size()
-	return (u.position+(best-u.position).limit_length(reach)).clamp(Vector2(28,28),Vector2(772,772))
+	return (u.position+(best-u.position).limit_length(reach)).clamp(Vector2(28,28),ArenaMap.hi(28))
 func release_ultimate(u,a: Dictionary,_dt: float) -> bool:
 	var aim: Vector2=CharacterPersistence.vector(a.get("point",{}),u.position)
 	shoot(u,(aim-u.position).angle(),0,{"dmg":&"ult","kind":"drugBomb","speed":560,"radius":18,"offset":24,"life":clampf(u.position.distance_to(aim)/560,.1,1.2),"impulse":0,"ultimate":true})

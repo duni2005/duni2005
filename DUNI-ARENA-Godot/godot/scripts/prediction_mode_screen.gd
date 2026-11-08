@@ -66,7 +66,7 @@ func new_situation() -> void:
 
 func _render_pick() -> void:
 	_score()
-	section.text = "예측 상황 · " + PredictionRules.label(state)
+	section.text = "예측 상황 · " + PredictionRules.label(state) + " · " + ArenaMap.label(PredictionRules.map_for(state))
 	for child in teams_box.get_children():teams_box.remove_child(child);child.queue_free()
 	PredictionTeamGrid.build(teams_box, state, state.picked_team, _pick)
 	start_button.disabled = state.picked_team < 0
@@ -80,7 +80,7 @@ func start_watch() -> void:
 	battle = BattleManager.new();battle.auto_start = false
 	battle.common_combat_enabled = true;battle.full_characters_enabled = true;battle.team_colors = PredictionRules.TEAM_COLORS
 	board = DeploymentBoard.new();board.editing = false;board.size_flags_vertical = Control.SIZE_EXPAND_FILL;board.custom_minimum_size.y = 240;watch_page.add_child(board);board.add_child(battle)
-	if not battle.start_battle(PredictionRules.placements(state, rng), rng.randi_range(0, 1 << 30)):_clear_battle();return
+	if not battle.start_battle(PredictionRules.placements(state, rng), rng.randi_range(0, 1 << 30), PredictionRules.map_for(state)):_clear_battle();return
 	board.battle = battle
 	var speeds := HBoxContainer.new();speeds.alignment = BoxContainer.ALIGNMENT_END;speeds.add_theme_constant_override("separation", 4);watch_page.add_child(speeds)
 	var picked := Label.new();picked.text = "예측 · %d팀" % (state.picked_team + 1);picked.size_flags_horizontal = Control.SIZE_EXPAND_FILL;picked.add_theme_color_override("font_color", PredictionRules.team_color(state.picked_team));speeds.add_child(picked)

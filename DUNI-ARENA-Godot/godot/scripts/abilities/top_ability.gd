@@ -31,7 +31,7 @@ func modify_movement(u,_target,dt: float) -> bool:
 	var speed: float=u.move_speed*movement_rate(u)
 	var before: Vector2=u.position;var at: Vector2=before+dir*speed*dt
 	# Walls: reflect the matching axis.
-	var low: float=MovementController.MIN_POSITION;var high: float=MovementController.MAX_POSITION
+	var low: float=MovementController.MIN_POSITION;var high: float=MovementController.max_position()
 	if at.x<=low or at.x>=high:dir.x=-dir.x;u.battle.emit_combat_event(&"top_bounce",MovementController.clamp_position(at),{"actor_id":u.battle_id})
 	if at.y<=low or at.y>=high:dir.y=-dir.y;u.battle.emit_combat_event(&"top_bounce",MovementController.clamp_position(at),{"actor_id":u.battle_id})
 	at=MovementController.clamp_position(at)

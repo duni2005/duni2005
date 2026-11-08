@@ -9,8 +9,8 @@ static func safest_position(unit, rng: RandomNumberGenerator) -> Vector2:
 	var best: Vector2 = unit.position
 	var best_score: float = -INF
 	var enemies: Array = opponents(unit)
-	for x in range(85, 716, 90):
-		for y in range(85, 716, 90):
+	for x in range(85, int(ArenaMap.side) - 84, 90):
+		for y in range(85, int(ArenaMap.side) - 84, 90):
 			var point := Vector2(x + rng.randf_range(-15, 15), y + rng.randf_range(-15, 15))
 			var clearance: float = 400.0
 			if not enemies.is_empty():
@@ -36,7 +36,7 @@ static func begin_retreat(unit, rng: RandomNumberGenerator, duration: float = 6.
 	var best: Vector2 = unit.retreat_point
 	var best_score: float = -INF
 	for index in range(16):
-		var point: Vector2 = (unit.position + Vector2.from_angle(index * PI / 8) * 260).clamp(Vector2(35, 35), Vector2(765, 765))
+		var point: Vector2 = (unit.position + Vector2.from_angle(index * PI / 8) * 260).clamp(Vector2(35,35),ArenaMap.hi(35))
 		var distance: float = point.distance_to(unit.position)
 		if distance < 80:
 			continue
@@ -84,9 +84,9 @@ static func advance(unit, delta: float) -> bool:
 		if d < 55:
 			direction += (unit.position - other.position).normalized() * (55 - d) / 22
 	if unit.position.x < 55: direction.x += (55 - unit.position.x) / 30
-	if unit.position.x > 745: direction.x -= (unit.position.x - 745) / 30
+	if unit.position.x > ArenaMap.side - 55: direction.x -= (unit.position.x - ArenaMap.side + 55) / 30
 	if unit.position.y < 55: direction.y += (55 - unit.position.y) / 30
-	if unit.position.y > 745: direction.y -= (unit.position.y - 745) / 30
+	if unit.position.y > ArenaMap.side - 55: direction.y -= (unit.position.y - ArenaMap.side + 55) / 30
 	if direction.length() > 1: direction = direction.normalized()
 	unit.strategy_heading = unit.strategy_heading.lerp(direction, 1.0 - exp(-delta * 9))
 	var before: Vector2 = unit.position

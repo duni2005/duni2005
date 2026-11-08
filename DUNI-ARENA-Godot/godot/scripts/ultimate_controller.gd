@@ -46,7 +46,7 @@ func request(u,target) -> bool:
 	if u.data.ultimate_windup<0 or u.ability.reactive_ultimate() or not u.alive or u.stun_remaining>0 or u.ability.locked(u) or not cast.is_empty() or u.ultimate_gauge<100:return false
 	var point: Vector2=u.ability.ultimate_point(u,target.position+target.velocity*.4 if target!=null else u.position)
 	serial+=1
-	cast={"t":0.0,"duration":u.data.ultimate_windup,"target":target.actor_id() if target!=null else "","angle":(point-u.position).angle(),"point":CharacterPersistence.point(point.clamp(Vector2(28,28),Vector2(772,772)))}
+	cast={"t":0.0,"duration":u.data.ultimate_windup,"target":target.actor_id() if target!=null else "","angle":(point-u.position).angle(),"point":CharacterPersistence.point(point.clamp(Vector2(28,28),ArenaMap.hi(28)))}
 	u.ultimate_gauge=0;u.set_state("ultReadyAge",0);u.set_state("ultUses",u.state_value("ultUses")+1);u.set_state("strategyUltimateReady",false)
 	u.velocity=Vector2.ZERO;u.knockback_velocity*=.2
 	u.battle.emit_combat_event(&"ultimate",u.position,{"actor":u.actor_id(),"type":u.data.type_id})

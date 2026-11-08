@@ -61,10 +61,10 @@ static func advance(unit, delta: float) -> void:
 		var speed: float = unit.knockback_velocity.length()
 		var point: Vector2 = unit.position + unit.knockback_velocity * step
 		var wall: float = 0
-		if point.x < 28 or point.x > 772:
+		if point.x < 28 or point.x > ArenaMap.side - 28:
 			wall = maxf(wall, absf(unit.knockback_velocity.x))
 			unit.knockback_velocity.x *= -.24
-		if point.y < 28 or point.y > 772:
+		if point.y < 28 or point.y > ArenaMap.side - 28:
 			wall = maxf(wall, absf(unit.knockback_velocity.y))
 			unit.knockback_velocity.y *= -.24
 		unit.position = MovementController.clamp_position(point)

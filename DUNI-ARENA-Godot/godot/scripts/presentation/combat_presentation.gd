@@ -8,6 +8,8 @@ const ZONE_COLORS={"blackhole":Color("a878f5"),"tankFire":Color("ff934f"),"ring"
 var board: DeploymentBoard
 var battle: BattleManager
 var camera:=ArenaCameraController.new()
+## Map size in arena units (ArenaMap) of the attached battle.
+var map_side: float=800
 var effects: Array[Dictionary]=[]
 var numbers: Array[Dictionary]=[]
 var previous: Dictionary={}
@@ -81,6 +83,7 @@ func _ready() -> void:
 func attach(value: BattleManager) -> void:
 	cleanup();battle=value
 	if not is_instance_valid(battle):return
+	map_side=ArenaMap.SIDES[battle.map];camera.side=map_side;camera.reset()
 	show()
 	battle.hide()
 	battle.damage_resolver.damage_resolved.connect(_damage)
@@ -723,6 +726,7 @@ func advance(delta: float) -> void:
 	var rows: Array=[]
 	for unit in battle.units:
 		if unit.alive:rows.append({"position":unit.position,"velocity":unit.velocity,"scale":unit.combat_scale()})
+	map_side=ArenaMap.SIDES[battle.map];camera.side=map_side
 	camera.set_framing(rows)
 	var ending: bool=battle.finished and end_age<1.55 and camera.finale_remaining>0
 	if battle.clock.state==BattleClock.State.TURNING_SLOWDOWN and not battle.finished:camera.advance_overview(ui_delta,2.0,ArenaCameraController.TURNING_ZOOM)
@@ -732,29 +736,30 @@ func advance(delta: float) -> void:
 	if is_instance_valid(bar_overlay):bar_overlay.queue_redraw()
 	if is_instance_valid(field_layer) and board!=null:
 		var rect: Rect2=board.board_rect()
-		var at:=Transform2D(0,Vector2.ONE*rect.size.x/800,0,rect.position)*camera.transform()
+		var at:=Transform2D(0,Vector2.ONE*rect.size.x/map_side,0,rect.position)*camera.transform()
 		field_layer.sync(battle.zones.entries,at,real_age)
 		if is_instance_valid(shader_fx):
 			if use_shader_fx:shader_fx.advance(delta);shader_fx.sync(battle,at,real_age)
 			else:shader_fx.clear()
 func _draw() -> void:
 	if not is_instance_valid(battle) or board==null:return
-	var rect: Rect2=board.board_rect();var factor: float=rect.size.x/800
+	map_side=ArenaMap.SIDES[battle.map];camera.side=map_side
+	var rect: Rect2=board.board_rect();var factor: float=rect.size.x/map_side
 	# Screen-space fill covers the viewport beyond the arena at its edges.
 	# All actual map geometry must share the actor camera, including shake.
 	draw_set_transform(rect.position,0,Vector2.ONE*factor)
-	draw_rect(Rect2(0,0,800,800),Color("101a26"))
+	draw_rect(Rect2(0,0,map_side,map_side),Color("101a26"))
 	parent_transform=Transform2D(0,Vector2.ONE*factor,0,rect.position)*camera.transform()
 	draw_set_transform_matrix(parent_transform)
 	if is_instance_valid(field_layer):field_layer.align(parent_transform)
 	if is_instance_valid(shader_fx):shader_fx.align(parent_transform)
-	VisualShapes.arena(self,ArenaFloor.MARGIN)
+	VisualShapes.arena(self,ArenaFloor.MARGIN,map_side)
 	if battle.clock.state in [BattleClock.State.TURNING_SLOWDOWN,BattleClock.State.TURNING_PAUSED]:
 		# Turning point tint lies on the ground only; units stay at full brightness.
 		var t: float=clampf(battle.clock.slowdown_elapsed/2,0,1)
-		draw_rect(Rect2(0,0,800,800),Color(.09,.15,.12,.19*t))
-		for edge in range(10):draw_rect(Rect2(edge*8,edge*8,800-edge*16,800-edge*16),Color(0,.03,.025,.025*t),false,8)
-		for x in range(80,800,80):draw_line(Vector2(x,20),Vector2(x,780),Color(.7,.8,.6,.07*t),1)
+		draw_rect(Rect2(0,0,map_side,map_side),Color(.09,.15,.12,.19*t))
+		for edge in range(10):draw_rect(Rect2(edge*8,edge*8,map_side-edge*16,map_side-edge*16),Color(0,.03,.025,.025*t),false,8)
+		for x in range(80,int(map_side),80):draw_line(Vector2(x,20),Vector2(x,map_side-20),Color(.7,.8,.6,.07*t),1)
 	if cinematic.started and battle.finished:
 		_draw_ending();draw_set_transform(Vector2.ZERO);_draw_multi_kill(rect);return
 	for z in ([] if battle.finished else battle.zones.entries):
@@ -822,13 +827,13 @@ func _draw() -> void:
 				var a: float=i*TAU/28+age*.4;var q: Vector2=e.point+Vector2.from_angle(a)*reach*(.92+.06*sin(age*3+i))
 				VfxArt.glow(self,q,70+20*sin(age*2+i),Color("4a3070") if i%2==0 else Color("5f7a45"),.5*fade*(1-spread*.5))
 			for i in range(18):
-				var seed_x: float=fmod(i*137.5,800.0);var seed_y: float=fmod(i*283.1+90,800.0)
+				var seed_x: float=fmod(i*137.5,map_side);var seed_y: float=fmod(i*283.1+90,map_side)
 				var q: Vector2=Vector2(seed_x+sin(age*.5+i)*70,seed_y+cos(age*.4+i*1.7)*60)
 				if q.distance_to(e.point)>reach:continue
 				VfxArt.glow(self,q,110+40*sin(age*1.3+i),Color("6a4a8f") if i%3!=0 else Color("6f9a52"),.38*fade)
 			for i in range(40):
 				# Floating spores drifting upward through the fog.
-				var q: Vector2=Vector2(fmod(i*97.3+age*12,800.0),fmod(i*211.7-age*(18+i%5*4),800.0)+(800 if fmod(i*211.7-age*(18+i%5*4),800.0)<0 else 0))
+				var q: Vector2=Vector2(fmod(i*97.3+age*12,map_side),fposmod(i*211.7-age*(18+i%5*4),map_side))
 				if q.distance_to(e.point)>reach:continue
 				draw_circle(q,1.8+i%3,Color("c9a6ff",.55*fade) if i%2==0 else Color("b6e08a",.45*fade))
 		elif e.kind=="plague_slam":
@@ -976,9 +981,9 @@ func _draw() -> void:
 			var clock: float=_santa_clock(int(e.get("santa",0)))
 			if clock<0:continue
 			var fade: float=clampf(minf(clock/.4,(float(e.get("away",3.2))-clock)/.4),0,1)
-			draw_rect(Rect2(0,0,800,800),Color(1,.86,.55,.06*fade))
+			draw_rect(Rect2(0,0,map_side,map_side),Color(1,.86,.55,.06*fade))
 			for i in range(90):
-				var x: float=fmod(i*97.31+sin(clock*1.3+i)*18,800.0);var y: float=fmod(i*53.7+clock*(60+fmod(i*7.0,50.0)),800.0)
+				var x: float=fmod(i*97.31+sin(clock*1.3+i)*18,map_side);var y: float=fmod(i*53.7+clock*(60+fmod(i*7.0,50.0)),map_side)
 				draw_circle(Vector2(x,y),1.4+fmod(i*.37,1.0)*2.2,Color(1,1,1,(.45+.4*fmod(i*.61,1.0))*fade))
 		elif e.kind=="santa_sleigh":
 			# The sleigh's shadow flies across the sky trailing gold stardust; its shadow sweeps the
@@ -1132,7 +1137,7 @@ func _draw() -> void:
 				var v:=Vector2.from_angle(i*TAU/4+PI/4+t*1.2)
 				draw_line(e.point+v*(10+t*30),e.point+v*(22+t*38),c,3*(1-t)+1,true)
 		elif e.kind=="ult_flash":
-			draw_rect(Rect2(0,0,800,800),Color(e.color,.06*pow(1-t,2)))
+			draw_rect(Rect2(0,0,map_side,map_side),Color(e.color,.06*pow(1-t,2)))
 			draw_arc(e.point,40+t*520,0,TAU,72,Color(Color(e.color).lightened(.4),.3*(1-t)),3*(1-t)+1,true)
 		elif VfxArt.effect(self,e):pass
 		else:draw_arc(e.point,radius,0,TAU,32,c,2)
@@ -1149,7 +1154,7 @@ func _draw() -> void:
 			var caster=battle.find_actor(action.actor)
 			if caster!=null:
 				var direction:=Vector2.from_angle(action.angle)
-				draw_rect(Rect2(0,0,800,800),Color(.08,.025,.14,.38))
+				draw_rect(Rect2(0,0,map_side,map_side),Color(.08,.025,.14,.38))
 				for i in range(24):
 					var phase: float=fposmod(real_age*1.8+i*.117,1);var d:=Vector2.from_angle(i*2.399+real_age)
 					draw_line(caster.position+d*(45+phase*150),caster.position+d*(40+phase*130),Color("dbacff",1-phase),2)
@@ -1654,7 +1659,7 @@ func _train_exhaust(u: BattleUnit,cast: Dictionary,delta: float) -> void:
 	if float(ult_timers[key])<.03:return
 	ult_timers[key]=0
 	var track: Dictionary=cast.track;var dir: Vector2=Vector2.from_angle(float(track.angle));var side: Vector2=dir.orthogonal()
-	var head: Vector2=Vector2(float(track.x),float(track.y))+dir*float(cast.s);var arena:=Rect2(0,0,800,800)
+	var head: Vector2=Vector2(float(track.x),float(track.y))+dir*float(cast.s);var arena:=Rect2(0,0,map_side,map_side)
 	var stack: Vector2=head-dir*62
 	if arena.has_point(stack):particles.burst(stack,Color("8a8a96"),3,50,dir.angle()+PI,"smoke",true)
 	for k in [-1,1]:
@@ -1853,7 +1858,7 @@ func _draw_ending() -> void:
 	for row in cinematic.projectiles:
 		if time<row.life:
 			var point: Vector2=row.position+row.velocity*time
-			if Rect2(0,0,800,800).has_point(point):VisualShapes.streak(self,point,row.velocity.angle(),34,3,row.color,.7)
+			if Rect2(0,0,map_side,map_side).has_point(point):VisualShapes.streak(self,point,row.velocity.angle(),34,3,row.color,.7)
 	for row in cinematic.units:CharacterPainter.draw_snapshot(self,row,cinematic.position_for(row),parent_transform,time)
 	for e in effects:
 		if e.kind=="death":

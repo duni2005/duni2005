@@ -29,6 +29,6 @@ static func motion_seconds(time: float) -> float:
 func position_for(row: Dictionary) -> Vector2:
 	var point: Vector2=row.position+row.velocity*motion_seconds(age)
 	var scale: float=row.get("scale",1.0)
-	return point.clamp(Vector2(32,52)*scale,Vector2(800,800)-Vector2(32,36)*scale)
+	return point.clamp(Vector2(32,52)*scale,Vector2.ONE*ArenaMap.side-Vector2(32,36)*scale)
 func release_visuals() -> void:
 	units.clear();projectiles.clear()

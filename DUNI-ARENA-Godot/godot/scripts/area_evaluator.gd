@@ -48,7 +48,7 @@ func advance_minimal(unit, delta: float) -> bool:
 			var score: float = -INF
 			for radius in [95,185,285]:
 				for i in range(12):
-					var point: Vector2 = (unit.position+Vector2.from_angle(phase+i*PI/6)*radius).clamp(Vector2(40,40),Vector2(760,760))
+					var point: Vector2 = (unit.position+Vector2.from_angle(phase+i*PI/6)*radius).clamp(Vector2(40,40),ArenaMap.hi(40))
 					var route: float = 0
 					for step in range(1,5): route+=evaluate(unit,unit.position.lerp(point,step/4.0)).total/4
 					var value: float = -risk.total*.1-evaluate(unit,point).total*3-route*.7-point.distance_to(unit.position)*.0025+(unit.battle.zones.support(unit,point) if unit.battle.full_characters_enabled else 0)
@@ -74,10 +74,10 @@ func advance_minimal(unit, delta: float) -> bool:
 	var before: Vector2 = unit.position
 	var toward: Vector2 = goal-unit.position
 	var direction: Vector2 = toward.normalized()*minf(1,toward.length()/35)
-	var look: Vector2 = (unit.position+toward.normalized()*85).clamp(Vector2(35,35),Vector2(765,765))
+	var look: Vector2 = (unit.position+toward.normalized()*85).clamp(Vector2(35,35),ArenaMap.hi(35))
 	if evaluate(unit,look).total > risk.total+.45:
 		var side: Vector2 = toward.normalized().orthogonal()
-		if evaluate(unit,(unit.position+side*85).clamp(Vector2(35,35),Vector2(765,765))).total > evaluate(unit,(unit.position-side*85).clamp(Vector2(35,35),Vector2(765,765))).total: side *= -1
+		if evaluate(unit,(unit.position+side*85).clamp(Vector2(35,35),ArenaMap.hi(35))).total > evaluate(unit,(unit.position-side*85).clamp(Vector2(35,35),ArenaMap.hi(35))).total: side *= -1
 		direction=toward.normalized()*.2+side
 	unit.position=MovementController.clamp_position(unit.position+direction.limit_length(1)*unit.move_speed*delta)
 	unit.velocity=(unit.position-before)/delta
@@ -106,9 +106,9 @@ func route_cost(u,point: Vector2) -> float:
 func goals(u) -> Dictionary:
 	var options: Array[Dictionary]=[];var safe: Array[Dictionary]=u.battle.zones.safe_areas(u)
 	for radius in [95,185,285]:
-		for i in range(12):options.append({"point":(u.position+Vector2.from_angle(u.brain.phase+i*PI/6)*radius).clamp(Vector2(40,40),Vector2(760,760))})
+		for i in range(12):options.append({"point":(u.position+Vector2.from_angle(u.brain.phase+i*PI/6)*radius).clamp(Vector2(40,40),ArenaMap.hi(40))})
 	for area in safe:
-		var center: Vector2=CharacterPersistence.vector(area.point);options.append({"point":(center+(u.position-center).normalized()*float(area.radius)*.45).clamp(Vector2(40,40),Vector2(760,760)),"safe":area})
+		var center: Vector2=CharacterPersistence.vector(area.point);options.append({"point":(center+(u.position-center).normalized()*float(area.radius)*.45).clamp(Vector2(40,40),ArenaMap.hi(40)),"safe":area})
 	var escape: Dictionary={};var refuge: Dictionary={};var benefit: float=0;var best_score: float=-INF;var current: float=evaluate(u,u.position).total
 	for option in options:
 		var point: Vector2=option.point;var risk: float=evaluate(u,point).total;var route: float=route_cost(u,point);var support: float=0
@@ -136,10 +136,10 @@ func advance(u,delta: float) -> bool:
 		for candidate in u.battle.zones.safe_areas(u):
 			if candidate.ref==safe_ref:area=candidate;break
 		if area.is_empty() or support_value(u,area,goal)<=.15:reset_plan(u,.25);return false
-		var center: Vector2=CharacterPersistence.vector(area.point);goal=(center+(u.position-center).normalized()*float(area.radius)*.4).clamp(Vector2(40,40),Vector2(760,760));in_support=u.position.distance_to(center)<float(area.radius)*.76
+		var center: Vector2=CharacterPersistence.vector(area.point);goal=(center+(u.position-center).normalized()*float(area.radius)*.4).clamp(Vector2(40,40),ArenaMap.hi(40));in_support=u.position.distance_to(center)<float(area.radius)*.76
 	if now>=next_think:
 		next_think=now+u.battle.rng.randf_range(.45,.95)*u.brain.patience
-		var ahead: float=evaluate(u,(u.position+u.brain.heading*80).clamp(Vector2(35,35),Vector2(765,765))).total
+		var ahead: float=evaluate(u,(u.position+u.brain.heading*80).clamp(Vector2(35,35),ArenaMap.hi(35))).total
 		var useful: bool=u.battle.zones.safe_areas(u).any(func(a):return support_value(u,a,CharacterPersistence.vector(a.point))>.65)
 		if risk.total>.2 or ahead>.75 or useful:
 			var choices: Dictionary=goals(u);var low: float=1-u.current_hp/u.max_hp;var target=u.target;var opening: bool=target!=null and (target.current_hp/target.max_hp<.2 or target.combat_state==CombatController.State.RECOVERY) and u.position.distance_to(target.position)<150
@@ -155,8 +155,8 @@ func advance(u,delta: float) -> bool:
 				u.brain.commit_until=0;u.brain.attack_decision.clear();decision_counts.support+=int(supporting);decision_counts.escape+=int(not supporting)
 	if escape_until<=now:return false
 	var forward: Vector2=(goal-u.position).normalized();var direction: Vector2=forward*minf(1,u.position.distance_to(goal)/35)
-	if evaluate(u,(u.position+forward*85).clamp(Vector2(35,35),Vector2(765,765))).total>risk.total+.45:
-		var options: Array[Vector2]=[forward.orthogonal(),-forward.orthogonal()];options.sort_custom(func(a,b):return evaluate(u,(u.position+a*85).clamp(Vector2(35,35),Vector2(765,765))).total<evaluate(u,(u.position+b*85).clamp(Vector2(35,35),Vector2(765,765))).total);direction=forward*.2+options[0]
+	if evaluate(u,(u.position+forward*85).clamp(Vector2(35,35),ArenaMap.hi(35))).total>risk.total+.45:
+		var options: Array[Vector2]=[forward.orthogonal(),-forward.orthogonal()];options.sort_custom(func(a,b):return evaluate(u,(u.position+a*85).clamp(Vector2(35,35),ArenaMap.hi(35))).total<evaluate(u,(u.position+b*85).clamp(Vector2(35,35),ArenaMap.hi(35))).total);direction=forward*.2+options[0]
 	if supporting and in_support:direction-=forward.orthogonal()*u.brain.side*.2
 	u.brain.movement_override="area_support" if supporting else "area_escape"
 	u.brain.steer(u,direction,delta,.3 if u.combat_state==CombatController.State.WINDUP else .55 if u.combat_state!=CombatController.State.IDLE else 1);return true

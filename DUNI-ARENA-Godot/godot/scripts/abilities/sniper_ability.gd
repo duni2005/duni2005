@@ -5,7 +5,7 @@ func can_attack(u,t) -> bool:
 	return t!=null and (u.position.distance_to(corner(u))<65 or u.battle.clock.elapsed-u.brain.last_attack>9 and u.position.distance_to(t.position)>180)
 func corner(u) -> Vector2:
 	if corner_clock>0 and corner_point!=Vector2.ZERO:return corner_point
-	var points: Array[Vector2]=[Vector2(65,65),Vector2(735,65),Vector2(65,735),Vector2(735,735)]
+	var points: Array[Vector2]=[Vector2(65,65),Vector2(ArenaMap.side-65,65),Vector2(65,ArenaMap.side-65),ArenaMap.hi(65)]
 	var best: Vector2=points[0];var score: float=-INF
 	for p in points:
 		var value: float=450

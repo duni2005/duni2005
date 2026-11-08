@@ -15,7 +15,7 @@ func steer_override(u,move: Vector2,dt: float,factor: float) -> bool:
 func modify_movement(u,t,dt: float) -> bool:
 	if u.combat_state!=CombatController.State.IDLE:u.brain.heading=Vector2.ZERO;u.velocity=Vector2.ZERO;return true
 	if t==null:
-		if u.position.distance_to(u.brain.goal)<55:u.brain.goal=Vector2(u.battle.rng.randf_range(90,710),u.battle.rng.randf_range(90,710))
+		if u.position.distance_to(u.brain.goal)<55:u.brain.goal=Vector2(u.battle.rng.randf_range(90,ArenaMap.side-90),u.battle.rng.randf_range(90,ArenaMap.side-90))
 		return steer_override(u,(u.brain.goal-u.position).normalized(),dt,.6)
 	var dir: Vector2=(t.position-u.position).normalized();var d: float=u.position.distance_to(t.position)
 	var desired: float=220 if u.stance==CombatStance.RUSH else 390 if u.battle.clock.elapsed<u.brain.disengage_until else 330
@@ -23,9 +23,9 @@ func modify_movement(u,t,dt: float) -> bool:
 	for other in u.enemies()+u.friends():
 		if u.position.distance_to(other.position)<80:move+=(u.position-other.position).normalized()*.5
 	if u.position.x<60:move.x+=1
-	if u.position.x>740:move.x-=1
+	if u.position.x>ArenaMap.side-60:move.x-=1
 	if u.position.y<60:move.y+=1
-	if u.position.y>740:move.y-=1
+	if u.position.y>ArenaMap.side-60:move.y-=1
 	return steer_override(u,move,dt,movement_rate(u))
 func release_basic(u) -> void:
 	var enhanced: bool=u.character_specific_state.get("tankFlameReady",false);u.set_state("tankFlameReady",false)

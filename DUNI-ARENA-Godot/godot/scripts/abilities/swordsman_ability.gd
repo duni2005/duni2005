@@ -23,8 +23,8 @@ func release_ultimate(u,a,dt: float) -> bool:
 		for enemy in u.enemies():
 			var diff: Vector2=enemy.position-u.position;var along: float=diff.dot(dir)
 			if along>0 and along<620 and absf(diff.cross(dir))<95*u.combat_scale()+27*enemy.combat_scale():length=maxf(length,along+27*enemy.combat_scale()+100)
-		var wall_x: float=INF if absf(dir.x)<1e-8 else ((772 if dir.x>0 else 28)-u.position.x)/dir.x
-		var wall_y: float=INF if absf(dir.y)<1e-8 else ((772 if dir.y>0 else 28)-u.position.y)/dir.y
+		var wall_x: float=INF if absf(dir.x)<1e-8 else ((ArenaMap.side-28 if dir.x>0 else 28.0)-u.position.x)/dir.x
+		var wall_y: float=INF if absf(dir.y)<1e-8 else ((ArenaMap.side-28 if dir.y>0 else 28.0)-u.position.y)/dir.y
 		a.remaining=maxf(0,minf(minf(650,length),minf(wall_x,wall_y)));a.origin=CharacterPersistence.point(u.position);a.dashing=true
 	var step: float=dt if a.get("advanced",false) else minf(dt,maxf(0,float(a.t)-float(a.duration)));a.advanced=true
 	var before: Vector2=u.position;dash_to(u,u.position+Vector2.from_angle(a.angle)*float(a.remaining),2200,step)

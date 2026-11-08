@@ -33,7 +33,7 @@ static func open(host: Node, unit_type: int, unit_stats: UnitCombatStats = null,
 	return sheet
 
 func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);mouse_filter = Control.MOUSE_FILTER_STOP;z_index = 50
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);mouse_filter = Control.MOUSE_FILTER_STOP;z_index = 50;add_to_group(DragScroll.MODAL)
 	backdrop = ColorRect.new();backdrop.color = Color(0, 0, .02, .6);backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);add_child(backdrop)
 	backdrop.gui_input.connect(func(e: InputEvent):
 		if (e is InputEventMouseButton or e is InputEventScreenTouch) and e.pressed:close())

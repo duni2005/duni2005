@@ -5,6 +5,9 @@ extends Node
 ## axis, cancels the tap on the button under the finger, and glides on release.
 const SLOP: float = 12
 const GROUP: StringName = &"drag_scroll"
+## Full-screen overlays (the unit sheet): while one is open, only lists inside the topmost one
+## scroll, never the screen behind it.
+const MODAL: StringName = &"drag_modal"
 var touch: int = -1
 var fingers: Dictionary = {}
 var origin: Vector2
@@ -41,9 +44,12 @@ func _input(event: InputEvent) -> void:
 func _begin(moved: Vector2) -> void:
 	axis=0 if absf(moved.x)>absf(moved.y) else 1
 	var best: ScrollContainer=null;var depth: int=-1
+	var modal: Node=null
+	for node in get_tree().get_nodes_in_group(MODAL):
+		if node.get_window()==get_window() and node.is_visible_in_tree() and not node.is_queued_for_deletion():modal=node
 	for node in get_tree().get_nodes_in_group(GROUP):
 		var s: ScrollContainer=node
-		if s.get_window()!=get_window() or not s.is_visible_in_tree():continue
+		if s.get_window()!=get_window() or not s.is_visible_in_tree() or modal!=null and not modal.is_ancestor_of(s):continue
 		# Strips whose cards aim on a long press (transcendence) only scroll on a quick drag.
 		if s.has_meta("hold_drag") and Time.get_ticks_msec()-press_ms>150:continue
 		var bar: ScrollBar=s.get_h_scroll_bar() if axis==0 else s.get_v_scroll_bar()

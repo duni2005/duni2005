@@ -43,7 +43,7 @@ func can_ultimate(u,_t) -> bool:return u.state_value("ammo")<=0 and u.state_valu
 func release_ultimate(u,_a,_dt: float) -> bool:
 	var goal: Vector2=u.position;var best: float=-INF
 	for i in range(24):
-		var point: Vector2=(u.position+Vector2.from_angle(i*PI/12)*260).clamp(Vector2(38,38),Vector2(762,762))
+		var point: Vector2=(u.position+Vector2.from_angle(i*PI/12)*260).clamp(Vector2(38,38),ArenaMap.hi(38))
 		if point.distance_to(u.position)<85:continue
 		var near: float=300;var crowd: int=0;var crossings: int=0
 		for e in u.enemies():

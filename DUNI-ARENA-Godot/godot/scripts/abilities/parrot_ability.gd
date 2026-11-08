@@ -55,7 +55,7 @@ func release_ultimate(u,a: Dictionary,dt: float) -> bool:
 		var t=mimic.ultimate_target(u) if type not in [19,24,29,35] else src
 		if t==null or t.team==u.team and type in SWOOP:t=src
 		var point: Vector2=mimic.ultimate_point(u,t.position+t.velocity*.4 if t!=null else u.position)
-		a.target=t.actor_id() if t!=null else "";a.angle=(point-u.position).angle();a.point=CharacterPersistence.point(point.clamp(Vector2(28,28),Vector2(772,772)))
+		a.target=t.actor_id() if t!=null else "";a.angle=(point-u.position).angle();a.point=CharacterPersistence.point(point.clamp(Vector2(28,28),ArenaMap.hi(28)))
 		a["phase"]="swoop" if type in SWOOP else "cast"
 	var type: int=int(a.mimic)
 	if a.get("phase","")=="swoop":

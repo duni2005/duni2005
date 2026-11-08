@@ -22,12 +22,12 @@ func ultimate_target(u):
 			if offset.dot(dir)>0 and absf(offset.cross(dir))<TRACK_HALF_WIDTH+20:score+=1
 		if score>best_score:best_score=score;best=e
 	return best
-## Track parameter range [from, to] where center + dir * s lies inside the 800x800 arena.
+## Track parameter range [from, to] where center + dir * s lies inside the square arena.
 func track_span(center: Vector2,dir: Vector2) -> Vector2:
 	var lo: float=-INF;var hi: float=INF
 	for axis in [0,1]:
 		if absf(dir[axis])<.0001:continue
-		var a: float=-center[axis]/dir[axis];var b: float=(800-center[axis])/dir[axis]
+		var a: float=-center[axis]/dir[axis];var b: float=(ArenaMap.side-center[axis])/dir[axis]
 		lo=maxf(lo,minf(a,b));hi=minf(hi,maxf(a,b))
 	return Vector2(lo,hi)
 func release_ultimate(u,a,dt: float) -> bool:

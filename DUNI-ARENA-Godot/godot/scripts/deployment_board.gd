@@ -32,9 +32,13 @@ func board_rect() -> Rect2:
 	var side: float = minf(size.x, size.y)
 	return Rect2((size - Vector2.ONE * side) / 2.0, Vector2.ONE * side)
 
+## Arena units across the board: 800 while placing, the battle's map size once it runs.
+func view_side() -> float:
+	return ArenaMap.SIDES[battle.map] if not editing and is_instance_valid(battle) else ArenaMap.BOARD
+
 func logical_point(local: Vector2) -> Vector2:
 	var rect: Rect2 = board_rect()
-	var point: Vector2=(local-rect.position)*800/maxf(rect.size.x,1)
+	var point: Vector2=(local-rect.position)*view_side()/maxf(rect.size.x,1)
 	return presentation.camera.transform().affine_inverse()*point if not editing and presentation!=null else point
 
 func select(member_id: String) -> void:
@@ -47,7 +51,7 @@ func _process(_delta: float) -> void:
 		if presentation!=null and presentation.battle!=battle:presentation.attach(battle)
 		var rect: Rect2 = board_rect()
 		battle.position = rect.position
-		battle.scale = Vector2.ONE * rect.size.x / 800.0
+		battle.scale = Vector2.ONE * rect.size.x / view_side()
 	elif presentation!=null and is_instance_valid(presentation.battle):presentation.cleanup()
 	# The pinch zoom belongs to the turning point; ease back once the battle runs again.
 	if presentation!=null and not _zoomable():presentation.camera.user_relax(_delta)
@@ -119,7 +123,7 @@ var pinch_mid:=Vector2.ZERO
 func _zoomable() -> bool:
 	return not editing and is_instance_valid(battle) and battle.clock.is_turning_paused() and presentation!=null
 func _board_space(local: Vector2) -> Vector2:
-	var rect: Rect2=board_rect();return (local-rect.position)*800/maxf(rect.size.x,1)
+	var rect: Rect2=board_rect();return (local-rect.position)*view_side()/maxf(rect.size.x,1)
 func _pinch(event: InputEvent) -> bool:
 	if event is InputEventScreenTouch:
 		if event.pressed:touches[event.index]=event.position

@@ -28,8 +28,8 @@ func tick(u,dt: float) -> void:
 	var dir: Vector2=Vector2.from_angle(float(ball.angle));var r: float=radius(u,ball)
 	var at: Vector2=Vector2(float(ball.x),float(ball.y))+dir*BALL_SPEED*dt
 	ball.t=float(ball.t)+dt;ball.rolled=float(ball.rolled)+BALL_SPEED*dt
-	var wall: bool=at.x<20+r or at.x>780-r or at.y<20+r or at.y>780-r or float(ball.t)>MAX_ROLL
-	at=at.clamp(Vector2(20+r,20+r),Vector2(780-r,780-r));ball.x=at.x;ball.y=at.y
+	var wall: bool=at.x<20+r or at.x>ArenaMap.side-20-r or at.y<20+r or at.y>ArenaMap.side-20-r or float(ball.t)>MAX_ROLL
+	at=at.clamp(Vector2(20+r,20+r),ArenaMap.hi(20+r));ball.x=at.x;ball.y=at.y
 	for e in u.enemies(false):
 		if e.unavailable() or not e.alive or e.battle_id in ball.hit or e.position.distance_to(at)>r+18*e.combat_scale():continue
 		ball.hit.append(e.battle_id)

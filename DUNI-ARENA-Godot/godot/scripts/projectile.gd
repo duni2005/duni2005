@@ -51,14 +51,14 @@ func contact_time(point: Vector2, delta: float) -> float:
 
 func boundary_time() -> float:
 	var time: float = INF
-	if position.x <= 20.0 or position.x >= 780.0 or position.y <= 20.0 or position.y >= 780.0:
+	if position.x <= 20.0 or position.x >= ArenaMap.side - 20.0 or position.y <= 20.0 or position.y >= ArenaMap.side - 20.0:
 		return 0.0
 	if velocity.x > 0.0:
-		time = minf(time, (780.0 - position.x) / velocity.x)
+		time = minf(time, (ArenaMap.side - 20.0 - position.x) / velocity.x)
 	elif velocity.x < 0.0:
 		time = minf(time, (20.0 - position.x) / velocity.x)
 	if velocity.y > 0.0:
-		time = minf(time, (780.0 - position.y) / velocity.y)
+		time = minf(time, (ArenaMap.side - 20.0 - position.y) / velocity.y)
 	elif velocity.y < 0.0:
 		time = minf(time, (20.0 - position.y) / velocity.y)
 	return time

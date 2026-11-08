@@ -5,7 +5,8 @@ extends RefCounted
 ## KnockbackController owns external momentum independently of voluntary movement.
 
 const MIN_POSITION: float = 28.0
-const MAX_POSITION: float = 772.0
+## Far edge of the map (ArenaMap.side - MIN_POSITION).
+static func max_position() -> float:return ArenaMap.side-MIN_POSITION
 
 func advance(unit, delta: float) -> void:
 	if unit.battle.finished or unit.battle.clock.is_turning_paused():
@@ -32,7 +33,7 @@ func advance(unit, delta: float) -> void:
 	unit.velocity = (unit.position - before) / delta
 
 static func clamp_position(point: Vector2) -> Vector2:
-	return point.clamp(Vector2(MIN_POSITION, MIN_POSITION), Vector2(MAX_POSITION, MAX_POSITION))
+	return point.clamp(Vector2(MIN_POSITION, MIN_POSITION), Vector2.ONE*max_position())
 
 func advance_common(unit, delta: float) -> void:
 	if not unit.battle.full_characters_enabled:unit.velocity = Vector2.ZERO

@@ -11,7 +11,7 @@ static func restore(u) -> void:
 	u.persistent_extra_fields=saved.duplicate(true)
 	if saved.has("cooldown"):u.combat.cooldown=float(saved.cooldown)
 	if saved.has("lostSword"):
-		u.lost_sword=saved.lostSword.duplicate(true);u.lost_sword["point"]=point((u.position+Vector2(u.lost_sword.get("dx",0),u.lost_sword.get("dy",0))).clamp(Vector2(35,35),Vector2(765,765)))
+		u.lost_sword=saved.lostSword.duplicate(true);u.lost_sword["point"]=point((u.position+Vector2(u.lost_sword.get("dx",0),u.lost_sword.get("dy",0))).clamp(Vector2(35,35),ArenaMap.hi(35)))
 	if u.state_value("guardRemaining")>0:u.guard_anchor=u.position
 	if not u.source_enemy_id.is_empty() and saved.get("ultCast") is Dictionary:u.ultimate.cast=saved.ultCast.duplicate(true);u.ultimate.serial+=1
 	if saved.get("puppetControl") is Dictionary:

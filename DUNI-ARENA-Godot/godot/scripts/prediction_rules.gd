@@ -124,6 +124,11 @@ static func label(state: PredictionState) -> String:
 	if state.teams.size()>=4:return "%d팀 난전"%state.teams.size()
 	return "%d팀 대전"%state.teams.size()
 static func team_color(team: int) -> Color:return TEAM_COLORS[team%TEAM_COLORS.size()]
+## 사각 정원 size for this prediction: more units, a bigger field.
+static func map_for(state: PredictionState) -> int:
+	var n: int=0
+	for team in state.teams:n+=team.types.size()
+	return ArenaMap.for_units(n)
 ## Teams start spread evenly around the field, each in a cluster of rows of up to three units
 ## (rows stack outward, away from the centre).
 static func placements(state: PredictionState,rng: RandomNumberGenerator) -> Array[Dictionary]:
