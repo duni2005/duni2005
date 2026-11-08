@@ -9,7 +9,7 @@ static func phase_progress(u: BattleUnit) -> float:
 	return clampf(u.combat.phase_time/maxf(.00001,duration),0,1)
 static func sword_attack(u: BattleUnit) -> bool:
 	if u.data.type_id not in [0,3,10,14,16,19]:return false
-	if u.data.type_id==10 and not u.lost_sword.is_empty():return false
+	if not u.lost_sword.is_empty():return false
 	if u.data.type_id==16:
 		var swing: int=int(u.state_value("paladinSwings"))-(0 if u.combat_state==CombatController.State.WINDUP else 1)
 		return posmod(swing,2)==1
@@ -59,7 +59,10 @@ static func draw_loose(canvas: CanvasItem,type: int,xf: Transform2D,alpha: float
 	if sheets.is_empty():
 		for i in range(DATA.sheets):sheets.append(load("res://assets/motion/weapons_%d.png"%i))
 	var key: String="%d:basic"%type
-	if not DATA.banks.has(key):return false
+	if not DATA.banks.has(key):
+		# Hand-drawn props (말뚝's mallet, staves, guns, the flask...) lie loose the same way.
+		if not type in [26,30,31,32,34,44,45]:return false
+		canvas.draw_set_transform_matrix(xf*Transform2D(0,Vector2(-28,-6)));_draw_prop(canvas,type,0,alpha);return true
 	var frame: Dictionary=DATA.frames[int(DATA.banks[key][0])];var r: Array=frame.rect
 	canvas.draw_set_transform_matrix(xf)
 	canvas.draw_texture_rect_region(sheets[int(frame.sheet)],Rect2(-r[2]*.5,-r[3]*.5,r[2],r[3]),Rect2(r[0],r[1],r[2],r[3]),Color(1,1,1,alpha))

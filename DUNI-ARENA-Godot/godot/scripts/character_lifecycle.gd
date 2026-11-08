@@ -9,6 +9,7 @@ static func advance(battle,dt: float) -> void:
 			if u.character_specific_state.has(key):u.set_state(key,maxf(0,u.state_value(key)-dt))
 		EquipmentCombatEffects.advance(u,dt)
 		u.ability.passive_tick(u,dt)
+		WeaponDrop.advance(u,dt)
 		if not u.puppet_control.is_empty():
 			u.puppet_control.remaining=maxf(0,float(u.puppet_control.remaining)-dt)
 			if float(u.puppet_control.remaining)<=1e-8:end_control(u)

@@ -35,6 +35,7 @@ func golden() -> void:
 	# Recruit prices are the rarity tiers (1-5 tokens), fewer units at the higher tiers.
 	var per_tier: Array=[0,0,0,0,0,0]
 	for data in CharacterCatalog.all().values():
+		if data.type_id in CharacterCatalog.TEST_TYPES:continue
 		verify(data.recruit_tokens>=1 and data.recruit_tokens<=5,"recruit price is a 1-5 token tier")
 		per_tier[clampi(data.recruit_tokens,0,5)]+=1;verify(UnitRarity.tier(data.type_id)==data.recruit_tokens,"rarity tier follows the recruit price")
 	verify(per_tier==[0,9,9,11,12,5],"9/9/11/12/5 units per rarity tier")

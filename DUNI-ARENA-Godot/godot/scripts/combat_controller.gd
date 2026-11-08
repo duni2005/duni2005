@@ -50,7 +50,7 @@ func can_start(unit, enemy) -> bool:
 	if unit.battle.common_combat_enabled and (unit.stun_remaining > 0 or unit.evade_remaining > 0 or ParryController.perfect(unit) or unit.threat_response.response.get("mode", &"") == &"parry" or (unit.threat_response.response.get("mode", &"") in ([&"dodge"] if unit.battle.full_characters_enabled else [&"dodge", &"hold"]) and unit.threat_response.response.get("until",0) > unit.battle.clock.elapsed) or unit.area_evaluator.offense_blocked(unit)): return false
 	if unit.battle.full_characters_enabled:
 		if not unit.battle.started or unit.battle.finished or unit.battle.clock.is_turning_paused() or not unit.alive or unit.combat_state!=State.IDLE or cooldown>0 or not unit.target_selector.is_valid_enemy(unit,enemy):return false
-		if unit.state_value("charmTime")>0 or unit.command_retreat_until>unit.battle.clock.elapsed or not unit.strategy_dash.is_empty() or unit.ability.locked(unit) or not unit.ultimate.cast.is_empty() or not unit.ability.can_attack(unit,enemy):return false
+		if unit.state_value("charmTime")>0 or unit.command_retreat_until>unit.battle.clock.elapsed or not unit.strategy_dash.is_empty() or unit.ability.locked(unit) or not unit.ultimate.cast.is_empty() or not unit.lost_sword.is_empty() or not unit.ability.can_attack(unit,enemy):return false
 		# A travel attack (그리핀's dash) may start out of reach: it is how the unit closes in.
 		var travel: bool=unit.ability.travel_attack(unit,enemy)
 		if not travel and unit.position.distance_to(enemy.position)>=unit.ability.profile(unit).reach*(.9 if unit.data.attack_range<100 else 1)*unit.combat_scale():return false

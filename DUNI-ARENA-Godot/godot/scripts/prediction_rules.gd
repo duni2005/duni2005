@@ -46,13 +46,13 @@ static func spread_of(teams: Array) -> float:
 	var costs: Array=teams.map(func(row):return team_cost(row))
 	return float(costs.max())/maxf(1,float(costs.min()))
 static func _teams(kind: StringName,rng: RandomNumberGenerator) -> Array:
-	var all: int=CharacterCatalog.NAMES.size();var out: Array=[]
+	var out: Array=[]
 	match kind:
 		&"classic":
 			var size: int=2 if rng.randf()<.7 else 3
 			for t in range(2 if rng.randf()<.55 else 3):
 				var combo: Array=POOLS[rng.randi_range(0,POOLS.size()-1)].duplicate()
-				if size==3:combo.append(rng.randi_range(0,all-1))
+				if size==3:combo.append(_any(rng))
 				out.append(combo)
 		&"teams","brawl":
 			var size: int=rng.randi_range(1,MAX_TEAM_SIZE)
@@ -60,7 +60,7 @@ static func _teams(kind: StringName,rng: RandomNumberGenerator) -> Array:
 		&"clones":
 			# Each team copies its own unit; the units cost about the same.
 			var count: int=rng.randi_range(2,5);var size: int=rng.randi_range(2,MAX_TEAM_SIZE)
-			var picks: Array=range(all);_shuffle(picks,rng)
+			var picks: Array=CharacterCatalog.playable();_shuffle(picks,rng)
 			var first: int=picks[0];var chosen: Array=[first]
 			for t in picks.slice(1):
 				if chosen.size()>=count:break
@@ -79,7 +79,7 @@ static func _teams(kind: StringName,rng: RandomNumberGenerator) -> Array:
 			while crowd.size()<MAX_CROWD and (crowd.size()<=few.size() or team_cost(crowd)<target*.95):crowd.append(weak[rng.randi_range(0,weak.size()-1)])
 			out=[few,crowd] if rng.randf()<.5 else [crowd,few]
 		_:
-			for t in range(rng.randi_range(3,5)):out.append([rng.randi_range(0,all-1)])
+			for t in range(rng.randi_range(3,5)):out.append([_any(rng)])
 	return out
 ## Swaps units (same tier band for 수적 열세) so every team's total cost moves toward the average.
 static func _even_out(teams: Array,rng: RandomNumberGenerator,keep_tiers: bool) -> void:
@@ -87,9 +87,8 @@ static func _even_out(teams: Array,rng: RandomNumberGenerator,keep_tiers: bool) 
 	for row in teams:target+=team_cost(row)
 	target/=teams.size()
 	if keep_tiers:target=float(teams.map(func(row):return team_cost(row)).max())
-	var all: int=CharacterCatalog.NAMES.size()
 	for row in teams:
-		var pool: Array=range(all)
+		var pool: Array=CharacterCatalog.playable()
 		if keep_tiers:pool=_tier_types(4,5) if CharacterCatalog.all()[row[0]].recruit_tokens>=4 else _tier_types(1,2)
 		for step in range(40):
 			var i: int=rng.randi_range(0,row.size()-1);var swap: int=pool[rng.randi_range(0,pool.size()-1)]
@@ -106,13 +105,16 @@ static func _has_mirror(teams: Array) -> bool:
 		if seen.has(str(key)):return true
 		seen[str(key)]=true
 	return false
+## A random character the mode may use (test characters excluded).
+static func _any(rng: RandomNumberGenerator) -> int:
+	var pool: Array=CharacterCatalog.playable();return pool[rng.randi_range(0,pool.size()-1)]
 static func _random_types(rng: RandomNumberGenerator,size: int) -> Array:
 	var row: Array=[]
-	for i in range(size):row.append(rng.randi_range(0,CharacterCatalog.NAMES.size()-1))
+	for i in range(size):row.append(_any(rng))
 	return row
 static func _tier_types(low: int,high: int) -> Array:
 	var out: Array=[];var catalog: Dictionary=CharacterCatalog.all()
-	for type in catalog:
+	for type in CharacterCatalog.playable():
 		if catalog[type].recruit_tokens>=low and catalog[type].recruit_tokens<=high:out.append(type)
 	return out
 ## The situation's name, read back from the teams (so saves need no extra field).

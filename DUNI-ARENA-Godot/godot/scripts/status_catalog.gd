@@ -50,6 +50,7 @@ const ENTRIES = {
 	&"top_boost":["폭주 회전", &"buff", "event", "팽이가 더 빠르고 강하게 회전한다."],
 	&"drug_frenzy":["광란", &"control", "skull", "금단의 약물로 이성을 잃었다. 저돌적으로 가장 가까운 아군부터 공격한다(아군이 없으면 적). 주는 피해 +5%, 받는 피해 +15%."],
 	&"suppress":["억제 약물", &"debuff", "event", "억제 약물에 맞았다. 공격 속도 -30%, 이동 속도 감소."],
+	&"disarmed":["놓침", &"control", "battle", "무기를 놓쳤다. 무기를 다시 주울 때까지 기본공격과 궁극기를 쓸 수 없고, 무기를 주우러 가는 것을 가장 먼저 한다."],
 	&"shield":["보호막", &"buff", "shield", "피해를 먼저 흡수한다."],
 	&"iron":["철벽", &"buff", "iron", "받는 피해가 크게 줄어든다."],
 	&"invincible":["무적", &"buff", "heart", "어떤 피해도 받지 않는다."],
@@ -128,6 +129,7 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 		if not u.puppet_control.is_empty():add.call(&"puppet")
 		if u.taunted_until > now:add.call(&"taunt", _secs(u.taunted_until - now))
 		if not u.duel.is_empty():add.call(&"duel")
+		if not u.lost_sword.is_empty():add.call(&"disarmed")
 		if not u.frog_carrier.is_empty():add.call(&"swallowed")
 		if u.command_retreat_until > now:add.call(&"retreat", _secs(u.command_retreat_until - now))
 	if _num(s, "charmTime") > 0:add.call(&"charm", _secs(_num(s, "charmTime")))

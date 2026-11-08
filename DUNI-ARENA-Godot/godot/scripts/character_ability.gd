@@ -22,6 +22,8 @@ func locked(u) -> bool:return u.unavailable() or u.state_value("guardRemaining")
 func profile(u) -> AttackData:return u.data.attack_profile.duplicate()
 func attack_factor(_u) -> float:return 1
 func movement_rate(_u) -> float:return 1
+## Ultimate gauge gain multiplier (over time and from damage).
+func charge_rate(_u) -> float:return 1
 func attack_rate(_u) -> float:return 1
 func critical_bonus(_u,_target) -> float:return 0
 func can_ultimate(u,target) -> bool:return target!=null

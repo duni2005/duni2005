@@ -99,7 +99,7 @@ func enemy_position(enemy: EnemySpawnEntry,index: int,count: int,formation: Stri
 func encounter_for(room: RoomState) -> EncounterState:
 	var encounter:=EncounterState.new();encounter.room_kind=room.room_type;encounter.depth=room.floor_index
 	if not RoomType.is_combat(room.room_type):return encounter
-	var count: int=enemy_count(room.room_type,room.floor_index);var all: Array=range(CharacterCatalog.NAMES.size())
+	var count: int=enemy_count(room.room_type,room.floor_index);var all: Array=CharacterCatalog.playable()
 	encounter.formation=FORMATIONS[rng.randi_range(0,FORMATIONS.size()-1)]
 	if room.room_type==RoomType.BOSS:
 		var type: int=pick(BOSS_POOL,encounter.enemies,room.floor_index);add_enemy(encounter,type,&"boss")

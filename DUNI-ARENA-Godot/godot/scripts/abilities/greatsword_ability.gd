@@ -9,20 +9,7 @@ func on_damage(u,_actual: float,options: Dictionary) -> void:
 	if u.state_value("guardRemaining")>0:u.set_state("guardStacks",u.state_value("guardStacks")+1)
 	elif u.character_specific_state.get("guardReady",true):
 		u.set_state("guardRemaining",4);u.set_state("guardReady",false);u.set_state("guardStacks",u.state_value("guardStacks")+1);u.guard_anchor=u.position;u.combat.cancel(u);u.ultimate.cast.clear();u.knockback_velocity=Vector2.ZERO
-func passive_tick(u,dt: float) -> void:
-	if u.lost_sword.is_empty():return
-	var s: Dictionary=u.lost_sword
-	if float(s.flight)>0:
-		s.point=CharacterPersistence.point((CharacterPersistence.vector(s.point)+Vector2(s.vx,s.vy)*minf(dt,float(s.flight))).clamp(Vector2(35,35),ArenaMap.hi(35)));s.flight=maxf(0,float(s.flight)-dt);s.rotation+=dt*13
-	if float(s.flight)<=0 and u.stun_remaining<=0 and u.state_value("guardRemaining")<=0 and u.position.distance_to(CharacterPersistence.vector(s.point))<34:
-		u.set_state("pickupTime",u.state_value("pickupTime")+dt)
-		if u.state_value("pickupTime")>=.25:u.lost_sword.clear();u.set_state("pickupTime",0);u.combat.cooldown=minf(u.combat.cooldown,.3)
-	else:u.set_state("pickupTime",0)
-func modify_movement(u,_target,dt: float) -> bool:
-	if u.lost_sword.is_empty():return false
-	var point: Vector2=CharacterPersistence.vector(u.lost_sword.point);var direction: Vector2=(point-u.position).normalized();var incoming: Dictionary=u.threat_response.projectile_threat(u)
-	if not incoming.is_empty() and u.position.distance_to(point)>85:direction-=incoming.arrow.velocity.normalized().orthogonal()*u.brain.side*.4
-	u.brain.steer(u,direction,dt);return true
+## The dropped greatsword flies, lands and is picked up like any 놓침 weapon (WeaponDrop).
 func release_basic(u) -> void:
 	u.set_state("guardReady",true)
 	if u.battle.rng.randf()<.15:

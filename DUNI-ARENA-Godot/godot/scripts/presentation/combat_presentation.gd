@@ -571,6 +571,20 @@ func advance(delta: float) -> void:
 					particles.burst(e.point,Color("c8ff5a"),40,gr*3,0,"shard",true);particles.burst(e.point,Color("9f6bd6"),26,gr*1.2,0,"smoke",true)
 					particles.burst(e.point,Color("e2d0ff"),18,gr*2.5,0,"spark",true)
 					impact_pause(100);camera.impact(14,e.point)
+				"weapon_dropped":
+					# 놓침: the weapon is knocked flying with a clang.
+					add_effect("slime_ring",e.point,Color("ffe0a8"),36,.4)
+					add_effect("targeted",e.point,Color("ffb347"),34,.6)
+					particles.burst(e.point,Color("fff1c8"),12,260,-PI*.5,"spark",true)
+				"weapon_recovered":
+					add_effect("slime_ring",e.point,Color("bfe9ff"),26,.3)
+					particles.burst(e.point,Color("e8f6ff"),6,160,-PI*.5,"spark",true)
+				"fumble_wave":
+					# The 놓침 ultimate: a wide ring sweeps out from the unit.
+					add_effect("hero_shock",e.point,Color("ffd27a"),260,.7)
+					add_effect("slime_ring",e.point,Color("fff1c8"),180,.55)
+					particles.burst(e.point,Color("ffd27a"),26,420,0,"spark",true)
+					camera.impact(6,e.point)
 				"frenzied":
 					add_effect("targeted",e.point,Color("ff4a4a"),40,.7)
 					particles.burst(e.point,Color("ff4a4a"),14,220,-PI*.5,"spark",true)

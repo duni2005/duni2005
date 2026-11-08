@@ -51,6 +51,8 @@ func advance_common(unit, delta: float) -> void:
 		if unit.strategy_dash.is_empty() and not unit.dodge_state.is_empty():DodgeController.advance(unit,delta);return
 		if not unit.strategy_dash.is_empty():StrategyMovementController.advance(unit,delta);return
 		if unit.combat.counter:return
+		# 놓침: getting the weapon back comes before everything else.
+		if WeaponDrop.move(unit,delta):return
 		if unit.brain.move_bomb_escape(unit,delta):return
 		if unit.data.type_id==24:unit.ability.modify_movement(unit,unit.target,delta);return
 		if ParryController.perfect(unit):unit.brain.heading=Vector2.ZERO;unit.velocity=Vector2.ZERO;return

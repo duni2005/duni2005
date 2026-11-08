@@ -53,7 +53,7 @@ static func draw_unit(canvas: CanvasItem,u: BattleUnit,parent: Transform2D,flash
 	if flash>0:
 		# Small bright bands follow the actual body rather than covering it with a circle.
 		for i in range(4):canvas.draw_rect(Rect2(body+Vector2(-18,-20+i*10)*scale,Vector2(36,2)*scale),Color(1,1,.93,flash*.55))
-	if u.data.type_id!=10 or u.lost_sword.is_empty():
+	if u.lost_sword.is_empty():
 		var pose: Dictionary=pose_override if not pose_override.is_empty() else WeaponMotion.pose(u)
 		canvas.draw_set_transform_matrix(parent*Transform2D(float(pose.angle),Vector2.ONE*scale*float(pose.get("weapon_scale",1)),0,at))
 		WeaponMotion.draw(canvas,pose,alpha)

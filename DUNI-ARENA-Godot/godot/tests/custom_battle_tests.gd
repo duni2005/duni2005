@@ -72,6 +72,7 @@ func run(tree: SceneTree) -> void:
 	researcher(tree)
 	ai_fluid(tree)
 	fixes_0910(tree)
+	fumble(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -94,7 +95,7 @@ func step(b: BattleManager,seconds: float) -> void:
 		if b.finished:return
 		b.simulate(1.0/60)
 func new_characters(tree: SceneTree) -> void:
-	verify(CharacterCatalog.all().size()==46,"46 characters in the catalog")
+	verify(CharacterCatalog.all().size()==47,"47 characters in the catalog (one test unit)")
 	# 말뚝: opening stake tethers the nearest enemy to a small circle.
 	var b:=duel(tree,[[26,0,Vector2(150,400)],[1,1,Vector2(450,400)],[1,1,Vector2(700,700)]])
 	step(b,.2)
@@ -481,7 +482,7 @@ func stat_damage(tree: SceneTree) -> void:
 		if not UnitStatTable.STATS.has(unit_name) or not UnitStatTable.DAMAGE.has(unit_name):tagged=false
 		for d in UnitStatTable.instances(id):
 			if not UnitStatTable.KIND_NAMES.has(d.kind) or not d.tags.all(func(t):return t in UnitStatTable.ELEMENTS+UnitStatTable.DAMAGE_TAGS):tagged=false
-	verify(tagged and CharacterCatalog.NAMES.size()==46,"all 46 units have base stats and exactly one kind plus known tags per damage instance")
+	verify(tagged and CharacterCatalog.NAMES.size()==47,"all 47 units have base stats and exactly one kind plus known tags per damage instance")
 	verify(UnitStatTable.mitigation(0)==1 and UnitStatTable.mitigation(100)==.5 and is_equal_approx(UnitStatTable.mitigation(-100),1.5),"mitigation 100/(100+def), 2-100/(100-def) below zero")
 	# Bomber (fire · explosion · area) hits a mage.
 	var b:=duel(tree,[[13,0,Vector2(300,400)],[2,1,Vector2(380,400)]]);var src: BattleUnit=b.units[0];var tgt: BattleUnit=b.units[1];b.started=true
@@ -1337,3 +1338,43 @@ func fixes_0910(tree: SceneTree) -> void:
 	var sheet=UnitInfoSheet.open(host,0,null,null,null)
 	verify(sheet.is_in_group(DragScroll.MODAL),"unit sheet is a drag-scroll modal")
 	sheet.queue_free();host.queue_free()
+func fumble(tree: SceneTree) -> void:
+	# 놓침: the weapon flies off; no basic attack or ultimate until it is picked up again.
+	var b:=duel(tree,[[0,0,Vector2(300,400)],[35,1,Vector2(400,400)],[46,1,Vector2(560,400)]])
+	step(b,.05)
+	var w: BattleUnit=b.units[0];var slime: BattleUnit=b.units[1];var f: BattleUnit=b.units[2]
+	verify(WeaponDrop.holds_weapon(w) and not WeaponDrop.holds_weapon(slime) and not WeaponDrop.holds_weapon(f),"only units holding a weapon can lose it")
+	verify(not WeaponDrop.drop(slime),"a unit without a weapon is never disarmed")
+	w.combat.cooldown=0;w.ultimate_gauge=100
+	verify(WeaponDrop.drop(w,f) and not w.lost_sword.is_empty(),"놓침 knocks the weapon away")
+	verify(not w.combat.can_start(w,slime) and not w.ultimate.request(w,slime),"no basic attack and no ultimate while the weapon is lost")
+	verify(StatusCatalog.collect(w).any(func(e):return e.key==&"disarmed"),"놓침 shows in the status list")
+	step(b,.7)
+	var spot: Vector2=CharacterPersistence.vector(w.lost_sword.point)
+	verify(spot.distance_to(Vector2(300,400))>150,"the weapon lands away from the unit")
+	var before: float=w.position.distance_to(spot)
+	step(b,.5)
+	verify(w.position.distance_to(spot)<before-20 or w.lost_sword.is_empty(),"the disarmed unit heads for its weapon first")
+	for i in range(60*6):
+		step(b,1.0/60)
+		if w.lost_sword.is_empty():break
+	verify(w.lost_sword.is_empty(),"standing on the weapon picks it up again")
+	b.queue_free()
+	# 놓침 (test unit): its gauge fills fast; the ultimate disarms every enemy holding a weapon.
+	var c:=duel(tree,[[46,0,Vector2(400,400)],[0,1,Vector2(520,330)],[1,1,Vector2(560,470)],[35,1,Vector2(520,520)]])
+	step(c,.05)
+	var t: BattleUnit=c.units[0]
+	verify(t.ability.charge_rate(t)>=5,"the test unit's ultimate charges very fast")
+	t.ultimate_gauge=100
+	verify(t.ultimate.request(t,c.units[1]),"the test unit casts its ultimate")
+	step(c,.6)
+	verify(not c.units[1].lost_sword.is_empty() and not c.units[2].lost_sword.is_empty() and c.units[3].lost_sword.is_empty(),"its ultimate disarms every enemy with a weapon, and only those")
+	c.queue_free()
+	# The test unit stays out of the tower, recruiting and 전투 예측.
+	verify(not 46 in CharacterCatalog.playable() and CharacterCatalog.playable().size()==46,"test unit is not playable outside custom battles")
+	var seen: bool=false
+	for seed in range(40):
+		var r:=RandomNumberGenerator.new();r.seed=seed
+		var st: PredictionState=PredictionRules.create(r)
+		if st!=null and st.teams.any(func(team):return 46 in team.types):seen=true
+	verify(not seen,"전투 예측 never picks the test unit")

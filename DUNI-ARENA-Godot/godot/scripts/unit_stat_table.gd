@@ -67,6 +67,7 @@ const STATS = {
 	"top":[&"physical", 45, 10, 5, 30, 10],
 	"bounty_hunter":[&"physical", 30, 0, 5, 40, 10],
 	"researcher":[&"magic", 30, 0, 10, 10, 34],
+	"fumble":[&"physical", 40, 0, 0, 24, 8],
 }
 
 const DAMAGE = {
@@ -219,6 +220,8 @@ const DAMAGE = {
 	"researcher":{
 		&"basic":[&"basic", &"magic", 0, 0.8, [&"projectile"], "억제 약물"],
 		&"ult":[&"ultimate", &"magic", 6, 1.1, [&"explosion", &"area"], "인지 각성 폭탄 (광란 6초)"]},
+	"fumble":{
+		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee"], "일반 타격"]},
 }
 ## Damage every unit can deal regardless of character, using its main damage kind.
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]

@@ -57,7 +57,7 @@ func shuffle(values: Array) -> void:
 		var j: int=rng.randi_range(0,i);var v=values[i];values[i]=values[j];values[j]=v
 func create_offers(node: RoomState,revision: int) -> Array[RecruitOffer]:
 	var offers: Array[RecruitOffer]=[];var by_price: Dictionary={}
-	for type in range(CharacterCatalog.NAMES.size()):
+	for type in CharacterCatalog.playable():
 		var price: int=guild.definition(type).recruit_tokens
 		if not by_price.has(price):by_price[price]=[]
 		by_price[price].append(type)
