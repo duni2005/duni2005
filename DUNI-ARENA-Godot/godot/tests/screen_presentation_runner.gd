@@ -25,7 +25,7 @@ func run() -> void:
 		cam.advance(.1,true);verify(cam.zoom==1 and cam.pan==Vector2.ZERO,"TP/aim overview")
 		cam.finish(Vector2(550,350));cam.advance(.1);verify(cam.zoom>1,"finale focus")
 		cam.reset();verify(cam.framing.is_empty() and cam.zoom==1,"camera cleanup")
-	for kind in ItemCatalog.KINDS:verify(ArenaIcon.texture(String(kind))!=null,"item symbol "+String(kind))
+	for kind in ItemCatalog.current():verify(ArenaIcon.texture(String(kind))!=null,"item symbol "+String(kind))
 	for kind in ["gold","gem","heart","mango","evade","shield","iron","charge","crown","recruit","shop","rest","boss"]:verify(ArenaIcon.texture(kind)!=null,"colored symbol "+kind)
 	root.size=Vector2i(390,844);root.content_scale_size=root.size
 	var ui:=TowerScreen.new();root.add_child(ui);ui.controller.new_run(19,73);ui.show_map();await frames();ui.fx.set_process(false)

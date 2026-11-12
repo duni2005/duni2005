@@ -15,6 +15,8 @@ var watch_paused: bool = false
 var unit_id: int = -1
 var unit_tab: String = "stance"
 var item_choice: StringName = &""
+## Grade tab of the unit item picker.
+var item_grade_tab: StringName = &"common"
 var title_label: Label
 var cost_row: HBoxContainer
 var setup_controls: VBoxContainer
@@ -220,24 +222,25 @@ func _render_unit() -> void:
 			else:
 				var empty:=Label.new();empty.text="+ 빈 슬롯";empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;empty.custom_minimum_size.y=44;empty.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;empty.add_theme_color_override("font_color",ArenaUI.MUTED);slots.add_child(empty)
 		var stat_line:=Label.new();stat_line.text="%s 피해 · HP %d · 공격력 %d%% · 물리 %s · 마법 %s · 방어 %s%s"%[CharacterCatalog.damage_label(int(entry.type)),int(stats.max_hp),roundi(stats.attack*100),ArenaUI.number(stats.physical_damage),ArenaUI.number(stats.magic_damage),ArenaUI.number(stats.defense+stats.armor)," · 치유 +%d%%"%int(round((stats.healing_power-1)*100)) if stats.healing_power>1 else ""];stat_line.add_theme_font_size_override("font_size",12);stat_line.add_theme_color_override("font_color",ArenaUI.HP);unit_body.add_child(stat_line)
+		# Items by grade, one tab per grade (고대 only here).
+		var grades:=HBoxContainer.new();grades.add_theme_constant_override("separation",3);unit_body.add_child(grades)
+		for grade in ItemTuning.GRADES:
+			var g:=_button(grades,ItemTuning.GRADE_NAMES[grade],func():item_grade_tab=grade;_render_unit());g.toggle_mode=true;g.size_flags_horizontal=Control.SIZE_EXPAND_FILL;g.clip_text=true;g.custom_minimum_size.x=40;g.add_theme_font_size_override("font_size",12);ArenaUI.tab(g)
+			g.add_theme_color_override("font_color",ItemTuning.GRADE_COLORS[grade]);g.add_theme_color_override("font_pressed_color",ItemTuning.GRADE_COLORS[grade].lightened(.4));g.set_pressed_no_signal(item_grade_tab==grade)
 		var grid:=GridContainer.new();grid.columns=4;unit_body.add_child(grid)
-		for kind in CustomBattleSetup.equippable_items():
-			var item: ItemData=ItemCatalog.get_item(kind)
+		for kind in CustomBattleSetup.equippable_items().filter(func(k):return ItemCatalog.grade_of(k)==item_grade_tab):
+			var item: ItemData=ItemCatalog.get_item(kind);var tint: Color=ItemTuning.GRADE_COLORS[item.grade]
 			var c:=_button(grid,"",func():item_choice=kind;_render_unit());c.toggle_mode=true;c.custom_minimum_size=Vector2(60,44);c.tooltip_text=item.display_name;ArenaUI.with_icon(c,String(kind),24);c.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER;ArenaUI.tab(c);c.set_pressed_no_signal(item_choice==kind)
-			if item.grade==&"ancient":c.add_theme_stylebox_override("normal",ArenaUI.box(Color("2e2414"),ItemCatalog.GRADE_COLORS[&"ancient"]))
+			# Grade-coloured border, thicker from 영웅 up.
+			var normal: StyleBoxFlat=ArenaUI.box(Color(tint.darkened(.82),1),Color(tint,.8));normal.set_border_width_all(2 if ItemTuning.FRAME[item.grade].thick else 1);c.add_theme_stylebox_override("normal",normal)
 		var detail:=Label.new();detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;detail.add_theme_font_size_override("font_size",12);unit_body.add_child(detail)
-		if item_choice==&"":detail.text="아이템을 선택하세요."
+		if item_choice==&"" or ItemCatalog.grade_of(item_choice)!=item_grade_tab:detail.text="아이템을 선택하세요."
 		else:
 			var picked: ItemData=ItemCatalog.get_item(item_choice)
-			detail.text="[%s] %s · %s"%[ItemCatalog.grade_name(item_choice),picked.display_name,picked.description]
-			# A basic item fuses with a basic already on the unit instead of taking a slot.
-			var partner: StringName=&""
-			if picked.grade==&"common":
-				for kind in entry.items:
-					if ItemCatalog.get_item(kind).grade==&"common":partner=kind;break
-			if partner!=&"":detail.text+="\n조합 → %s · %s"%[ItemCatalog.get_item(ItemCatalog.combined_kind(partner,item_choice)).display_name,ItemCatalog.get_item(ItemCatalog.combined_kind(partner,item_choice)).description]
-			var full: bool=entry.items.size()>=CustomBattleSetup.MAX_ITEMS and partner==&""
-			var equip:=_button(unit_body,"슬롯 가득 참" if full else "조합" if partner!=&"" else "장착",func():setup.equip(unit_id,item_choice);_render_unit();board.queue_redraw());equip.disabled=full;ArenaUI.primary(equip)
+			detail.text="[%s] %s · %s"%[ItemCatalog.grade_name(item_choice),picked.display_name,picked.description];detail.add_theme_color_override("font_color",ItemCatalog.grade_color(item_choice).lightened(.35))
+			var full: bool=entry.items.size()>=CustomBattleSetup.MAX_ITEMS
+			var ancient_full: bool=picked.grade==&"ancient" and entry.items.filter(func(k):return ItemCatalog.grade_of(k)==&"ancient").size()>=ItemTuning.ANCIENT_PER_UNIT
+			var equip:=_button(unit_body,"슬롯 가득 참" if full else "고대는 1개만" if ancient_full else "장착",func():setup.equip(unit_id,item_choice);_render_unit();board.queue_redraw());equip.disabled=full or ancient_full;ArenaUI.primary(equip)
 	var info:=_button(unit_body,"캐릭터 정보 보기 ⓘ",func():unit_dialog.hide();UnitInfoSheet.open(self,int(entry.type),setup.stats_for(entry)));ArenaUI.quiet(info)
 	if unit_dialog.visible:call_deferred("_fit",unit_dialog)
 

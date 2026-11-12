@@ -42,6 +42,9 @@ var publicly_visible: bool = false
 var event_type: StringName = &""
 var encounter: EncounterState
 var gold_reward: int = 0
+## 전투 보상: items offered after the win (pick one) and the pick: &"" while open, a kind, or &"skip".
+var item_choices: Array[StringName] = []
+var item_choice: StringName = &""
 var token_reward: int = 0
 var kill_rewards: Dictionary = {}
 var reward_claimed: bool = false

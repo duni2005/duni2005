@@ -19,10 +19,10 @@ func run(tree: SceneTree) -> void:
 	verify(setup.move(int(setup.entries[0].id),setup.entries[1].position)!="","move respects spacing")
 	verify(setup.team_spending(0)==int(CharacterCatalog.all()[0].base_gold_cost+CharacterCatalog.all()[1].base_gold_cost),"team cost sums base cost")
 	var id: int=int(setup.entries[0].id)
-	verify(setup.equip(id,&"woodSword")=="" and setup.equip(id,&"staff")=="" and setup.get_entry(id).items==[&"woodSword+staff"],"two basics fuse into one rare item")
-	verify(setup.equip(id,&"dragonHeart")=="" and setup.equip(id,&"verdantStone")!="","item slots capped at two")
+	verify(setup.equip(id,&"woodSword")=="" and setup.equip(id,&"dragonHeart")=="" and setup.get_entry(id).items==[&"woodSword",&"dragonHeart"],"items stay separate (no combining)")
+	verify(setup.equip(id,&"verdantStone")!="","item slots capped at two")
 	verify(setup.equip(id,&"reengrave")!="","consumables are not equippable")
-	verify(is_equal_approx(setup.stats_for(setup.get_entry(id)).physical_power,1.15) and setup.stats_for(setup.get_entry(id)).dragon_heart_count==1,"items change stats")
+	verify(is_equal_approx(setup.stats_for(setup.get_entry(id)).physical_power,1.12) and setup.stats_for(setup.get_entry(id)).dragon_heart_count==1,"items change stats")
 	verify(setup.unequip(id,0) and setup.get_entry(id).items.size()==1,"items removable")
 	setup.set_stance(id,CombatStance.RUSH);verify(setup.get_entry(id).stance==CombatStance.RUSH,"per-unit stance")
 	verify(setup.remove(id) and setup.entries.size()==2,"eraser removes one")
@@ -73,6 +73,7 @@ func run(tree: SceneTree) -> void:
 	ai_fluid(tree)
 	fixes_0910(tree)
 	fumble(tree)
+	items_0940(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -292,25 +293,40 @@ func ai_health(tree: SceneTree) -> void:
 	verify(idle_time/unit_time<.06,"units rarely stand idle (%.1f%%)"%(idle_time/unit_time*100))
 	verify(switches/(unit_time/60)<25,"target churn bounded (%.1f per unit-minute)"%(switches/(unit_time/60)))
 func items(tree: SceneTree) -> void:
-	# Grades: 9 basics, 45 combinations (same pair included), 3 ancients; the shop pool is basics + reengrave.
+	# Grades (0.94): 일반 12 + 재각인, 희귀 8, 영웅 3, 전설 6, 고대 3; nothing combines.
 	var all: Dictionary=ItemCatalog.all();var count: Dictionary={}
 	for k in all:count[all[k].grade]=int(count.get(all[k].grade,0))+1
-	verify(count.get(&"common")==9 and count.get(&"rare")==45 and count.get(&"ancient")==3,"item grades 9 / 45 / 3")
-	verify(ItemCatalog.KINDS.all(func(k):return ItemCatalog.get_item(k).grade==&"common" or ItemCatalog.get_item(k).consumable),"only basics are handed out")
-	verify(ItemCatalog.combined_kind(&"staff",&"woodSword")==ItemCatalog.combined_kind(&"woodSword",&"staff"),"combination is order free")
-	var rare: ItemData=ItemCatalog.get_item(&"woodSword+woodSword")
-	verify(is_equal_approx(rare.physical_bonus,.3) and rare.components==[&"woodSword",&"woodSword"],"same-pair rare doubles and boosts the stat")
-	verify(ItemCatalog.get_item(&"warmNecklace+verdantStone").vigor_totem and ItemCatalog.get_item(&"woodSword+redThorn").kill_growth,"old abilities live on combined items")
-	# Tower: a basic meets a basic on the same unit and fuses; rare items keep their slot.
+	verify(count.get(&"common")==13 and count.get(&"rare")==8 and count.get(&"epic")==3 and count.get(&"legendary")==6 and count.get(&"ancient")==3,"item grades 13 / 8 / 3 / 6 / 3")
+	verify(ItemCatalog.get_item(&"woodSword+woodSword")==null and ItemCatalog.removed_combination("woodSword+woodSword") and ItemCatalog.refund("woodSword+staff")==260,"combined items are gone (refund = two material prices)")
+	verify(ItemCatalog.get_item(&"warmNecklace+verdantStone").vigor_totem and ItemCatalog.grade_of(&"woodSword+redThorn")==&"rare" and is_equal_approx(ItemCatalog.get_item(&"woodSword+redThorn").physical_bonus,.15),"the five ability rares stay as they were")
+	verify(ItemCatalog.grade_of(&"phoenixFeather")==&"legendary" and ItemCatalog.grade_of(&"twoFacedMask")==&"ancient","old ancients are 전설; 고대 is new")
+	verify([&"rare",&"epic",&"legendary"].all(func(g):return ItemCatalog.POOLS[g].all(func(k):return ItemCatalog.price(k)==ItemTuning.GRADE_PRICES[g])),"grade prices 300 / 550 / 900")
+	# Tower: two basics on one unit stay two items in two slots.
 	var t:=TowerController.new();t.new_run(19,73);var m: GuildMemberState=t.guild.all_members()[0]
 	var ids: Array=[]
-	for kind in [&"woodSword",&"redThorn",&"staff",&"staff",&"verdantStone"]:ids.append(t.content.inventory.give(kind).item_id)
+	for kind in [&"woodSword",&"redThorn",&"staff"]:ids.append(t.content.inventory.give(kind).item_id)
 	var results: Array=ids.map(func(id):return t.content_action(&"equip",{"item_id":id,"member_id":m.member_id}))
-	verify(results[1].ok and results[1].outcome.combined==&"woodSword+redThorn","second basic fuses into 포식자의 엄니")
-	verify(t.content.inventory.get_item(ids[0]).consumed and t.content.inventory.get_item(ids[1]).consumed,"components are used up")
-	verify(results[3].ok and not results[4].ok and t.content.inventory.equipped(m.member_id).size()==2,"two rare items fill two slots")
-	var stats: UnitCombatStats=t.guild.member_stats(m)
-	verify(is_equal_approx(stats.magic_power,1.3) and is_equal_approx(stats.fang_rate(),.015*1.34),"rare stats and stronger kill growth reach the member")
+	verify(results[0].ok and results[1].ok and not results[2].ok and t.content.inventory.equipped(m.member_id).size()==2 and not t.content.inventory.get_item(ids[0]).consumed,"basics never fuse; each takes a slot")
+	var mask: ItemInstance=t.content.inventory.give(&"twoFacedMask");var other: GuildMemberState=t.guild.all_members()[1]
+	verify(t.content_action(&"equip",{"item_id":mask.item_id,"member_id":other.member_id}).ok and not t.content_action(&"equip",{"item_id":t.content.inventory.give(&"cursedCrown").item_id,"member_id":other.member_id}).ok,"고대 one per unit (tower)")
+	var setup:=CustomBattleSetup.new();setup.add(0,0,Vector2(200,200));var id: int=int(setup.entries[0].id)
+	verify(setup.equip(id,&"woodSword")=="" and setup.equip(id,&"staff")=="" and setup.get_entry(id).items==[&"woodSword",&"staff"],"custom: basics stay separate")
+	setup.add(1,0,Vector2(500,500));var second: int=int(setup.entries.back().id)
+	verify(setup.equip(second,&"gamblerDice")=="" and setup.equip(second,&"cursedCrown")!="" and setup.get_entry(second).items.size()==1,"custom: 고대 one per unit")
+	verify(CustomBattleSetup.equippable_items().has(&"twoFacedMask") and not CustomBattleSetup.equippable_items().has(&"reengrave"),"custom offers every grade (no consumables)")
+	# Reward table: floor odds, cut grades keep their ratio, no repeats, owned 전설 and 고대 never offered.
+	verify(ItemRewards.odds(0)=={&"common":70.0,&"rare":25.0,&"epic":5.0,&"legendary":0.0} and ItemRewards.odds(14)[&"legendary"]==12.0,"floor odds 1-3 and 13-15")
+	verify(ItemRewards.odds(9,&"epic")=={&"epic":24.0,&"legendary":8.0},"boss cut keeps the epic : legendary ratio")
+	var r:=RandomNumberGenerator.new();r.seed=5;var seen_dupe: bool=false;var bad_grade: bool=false
+	for n in range(200):
+		var picks: Array[StringName]=ItemRewards.roll(r,ItemRewards.odds(12,&"rare"),3,[&"hourglass"])
+		if picks.size()!=3 or picks[0]==picks[1] or picks[0]==picks[2] or picks[1]==picks[2]:seen_dupe=true
+		if picks.any(func(k):return ItemCatalog.grade_rank(k)<1 or ItemCatalog.grade_of(k)==&"ancient" or k==&"hourglass"):bad_grade=true
+	verify(not seen_dupe and not bad_grade,"three different items, rare or better, owned legendary left out")
+	r.seed=7;var tally: Dictionary={}
+	for n in range(4000):
+		var k: StringName=ItemRewards.roll(r,ItemRewards.odds(0),1)[0];tally[ItemCatalog.grade_of(k)]=int(tally.get(ItemCatalog.grade_of(k),0))+1
+	verify(absf(tally.get(&"common",0)/4000.0-.7)<.03 and absf(tally.get(&"rare",0)/4000.0-.25)<.03 and not tally.has(&"legendary"),"floor 1 draws about 70 / 25 / 5")
 	# Damage types: 목검 only boosts physical hitters, 에테르 only elemental hits.
 	var b:=duel(tree,[[0,0,Vector2(150,400)],[2,1,Vector2(650,400)]])
 	var warrior: BattleUnit=b.units[0];var mage: BattleUnit=b.units[1]
@@ -1378,3 +1394,125 @@ func fumble(tree: SceneTree) -> void:
 		var st: PredictionState=PredictionRules.create(r)
 		if st!=null and st.teams.any(func(team):return 46 in team.types):seen=true
 	verify(not seen,"전투 예측 never picks the test unit")
+## A custom battle whose units carry items: rows of [type, team, position, [item kinds]].
+func gear_duel(tree: SceneTree,rows: Array,seed: int=5) -> BattleManager:
+	var setup:=CustomBattleSetup.new()
+	for row in rows:
+		setup.add(row[0],row[1],row[2])
+		for kind in row[3]:setup.equip(int(setup.entries.back().id),kind)
+	var b:=BattleManager.new();b.auto_start=false;b.custom_mode=true;tree.root.add_child(b)
+	b.start_battle(setup.placements(),seed);b.set_physics_process(false)
+	return b
+func items_0940(tree: SceneTree) -> void:
+	# 일반: defenses and range.
+	var setup:=CustomBattleSetup.new();setup.add(0,0,Vector2(200,200));var id: int=int(setup.entries[0].id)
+	var plain: UnitCombatStats=setup.stats_for(setup.get_entry(id))
+	setup.equip(id,&"magicCloak");setup.equip(id,&"sturdyShield")
+	var worn: UnitCombatStats=setup.stats_for(setup.get_entry(id))
+	verify(is_equal_approx(worn.magic_defense-plain.magic_defense,20) and is_equal_approx(worn.physical_defense-plain.physical_defense,20),"마법 망토 / 튼튼한 방패: +20 defense")
+	var b:=gear_duel(tree,[[1,0,Vector2(200,400),[&"scopeLens"]],[1,1,Vector2(600,400),[]]])
+	verify(is_equal_approx(b.units[0].data.attack_range,CharacterCatalog.all()[1].attack_range*1.1) and is_equal_approx(b.units[1].data.attack_range,CharacterCatalog.all()[1].attack_range) and is_equal_approx(CharacterCatalog.all()[1].attack_range,b.units[1].data.attack_range),"망원 렌즈: +10% range for its bearer only")
+	b.queue_free()
+	# 희귀: duelist stacks on one target, vanguard early, elementalist on status targets.
+	b=gear_duel(tree,[[0,0,Vector2(200,400),[&"duelistGlove",&"elementTome"]],[0,1,Vector2(300,400),[&"vanguardShield"]],[0,1,Vector2(300,520),[]]])
+	var a: BattleUnit=b.units[0];var t1: BattleUnit=b.units[1];var t2: BattleUnit=b.units[2]
+	var f: Array=[ItemEffects.outgoing(a,t1,{}),ItemEffects.outgoing(a,t1,{}),ItemEffects.outgoing(a,t1,{}),ItemEffects.outgoing(a,t2,{})]
+	verify(is_equal_approx(f[0],1) and is_equal_approx(f[1],1.05) and is_equal_approx(f[2],1.1) and is_equal_approx(f[3],1),"결투가의 장갑: +5% per hit on the same target, reset on a switch")
+	for i in range(10):ItemEffects.outgoing(a,t2,{})
+	verify(is_equal_approx(ItemEffects.outgoing(a,t2,{}),1.3),"결투가의 장갑 caps at +30%")
+	t1.set_state("burnStacks",2);a.set_state("duelTarget","")
+	verify(is_equal_approx(ItemEffects.outgoing(a,t1,{}),1.2),"원소술사의 서: +20% against a burning target")
+	verify(is_equal_approx(ItemEffects.incoming(t1),.7) and is_equal_approx(ItemEffects.incoming(t2),1),"선봉의 방패: -30% taken at the start")
+	b.clock.elapsed=11;verify(is_equal_approx(ItemEffects.incoming(t1),1),"선봉의 방패 ends after 10 s")
+	b.queue_free()
+	# 영웅: enchanted blade element, overcharge refund, chain ring every third basic hit.
+	b=gear_duel(tree,[[0,0,Vector2(200,400),[&"enchantedBlade",&"chainRing"]],[2,0,Vector2(200,560),[&"overchargeCore"]],[0,1,Vector2(320,400),[]],[0,1,Vector2(380,470),[]]])
+	var w: BattleUnit=b.units[0];var mage: BattleUnit=b.units[1]
+	var spec: Dictionary=ItemEffects.adjust_spec(w,UnitStatTable.spec(0,&"basic"))
+	verify(spec.tags.has(&"fire") and not UnitStatTable.spec(0,&"basic").tags.has(&"fire"),"마법 부여 검: a basic hit gains fire (no element of its own)")
+	verify(not ItemEffects.adjust_spec(w,UnitStatTable.spec(0,&"ult_slash")).tags.has(&"fire"),"only basic attacks are enchanted")
+	mage.ultimate_gauge=0;ItemEffects.after_ultimate(mage);w.ultimate_gauge=0;ItemEffects.after_ultimate(w)
+	verify(is_equal_approx(mage.ultimate_gauge,25) and is_equal_approx(w.ultimate_gauge,0),"과충전 코어: 25% back after an ultimate")
+	var near: BattleUnit=b.units[3];var hp: float=near.current_hp
+	for i in range(3):
+		var out:=DamageOutcome.new();out.hp_damage=10;out.resolved_damage=10
+		ItemEffects.after_hit(w,b.units[2],out,UnitStatTable.spec(0,&"basic"),{})
+	verify(near.current_hp<hp and int(w.state_value("chainCount"))==3,"연쇄의 고리: the third basic hit jumps to the nearest other enemy")
+	b.queue_free()
+	# 전설: sovereign attack and kill aura, giant heart size and immovability, sanctuary lamp.
+	b=gear_duel(tree,[[0,0,Vector2(200,400),[&"sovereignSword"]],[0,0,Vector2(260,480),[&"giantHeart"]],[2,0,Vector2(420,620),[&"sanctuaryLamp"]],[0,1,Vector2(600,400),[]]])
+	var king: BattleUnit=b.units[0];var giant: BattleUnit=b.units[1];var lamp: BattleUnit=b.units[2]
+	verify(is_equal_approx(king.combat_stats.attack,1.4),"군주의 검: attack +40%")
+	var base_factor: float=CombatRules.attack_factor(giant);ItemEffects.on_kill(king)
+	verify(is_equal_approx(CombatRules.attack_factor(giant),base_factor*1.1) and int(giant.state_value("sovereignStacks"))==1,"군주의 검: a kill gives nearby allies +10% attack")
+	for i in range(5):ItemEffects.on_kill(king)
+	verify(int(king.state_value("sovereignStacks"))==3,"군주의 검 stacks up to three")
+	verify(is_equal_approx(giant.combat_stats.scale,1.2) and giant.max_hp>king.max_hp*1.3,"거인의 심장: bigger body, +40% HP")
+	KnockbackController.apply(giant,Vector2(500,0),b.units[3]);verify(giant.knockback_velocity==Vector2.ZERO,"거인의 심장: no knockback")
+	verify(is_equal_approx(ItemEffects.incoming(lamp),.8) and is_equal_approx(ItemEffects.incoming(king),1) and is_equal_approx(ItemEffects.incoming(b.units[3]),1),"성역의 등불: allies in range take -20%, others not")
+	b.queue_free()
+	# 고대: the mask swaps kinds and stats, the crown raises everything, the dice swing two stats.
+	setup=CustomBattleSetup.new();setup.add(0,0,Vector2(200,200));id=int(setup.entries[0].id);plain=setup.stats_for(setup.get_entry(id))
+	setup.equip(id,&"twoFacedMask");var masked: UnitCombatStats=setup.stats_for(setup.get_entry(id))
+	verify(is_equal_approx(masked.magic_damage,plain.physical_damage) and is_equal_approx(masked.physical_damage,plain.magic_damage),"두 얼굴의 가면: physical and magic damage stats swap")
+	b=gear_duel(tree,[[0,0,Vector2(200,400),[&"twoFacedMask"]],[0,0,Vector2(200,560),[]],[0,1,Vector2(600,400),[&"gamblerDice"]]])
+	verify(ItemEffects.adjust_spec(b.units[0],UnitStatTable.spec(0,&"basic")).kind==&"magic" and is_equal_approx(UnitStatTable.raw(b.units[0],&"basic"),UnitStatTable.raw(b.units[1],&"basic")),"두 얼굴의 가면: hits turn magic with the same raw damage")
+	var dice: BattleUnit=b.units[2]
+	verify(dice.character_specific_state.has("diceUp") and dice.character_specific_state.diceUp!=dice.character_specific_state.diceDown,"도박사의 주사위: two different stats rolled")
+	b.queue_free()
+	setup=CustomBattleSetup.new();setup.add(0,0,Vector2(200,200));id=int(setup.entries[0].id);plain=setup.stats_for(setup.get_entry(id))
+	setup.equip(id,&"cursedCrown");var crowned: UnitCombatStats=setup.stats_for(setup.get_entry(id))
+	verify(is_equal_approx(crowned.max_hp,plain.max_hp*1.5) and is_equal_approx(crowned.defense,plain.defense*1.5),"저주받은 왕관: every stat +50%")
+	var t:=TowerController.new();t.new_run(19,73);var m: GuildMemberState=t.guild.all_members()[0]
+	var full: float=t.guild.member_stats(m).max_hp;m.character_specific_state["crownDecay"]=2
+	verify(is_equal_approx(t.guild.member_stats(m).max_hp,floorf(full*.95*.95+.5)),"저주받은 왕관: -5% max HP per tower battle, for good")
+	# 전투 보상: three different items, room minimum grade, pick once or skip for 50 G; the map waits.
+	t=TowerController.new();t.new_run(19,73)
+	var node: RoomState=t.guild.state.tower.map.rooms.values().filter(func(r):return r.room_type==RoomType.BATTLE)[0]
+	t.guild.state.tower.selected_room_id=node.room_id;t.guild.state.tower.phase=&"result";node.cleared=true
+	var r:=RandomNumberGenerator.new();r.seed=3;t.content.roll_battle_reward(node,r)
+	verify(node.item_choices.size()==3 and t.content.pending_reward(node) and not t.return_map(),"three items offered; the map waits for the pick")
+	var items: int=t.guild.state.inventory.size()
+	verify(not t.content_action(&"pick_reward",{"kind":&"twoFacedMask"}).ok,"only an offered item")
+	verify(t.content_action(&"pick_reward",{"kind":node.item_choices[1]}).ok and t.guild.state.inventory.size()==items+1 and t.guild.state.inventory.back().kind==node.item_choices[1],"the picked item joins the inventory")
+	verify(not t.content_action(&"pick_reward",{"kind":node.item_choices[0]}).ok and t.return_map(),"one pick per room, then back to the map")
+	node.item_choices.clear();node.item_choice=&"";t.guild.state.tower.phase=&"result";t.content.roll_battle_reward(node,r);var gold: int=t.guild.state.gold
+	verify(t.content_action(&"pick_reward",{"kind":&"skip"}).ok and t.guild.state.gold==gold+50 and node.item_choice==&"skip","건너뛰기 pays 50 G")
+	var low: bool=true
+	for kind in [RoomType.MINIBOSS,RoomType.BOSS]:
+		for n in range(30):
+			node.room_type=kind;node.item_choices.clear();node.item_choice=&"";t.content.roll_battle_reward(node,r)
+			if node.item_choices.any(func(k):return ItemCatalog.grade_rank(k)<(1 if kind==RoomType.MINIBOSS else 2)):low=false
+	verify(low,"미니보스 rewards are 희귀+, 보스 rewards 영웅+")
+	node.room_type=RoomType.BATTLE
+	# Legendary once per run: an owned 전설 is never offered again.
+	for kind in ItemCatalog.LEGENDARY.slice(1):t.content.inventory.give(kind)
+	var only: bool=true
+	for n in range(60):
+		var picks: Array[StringName]=ItemRewards.roll(r,ItemRewards.odds(14,&"legendary"),3,ItemRewards.owned_legendaries(t.guild.state))
+		if picks!=[ItemCatalog.LEGENDARY[0]]:only=false
+	verify(only,"전설 already owned never comes again")
+	# Shop: 3~5 different items priced by grade.
+	var shop_ok: bool=true
+	for seed_value in range(12):
+		var s:=TowerController.new();s.new_run(seed_value+3,seed_value+9)
+		var room: RoomState=s.guild.state.tower.map.rooms.values().filter(func(x):return x.room_type==RoomType.SHOP)[0]
+		s.content.ensure_shop(room)
+		var stock: Array=room.shop.offers.filter(func(o):return o.category==&"equipment")
+		var kinds: Dictionary={}
+		for o in stock:kinds[o.kind]=true
+		if stock.size()<3 or stock.size()>5 or kinds.size()!=stock.size() or stock.any(func(o):return o.gold_price!=ItemCatalog.price(o.kind) or ItemCatalog.grade_of(o.kind)==&"ancient"):shop_ok=false
+	verify(shop_ok,"shop: 3~5 different items at grade prices")
+	# Save v6 -> v7: a removed combination worn by a member is taken back and refunded once.
+	t=TowerController.new();t.new_run(19,73);m=t.guild.all_members()[0]
+	var doc: Dictionary=JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(t,"save_v6",1).document))
+	doc.schema_version=6;var gold_before: int=int(doc.run.gold);var next: int=int(doc.run.next_item_number)
+	doc.run.inventory.append({"item_id":next,"kind":"woodSword+staff","equipped_to_member_id":m.member_id,"consumed":false,"enhance":2})
+	doc.run.inventory_receipts["combine:1:2"]=next;doc.run.next_item_number=next+1;doc.run.erase("item_notice")
+	for room in doc.run.tower.map.rooms:
+		room.erase("item_choices");room.erase("item_choice")
+		if room.get("event") is Dictionary:room.event.purchases={"trade":2} if room.event_type=="blacksmith" else room.event.purchases
+	var loaded: SaveLoadResult=SaveSnapshotLoader.restore(doc)
+	verify(loaded.ok() and loaded.run.gold==gold_before+260 and loaded.run.inventory.all(func(i):return String(i.kind)!="woodSword+staff"),"v6 save: removed combination refunded 260 G")
+	verify(loaded.ok() and loaded.run.item_notice.contains("마검") and loaded.run.item_notice.contains("260 G"),"one-time notice names the item and the gold")
+	verify(SaveMigrator.CURRENT_VERSION==7,"save version 7")

@@ -2,7 +2,7 @@ class_name SaveDomainCodec
 extends RefCounted
 ## Explicit domain schema (save version SaveMigrator.CURRENT_VERSION). Never reflects arbitrary Objects or instantiates scripts from a save.
 const SCALARS = {
-	"run":{"run_id":"s","next_member_number":"i","settled_battle_ids":"d","player_max_hp":"f","player_hp":"f","game_over":"b","game_over_reason":"i","death_losses_by_result_id":"d","next_strategy_card_number":"i","strategy_use_receipts":"d","gold":"i","tokens":"i","next_item_number":"i","inventory_receipts":"d","transaction_receipts":"d","content_receipts":"d","sortie_level":"i","mango_faith":"i","roster_level":"i","odds_level":"i"},
+	"run":{"run_id":"s","next_member_number":"i","settled_battle_ids":"d","player_max_hp":"f","player_hp":"f","game_over":"b","game_over_reason":"i","death_losses_by_result_id":"d","next_strategy_card_number":"i","strategy_use_receipts":"d","gold":"i","tokens":"i","next_item_number":"i","inventory_receipts":"d","transaction_receipts":"d","content_receipts":"d","sortie_level":"i","mango_faith":"i","roster_level":"i","odds_level":"i","item_notice":"s"},
 	"member":{"member_id":"s","unit_type_id":"i","total_exp":"i","stars":"i","current_hp":"f","energy":"i","ultimate_gauge":"f","transcendence_gauge":"f","stance":"n","character_specific_state":"d","fang_kills":"i"},
 	"item":{"item_id":"i","kind":"n","equipped_to_member_id":"s","consumed":"b","enhance":"i"},
 	"card":{"card_id":"i","kind":"n","used_depth":"i","used_floors":"ai","ready_floor":"i","consumed":"b"},
@@ -11,7 +11,7 @@ const SCALARS = {
 	"map":{},"formation":{},
 	"deployment":{"member_id":"s","team":"i","position":"v"},
 	"floor":{"floor_index":"i","chapter_index":"i","unlocked":"b","room_ids":"as","cleared_count":"i","required_clear_count":"i","conquered":"b","bonus":"n","bonus_item_kind":"n"},
-	"room":{"source_run_id":"s","room_id":"s","cleared":"b","battle_attempt_count":"i","active_result_id":"s","settled_result_ids":"d","floor_index":"i","chapter_index":"i","lane":"i","room_type":"n","discovered":"b","visited":"b","consumed":"b","publicly_visible":"b","event_type":"n","gold_reward":"i","token_reward":"i","kill_rewards":"d","reward_claimed":"b","content_visits":"i"},
+	"room":{"source_run_id":"s","room_id":"s","cleared":"b","battle_attempt_count":"i","active_result_id":"s","settled_result_ids":"d","floor_index":"i","chapter_index":"i","lane":"i","room_type":"n","discovered":"b","visited":"b","consumed":"b","publicly_visible":"b","event_type":"n","gold_reward":"i","token_reward":"i","kill_rewards":"d","reward_claimed":"b","content_visits":"i","item_choices":"an","item_choice":"n"},
 	"encounter":{"room_kind":"n","depth":"i","formation":"n"},
 	"spawn":{"enemy_id":"s","unit_type_id":"i","level":"i","initial_position":"v","rank":"n","body_scale":"f","hp_multiplier":"f","damage_multiplier":"f","defense_multiplier":"f","speed_multiplier":"f"},
 	"enemy":{"enemy_id":"s","unit_type_id":"i","current_hp":"f","position":"v","ultimate_gauge":"f","stance":"n","persistent_state":"d"},

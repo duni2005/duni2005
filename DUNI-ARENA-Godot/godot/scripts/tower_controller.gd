@@ -26,6 +26,8 @@ func release_runtime_connections() -> void:
 	session=null;battle=null;prediction_battle=null
 func _autosave() -> void:
 	if save_manager!=null and not _defer_save:save_manager.request_autosave(self)
+## Saves a change made outside the controller's own actions (the one-time item notice).
+func request_save() -> void:_autosave()
 func _attempt_seed(kind: String) -> int:
 	if recovery_checkpoint.get("kind")==kind and recovery_checkpoint.get("room_id")==guild.state.tower.selected_room_id:return int(recovery_checkpoint.seed)
 	return int(combat_rng.randi())
@@ -122,6 +124,12 @@ func _settled(result: BattleResult,status: BattleSettlement.Status) -> void:
 	_defer_save=true
 	state.processed_results[result.result_id]=true
 	guild.state.gold+=result.bounty_gold
+	# 저주받은 왕관: every battle fought wearing it costs 5% of max HP for good.
+	for id in result.participating_member_ids:
+		var member: GuildMemberState=guild.get_member(id)
+		if member!=null and guild.member_stats(member).crown:
+			member.character_specific_state["crownDecay"]=int(member.character_specific_state.get("crownDecay",0))+1
+			member.current_hp=minf(member.current_hp,guild.member_stats(member).max_hp)
 	var room: RoomState=current_room()
 	# Settlement already performed healing and room clear before checking guild death.
 	if room.cleared:
@@ -130,6 +138,7 @@ func _settled(result: BattleResult,status: BattleSettlement.Status) -> void:
 			guild.state.gold+=room.gold_reward
 			for id in result.surviving_member_ids:guild.state.gold+=int(result.member_victory_gold.get(id,0))
 			guild.state.tokens+=room.token_reward;room.reward_claimed=true
+			if content!=null:content.roll_battle_reward(room,generator.rng)
 			if room.room_type==RoomType.MINIBOSS:
 				var keys: Array=StrategyCardCatalog.DEFINITIONS.keys();guild.state.give_strategy_card(keys[generator.rng.randi_range(0,keys.size()-1)])
 		room.consumed=true;refresh_progress(room.floor_index)
@@ -144,13 +153,16 @@ func _settled(result: BattleResult,status: BattleSettlement.Status) -> void:
 	recovery_checkpoint={};_defer_save=false;_autosave();changed.emit()
 func return_map() -> bool:
 	if guild.state.tower.phase in [RoomType.SHOP,RoomType.RECRUIT]:return content_action(&"finish").ok
+	# The item reward is taken (or skipped) before leaving the room.
+	if content!=null and guild.state.tower.phase==&"result" and content.pending_reward(current_room()):return false
 	if not TowerNavigationPolicy.can_return(guild.state):return false
 	guild.state.tower.phase=&"gameover" if guild.state.game_over else &"route";_autosave();changed.emit();return true
 func floor_reward(depth: int) -> FloorState:
 	var floor: FloorState=guild.state.tower.map.floors[depth]
 	if floor.bonus==&"":
 		floor.bonus=[&"heal",&"item",&"tokens"][generator.rng.randi_range(0,2)]
-		if floor.bonus==&"item":floor.bonus_item_kind=TowerMapGenerator.ITEMS[generator.rng.randi_range(0,TowerMapGenerator.ITEMS.size()-1)]
+		# 층 정복 "아이템": one item of 영웅 or better (owned 전설 left out).
+		if floor.bonus==&"item":floor.bonus_item_kind=ItemRewards.one(generator.rng,guild.state,depth,ItemTuning.CONQUEST_MIN_GRADE)
 		_autosave()
 	return floor
 func refresh_progress(changed_depth: int) -> void:

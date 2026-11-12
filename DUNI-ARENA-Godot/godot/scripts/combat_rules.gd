@@ -10,7 +10,7 @@ static func stance_factor(unit) -> float:
 	return StanceRules.damage(unit) * (1.25 if unit.strategy_special_until > unit.battle.clock.elapsed else 1.0)
 ## Attack % of a hit: the stat (items, kill growth, elite/boss multiplier) times stance effects.
 static func attack_factor(unit) -> float:
-	return (unit.combat_stats.attack if unit.combat_stats != null else 1.0) * stance_factor(unit)
+	return (unit.combat_stats.attack if unit.combat_stats != null else 1.0) * stance_factor(unit) * ItemEffects.attack_factor(unit)
 static func defense(unit) -> float:
 	return maxf(1, defense_sum(unit))
 ## Defense before the legacy floor of 1; the new mitigation curve also handles negative values.

@@ -225,7 +225,7 @@ const DAMAGE = {
 }
 ## Damage every unit can deal regardless of character, using its main damage kind.
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]
-const ITEM = {&"dragon_heart":[&"item", &"magic", 15, 0.6, [&"fire", &"area"], "용의 심장"]}
+const ITEM = {&"dragon_heart":[&"item", &"magic", 15, 0.6, [&"fire", &"area"], "용의 심장"], &"chain_ring":[&"item", &"", 0, 0, [], "연쇄의 고리"]}
 ## Turning-point special strategies; the ratio grows with tower progress (see EnemyStrategyPlanner).
 const STRATEGY = {&"strategy_smash":[&"system", &"", 0, 2.0, [&"area"], "특수전략 · 강타"], &"strategy_cleave":[&"system", &"", 0, 1.5, [], "특수전략 · 가르기"], &"strategy_slash":[&"system", &"", 0, 1.3, [&"area"], "특수전략 · 참격"], &"strategy_sweep":[&"system", &"", 0, 2.4, [&"area"], "특수전략 · 휩쓸어 모으기"]}
 
@@ -286,7 +286,9 @@ static func damage_stat(u, kind: StringName) -> float:
 ## Raw damage of one instance before any multiplier or mitigation.
 static func raw(u, key: StringName) -> float:
 	var s: Dictionary = spec(spec_type(u, key), key)
-	return s.base + damage_stat(u, s.kind) * s.ratio
+	var kind: StringName = s.kind
+	if u is BattleUnit and u.combat_stats != null and u.combat_stats.kind_swap:kind = ItemEffects.flip(kind)
+	return s.base + damage_stat(u, kind) * s.ratio
 static func has_element(tags: Array) -> bool:
 	return tags.any(func(t):return t in ELEMENTS)
 ## Sum of the attacker's matching element and tag bonuses (added together, multiplied once).

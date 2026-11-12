@@ -44,6 +44,20 @@ var awl_power: float = 0
 var phoenix_count: int = 0
 var hourglass_count: int = 0
 var dragon_heart_count: int = 0
+## 0.94 items (numbers in ItemTuning, run by ItemEffects).
+var range_multiplier: float = 1
+var duelist: bool = false
+var vanguard: bool = false
+var elementalist: bool = false
+var enchant: bool = false
+var overcharge_count: int = 0
+var chain_ring: bool = false
+var sovereign: bool = false
+var immovable: bool = false
+var sanctuary: bool = false
+var kind_swap: bool = false
+var crown: bool = false
+var dice: bool = false
 
 ## Base stats of a character from UnitStatTable, with level-style growth factors.
 static func from_table(data: UnitData,hp_factor: float=1,damage_factor: float=1,defense_factor: float=1,speed_factor: float=1) -> UnitCombatStats:
@@ -68,9 +82,27 @@ func apply_item(item: ItemData) -> void:
 	physical_power+=item.physical_bonus;magic_power+=item.magic_bonus;element_power+=item.element_bonus
 	ultimate_power+=item.ultimate_bonus;armor+=item.armor_bonus;attack_speed+=item.attack_speed_bonus;crit+=item.crit_bonus
 	phoenix_count+=int(item.phoenix);hourglass_count+=int(item.hourglass);dragon_heart_count+=int(item.dragon_heart)
+	physical_defense+=item.physical_defense_bonus;magic_defense+=item.magic_defense_bonus
+	range_multiplier*=item.range_multiplier;scale*=item.scale_multiplier
+	duelist=duelist or item.duelist;vanguard=vanguard or item.vanguard;elementalist=elementalist or item.elementalist
+	enchant=enchant or item.enchant;overcharge_count+=int(item.overcharge);chain_ring=chain_ring or item.chain_ring
+	sovereign=sovereign or item.sovereign;immovable=immovable or item.immovable;sanctuary=sanctuary or item.sanctuary
+	kind_swap=kind_swap or item.kind_swap;crown=crown or item.crown;dice=dice or item.dice
 ## Item damage powers scale the physical / magic damage stats; call once after all items.
+## 저주받은 왕관 raises every stat; 두 얼굴의 가면 then swaps the physical and magic damage stats.
 func finish_items() -> void:
 	physical_damage*=physical_power;magic_damage*=magic_power
+	if crown:
+		var k: float=1+ItemTuning.CROWN_STATS
+		max_hp*=k;physical_damage*=k;magic_damage*=k;defense*=k;physical_defense*=k;magic_defense*=k;speed*=k;attack_speed*=k
+	if kind_swap:var keep: float=physical_damage;physical_damage=magic_damage;magic_damage=keep
+## A separate copy (도박사의 주사위 changes its numbers for one battle only).
+func copy() -> UnitCombatStats:
+	var out:=UnitCombatStats.new()
+	for p in get_property_list():
+		if p.usage&PROPERTY_USAGE_SCRIPT_VARIABLE:
+			var v=get(p.name);out.set(p.name,v.duplicate(true) if v is Dictionary or v is Array else v)
+	return out
 ## Attack growth per kill: .015 per legacy fang, stronger on the combined item.
 func fang_rate() -> float:
 	return .015*fang_power/fang_count if fang_count>0 else .015

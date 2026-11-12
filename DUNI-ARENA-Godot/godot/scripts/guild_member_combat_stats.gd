@@ -11,6 +11,9 @@ static func assemble(data: UnitData,member: GuildMemberState,inventory: Inventor
 		if item==null:continue
 		stats.apply_item(item)
 	stats.finish_items()
+	# 저주받은 왕관: every tower battle worn costs 5% of max HP for good.
+	var decay: int=int(member.character_specific_state.get("crownDecay",0))
+	if decay>0:stats.max_hp*=pow(1-ItemTuning.CROWN_DECAY,decay)
 	stats.max_hp=floorf(stats.max_hp+.5)
 	stats.equipment_attack_without_growth=stats.attack
 	stats.attack*=1+member.fang_kills*stats.fang_rate()

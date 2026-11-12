@@ -17,8 +17,8 @@ const EVENTS = [
 	["hotSpring","hotSpring","온천","온천욕(생존 유닛 HP +10%) 또는 200 G 복권(아이템 · 골드 · 토큰 · 전략카드 · 유닛 중 하나)."],
 	["supply","supply","보물상자","넷 중 하나: 플레이어 HP +10 · 길드 HP +10% · 골드 300과 토큰 1 · 숨은 보물(아이템 또는 카드)."],
 	["prediction","prediction","전투 예측","AI끼리 싸우는 판에 50 · 100 · 200 G를 건다. 맞히면 2배와 토큰 1, 무승부면 원금."],
-	["tokenShop","tokenShop","토큰 상점","토큰으로 부활 · 전원 회복 · 일반 아이템 · 전략카드 · 완전 회복을 산다."],
-	["blacksmith","blacksmith","대장장이","희귀 아이템을 +5까지 강화하고, 일반 아이템 2개를 희귀 아이템으로 바꾸고, 일반 아이템을 판다."],
+	["tokenShop","tokenShop","토큰 상점","토큰으로 부활 · 전원 회복 · 무작위 아이템 · 전략카드 · 완전 회복을 산다."],
+	["blacksmith","blacksmith","대장장이","희귀 · 영웅 · 전설 아이템을 +5까지 강화하고, 일반 · 희귀 아이템을 상점 가격의 절반에 판다."],
 	["mangoSapling","mango","망고나무 묘목","무료 부활 1회. 200 G 재물로 망고 신앙을 쌓고, 신앙이 있으면 축복으로 모두 바꿔 큰 골드를 받는다."],
 	["gambler","dice","도박꾼의 방","200 G씩 룰렛(꽝 ~ 1,000 G)과 주사위(3개 합 대결, 이기면 400 G)를 한 번씩."]]
 ## Damage tags: [key, icon, description].
@@ -117,14 +117,10 @@ func show_tab(key: String) -> void:
 			for type in TowerMapGenerator.FRONT:_unit_card(type, "miniboss")
 		"item":
 			grid.columns = maxi(4, int(width / 74))
-			var kinds: Array = []
-			for kind in ItemCatalog.all():
-				if ItemCatalog.get_item(kind).grade != &"legacy":kinds.append(kind)
-			var order := {&"common":0, &"rare":1, &"ancient":2}
-			kinds.sort_custom(func(a, b):return order.get(ItemCatalog.get_item(a).grade, 3) < order.get(ItemCatalog.get_item(b).grade, 3))
-			for kind in kinds:
+			# Grade order (일반 → 고대), then catalog order within a grade.
+			for kind in ItemCatalog.current():
 				var data: ItemData = ItemCatalog.get_item(kind)
-				_card(String(kind), "slot", String(kind), data.display_name, ItemCatalog.grade_name(kind), ItemCatalog.grade_color(kind), Vector2(66, 72))
+				var card: ArenaCard = _card(String(kind), "slot", String(kind), data.display_name, ItemCatalog.grade_name(kind), ItemCatalog.grade_color(kind), Vector2(66, 72));card.item_grade = data.grade
 		"card":
 			grid.columns = maxi(3, int(width / 112))
 			for kind in StrategyCardCatalog.DEFINITIONS:
@@ -190,8 +186,7 @@ func _select(node_name: String) -> void:
 		"item":
 			var data: ItemData = ItemCatalog.get_item(StringName(key));icon_kind = key
 			detail_title.text = data.display_name;detail_title.add_theme_color_override("font_color", ItemCatalog.grade_color(StringName(key)))
-			var source: String = {&"common":"상점(%d G) · 보물상자 · 복권 · 층 정복 · 토큰 상점" % data.gold_price, &"rare":"같은 유닛에게 일반 아이템 두 개를 장착하면 합쳐진다 · 대장장이 교환 · 대장장이에서 +5까지 강화", &"ancient":"고대 아이템"}.get(data.grade, "")
-			if "+" in key:source = "%s + %s · %s" % [ItemCatalog.get_item(StringName(key.get_slice("+", 0))).display_name, ItemCatalog.get_item(StringName(key.get_slice("+", 1))).display_name, source]
+			var source: String = {&"common":"전투 보상 · 상점(%d G) · 보물상자 · 복권 · 토큰 상점 · 룰렛 · 대장장이 판매 %d G" % [data.gold_price, ItemCatalog.sell_price(StringName(key))], &"rare":"전투 · 미니보스 보상 · 상점(%d G) · 이벤트 · 대장장이 강화(+5) · 판매 %d G" % [data.gold_price, ItemCatalog.sell_price(StringName(key))], &"epic":"전투 · 미니보스 · 보스 보상 · 층 정복 · 상점(%d G) · 대장장이 강화(+5)" % data.gold_price, &"legendary":"전투 · 미니보스 · 보스 보상 · 층 정복 · 상점(%d G) · 대장장이 강화(+5) · 한 런에 하나만" % data.gold_price, &"ancient":"탑에서는 나오지 않음 · 커스텀 전투에서 선택 · 유닛당 1개"}.get(data.grade, "")
 			detail_sub.text = "%s 등급" % ItemCatalog.grade_name(StringName(key))
 			detail_text.text = "%s\n%s" % [data.description, source]
 		"card":

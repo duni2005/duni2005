@@ -20,22 +20,30 @@ static func label(type_id: int) -> String:return NAMES[tier(type_id)]
 
 ## Wash, band and border over a card face (`rect` inside the card's own border).
 static func draw_frame(c: CanvasItem, rect: Rect2, type_id: int, radius: float, dim: bool = false, border: bool = true) -> void:
-	var t: int = tier(type_id);var col: Color = COLORS[t];var a: float = .45 if dim else 1.0
-	if WASH_ALPHA[t] > 0:_wash(c, rect, radius, Color(col, WASH_ALPHA[t] * a))
+	var t: int = tier(type_id)
+	draw_grade(c, rect, COLORS[t], BORDER_ALPHA[t] if border else 0.0, WASH_ALPHA[t], t >= 4, Color(1, .92, .6) if t == 5 else Color(0, 0, 0, 0), radius, dim)
+## Item grade frame (ItemTuning.FRAME), drawn the same way as a unit's rarity.
+static func draw_item_frame(c: CanvasItem, rect: Rect2, grade: StringName, radius: float, dim: bool = false) -> void:
+	var f: Dictionary = ItemTuning.FRAME.get(grade, ItemTuning.FRAME[&"common"])
+	draw_grade(c, rect, ItemTuning.GRADE_COLORS.get(grade, Color.WHITE), f.border, f.wash, f.thick, f.glint, radius, dim)
+## Wash from the top, a coloured band, the border (thick from 영웅 up) and, for the top grades, a
+## short light travelling round the border.
+static func draw_grade(c: CanvasItem, rect: Rect2, col: Color, border_alpha: float, wash_alpha: float, thick: bool, glint: Color, radius: float, dim: bool = false) -> void:
+	var a: float = .45 if dim else 1.0
+	if wash_alpha > 0:_wash(c, rect, radius, Color(col, wash_alpha * a))
 	c.draw_rect(Rect2(rect.position + Vector2(radius * .7, 1.5), Vector2(rect.size.x - radius * 1.4, 2.5)), Color(col, .9 * a))
-	if border and BORDER_ALPHA[t] > 0:
-		var key: String = "%d:%d" % [t, int(radius)]
+	if border_alpha > 0:
+		var key: String = "%d:%d" % [int(thick), int(radius)]
 		if not _frames.has(key):
-			var box := StyleBoxFlat.new();box.draw_center = false;box.set_corner_radius_all(int(radius));box.set_border_width_all(2 if t >= 4 else 1);box.anti_aliasing = true
+			var box := StyleBoxFlat.new();box.draw_center = false;box.set_corner_radius_all(int(radius));box.set_border_width_all(2 if thick else 1);box.anti_aliasing = true
 			_frames[key] = box
-		var frame: StyleBoxFlat = _frames[key];frame.border_color = Color(col, BORDER_ALPHA[t] * a)
+		var frame: StyleBoxFlat = _frames[key];frame.border_color = Color(col, border_alpha * a)
 		c.draw_style_box(frame, rect)
-	if t == 5 and not dim:
-		# A short gold glint travelling round the border.
+	if glint.a > 0 and not dim:
 		var head: float = Time.get_ticks_msec() / 1000.0 * .3;var points := PackedVector2Array();var colors := PackedColorArray()
 		for i in range(11):
 			var k: float = i / 10.0
-			points.append(Motion.perimeter_point(rect, radius, head - .12 * (1 - k)));colors.append(Color(1, .92, .6, k * k * .9))
+			points.append(Motion.perimeter_point(rect, radius, head - .12 * (1 - k)));colors.append(Color(glint, k * k * .9))
 		c.draw_polyline_colors(points, colors, 2, true)
 
 ## Colour fading down from the top edge over the upper 45% of the face, following its rounded corners.

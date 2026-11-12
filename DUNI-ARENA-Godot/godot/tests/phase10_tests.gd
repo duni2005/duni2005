@@ -98,7 +98,8 @@ func recruit_shop() -> void:
 		var kinds: Dictionary={}
 		for offer in stock:
 			if offer.category==category:kinds[offer.kind]=true
-		verify(kinds.size() in [2,3],"shop distinct category kinds2..3")
+		# Items: 3~5 different ones (ItemTuning.SHOP_ITEMS); cards: 2~3 kinds.
+		verify(kinds.size() in ([3,4,5] if category==&"equipment" else [2,3]),"shop distinct kinds: items 3..5, cards 2..3")
 	verify(stock.size()>=4 and stock.size()<=12,"shop individual stock copies4..12")
 	var offer: ShopOffer=stock.filter(func(o):return o.category==&"equipment")[0];gold=t.guild.state.gold
 	result=t.content_action(&"buy",{"offer_id":offer.offer_id})
@@ -191,7 +192,7 @@ func promotion() -> void:
 	members[0].current_hp=100;members[1].current_hp=60;members[2].current_hp=20
 	var sword: ItemInstance=give(t,&"woodSword",lead)
 	var ancient: ItemInstance=give(t,&"phoenixFeather",members[1]);var staff: ItemInstance=give(t,&"staff",members[1])
-	var rare: ItemInstance=give(t,ItemCatalog.combined_kind(&"ether",&"redThorn"),members[2]);var feather: ItemInstance=give(t,&"hawkFeather",members[2])
+	var rare: ItemInstance=give(t,&"duelistGlove",members[2]);var feather: ItemInstance=give(t,&"hawkFeather",members[2])
 	t.guild.state.last_formation.capture([DeploymentEntry.new(lead.member_id,Vector2(100,100)),DeploymentEntry.new(members[1].member_id,Vector2(100,200)),DeploymentEntry.new(members[2].member_id,Vector2(100,300))])
 	var before: int=t.guild.all_members().size();var other: GuildMemberState=t.guild.create_member(1)
 	verify(t.content.promotion_eligible(lead) and not t.content.promotion_eligible(other),"three same-character same-star units, no level gate")
@@ -207,10 +208,10 @@ func promotion() -> void:
 	verify(lead.total_exp==300+80+50+GrowthRules.PROMOTION_BONUS_EXP and lead.level==GrowthRules.level_for_exp(lead.total_exp) and lead.level==5,"EXP pooled plus bonus, level recomputed")
 	verify(is_equal_approx(lead.current_hp,60),"HP becomes the three units' average")
 	var worn: Array=t.content.inventory.equipped(lead.member_id)
-	verify(worn.size()==3 and ancient in worn and rare in worn,"ancient then rare fill the free slots first")
-	verify(sword.consumed and worn.any(func(i):return ItemCatalog.get_item(i.kind).components.has(&"woodSword")),"a basic fused with the lead's basic as it was equipped")
-	var leftover: Array=[staff,feather].filter(func(i):return not i.consumed)
-	verify(leftover.size()==1 and leftover[0].equipped_to_member_id.is_empty(),"gear without a free slot goes back to the inventory")
+	verify(worn.size()==3 and sword in worn and ancient in worn and rare in worn,"legendary then rare fill the free slots first")
+	verify(not sword.consumed,"nothing fuses on the lead")
+	var leftover: Array=[staff,feather].filter(func(i):return not i.consumed and i.equipped_to_member_id.is_empty())
+	verify(leftover.size()==2,"gear without a free slot goes back to the inventory")
 	verify(t.guild.state.last_formation.entries.size()==1 and t.guild.state.last_formation.entries[0].member_id==lead.member_id,"formation removes consumed IDs")
 	var count: int=t.guild.all_members().size();verify(not t.content_action(&"promote",{"member_id":lead.member_id,"materials":[members[1].member_id,members[2].member_id]}).ok and t.guild.all_members().size()==count,"consumed materials cannot promote again")
 	# Second star: four slots; the average HP is capped by the new maximum; stars stop at two.
@@ -289,7 +290,7 @@ func token_shop() -> void:
 	var before: float=down.current_hp
 	verify(t.content_action(&"token_shop",{"choice":&"heal"}).ok and is_equal_approx(down.current_hp,before+150*.05) and t.guild.state.tokens==22,"heal 1 token all living 5%")
 	var items: int=t.content.inventory.available().size()
-	verify(t.content_action(&"token_shop",{"choice":&"item"}).ok and t.content.inventory.available().size()==items+1 and ItemCatalog.BASIC.has(t.content.inventory.available().back().kind) and t.guild.state.tokens==20,"item 2 tokens basic")
+	verify(t.content_action(&"token_shop",{"choice":&"item"}).ok and t.content.inventory.available().size()==items+1 and ItemCatalog.grade_rank(t.content.inventory.available().back().kind)>=0 and ItemCatalog.grade_of(t.content.inventory.available().back().kind)!=&"ancient" and t.guild.state.tokens==20,"item 2 tokens, a random item")
 	var cards: int=t.guild.state.strategy_cards.size()
 	verify(t.content_action(&"token_shop",{"choice":&"card"}).ok and t.guild.state.strategy_cards.size()==cards+1 and t.guild.state.tokens==18,"card 2 tokens")
 	for i in range(2):t.content_action(&"token_shop",{"choice":&"item"})
@@ -304,7 +305,8 @@ func blacksmith() -> void:
 	groups+=1
 	verify(ItemCatalog.get_item(&"leatherArmor").gold_price==120 and ItemCatalog.get_item(&"woodSword").gold_price==130 and ItemCatalog.get_item(&"ether").gold_price==140 and ItemCatalog.get_item(&"hawkFeather").gold_price==160,"basic prices by item")
 	verify(ItemCatalog.BASIC.all(func(k):return ItemCatalog.get_item(k).gold_price>=120 and ItemCatalog.get_item(k).gold_price<=160),"basic prices 120~160")
-	verify(ItemCatalog.sell_price(&"currentOrb")==80 and ItemCatalog.sell_price(&"verdantStone")==60 and ItemCatalog.sell_price(&"woodSword+staff")==0 and ItemCatalog.sell_price(&"phoenixFeather")==0,"sell half, basics only")
+	verify(ItemCatalog.sell_price(&"currentOrb")==80 and ItemCatalog.sell_price(&"verdantStone")==60 and ItemCatalog.sell_price(&"duelistGlove")==150 and ItemCatalog.sell_price(&"chainRing")==0 and ItemCatalog.sell_price(&"phoenixFeather")==0,"sell half: 일반 and 희귀 only")
+	verify(TowerContentService.purchase_limits(TowerController.BLACKSMITH).is_empty(),"no trade limit left")
 	var found: int=0
 	for seed_value in range(8):
 		var run:=TowerController.new();run.new_run(seed_value+1,seed_value+2)
@@ -313,10 +315,10 @@ func blacksmith() -> void:
 		run.select_room("0:4");verify(run.current_room().event_type in TowerController.EVENT_TYPES,"blacksmith never rolled on discovery")
 	verify(found>=8,"blacksmith rooms generated (%d)"%found)
 	var t:=tower();t.guild.state.gold=10000;var m: GuildMemberState=t.guild.all_members()[0];var other: GuildMemberState=t.guild.all_members()[1]
-	var a: ItemInstance=t.content.inventory.give(&"woodSword");var b: ItemInstance=t.content.inventory.give(&"hawkFeather")
-	t.content_action(&"equip",{"item_id":a.item_id,"member_id":m.member_id})
-	var rare: ItemInstance=t.content.inventory.get_item(int(t.content_action(&"equip",{"item_id":b.item_id,"member_id":m.member_id}).outcome.item_id))
+	var rare: ItemInstance=t.content.inventory.give(&"woodSword+hawkFeather")
 	var before: float=t.guild.member_stats(m).physical_damage
+	t.content_action(&"equip",{"item_id":rare.item_id,"member_id":m.member_id})
+	before=t.guild.member_stats(m).physical_damage
 	verify(rare.equipped_to_member_id==m.member_id and not t.content_action(&"enhance",{"item_id":rare.item_id}).ok,"enhance needs the blacksmith")
 	enter_event(t,TowerController.BLACKSMITH);verify(not t.return_map(),"open blacksmith locks map")
 	var start: int=t.guild.state.gold
@@ -326,27 +328,21 @@ func blacksmith() -> void:
 	verify(is_equal_approx(up.physical_bonus,base.physical_bonus*1.6) and is_equal_approx(up.attack_speed_bonus,base.attack_speed_bonus*1.6) and is_equal_approx(up.speed_multiplier-1,(base.speed_multiplier-1)*1.6),"+5 boosts stats by 60%")
 	verify(up.opening_awl==base.opening_awl and is_equal_approx(up.ability_power,base.ability_power) and up.display_name==base.display_name+" +5" and base.display_name.find("+")<0,"abilities unchanged, name shows +5")
 	verify(t.guild.member_stats(m).physical_damage>before,"enhanced gear counts in combat stats")
+	var epic: ItemInstance=t.content.inventory.give(&"chainRing");var legend: ItemInstance=t.content.inventory.give(&"sovereignSword");var ancient: ItemInstance=t.content.inventory.give(&"gamblerDice")
+	verify(t.content_action(&"enhance",{"item_id":epic.item_id}).ok and t.content_action(&"enhance",{"item_id":legend.item_id}).ok and not t.content_action(&"enhance",{"item_id":ancient.item_id}).ok,"영웅 · 전설 enhance, 고대 does not")
+	verify(ItemCatalog.of(legend).attack_multiplier>ItemCatalog.get_item(&"sovereignSword").attack_multiplier,"legendary stats grow with enhancement")
 	var staff: ItemInstance=t.content.inventory.give(&"staff");var gold: int=t.guild.state.gold
-	verify(not t.content_action(&"enhance",{"item_id":staff.item_id}).ok and t.guild.state.gold==gold,"basic items cannot be enhanced")
+	verify(not t.content_action(&"enhance",{"item_id":staff.item_id}).ok and t.guild.state.gold==gold,"일반 items cannot be enhanced")
 	verify(t.content_action(&"sell",{"item_id":staff.item_id}).ok and t.guild.state.gold==gold+65 and staff.consumed,"sell staff for 65")
-	verify(not t.content_action(&"sell",{"item_id":staff.item_id}).ok and not t.content_action(&"sell",{"item_id":rare.item_id}).ok and t.guild.state.gold==gold+65,"no resale, no rare sale")
+	var glove: ItemInstance=t.content.inventory.give(&"duelistGlove")
+	verify(t.content_action(&"sell",{"item_id":glove.item_id}).ok and t.guild.state.gold==gold+65+150,"sell a rare for 150")
+	verify(not t.content_action(&"sell",{"item_id":staff.item_id}).ok and not t.content_action(&"sell",{"item_id":epic.item_id}).ok and not t.content_action(&"sell",{"item_id":rare.item_id}).ok and t.guild.state.gold==gold+215,"no resale, no 영웅 sale, no equipped sale")
 	var worn: ItemInstance=t.content.inventory.give(&"leatherArmor");t.content_action(&"equip",{"item_id":worn.item_id,"member_id":other.member_id})
 	verify(not t.content_action(&"sell",{"item_id":worn.item_id}).ok,"equipped basics cannot be sold")
 	var x: ItemInstance=t.content.inventory.give(&"staff");var y: ItemInstance=t.content.inventory.give(&"redThorn")
-	var offers: Array[StringName]=t.content.trade_offers([x.item_id,y.item_id])
-	verify(offers.size()==3 and offers[0]==ItemCatalog.combined_kind(&"staff",&"redThorn") and offers.all(func(k):return ItemCatalog.get_item(k).grade==&"rare") and offers[1]!=offers[2] and not offers[0] in offers.slice(1),"three rare offers led by the pair's combination")
-	verify(offers==t.content.trade_offers([y.item_id,x.item_id]),"offer fixed for the pair")
-	verify(t.content.trade_offers([x.item_id,worn.item_id]).is_empty() and not t.content_action(&"trade",{"items":[x.item_id,worn.item_id],"kind":offers[0]}).ok,"equipped items are not materials")
-	var outside: StringName=ItemCatalog.all().values().filter(func(i):return i.grade==&"rare" and not i.kind in offers)[0].kind
-	verify(not t.content_action(&"trade",{"items":[x.item_id,y.item_id],"kind":outside}).ok and not x.consumed,"only offered items")
-	var traded: Dictionary=t.content_action(&"trade",{"items":[x.item_id,y.item_id],"kind":offers[2]})
-	verify(traded.ok and x.consumed and y.consumed and t.content.inventory.get_item(int(traded.outcome.item_id)).kind==offers[2],"trade gives the picked rare")
-	var p: ItemInstance=t.content.inventory.give(&"ether");var q: ItemInstance=t.content.inventory.give(&"ether")
-	verify(t.content_action(&"trade",{"items":[p.item_id,q.item_id],"kind":t.content.trade_offers([p.item_id,q.item_id])[1]}).ok,"second trade")
-	var r: ItemInstance=t.content.inventory.give(&"staff");var u: ItemInstance=t.content.inventory.give(&"staff")
-	verify(not t.content_action(&"trade",{"items":[r.item_id,u.item_id],"kind":ItemCatalog.combined_kind(&"staff",&"staff")}).ok and not r.consumed,"two trades per visit")
+	verify(not t.content_action(&"trade",{"items":[x.item_id,y.item_id],"kind":&"duelistGlove"}).ok and not x.consumed,"the trade tab is gone")
 	verify(t.content_action(&"event",{"choice":&"leave"}).ok and t.current_room().cleared and t.return_map(),"지도로 clears the blacksmith")
-	verify(not t.content_action(&"sell",{"item_id":r.item_id}).ok,"closed blacksmith does nothing")
+	verify(not t.content_action(&"sell",{"item_id":x.item_id}).ok,"closed blacksmith does nothing")
 func mango_sapling() -> void:
 	groups+=1
 	verify([1,2,3,4,5].map(TowerContentService.blessing_gold)==[500,700,1000,1400,1900] and TowerContentService.blessing_gold(0)==0,"blessing 500/700/1000/1400/1900")
@@ -378,7 +374,7 @@ func gambler() -> void:
 		match reward:
 			&"miss":verify(t.guild.state.gold==gold-200,"roulette miss")
 			&"tokens2":verify(t.guild.state.gold==gold-200 and t.guild.state.tokens==tokens+2,"roulette tokens")
-			&"item":verify(t.content.inventory.available().size()==items+1 and t.content.inventory.available().back().kind in ItemCatalog.BASIC,"roulette basic item")
+			&"item":verify(t.content.inventory.available().size()==items+1 and ItemCatalog.grade_rank(t.content.inventory.available().back().kind)>=0 and ItemCatalog.grade_of(t.content.inventory.available().back().kind)!=&"ancient","roulette item")
 			&"card":verify(t.guild.state.strategy_cards.size()==cards+1,"roulette card")
 			_:verify(t.guild.state.gold==gold-200+int(String(reward).trim_prefix("gold")),"roulette gold")
 		verify(not t.content_action(&"gamble",{"choice":&"roulette"}).ok and t.current_room().event.outcome.roulette.reward==reward,"roulette once per room, result kept")

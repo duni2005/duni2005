@@ -95,7 +95,7 @@ static func validate_run(run: RunState) -> SaveLoadResult:
 	var inventory:=InventoryService.new(run)
 	if not inventory.valid():return reject("inventory_identity_or_ownership")
 	for item in run.inventory:
-		if item.enhance<0 or item.enhance>ItemCatalog.MAX_ENHANCE or item.enhance>0 and ItemCatalog.get_item(item.kind).grade!=&"rare":return reject("item_enhance")
+		if item.enhance<0 or item.enhance>ItemCatalog.MAX_ENHANCE or item.enhance>0 and not ItemCatalog.get_item(item.kind).grade in ItemTuning.ENHANCE_GRADES:return reject("item_enhance")
 	for member in run.guild_members.values():
 		if inventory.equipped(member.member_id).size()>GuildMemberCombatStats.equipment_limit(member):return reject("equipment_slots")
 	var cards: Dictionary={};highest=0
@@ -182,6 +182,9 @@ static func validate_room(room: RoomState) -> String:
 	if room.cleared and RoomType.is_combat(room.room_type) and not room.living_enemies().is_empty():return "cleared_living_enemy"
 	for id in room.kill_rewards:
 		if not room.enemy_state.has(id) or room.enemy_state[id].alive:return "kill_receipt"
+	# 전투 보상: offered items exist and the pick is one of them (or a skip).
+	if room.item_choices.size()>ItemTuning.REWARD_CHOICES or room.item_choices.any(func(k):return ItemCatalog.get_item(k)==null):return "item_choices"
+	if room.item_choice!=&"" and room.item_choice!=&"skip" and not room.item_choice in room.item_choices:return "item_choice"
 	if room.recruit!=null:
 		if room.room_type!=RoomType.RECRUIT or room.recruit.revision<0 or not room.recruit.offers.size() in [3,TowerContentService.RECRUIT_SLOTS]:return "recruit"
 		seen={}

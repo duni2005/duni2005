@@ -74,6 +74,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	var duel_result: bool=options.get("duel_result",false)
 	var full: bool=battle.full_characters_enabled
 	var spec: Dictionary=UnitStatTable.spec(int(options.get("dmg_type",UnitStatTable.spec_type(source,StringName(options.get("dmg",&"basic"))) if is_instance_valid(source) else -1)),StringName(options.get("dmg",&"basic"))) if full else {}
+	if full and is_instance_valid(source):spec=ItemEffects.adjust_spec(source,spec)
 	var kind: StringName=spec.get("kind",&"physical")
 	var plain: bool=recoil or options.get("mirror_raw",false) or options.get("plain",false)
 	if not collision:
@@ -92,7 +93,8 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 		if source!=null and not collision:
 			damage*=.7 if source.cosmic_marked else 1
 			damage*=ElementEffects.outgoing(source,target,spec,options)
-			if not options.get("mirror_shard",false):damage*=target.ability.incoming_factor(target,source,options)
+			if not status and not recoil:damage*=ItemEffects.outgoing(source,target,options)
+			if not options.get("mirror_shard",false):damage*=target.ability.incoming_factor(target,source,options)*ItemEffects.incoming(target)
 			if not recoil and not options.get("mirror_raw",false) and not duel_result and source.state_value("paladinBlessingTime")>0:damage*=1.3
 		var interception: Dictionary=target.ability.pre_damage(target,source,damage,options)
 		if not interception.is_empty():out.reflected_damage=interception.get("reflected",0);return complete(source,target,out)
@@ -181,6 +183,6 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 		CharacterCombat.apply_shares(target,shares)
 		target.ability.after_damage(target,source,out.hp_damage,options)
 	if warrior_defended and target.alive: target.combat.start_counter(target,source)
-	if full and not collision and (out.hp_damage > 0 or out.shield_absorbed > 0):ElementEffects.on_hit(source,target,out,spec,options)
+	if full and not collision and (out.hp_damage > 0 or out.shield_absorbed > 0):ElementEffects.on_hit(source,target,out,spec,options);ItemEffects.after_hit(source,target,out,spec,options)
 	if out.hp_damage > 0 or out.shield_absorbed > 0: battle.emit_combat_event(&"hit",target.position,{"actor_id":target.battle_id,"hp_damage":out.hp_damage,"shield":out.shield_absorbed})
 	return complete(source,target,out)

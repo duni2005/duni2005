@@ -34,6 +34,8 @@ var slot_kind: String=""
 var owner_type: int=-1
 ## Item grade colour (ItemCatalog.GRADE_COLORS); transparent for non-items.
 var rarity: Color=Color(0,0,0,0)
+## Item cards: the item's grade (ItemTuning.GRADES) draws the grade frame like a unit's rarity.
+var item_grade: StringName=&""
 const SLOT_COLORS={"equipment":["1b2440","5a7ad0","장비"],"consumable":["1a2e2a","5fb592","소모품"],"equipped":["1c3438","4fc6c0","장착"],"strategy":["2a2142","a07ad8","전략"],"cooldown":["1a1826","5a4f72","대기"]}
 var cached_style: StyleBoxFlat
 ## Entrance (UiMotion.enter): seconds since the card's mask started opening (negative while it
@@ -137,7 +139,10 @@ func _process(dt: float) -> void:
 	# Keep running only for the entrance and for the selected card's or a 전설 unit's travelling light.
 	if not _revealing() and not ((selected or button_pressed) and UiMotion.enabled) and not _shimmers():set_process(false)
 ## 전설 units keep a light running round the border.
-func _shimmers() -> bool:return UiMotion.enabled and card_type in RARITY_TYPES and UnitRarity.tier(type_id)==5 and not (dead or sold or disabled or selected or button_pressed)
+func _shimmers() -> bool:
+	if not UiMotion.enabled or dead or sold or disabled or selected or button_pressed:return false
+	if item_grade!=&"":return ItemTuning.FRAME.get(item_grade,{}).get("glint",Color(0,0,0,0)).a>0
+	return card_type in RARITY_TYPES and UnitRarity.tier(type_id)==5
 func write(at: Vector2,value: String,font_size: int=14,color: Color=Color("eef1fa"),width: float=-1,center: bool=false) -> void:
 	draw_string(get_theme_default_font(),at,ArenaUI.plain(value),HORIZONTAL_ALIGNMENT_CENTER if center else HORIZONTAL_ALIGNMENT_LEFT,width,font_size,color)
 func _draw() -> void:
@@ -206,7 +211,10 @@ func _draw() -> void:
 		var r: float=cached_style.corner_radius_top_left
 		draw_line(Vector2(r,2.5),Vector2(size.x-r,2.5),Color(1,1,1,.1),1)
 	# The selected card keeps its own gold rim, deploy cards their placed/waiting border.
-	if card_type in RARITY_TYPES and not active:
+	if item_grade!=&"" and not active:
+		UnitRarity.draw_item_frame(self,Rect2(Vector2.ONE,size-Vector2.ONE*2),item_grade,cached_style.corner_radius_top_left,sold or disabled)
+		if _shimmers() and not is_processing():set_process(true)
+	elif card_type in RARITY_TYPES and not active:
 		UnitRarity.draw_frame(self,Rect2(Vector2.ONE,size-Vector2.ONE*2),type_id,cached_style.corner_radius_top_left,dead or sold or disabled,card_type!="deploy_member")
 		if _shimmers() and not is_processing():set_process(true)
 	if UiMotion.enabled:

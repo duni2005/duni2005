@@ -1,7 +1,7 @@
 class_name CharacterLifecycle
 extends RefCounted
 ## Shared actor relationships/cargo lifecycle. No Scene references in state snapshots.
-const TIMERS = ["heal","dash","revealTime","curseTime","guardRemaining","shadowTime","guardianUltTime","mirrorReflectTime","paladinBlessingTime"]
+const TIMERS = ["heal","dash","revealTime","curseTime","guardRemaining","shadowTime","guardianUltTime","mirrorReflectTime","paladinBlessingTime","sovereignTime"]
 static func advance(battle,dt: float) -> void:
 	for u in battle.units:
 		if not u.alive:continue

@@ -164,7 +164,7 @@ func migration() -> void:
 	verify(not SaveSnapshotLoader.restore(over).ok(),"over-limit purchases reject")
 	# Item enhancement survives a save; v3 documents (no enhance) load; bad levels reject.
 	var forge: TowerController=TowerController.new();forge.new_run(19,73)
-	var gear: ItemInstance=forge.content.inventory.give(&"woodSword+staff");gear.enhance=3;forge.content.inventory.give(&"staff")
+	var gear: ItemInstance=forge.content.inventory.give(&"woodSword+hawkFeather");gear.enhance=3;forge.content.inventory.give(&"staff")
 	var saved: Dictionary=JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(forge,"save_forge",1).document))
 	var reloaded: SaveLoadResult=SaveSnapshotLoader.restore(saved.duplicate(true))
 	verify(reloaded.ok() and reloaded.controller.content.inventory.get_item(gear.item_id).enhance==3,"enhance round trip")

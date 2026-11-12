@@ -37,6 +37,8 @@ var roster_level: int = 0
 var odds_level: int = 0
 ## Mango faith stacks from offerings at mango saplings; a blessing spends them all.
 var mango_faith: int = 0
+## A one-time note from the save conversion (removed items refunded), shown after continuing.
+var item_notice: String = ""
 func give_strategy_card(kind: StringName) -> StrategyCardInstance:
 	if StrategyCardCatalog.get_card(kind) == null: return null
 	var card := StrategyCardInstance.new()

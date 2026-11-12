@@ -230,7 +230,7 @@ func render() -> void:
    var key: String="item_%d"%instance.item_id;var button: ArenaCard=pool.get(key);pool.erase(key)
    if button==null:button=ArenaCard.new();button.name=key;ArenaUI.bind(button,_inspect.bind(instance.item_id))
    var data: ItemData=ItemCatalog.of(instance);button.kind=String(instance.kind);button.title=data.display_name;button.description=data.description;button.text="%s %s · 설명 / %s"%[data.emoji,data.display_name,"사용" if data.consumable else "장착"]
-   button.status_text="아이템";button.card_type="slot";button.slot_kind=group[1];button.rarity=ItemCatalog.instance_color(instance) if not data.consumable else Color(0,0,0,0);button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description
+   button.status_text="아이템";button.card_type="slot";button.slot_kind=group[1];button.rarity=ItemCatalog.instance_color(instance) if not data.consumable else Color(0,0,0,0);button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description;button.item_grade=data.grade if not data.consumable else &""
    if group[1]=="equipped":
     var owner: GuildMemberState=guild.get_member(instance.equipped_to_member_id)
     button.owner_type=owner.unit_type_id if owner!=null else -1;button.price=ArenaUI.member_label(instance.equipped_to_member_id)+" 장착" if owner!=null else "장착 중"
@@ -335,24 +335,20 @@ func _inspect(id: int) -> void:
  pending_item_id=id;pending_member_id=selected_member_id
  var member: GuildMemberState=controller.guild.get_member(selected_member_id)
  var used: int=controller.content.inventory.equipped(selected_member_id).size();var limit: int=GuildMemberCombatStats.equipment_limit(member) if member!=null else 0
- # A basic item fuses with a basic already on the unit, so it never needs a free slot.
- var partner: ItemInstance=null
- if data.grade==&"common":
-  for gear in controller.content.inventory.equipped(selected_member_id):
-   if ItemCatalog.get_item(gear.kind).grade==&"common":partner=gear;break
- var full: bool=not data.consumable and used>=limit and partner==null
+ var full: bool=not data.consumable and used>=limit
+ # 고대: one per unit.
+ var ancient_full: bool=data.grade==&"ancient" and controller.content.inventory.equipped(selected_member_id).filter(func(g):return ItemCatalog.grade_of(g.kind)==&"ancient").size()>=ItemTuning.ANCIENT_PER_UNIT
+ full=full or ancient_full
  item_target.visible=member!=null
  if member!=null:
   item_portrait.texture=UnitIcon.texture(member.unit_type_id)
   item_member.text="%s %s · Lv. %d"%[controller.guild.definition(member.unit_type_id).display_name,ArenaUI.member_label(member.member_id),member.level]
-  item_slots.text="%d/%d"%[used,limit] if data.consumable else "조합" if partner!=null else "%d → %d / %d"%[used,mini(used+1,limit),limit]
+  item_slots.text="%d/%d"%[used,limit] if data.consumable else "%d → %d / %d"%[used,mini(used+1,limit),limit]
   item_slots.add_theme_color_override("font_color",ArenaUI.DANGER if full else ArenaUI.HP)
  item_note.text="장비 칸이 가득 찼습니다. 재각인으로 회수한 뒤 장착하세요." if full else "사용하면 사라집니다." if data.consumable else "장착한 장비는 자유롭게 해제할 수 없습니다. 회수하려면 재각인이 필요합니다."
- if partner!=null:
-  var made: ItemData=ItemCatalog.get_item(ItemCatalog.combined_kind(partner.kind,data.kind))
-  item_note.text="장착 중인 %s와 조합되어 [희귀] %s이(가) 됩니다.\n%s"%[ItemCatalog.get_item(partner.kind).display_name,made.display_name,made.description]
- item_note.add_theme_color_override("font_color",ArenaUI.DANGER if full else ItemCatalog.GRADE_COLORS[&"rare"] if partner!=null else ArenaUI.MUTED)
- item_dialog.get_ok_button().text="사용" if data.consumable else "조합" if partner!=null else "장착";item_dialog.get_ok_button().disabled=not controller.content.can_manage() or full or member==null
+ if ancient_full:item_note.text="고대 아이템은 유닛당 %d개만 장착할 수 있습니다."%ItemTuning.ANCIENT_PER_UNIT
+ item_note.add_theme_color_override("font_color",ArenaUI.DANGER if full else ArenaUI.MUTED)
+ item_dialog.get_ok_button().text="사용" if data.consumable else "장착";item_dialog.get_ok_button().disabled=not controller.content.can_manage() or full or member==null
  _show_item_sheet(String(item.kind),data.display_name,"소모품" if data.consumable else "%s 장비"%ItemCatalog.grade_name(item.kind),data.description,Color(0,0,0,0) if data.consumable else ItemCatalog.instance_color(item))
 func _inspect_card(data: StrategyCardData,on_hold: bool=false) -> void:
  pending_item_id=0;item_target.visible=false
@@ -363,5 +359,4 @@ func _inspect_card(data: StrategyCardData,on_hold: bool=false) -> void:
 func _confirm_item() -> void:
  if pending_item_id==0:return
  var result: Dictionary=controller.content_action(&"equip",{"item_id":pending_item_id,"member_id":pending_member_id});status.text="장비 적용" if result.ok else "장비 적용 불가 · "+String(result.code)
- if result.ok and result.outcome.has("combined"):status.text="조합 완료 · [희귀] "+ItemCatalog.get_item(result.outcome.combined).display_name
  pending_item_id=0;modified.emit();call_deferred("render")

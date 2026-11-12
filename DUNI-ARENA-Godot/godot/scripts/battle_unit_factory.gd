@@ -63,6 +63,7 @@ func create(placement: Dictionary, battle_id: int, battle, rng: RandomNumberGene
 	unit.initialize(battle_id, int(placement.get("team", 0)), placement.data, placement.position, rng, battle)
 	if placement.get("combat_stats") is UnitCombatStats:
 		unit.combat_stats = placement.combat_stats
+		ItemEffects.on_spawn(unit)
 		unit.move_speed *= unit.combat_stats.speed / unit.data.move_speed
 		unit.current_hp = unit.max_hp
 		unit.healing_power=unit.combat_stats.healing_power;unit.healing_received=unit.combat_stats.healing_received

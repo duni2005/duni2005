@@ -571,6 +571,15 @@ func advance(delta: float) -> void:
 					particles.burst(e.point,Color("c8ff5a"),40,gr*3,0,"shard",true);particles.burst(e.point,Color("9f6bd6"),26,gr*1.2,0,"smoke",true)
 					particles.burst(e.point,Color("e2d0ff"),18,gr*2.5,0,"spark",true)
 					impact_pause(100);camera.impact(14,e.point)
+				"chain_ring":
+					# 연쇄의 고리: a gold link snaps across to the next enemy.
+					var to: Vector2=CharacterPersistence.vector(e.metadata.get("to",{}),e.point)
+					add_effect("slime_ring",e.point,Color("ffd27a"),22,.3);add_effect("slime_ring",to,Color("ffd27a"),26,.35)
+					particles.burst(to,Color("fff1c8"),8,220,(to-e.point).angle(),"spark",true)
+				"sovereign_roar":
+					# 군주의 검: a royal gold ring rolls out over the allies it empowers.
+					add_effect("hero_shock",e.point,Color("ffcf6e"),float(e.metadata.get("radius",200)),.6)
+					particles.burst(e.point,Color("ffe08a"),14,260,-PI*.5,"spark",true)
 				"weapon_dropped":
 					# 놓침: the weapon is knocked flying with a clang.
 					add_effect("slime_ring",e.point,Color("ffe0a8"),36,.4)

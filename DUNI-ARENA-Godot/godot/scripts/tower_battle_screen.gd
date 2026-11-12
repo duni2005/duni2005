@@ -15,6 +15,8 @@ var result_wallet: WalletBar
 var result_emblem: PanelEmblem
 var result_losses: Label
 var result_rewards: Label
+## 전투 보상: the item pick under the result summary.
+var reward_row: ItemRewardRow
 var result_detail: VBoxContainer
 var result_column: VBoxContainer
 var retreat_scene: RetreatPresentation
@@ -112,7 +114,7 @@ func _process(delta: float) -> void:
 		if battle.result.end_reason==BattleEndReason.Value.RETREAT:
 			if not retreat_routed:retreat_routed=true;call_deferred("_finish_retreat_presentation")
 		else:
-			next_button.disabled=false;result_column.modulate.a=0
+			next_button.disabled=room.cleared and not room.item_choices.is_empty() and room.item_choice==&"";result_column.modulate.a=0
 			var reveal:=create_tween();reveal.tween_property(result_column,"modulate:a",1.0,.25)
 			if not reward_feedback.is_empty():presentation_requested.emit(reward_feedback);reward_feedback.clear()
 	character_debug_row.hide()
@@ -168,6 +170,7 @@ func _build_tower_result() -> void:
 	result_losses=Label.new();result_losses.add_theme_color_override("font_color",Color("ff8088"));result_detail.add_child(result_losses)
 	result_rewards=Label.new();result_rewards.add_theme_color_override("font_color",ArenaUI.HP);result_detail.add_child(result_rewards)
 	result_column.add_child(result_scroll);result_scroll.hide();result_column.add_child(result_actions)
+	result_column.add_theme_constant_override("separation",12)
 	next_button.custom_minimum_size.x=210;ArenaUI.with_icon(next_button,"play",14,true)
 func _format_result(result: BattleResult) -> void:
 	var victory: bool=room.cleared
@@ -190,6 +193,22 @@ func _format_result(result: BattleResult) -> void:
 	if result.bounty_gold>0:
 		result_rewards.text=(result_rewards.text+"\n" if result_rewards.visible else "")+"현상금 +%d G"%result.bounty_gold;result_rewards.visible=true
 	result_label.hide();result_banner.hide()
+	_show_item_reward()
+## The item reward of a won room: pick one (or skip) before going back to the map.
+func _show_item_reward() -> void:
+	if is_instance_valid(reward_row):reward_row.queue_free();reward_row=null
+	if not room.cleared or room.item_choices.is_empty():return
+	reward_row=ItemRewardRow.new();reward_row.custom_minimum_size.x=minf(420,get_viewport_rect().size.x-56)
+	result_column.add_child(reward_row);result_column.move_child(reward_row,result_actions.get_index())
+	reward_row.setup(room.item_choices,room.item_choice)
+	reward_row.picked.connect(_pick_item_reward)
+	next_button.disabled=room.item_choice==&""
+func _pick_item_reward(kind: StringName) -> void:
+	var result: Dictionary=tower_controller.content_action(&"pick_reward",{"kind":kind})
+	if not result.ok:return
+	if is_instance_valid(reward_row):reward_row.queue_free();reward_row=null
+	_show_item_reward();next_button.disabled=false
+	result_wallet.updates_suspended=false
 func _finish_retreat_presentation() -> void:
 	# The session and autosave already settled this retreat exactly once.
 	# Returning to the map only routes the existing result.

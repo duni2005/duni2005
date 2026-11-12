@@ -468,5 +468,5 @@ func character_death(victim,source) -> void:
 	victim.ability.on_death(victim)
 	if enemy_kill:
 		source.ability.on_kill(source,victim)
-		EquipmentCombatEffects.on_kill(source)
+		EquipmentCombatEffects.on_kill(source);ItemEffects.on_kill(source)
 	CharacterLifecycle.on_death(victim)

@@ -9,7 +9,7 @@ static func attack_force(damage: float, impulse: float, source, target) -> float
 	return minf(980, impulse * 2.1 * clampf(sqrt(maxf(0, damage) / maxf(1, CombatRules.attack(source))), .5, 2) / weight)
 static func apply(unit, force: Vector2, source = null, chain: int = 0) -> void:
 	if unit.battle.finished or unit.battle.clock.is_turning_paused() or not unit.alive or not force.is_finite() or force.length() < .01: return
-	if unit.unavailable() or unit.state_value("guardRemaining")>0 or not unit.duel.is_empty():return
+	if unit.unavailable() or unit.state_value("guardRemaining")>0 or not unit.duel.is_empty() or ItemEffects.immovable(unit):return
 	unit.knockback_velocity = (unit.knockback_velocity + force).limit_length(MAX_SPEED)
 	if is_instance_valid(source): unit.knockback_source_id = source.battle_id
 	if chain == 0:

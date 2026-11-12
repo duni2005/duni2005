@@ -16,10 +16,8 @@ extends Resource
 @export var kill_growth: bool = false
 @export var opening_awl: bool = false
 @export var consumable: bool = false
-## Item grade: "common" (basic, combines in pairs), "rare" (combined), "ancient", "legacy" (old saves).
+## Item grade (ItemTuning.GRADES): common, rare, epic, legendary, ancient; legacy = old saves.
 @export var grade: StringName = &"legacy"
-## Combined items: the two basic kinds they were made from.
-@export var components: Array[StringName] = []
 @export var physical_bonus: float = 0
 @export var magic_bonus: float = 0
 @export var element_bonus: float = 0
@@ -29,7 +27,26 @@ extends Resource
 @export var crit_bonus: float = 0
 ## Strength of the special flag above (totems, kill growth, awl); legacy items are 1.
 @export var ability_power: float = 1
-## Ancient effects.
+## Legendary effects (0.93 and earlier: ancient).
 @export var phoenix: bool = false
 @export var hourglass: bool = false
 @export var dragon_heart: bool = false
+## Flat physical / magic defense and an attack-range multiplier (일반).
+@export var physical_defense_bonus: float = 0
+@export var magic_defense_bonus: float = 0
+@export var range_multiplier: float = 1
+## Body size multiplier (거인의 심장).
+@export var scale_multiplier: float = 1
+## Special effects, numbers in ItemTuning (ItemEffects runs them).
+@export var duelist: bool = false
+@export var vanguard: bool = false
+@export var elementalist: bool = false
+@export var enchant: bool = false
+@export var overcharge: bool = false
+@export var chain_ring: bool = false
+@export var sovereign: bool = false
+@export var immovable: bool = false
+@export var sanctuary: bool = false
+@export var kind_swap: bool = false
+@export var crown: bool = false
+@export var dice: bool = false

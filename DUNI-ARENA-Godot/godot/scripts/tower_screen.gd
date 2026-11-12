@@ -99,8 +99,22 @@ func route_loaded() -> void:
 	if phase in [&"route",&"gameover",&"result"]:
 		# A result is already settled. Display stored room status, never settle again.
 		show_map()
-		if phase==&"result":make_button(body,"정산 완료 · 지도로 계속",func():if controller.return_map():show_map())
+		if phase==&"result":
+			var node: RoomState=controller.current_room()
+			# A win saved before its item was picked: pick (or skip) here, then go on.
+			if controller.content!=null and controller.content.pending_reward(node):
+				var row:=ItemRewardRow.new();body.add_child(row);row.setup(node.item_choices,&"")
+				row.picked.connect(func(kind):if controller.content_action(&"pick_reward",{"kind":kind}).ok and controller.return_map():show_map())
+			else:make_button(body,"정산 완료 · 지도로 계속",func():if controller.return_map():show_map())
 	else:_show_selected_room()
+	_show_item_notice()
+## Shown once after continuing a save the 0.94 item conversion changed (refunded items).
+func _show_item_notice() -> void:
+	var note: String=controller.guild.state.item_notice
+	if note.is_empty():return
+	controller.guild.state.item_notice="";controller.request_save()
+	var dialog:=AcceptDialog.new();dialog.title="아이템 개편 안내";dialog.dialog_text=note;dialog.dialog_autowrap=true;dialog.get_ok_button().text="확인";add_child(dialog)
+	dialog.confirmed.connect(dialog.queue_free);dialog.popup_centered(Vector2i(mini(360,int(get_viewport_rect().size.x)-24),0))
 ## The run is over: the tower failure screen takes over. Leaving it to the main menu deletes the
 ## save (nothing to continue); 다시하기 starts a fresh run in its place.
 func show_failure() -> void:

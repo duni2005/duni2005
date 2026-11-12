@@ -33,8 +33,8 @@ static func faction_of(entry: Dictionary) -> int:
 	return int(entry.team) if int(entry.team) >= 0 else SOLO_FACTION_BASE + int(entry.id)
 static func equippable_items() -> Array[StringName]:
 	var kinds: Array[StringName] = []
-	# Basics (two of them fuse into a rare item) and ancient items.
-	kinds.assign(ItemCatalog.BASIC+ItemCatalog.ANCIENT)
+	# Every current item of every grade (고대 only here); 재각인 is a tower consumable.
+	kinds.assign(ItemCatalog.current().filter(func(k):return not ItemCatalog.get_item(k).consumable))
 	return kinds
 
 func get_entry(id: int) -> Dictionary:
@@ -84,11 +84,8 @@ func set_stance(id: int, stance: StringName) -> void:
 func equip(id: int, kind: StringName) -> String:
 	var entry: Dictionary = get_entry(id)
 	if entry.is_empty() or not kind in equippable_items():return "장착할 수 없는 아이템입니다."
-	if ItemCatalog.get_item(kind).grade == &"common":
-		for i in range(entry.items.size()):
-			if ItemCatalog.get_item(entry.items[i]).grade == &"common":
-				entry.items[i] = ItemCatalog.combined_kind(entry.items[i], kind);return ""
 	if entry.items.size() >= MAX_ITEMS:return "아이템 슬롯이 가득 찼습니다."
+	if ItemCatalog.grade_of(kind) == &"ancient" and entry.items.filter(func(k):return ItemCatalog.grade_of(k) == &"ancient").size() >= ItemTuning.ANCIENT_PER_UNIT:return "고대 아이템은 유닛당 %d개만 장착할 수 있습니다." % ItemTuning.ANCIENT_PER_UNIT
 	entry.items.append(kind)
 	return ""
 func unequip(id: int, index: int) -> bool:

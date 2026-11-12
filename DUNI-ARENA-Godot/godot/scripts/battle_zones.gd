@@ -97,7 +97,7 @@ func advance(battle,dt: float) -> void:
 		elif z.kind=="blackhole":
 			for enemy in u.enemies(false):
 				var d: float=point.distance_to(enemy.position)
-				if d<float(z.radius) and enemy.invincible_remaining<=0 and enemy.state_value("mirrorReflectTime")<=0 and enemy.evade_remaining<=0 and not ParryController.perfect(enemy) and not enemy.unavailable() and not enemy.is_dashing():enemy.position=MovementController.clamp_position(enemy.position+(point-enemy.position).normalized()*(1-d/float(z.radius))*145*dt)
+				if d<float(z.radius) and enemy.invincible_remaining<=0 and enemy.state_value("mirrorReflectTime")<=0 and enemy.evade_remaining<=0 and not ParryController.perfect(enemy) and not enemy.unavailable() and not enemy.is_dashing() and not ItemEffects.immovable(enemy):enemy.position=MovementController.clamp_position(enemy.position+(point-enemy.position).normalized()*(1-d/float(z.radius))*145*dt)
 		elif z.kind=="discharge":
 			z.age=float(z.age)+dt
 			var radius: float=float(z.radius)*clampf(float(z.age)/.22,0,1)

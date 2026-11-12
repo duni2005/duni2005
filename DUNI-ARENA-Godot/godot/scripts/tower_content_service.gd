@@ -9,9 +9,8 @@ const HOT_SPRING_COST = 200
 const REST_REVIVE_LIMIT = 3
 ## Token shop event offers: token price and how many times each can be bought in one visit
 ## (0 = no limit). revive: one chosen dead member at 20% HP; heal: every living member +5% HP;
-## item: a random basic item; card: a random strategy card; restore: one chosen living member to full.
-## Blacksmith: basic-pair trades allowed per visit.
-const BLACKSMITH_TRADES = 2
+## item: a random item from the floor table; card: a random strategy card; restore: one chosen
+## living member to full.
 ## Mango sapling: a free revive of one dead member, an offering of MANGO_OFFERING gold for one
 ## faith stack, and (when faith is held on entry) a blessing that spends all faith for gold.
 ## Each once per room.
@@ -25,11 +24,11 @@ static func blessing_gold(faith: int) -> int:return 400+50*faith*(faith+1) if fa
 const GAMBLE_COST = 200
 const GAMBLE_LIMITS = {&"roulette":{"limit":1},&"dice":{"limit":1}}
 const ROULETTE = [&"miss",&"gold100",&"gold300",&"gold600",&"gold1000",&"tokens2",&"item",&"card"]
+## The roulette "아이템" slot uses its own grade odds (ItemTuning.ROULETTE_ODDS).
 ## Per-visit purchase limits of the open events, offer name -> {"limit"}.
 static func purchase_limits(event_type: StringName) -> Dictionary:
 	match event_type:
 		&"tokenShop":return TOKEN_SHOP
-		&"blacksmith":return {&"trade":{"limit":BLACKSMITH_TRADES}}
 		&"mangoSapling":return MANGO_LIMITS
 		&"gambler":return GAMBLE_LIMITS
 	return {}
@@ -78,20 +77,24 @@ func create_offers(node: RoomState,revision: int) -> Array[RecruitOffer]:
 func ensure_recruit(node: RoomState) -> void:
 	if node.recruit!=null:return
 	node.recruit=RecruitState.new();node.recruit.offers=create_offers(node,0)
+## The shelf is rolled once per shop room and kept for later visits: ItemTuning.SHOP_ITEMS items
+## from the floor table (all different, owned 전설 left out) priced by grade, and the strategy
+## cards as before.
 func ensure_shop(node: RoomState) -> void:
 	if node.shop!=null:return
 	node.shop=ShopState.new()
-	var items: Array=ItemCatalog.KINDS.duplicate();var cards: Array=StrategyCardCatalog.DEFINITIONS.keys()
-	# Executable web evaluation draws count, then shuffles each pool.
-	var count: int=rng.randi_range(2,3);shuffle(items);items=items.slice(0,count)
+	var count: int=rng.randi_range(ItemTuning.SHOP_ITEMS.x,ItemTuning.SHOP_ITEMS.y)
+	var items: Array=ItemRewards.roll(rng,ItemRewards.odds(node.floor_index),count,ItemRewards.owned_legendaries(guild.state))
+	var cards: Array=StrategyCardCatalog.DEFINITIONS.keys()
 	count=rng.randi_range(2,3);shuffle(cards);cards=cards.slice(0,count)
-	for category in [&"equipment",&"card"]:
-		for kind in items if category==&"equipment" else cards:
-			var quantity: int=2 if rng.randf()<.2 else 1
-			for copy in range(quantity):
-				var offer:=ShopOffer.new();offer.category=category;offer.kind=kind;offer.offer_id="%s:stock:%s:%s:%d"%[node.room_id,category,kind,copy]
-				offer.gold_price=ItemCatalog.get_item(kind).gold_price if category==&"equipment" else StrategyCardCatalog.get_card(kind).gold_price
-				node.shop.offers.append(offer)
+	for kind in items:
+		var offer:=ShopOffer.new();offer.category=&"equipment";offer.kind=kind;offer.offer_id="%s:stock:equipment:%s:0"%[node.room_id,kind]
+		offer.gold_price=ItemCatalog.price(kind);node.shop.offers.append(offer)
+	for kind in cards:
+		var quantity: int=2 if rng.randf()<.2 else 1
+		for copy in range(quantity):
+			var offer:=ShopOffer.new();offer.category=&"card";offer.kind=kind;offer.offer_id="%s:stock:card:%s:%d"%[node.room_id,kind,copy]
+			offer.gold_price=StrategyCardCatalog.get_card(kind).gold_price;node.shop.offers.append(offer)
 func ensure_event(node: RoomState) -> void:
 	if node.event!=null:return
 	var event:=EventState.new();event.event_type=node.event_type;node.event=event
@@ -100,8 +103,9 @@ func ensure_event(node: RoomState) -> void:
 		&"supply":
 			event.choices=[&"heal",&"guild",&"gold",&"loot"]
 			event.treasure_kind=&"item" if rng.randf()<.5 else &"card"
-			var pool: Array=ItemCatalog.KINDS.duplicate() if event.treasure_kind==&"item" else StrategyCardCatalog.DEFINITIONS.keys()
-			event.treasure_reward=pool[rng.randi_range(0,pool.size()-1)]
+			if event.treasure_kind==&"item":event.treasure_reward=ItemRewards.one(rng,guild.state,node.floor_index)
+			else:
+				var pool: Array=StrategyCardCatalog.DEFINITIONS.keys();event.treasure_reward=pool[rng.randi_range(0,pool.size()-1)]
 		&"prediction":event.prediction=PredictionRules.create(rng)
 		# The token shop stays open for any number of purchases; leaving ends the event.
 		&"tokenShop":event.choices=[&"leave"]
@@ -169,24 +173,14 @@ func equip(item_id: int,member_id: String) -> Dictionary:
 		for gear in equipment:gear.equipped_to_member_id=""
 		instance.consumed=true;member.current_hp=minf(member.current_hp,guild.member_stats(member).max_hp)
 		return success({"returned_items":equipment.map(func(i):return i.item_id)})
-	# Like auto-chess: a basic item meeting another basic on the same unit fuses into one rare item.
-	var partner: ItemInstance=null
-	if item.grade==&"common":
-		for gear in equipment:
-			if ItemCatalog.get_item(gear.kind).grade==&"common":partner=gear;break
-	if partner==null and equipment.size()>=GuildMemberCombatStats.equipment_limit(member):return failure(&"slots_full")
+	if equipment.size()>=GuildMemberCombatStats.equipment_limit(member):return failure(&"slots_full")
+	# 고대: at most ItemTuning.ANCIENT_PER_UNIT on one unit.
+	if item.grade==&"ancient" and equipment.filter(func(g):return ItemCatalog.grade_of(g.kind)==&"ancient").size()>=ItemTuning.ANCIENT_PER_UNIT:return failure(&"ancient_limit")
 	var state: Dictionary=member.character_specific_state
 	var stats: UnitCombatStats=guild.member_stats(member)
-	if partner!=null:
-		var receipt: String="combine:%d:%d"%[partner.item_id,instance.item_id]
-		partner.equipped_to_member_id="";partner.consumed=true;instance.consumed=true
-		var made: ItemInstance=inventory.give(ItemCatalog.combined_kind(partner.kind,instance.kind),receipt)
-		item=ItemCatalog.get_item(made.kind);instance=made
-		stats=guild.member_stats(member)
 	if item.vigor_totem and stats.vigor_totem_count==0:state["totemClock"]=5
 	if item.charge_totem and stats.charge_totem_count==0:state["chargeTotemClock"]=4
 	member.character_specific_state=state;instance.equipped_to_member_id=member_id
-	if partner!=null:return success({"item_id":instance.item_id,"member_id":member_id,"combined":instance.kind,"components":[partner.item_id,item_id]})
 	return success({"item_id":item_id,"member_id":member_id})
 ## Buys experience in packs of GrowthRules.EXP_PACK. Levels gained raise HP by the max-HP gain
 ## (reviving a fallen unit); the rest stays as progress toward the next level.
@@ -287,7 +281,7 @@ func token_shop(choice: StringName,member_id: String="") -> Dictionary:
 			outcome["hp_gained"]=GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp);outcome["member_id"]=member.member_id
 		&"heal":
 			for living in guild.living_members():GuildMemberCombatStats.heal(guild,living,guild.member_stats(living).max_hp*.05)
-		&"item":outcome["item_id"]=inventory.give(ItemCatalog.BASIC[rng.randi_range(0,ItemCatalog.BASIC.size()-1)]).item_id
+		&"item":outcome["item_id"]=inventory.give(ItemRewards.one(rng,guild.state,room().floor_index)).item_id
 		&"card":
 			var kinds: Array=StrategyCardCatalog.DEFINITIONS.keys();outcome["card_id"]=guild.state.give_strategy_card(kinds[rng.randi_range(0,kinds.size()-1)]).card_id
 	e.purchases[String(choice)]=bought+1
@@ -296,7 +290,8 @@ func token_shop(choice: StringName,member_id: String="") -> Dictionary:
 func blacksmith_event() -> EventState:
 	if not live() or room()==null or guild.state.tower.phase!=&"event_active" or room().event==null or room().event.event_type!=TowerController.BLACKSMITH or room().event.resolved:return null
 	return room().event
-## Raises a rare item (equipped or not) one level, up to ItemCatalog.MAX_ENHANCE; always succeeds.
+## Raises a 희귀 · 영웅 · 전설 item (equipped or not) one level, up to ItemCatalog.MAX_ENHANCE;
+## always succeeds.
 func blacksmith_enhance(item_id: int) -> Dictionary:
 	if blacksmith_event()==null:return failure(&"wrong_event")
 	var instance: ItemInstance=inventory.get_item(item_id)
@@ -305,45 +300,31 @@ func blacksmith_enhance(item_id: int) -> Dictionary:
 	if not ResourceTransaction.can_spend(guild.state,cost,0,receipt):return failure(&"funds")
 	ResourceTransaction.spend(guild.state,cost,0,receipt);instance.enhance+=1
 	return success({"item_id":item_id,"enhance":instance.enhance,"gold_spent":cost})
-## Two unequipped basic items, or [] when the ids do not name such a pair.
-func trade_materials(ids: Array) -> Array[ItemInstance]:
-	var items: Array[ItemInstance]=[]
-	if ids.size()!=2 or int(ids[0])==int(ids[1]):return items
-	for id in ids:
-		var item: ItemInstance=inventory.get_item(int(id))
-		if item==null or item.consumed or not item.equipped_to_member_id.is_empty() or ItemCatalog.get_item(item.kind).grade!=&"common":items.clear();return items
-		items.append(item)
-	return items
-## The three rare items offered for a pair: the pair's own combination first, then two others.
-## Fixed for the room, trade number and pair, so changing the pair back shows the same offer.
-func trade_offers(ids: Array) -> Array[StringName]:
-	var offers: Array[StringName]=[];var items: Array[ItemInstance]=trade_materials(ids)
-	if items.is_empty() or room()==null:return offers
-	var own: StringName=ItemCatalog.combined_kind(items[0].kind,items[1].kind);offers.append(own)
-	var pool: Array=ItemCatalog.all().values().filter(func(i):return i.grade==&"rare" and i.kind!=own).map(func(i):return i.kind)
-	var pick:=RandomNumberGenerator.new();pick.seed=hash([room().source_run_id,room().room_id,int(room().event.purchases.get("trade",0)),String(own)])
-	for i in range(2):offers.append(pool.pop_at(pick.randi_range(0,pool.size()-1)))
-	return offers
-## Trades two basic items for one of the three offered rare items (BLACKSMITH_TRADES per visit).
-func blacksmith_trade(ids: Array,kind: StringName) -> Dictionary:
-	var e: EventState=blacksmith_event()
-	if e==null:return failure(&"wrong_event")
-	var done: int=int(e.purchases.get("trade",0))
-	if done>=BLACKSMITH_TRADES:return failure(&"sold_out")
-	if not inventory.valid():return failure(&"invalid_inventory")
-	var items: Array[ItemInstance]=trade_materials(ids)
-	if items.is_empty():return failure(&"invalid_selection")
-	if not kind in trade_offers(ids):return failure(&"invalid_choice")
-	for item in items:item.consumed=true
-	var made: ItemInstance=inventory.give(kind,"%s:trade:%d"%[room().room_id,done]);e.purchases["trade"]=done+1
-	return success({"item_id":made.item_id,"components":ids.duplicate()})
-## Sells an unequipped basic item for half its price.
+## Sells an unequipped 일반 or 희귀 item for half its shop price (ItemTuning.SELL_RATE).
 func blacksmith_sell(item_id: int) -> Dictionary:
 	if blacksmith_event()==null:return failure(&"wrong_event")
 	var instance: ItemInstance=inventory.get_item(item_id)
 	if instance==null or instance.consumed or not instance.equipped_to_member_id.is_empty() or ItemCatalog.sell_price(instance.kind)<=0:return failure(&"invalid_target")
 	var gold: int=ItemCatalog.sell_price(instance.kind);instance.consumed=true;guild.state.gold+=gold
 	return success({"item_id":item_id,"gold":gold})
+## 전투 보상: after a win the room offers ItemTuning.REWARD_CHOICES items, rolled once from the floor
+## table cut to the room's lowest grade (전투 일반+, 미니보스 희귀+, 보스 영웅+); owned 전설 left out.
+func roll_battle_reward(node: RoomState,source: RandomNumberGenerator) -> void:
+	if node==null or not node.item_choices.is_empty() or node.item_choice!=&"":return
+	var lowest: StringName=ItemTuning.REWARD_MIN_GRADE.get(node.room_type,&"common")
+	node.item_choices=ItemRewards.roll(source,ItemRewards.odds(node.floor_index,lowest),ItemTuning.REWARD_CHOICES,ItemRewards.owned_legendaries(guild.state))
+func pending_reward(node: RoomState) -> bool:return node!=null and not node.item_choices.is_empty() and node.item_choice==&""
+## Takes one offered item, or &"skip" for ItemTuning.SKIP_GOLD gold. Once per room.
+func pick_reward(kind: StringName) -> Dictionary:
+	var node: RoomState=room()
+	if not pending_reward(node) or guild.state.tower.phase!=&"result":return failure(&"no_reward")
+	if kind==&"skip":
+		guild.state.gold+=ItemTuning.SKIP_GOLD;node.item_choice=&"skip";return success({"gold":ItemTuning.SKIP_GOLD,"skipped":true})
+	if not kind in node.item_choices:return failure(&"invalid_choice")
+	if not inventory.valid():return failure(&"invalid_inventory")
+	var item: ItemInstance=inventory.give(kind,"reward:"+node.room_id)
+	if item==null:return failure(&"invalid_item")
+	node.item_choice=kind;return success({"item_id":item.item_id,"kind":kind})
 ## Mango sapling: one of revive (member_id), offer or bless.
 func mango(choice: StringName,member_id: String="") -> Dictionary:
 	if not live() or room()==null or guild.state.tower.phase!=&"event_active" or room().event==null or room().event.event_type!=&"mangoSapling" or room().event.resolved:return failure(&"wrong_event")
@@ -383,7 +364,9 @@ func gamble(choice: StringName) -> Dictionary:
 		match reward:
 			&"miss":pass
 			&"tokens2":guild.state.tokens+=2;outcome["tokens"]=2
-			&"item":outcome["item_id"]=inventory.give(ItemCatalog.BASIC[rng.randi_range(0,ItemCatalog.BASIC.size()-1)]).item_id
+			&"item":
+				var won: Array[StringName]=ItemRewards.roll(rng,ItemTuning.ROULETTE_ODDS,1,ItemRewards.owned_legendaries(guild.state))
+				outcome["item_id"]=inventory.give(won[0] if not won.is_empty() else &"warmNecklace").item_id
 			&"card":
 				var kinds: Array=StrategyCardCatalog.DEFINITIONS.keys();outcome["card_id"]=guild.state.give_strategy_card(kinds[rng.randi_range(0,kinds.size()-1)]).card_id
 			_:var gold: int=int(String(reward).trim_prefix("gold"));guild.state.gold+=gold;outcome["gold"]=gold
@@ -414,7 +397,7 @@ func event(choice: StringName) -> Dictionary:
 			match reward:
 				&"item",&"items":
 					var ids: Array=[]
-					for i in range(2 if reward==&"items" else 1):ids.append(inventory.give(ItemCatalog.KINDS[rng.randi_range(0,9)]).item_id)
+					for i in range(2 if reward==&"items" else 1):ids.append(inventory.give(ItemRewards.one(rng,guild.state,room().floor_index)).item_id)
 					outcome["items"]=ids
 				&"strategy":
 					var kinds: Array=StrategyCardCatalog.DEFINITIONS.keys();outcome["card_id"]=guild.state.give_strategy_card(kinds[rng.randi_range(0,kinds.size()-1)]).card_id
@@ -441,15 +424,15 @@ func event(choice: StringName) -> Dictionary:
 	else:return failure(&"invalid_event")
 	e.selected_choice=choice;e.resolved=true;e.outcome=outcome.duplicate(true)
 	return completion(choice,outcome,e.event_type==&"hotSpring")
-## Material gear fills the lead in this order: ancient, then rare (combined), then the rest.
-const GEAR_PRIORITY = {&"ancient":2,&"rare":1}
+## Material gear fills the lead in grade order (ItemTuning.GEAR_PRIORITY): 고대 > 전설 > 영웅 > 희귀 > 일반.
+const GEAR_PRIORITY = ItemTuning.GEAR_PRIORITY
 ## A unit can promote with two more living units of the same character and star rank.
 func promotion_eligible(member: GuildMemberState) -> bool:
 	if member==null or not member.is_alive() or member.stars>=GrowthRules.MAX_STARS:return false
 	return guild.living_members().filter(func(m):return m.unit_type_id==member.unit_type_id and m.stars==member.stars).size()>=3
 ## The lead stays and gains a star; the two materials are consumed. Experience is pooled with a
 ## bonus, HP becomes the three units' average, and the materials' gear fills the lead's free slots
-## (ancient first, then rare, then the rest; random within a grade; leftovers go to the inventory).
+## (highest grade first; random within a grade; leftovers go to the inventory).
 func promote(lead_id: String,material_ids: Array) -> Dictionary:
 	if not inventory.valid():return failure(&"invalid_inventory")
 	if not can_manage():return failure(&"management_locked")
@@ -472,7 +455,6 @@ func promote(lead_id: String,material_ids: Array) -> Dictionary:
 	gear.sort_custom(func(a,b):return GEAR_PRIORITY.get(ItemCatalog.get_item(a.kind).grade,0)>GEAR_PRIORITY.get(ItemCatalog.get_item(b.kind).grade,0))
 	var placed: Array=[];var returned: Array=[]
 	for item in gear:
-		# Equipping runs the usual rules, so two basics on the lead still fuse into a rare item.
 		var result: Dictionary=equip(item.item_id,lead.member_id)
 		if result.ok:placed.append(item.item_id)
 		else:returned.append(item.item_id)
@@ -492,7 +474,7 @@ func execute(action: StringName,options: Dictionary={}) -> Dictionary:
 		&"event":return event(options.get("choice",&""))
 		&"token_shop":return token_shop(options.get("choice",&""),options.get("member_id",""))
 		&"enhance":return blacksmith_enhance(options.get("item_id",0))
-		&"trade":return blacksmith_trade(options.get("items",[]),options.get("kind",&""))
+		&"pick_reward":return pick_reward(options.get("kind",&""))
 		&"sell":return blacksmith_sell(options.get("item_id",0))
 		&"mango":return mango(options.get("choice",&""),options.get("member_id",""))
 		&"gamble":return gamble(options.get("choice",&""))
