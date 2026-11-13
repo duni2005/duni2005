@@ -115,8 +115,6 @@ func stats_for(entry: Dictionary) -> UnitCombatStats:
 		var item: ItemData = ItemCatalog.prism(ItemCatalog.custom_prism(int(entry.id), slot)) if kind == &"prismShard" else ItemCatalog.get_item(kind)
 		if item == null:continue
 		stats.apply_item(item)
-	# 망고 씨앗 is fully grown in custom battles.
-	if stats.has(&"mangoSeed"):stats.mango_stage = ItemTuning.MANGO_STAGES
 	stats.finish_items()
 	stats.max_hp = floorf(stats.max_hp + .5)
 	stats.equipment_attack_without_growth = stats.attack

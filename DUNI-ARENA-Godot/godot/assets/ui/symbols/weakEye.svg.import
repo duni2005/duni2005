@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bid273oyyu2md"
-path="res://.godot/imported/salvationFeather.svg-1bc560f4dbc27a9fdb9a4f651eab7cb8.ctex"
+uid="uid://7xqbbj17u5a1"
+path="res://.godot/imported/weakEye.svg-7914123aaf5070de651f8fab929aa841.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/symbols/salvationFeather.svg"
-dest_files=["res://.godot/imported/salvationFeather.svg-1bc560f4dbc27a9fdb9a4f651eab7cb8.ctex"]
+source_file="res://assets/ui/symbols/weakEye.svg"
+dest_files=["res://.godot/imported/weakEye.svg-7914123aaf5070de651f8fab929aa841.ctex"]
 
 [params]
 

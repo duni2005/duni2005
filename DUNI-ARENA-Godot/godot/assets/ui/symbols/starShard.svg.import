@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ddca83jahyctk"
-path="res://.godot/imported/markBadge.svg-f5a98019aad7a9c0956c2a2270874539.ctex"
+uid="uid://draky1wws4d6j"
+path="res://.godot/imported/starShard.svg-6db4058461be0afbdd77797edd3f079a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/symbols/markBadge.svg"
-dest_files=["res://.godot/imported/markBadge.svg-f5a98019aad7a9c0956c2a2270874539.ctex"]
+source_file="res://assets/ui/symbols/starShard.svg"
+dest_files=["res://.godot/imported/starShard.svg-6db4058461be0afbdd77797edd3f079a.ctex"]
 
 [params]
 

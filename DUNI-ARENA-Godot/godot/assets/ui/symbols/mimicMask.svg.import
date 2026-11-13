@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://415oluf387eg"
-path="res://.godot/imported/regenCore.svg-d59ce5e1e08d7fe20f8bb1947ad2e7e8.ctex"
+uid="uid://dea0xf3jdwvsd"
+path="res://.godot/imported/mimicMask.svg-c2d91b3491ccf0480e68637de5a821e1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/symbols/regenCore.svg"
-dest_files=["res://.godot/imported/regenCore.svg-d59ce5e1e08d7fe20f8bb1947ad2e7e8.ctex"]
+source_file="res://assets/ui/symbols/mimicMask.svg"
+dest_files=["res://.godot/imported/mimicMask.svg-c2d91b3491ccf0480e68637de5a821e1.ctex"]
 
 [params]
 

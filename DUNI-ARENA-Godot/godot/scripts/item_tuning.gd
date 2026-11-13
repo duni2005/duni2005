@@ -64,54 +64,14 @@ const ANCIENT_PER_UNIT: int = 1
 const GEAR_PRIORITY = {&"ancient":5, &"legendary":4, &"epic":3, &"rare":2, &"common":1}
 
 # ---- Item numbers ----
-## Combined items before 0.94 got both components' bonuses this much stronger; the five rare
-## items with abilities keep those numbers.
-const OLD_COMBINE_FACTOR: float = 1.25
-## New 일반.
+## 0.96 (아이템 재점검): every item of 희귀 and up has stat lines plus one effect, no penalties.
+## Stat lines per item (ItemData fields) are in ItemCatalog; the effect numbers are here.
+## 일반 (0.94).
 const MAGIC_CLOAK_DEFENSE: float = 20
 const STURDY_SHIELD_DEFENSE: float = 20
 const SCOPE_RANGE: float = .1
-## 결투가의 장갑: +5% per consecutive hit on the same target, up to +30%.
-const DUELIST_STEP: float = .05
-const DUELIST_MAX: float = .3
-## 선봉의 방패: -30% damage taken for the first 10 s of a battle.
-const VANGUARD_TIME: float = 10
-const VANGUARD_TAKEN: float = .7
-## 원소술사의 서: +20% damage to a target with burn, poison, frost, shock or erosion.
-const ELEMENTALIST_DEALT: float = 1.2
-## 마법 부여 검: basic hits gain the bearer's element (fire when it has none).
-const ENCHANT_DEFAULT_ELEMENT: StringName = &"fire"
-## 과충전 코어: gauge refund right after an ultimate.
-const OVERCHARGE_REFUND: float = 25
-## 연쇄의 고리: every Nth basic hit jumps once to the nearest other enemy within range.
-const CHAIN_EVERY: int = 3
-const CHAIN_RANGE: float = 200
-## 군주의 검: attack +40%; each kill gives allies within the radius +10% attack (stacks, timer).
-const SOVEREIGN_ATTACK: float = .4
-const SOVEREIGN_RADIUS: float = 200
-const SOVEREIGN_BUFF: float = .1
-const SOVEREIGN_TIME: float = 8
-const SOVEREIGN_STACKS: int = 3
-## 거인의 심장.
-const GIANT_HP: float = .4
-const GIANT_SCALE: float = 1.2
-const GIANT_SPEED: float = -.1
-## 성역의 등불: allies (the bearer too) within the radius take -20%.
-const SANCTUARY_RADIUS: float = 150
-const SANCTUARY_TAKEN: float = .8
-## 저주받은 왕관: every stat +50%; in the tower the bearer's max HP drops 5% for good after each battle.
-const CROWN_STATS: float = .5
-const CROWN_DECAY: float = .05
-## 도박사의 주사위: one random stat +100%, another -30%, rolled each battle.
-const DICE_UP: float = 1.0
-const DICE_DOWN: float = -.3
-const DICE_STATS: Array[String] = ["max_hp", "physical_damage", "magic_damage", "defense", "speed", "attack_speed"]
-const DICE_STAT_NAMES = {"max_hp":"최대 HP", "physical_damage":"물리 피해", "magic_damage":"마법 피해", "defense":"방어력", "speed":"이동속도", "attack_speed":"공격속도"}
-
-# ---- 0.95 items (ItemEffects runs them; ItemCatalog writes the text from these) ----
-## Prices of the ten 0.95 일반 items (higher grades use GRADE_PRICES).
+## 일반 (0.95).
 const NEW_COMMON_PRICES = {&"finisherCharm":150, &"quillHead":140, &"steelKnuckle":140, &"powderPouch":140, &"broadBlade":140, &"rustyNail":130, &"whetstone":150, &"ironHelm":130, &"windBoots":130, &"prismShard":150}
-## 일반 stat lines.
 const FINISHER_ULT: float = .15
 const QUILL_PROJECTILE: float = .15
 const KNUCKLE_MELEE: float = .15
@@ -131,7 +91,12 @@ const PRISM_BONUS: float = .3
 const PROC_ICON_TIME: float = .8
 const PROC_ICON_GAP: float = 1.0
 
-## 희귀
+# ---- 희귀 ----
+const DUELIST_STEP: float = .05
+const DUELIST_MAX: float = .3
+const VANGUARD_TIME: float = 10
+const VANGUARD_TAKEN: float = .7
+const ELEMENTALIST_DEALT: float = 1.2
 const BERSERK_HP: float = .5
 const BERSERK_ATTACK_SPEED: float = .35
 const SCOPE_DISTANCE: float = 250
@@ -140,84 +105,125 @@ const VAMPIRE_LEECH: float = .1
 const HUNTER_TIME: float = 3
 const HUNTER_ATTACK_SPEED: float = .5
 const THORN_REFLECT: float = .25
-const FIRST_STRIKE: float = 1.5
-const SALVATION_HP: float = .3
-const SALVATION_RANGE: float = 420
-const SALVATION_SPEED: float = .4
-const SALVATION_REACH: float = 60
-const SALVATION_SHIELD: float = .15
-const SALVATION_SHIELD_TIME: float = 6
-const SALVATION_USES: int = 2
 const BLEED_TIME: float = 3
 const BLEED_EVERY: float = .5
 const BLEED_SHARE: float = .3
 const CHALICE_SHIELD_CAP: float = .2
 const CHALICE_SHIELD_TIME: float = 5
-const SPORE_CHANCE: float = .25
-const SPORE_RADIUS: float = 90
-## 영웅
-const ECHO_CHANCE: float = .2
+## 첫 일격의 반지: every FIRST_STRIKE_EVERY s the next basic attack +FIRST_STRIKE.
+const FIRST_STRIKE: float = 1.0
+const FIRST_STRIKE_EVERY: float = 8
+## 수호의 깃털: dropping under GUARD_FEATHER_HP shields GUARD_FEATHER_SHIELD of max HP, once a battle.
+const GUARD_FEATHER_HP: float = .3
+const GUARD_FEATHER_SHIELD: float = .25
+const GUARD_FEATHER_TIME: float = 8
+## 독 바른 단검: a basic attack poisons (1 stack) at this chance.
+const POISON_DAGGER_CHANCE: float = .25
+
+# ---- 영웅 ----
+const ENCHANT_DEFAULT_ELEMENT: StringName = &"fire"
+const OVERCHARGE_REFUND: float = 25
+const CHAIN_EVERY: int = 3
+const CHAIN_RANGE: float = 200
+const ECHO_CHANCE: float = .25
 const ECHO_SHARE: float = .5
 const ECHO_DELAY: float = .15
-const SCYTHE_HP: float = .12
-const COUNTER_SHIELD_TIME: float = 3
-const HORN_HEAL: float = .1
-const OATH_SHARE: float = .3
-const OATH_CAP: float = .3
-const OATH_RADIUS: float = 140
-const OATH_SHIELD_TIME: float = 5
-const BADGE_LIGHT_HEAL: float = .1
-const BADGE_DARK_POP: float = 1.4
 const GREATSWORD_EVERY: int = 3
 const GREATSWORD_DEALT: float = 1.5
 const GREATSWORD_PUSH: float = 420
+const COUNTER_SHIELD_TIME: float = 3
+## 처형의 낫: an attack on an enemy at SCYTHE_HP or less kills it; elites and bosses take +SCYTHE_ELITE instead.
+const SCYTHE_HP: float = .15
+const SCYTHE_ELITE: float = .3
+const HORN_HEAL: float = .15
+## 관통의 송곳 / 무한의 칼날 (critical hits): this share of the target's defense is ignored.
+const PIERCE_DEFENSE: float = .3
+## 수호의 사슬: the bearer takes GUARD_CHAIN_SHARE of what its nearest ally takes, at half (GUARD_CHAIN_CUT).
+const GUARD_CHAIN_SHARE: float = .2
+const GUARD_CHAIN_CUT: float = .5
+## 약점 간파의 눈: a target the bearer hits takes +WEAK_TAKEN damage from everyone for WEAK_TIME.
+const WEAK_TAKEN: float = 1.12
+const WEAK_TIME: float = 4
+## 원소 폭발석: killing an enemy with element stacks bursts around it and passes 2 stacks of each.
 const STONE_RADIUS: float = 100
-const WIND_TRAIL_TIME: float = 2
-const WIND_TRAIL_STEP: float = .2
-const WIND_TRAIL_WIDTH: float = 34
-## 전설
+const STONE_STACKS: int = 2
+## 신속의 망토: projectile damage taken.
+const SWIFT_PROJECTILE_TAKEN: float = .75
+
+# ---- 전설 ----
+const SOVEREIGN_RADIUS: float = 200
+const SOVEREIGN_BUFF: float = .1
+const SOVEREIGN_TIME: float = 8
+const SOVEREIGN_STACKS: int = 3
+const GIANT_HP: float = .4
+const GIANT_SCALE: float = 1.2
+const SANCTUARY_RADIUS: float = 150
+const SANCTUARY_TAKEN: float = .8
 const STORM_RADIUS: float = 300
 const STORM_SHOCK: int = 2
 const INFINITY_CRIT: float = .2
 const INFINITY_CRIT_DAMAGE: float = .6
 const BOWSTRING_PIERCE: int = 4
 const BOWSTRING_STEP: float = .15
-const VEIL_TIME: float = 5
-const VEIL_STRIKE: float = 3
-const ELDER_HEAL_EVERY: float = 5
-const ELDER_HEAL: float = .03
-const ELDER_GROW_EVERY: float = 10
-const ELDER_GROW: float = .02
-const ELDER_STACKS: int = 5
-const REGEN_HEAL: float = .2
-const REGEN_TIME: float = 2
-const REGEN_TAKEN: float = .7
-const RESONANCE_RADIUS: float = 150
-const RESONANCE_HEAL: float = .15
 const ETERNAL_CAP: float = .15
-const BLOOD_LEECH: float = .05
-const FROST_CROWN_RADIUS: float = 100
-const FROST_CROWN_STACKS: int = 2
-## 고대
-const MIRROR_HP: float = .5
-const MIRROR_DAMAGE: float = .5
-const MANGO_STAGES: int = 5
+## 암살자의 장막: VEIL_TIME s hidden at the start and after every kill; attacks while hidden x VEIL_STRIKE.
+const VEIL_TIME: float = 3
+const VEIL_STRIKE: float = 2
+## 거목의 심장: heals this share of max HP every second.
+const ELDER_REGEN: float = .015
+## 생명의 공명: an ultimate heals the bearer and allies around by RESONANCE_HEAL, taking -30% for REGEN_TIME.
+const RESONANCE_RADIUS: float = 150
+const RESONANCE_HEAL: float = .2
+const REGEN_TIME: float = 3
+const REGEN_TAKEN: float = .7
+## 전쟁의 북: every ally attack speed +DRUM_SPEED, +DRUM_OPENING for the first DRUM_OPENING_TIME s.
+const DRUM_SPEED: float = .15
+const DRUM_OPENING: float = .3
+const DRUM_OPENING_TIME: float = 10
+## 피의 성배: allies heal BLOOD_LEECH of their direct damage, the bearer BLOOD_LEECH_SELF.
+const BLOOD_LEECH: float = .12
+const BLOOD_LEECH_SELF: float = .2
+## 원소 왕관: the bearer's element stacks always land, with this many more.
+const ELEMENT_CROWN_EXTRA: int = 1
+
+# ---- 고대 ----
+## 쌍둥이의 거울: the copy's HP and damage.
+const MIRROR_HP: float = .7
+const MIRROR_DAMAGE: float = .7
+## 모든 스탯 +N% (쌍둥이의 거울, 행운의 주사위 10%; 왕의 왕관 30%): max HP, damage, defenses, speeds.
+const ALL_STATS_SMALL: float = .1
+const CROWN_STATS: float = .3
+## 왕의 왕관: while the bearer lives every ally gets all stats +KING_AURA.
+const KING_AURA: float = .08
+## 황금 망고: a shield for every ally at the start, healing every MANGO_EVERY s.
+const MANGO_SHIELD: float = .15
+const MANGO_SHIELD_TIME: float = 10
 const MANGO_EVERY: float = 10
 const MANGO_HEAL: float = .05
-const REWIND_AT: float = 30
+## 시간술사의 시계: a lethal blow sends the bearer back to its HP and place REWIND_BACK s earlier (once).
+const REWIND_BACK: float = 5
+## 끝없는 모래시계: battles without turning points fill the gauge at the same times.
 const HOURGLASS_FIRST: float = 12
 const HOURGLASS_EVERY: float = 30
-const VOID_PER: float = 10
-const VOID_STEP: float = .01
-const VOID_MAX: float = 1.0
-const GREED_GOLD: int = 1
-const GREED_MAX: int = 100
-const GREED_TAKEN: float = 1.25
+## 탐욕의 황금손: GREED_KILL_GOLD per kill (tower only); attack +GREED_STEP per GREED_PER gold owned.
+const GREED_KILL_GOLD: int = 15
+const GREED_PER: int = 100
+const GREED_STEP: float = .01
+const GREED_MAX: float = .5
+## 폭주 기관: attack speed +OVERDRIVE_STEP a second, up to OVERDRIVE_MAX.
 const OVERDRIVE_STEP: float = .03
-const OVERDRIVE_TIME: float = 30
-const OVERHEAT_TIME: float = 3
-const COMPASS_RADIUS: float = 220
-const COMPASS_TURN: float = 5.0
-const COMPASS_BOOST: float = .3
-const DOLL_SHARE: float = .3
-const DOLL_DEALT: float = .6
+const OVERDRIVE_MAX: float = .9
+## 행운의 주사위: one stat rolled each battle, +DICE_MIN..DICE_MAX.
+const DICE_MIN: float = .6
+const DICE_MAX: float = 1.2
+const DICE_STATS: Array[String] = ["max_hp", "physical_damage", "magic_damage", "defense", "speed", "attack_speed"]
+const DICE_STAT_NAMES = {"max_hp":"최대 HP", "physical_damage":"물리 피해", "magic_damage":"마법 피해", "defense":"방어력", "speed":"이동속도", "attack_speed":"공격속도"}
+## 영혼 수확자: every death on the field heals SOUL_HEAL and adds SOUL_GROW max HP and attack.
+const SOUL_HEAL: float = .1
+const SOUL_GROW: float = .05
+## 별의 파편: every STAR_EVERY s meteors fall on STAR_TARGETS random enemies (area STAR_RADIUS).
+const STAR_EVERY: float = 8
+const STAR_TARGETS: int = 3
+const STAR_RADIUS: float = 70
+## 저주 인형: reflects this share of all damage taken to the attacker.
+const DOLL_REFLECT: float = .3

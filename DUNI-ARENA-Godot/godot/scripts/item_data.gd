@@ -47,9 +47,6 @@ extends Resource
 @export var sovereign: bool = false
 @export var immovable: bool = false
 @export var sanctuary: bool = false
-@export var kind_swap: bool = false
-@export var crown: bool = false
-@export var dice: bool = false
 ## 0.95: one special effect key run by ItemEffects (&"" = stats only), bonuses by damage tag or
 ## element (tag -> share), ultimate / critical damage bonuses, and the element a 프리즘 조각 rolled.
 @export var effect: StringName = &""
@@ -57,3 +54,6 @@ extends Resource
 @export var ult_damage_bonus: float = 0
 @export var crit_damage_bonus: float = 0
 @export var element_choice: StringName = &""
+## 0.96: "모든 스탯 +N%" (max HP, damage, defenses, speeds) and healing given only.
+@export var all_stats: float = 0
+@export var heal_power_bonus: float = 0

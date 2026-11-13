@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b4d5tgpoh0hfm"
-path="res://.godot/imported/hexRing.svg-a038508fd2c477aa75685b392c42b19c.ctex"
+uid="uid://cinh8hh3in58m"
+path="res://.godot/imported/commanderScepter.svg-fb386b648d16dfbd132f2c5539ec8983.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/symbols/hexRing.svg"
-dest_files=["res://.godot/imported/hexRing.svg-a038508fd2c477aa75685b392c42b19c.ctex"]
+source_file="res://assets/ui/symbols/commanderScepter.svg"
+dest_files=["res://.godot/imported/commanderScepter.svg-fb386b648d16dfbd132f2c5539ec8983.ctex"]
 
 [params]
 

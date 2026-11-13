@@ -55,15 +55,13 @@ var chain_ring: bool = false
 var sovereign: bool = false
 var immovable: bool = false
 var sanctuary: bool = false
-var kind_swap: bool = false
-var crown: bool = false
-var dice: bool = false
-## 0.95 items: effect key -> how many worn, the items themselves (빈 액자 copies one), the enemy
-## rank (normal / elite / boss; 처형의 낫 spares the last two) and the 망고 씨앗 stage.
+## 0.96: "모든 스탯 +N%" summed over the worn items (applied in finish_items).
+var all_stats: float = 0
+## 0.95 items: effect key -> how many worn, the items themselves and the enemy rank (normal /
+## elite / boss; 처형의 낫 treats the last two differently).
 var effects: Dictionary = {}
 var items: Array = []
 var rank: StringName = &"normal"
-var mango_stage: int = 0
 
 ## Base stats of a character from UnitStatTable, with level-style growth factors.
 static func from_table(data: UnitData,hp_factor: float=1,damage_factor: float=1,defense_factor: float=1,speed_factor: float=1) -> UnitCombatStats:
@@ -93,7 +91,7 @@ func apply_item(item: ItemData) -> void:
 	duelist=duelist or item.duelist;vanguard=vanguard or item.vanguard;elementalist=elementalist or item.elementalist
 	enchant=enchant or item.enchant;overcharge_count+=int(item.overcharge);chain_ring=chain_ring or item.chain_ring
 	sovereign=sovereign or item.sovereign;immovable=immovable or item.immovable;sanctuary=sanctuary or item.sanctuary
-	kind_swap=kind_swap or item.kind_swap;crown=crown or item.crown;dice=dice or item.dice
+	all_stats+=item.all_stats;healing_power*=1+item.heal_power_bonus
 	if item.effect!=&"":effects[item.effect]=int(effects.get(item.effect,0))+1
 	for tag in item.tag_bonuses:
 		var field: Dictionary=element_bonus if tag in UnitStatTable.ELEMENTS else tag_bonus
@@ -109,13 +107,13 @@ func add_item_live(item: ItemData) -> void:
 	apply_item(item)
 	physical_damage*=physical_power/physical;magic_damage*=magic_power/magic
 ## Item damage powers scale the physical / magic damage stats; call once after all items.
-## 저주받은 왕관 raises every stat; 두 얼굴의 가면 then swaps the physical and magic damage stats.
+## "모든 스탯 +N%" (왕의 왕관, 쌍둥이의 거울, 행운의 주사위) then raises every stat.
 func finish_items() -> void:
 	physical_damage*=physical_power;magic_damage*=magic_power
-	if crown:
-		var k: float=1+ItemTuning.CROWN_STATS
-		max_hp*=k;physical_damage*=k;magic_damage*=k;defense*=k;physical_defense*=k;magic_defense*=k;speed*=k;attack_speed*=k
-	if kind_swap:var keep: float=physical_damage;physical_damage=magic_damage;magic_damage=keep
+	if all_stats>0:scale_all(1+all_stats)
+## Max HP, damage, defenses and speeds times k.
+func scale_all(k: float) -> void:
+	max_hp*=k;physical_damage*=k;magic_damage*=k;defense*=k;physical_defense*=k;magic_defense*=k;speed*=k;attack_speed*=k
 ## A separate copy (도박사의 주사위 changes its numbers for one battle only).
 func copy() -> UnitCombatStats:
 	var out:=UnitCombatStats.new()

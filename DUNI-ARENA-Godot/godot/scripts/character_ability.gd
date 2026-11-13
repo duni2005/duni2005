@@ -46,8 +46,7 @@ static func nearest(u,list: Array):
 static func restore_hp(target, base: float, source=null) -> float:
 	if target==null or not target.alive or base<=0:return 0
 	var want: float=base*(source.healing_power*ElementEffects.healing(source) if source!=null else 1)*target.healing_received*ElementEffects.healing(target)
-	# 공허의 심장 turns healing into attack; 생명의 성배 turns overhealing into a shield.
-	if ItemEffects.void_heal(target,want):return 0
+	# 생명의 성배 turns overhealing into a shield.
 	var gain: float=minf(target.max_hp-target.current_hp,want)
 	target.current_hp+=gain;target.battle.stats.heal(source,target,gain)
 	ItemEffects.overflow(target,want-gain,source);return gain

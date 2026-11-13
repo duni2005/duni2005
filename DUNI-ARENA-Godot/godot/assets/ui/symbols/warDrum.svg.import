@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c8wbalefjmrlu"
-path="res://.godot/imported/twoFacedMask.svg-6c13d58eedbed5c6aab8ea0255e58481.ctex"
+uid="uid://t3n1med17nr2"
+path="res://.godot/imported/warDrum.svg-6a32cfe7d03c4aa27dc3211d1b80f7f9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/symbols/twoFacedMask.svg"
-dest_files=["res://.godot/imported/twoFacedMask.svg-6c13d58eedbed5c6aab8ea0255e58481.ctex"]
+source_file="res://assets/ui/symbols/warDrum.svg"
+dest_files=["res://.godot/imported/warDrum.svg-6a32cfe7d03c4aa27dc3211d1b80f7f9.ctex"]
 
 [params]
 

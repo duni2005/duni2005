@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://btf4temq8gkhi"
-path="res://.godot/imported/magnetCompass.svg-e629928f05ebbc363b514d8e9d81e97f.ctex"
+uid="uid://4k7a42brqk7s"
+path="res://.godot/imported/guardFeather.svg-b27c4c9a99e2d96e65a3ab5e0517896c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/symbols/magnetCompass.svg"
-dest_files=["res://.godot/imported/magnetCompass.svg-e629928f05ebbc363b514d8e9d81e97f.ctex"]
+source_file="res://assets/ui/symbols/guardFeather.svg"
+dest_files=["res://.godot/imported/guardFeather.svg-b27c4c9a99e2d96e65a3ab5e0517896c.ctex"]
 
 [params]
 

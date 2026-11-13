@@ -6,7 +6,6 @@ static func heal(unit: BattleUnit, base: float) -> float:
 	# Strategy recovery during hold uses the recipient's healing received, no caster.
 	var gain: float = minf(maxf(0, base)*(unit.healing_received*ElementEffects.healing(unit) if unit.battle.full_characters_enabled else 1), unit.max_hp - unit.current_hp)
 	if not unit.alive or gain <= 0: return 0
-	if unit.battle.full_characters_enabled and ItemEffects.void_heal(unit, gain): return 0
 	unit.current_hp += gain
 	unit.battle.stats.heal(null, unit, gain)
 	unit.queue_redraw()

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b7oio4ltnlai4"
-path="res://.godot/imported/sporeMoss.svg-ac2bca28694c1a48e629273b1a41db46.ctex"
+uid="uid://dagqw5ubpkc7r"
+path="res://.godot/imported/soulReaper.svg-10b328c7a04a404bd0cc1b8e220cfb67.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/symbols/sporeMoss.svg"
-dest_files=["res://.godot/imported/sporeMoss.svg-ac2bca28694c1a48e629273b1a41db46.ctex"]
+source_file="res://assets/ui/symbols/soulReaper.svg"
+dest_files=["res://.godot/imported/soulReaper.svg-10b328c7a04a404bd0cc1b8e220cfb67.ctex"]
 
 [params]
 

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b2fio3vack8op"
-path="res://.godot/imported/voidHeart.svg-968b87f136c628525ecf5a560585d5b7.ctex"
+uid="uid://dgs5est8j047i"
+path="res://.godot/imported/guardChain.svg-79a7d29fec7b9ecf3e2cf4b2493142f9.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/symbols/voidHeart.svg"
-dest_files=["res://.godot/imported/voidHeart.svg-968b87f136c628525ecf5a560585d5b7.ctex"]
+source_file="res://assets/ui/symbols/guardChain.svg"
+dest_files=["res://.godot/imported/guardChain.svg-79a7d29fec7b9ecf3e2cf4b2493142f9.ctex"]
 
 [params]
 

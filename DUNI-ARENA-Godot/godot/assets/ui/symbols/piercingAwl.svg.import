@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ciumojhgmy77l"
-path="res://.godot/imported/emptyFrame.svg-96167aa95502ae106fbd4870b4e785a2.ctex"
+uid="uid://cetbwe1p0cygg"
+path="res://.godot/imported/piercingAwl.svg-ad4cf1ffcdbdcf9d72516b46383bcd06.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/symbols/emptyFrame.svg"
-dest_files=["res://.godot/imported/emptyFrame.svg-96167aa95502ae106fbd4870b4e785a2.ctex"]
+source_file="res://assets/ui/symbols/piercingAwl.svg"
+dest_files=["res://.godot/imported/piercingAwl.svg-ad4cf1ffcdbdcf9d72516b46383bcd06.ctex"]
 
 [params]
 

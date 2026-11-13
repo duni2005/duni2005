@@ -81,7 +81,7 @@ static func outgoing(source, target, spec: Dictionary, options: Dictionary) -> f
 	var factor: float = 1
 	if spec.get("tags", []).has(&"wind"):factor *= 1 + WIND_DAMAGE * source.state_value("windStacks")
 	var mark: String = str(target.character_specific_state.get("darkMark", ""))
-	if not mark.is_empty() and mark != source.actor_id() and direct(spec, options):factor *= ItemEffects.dark_pop(source, target.position)
+	if not mark.is_empty() and mark != source.actor_id() and direct(spec, options):factor *= DARK_POP
 	# 목표 (석궁): wind damage taken +15% in all (the general +10% comes from taken()).
 	if target.state_value("targetedTime") > 0 and spec.get("tags", []).has(&"wind"):factor *= TARGETED_WIND / TARGETED_TAKEN
 	if source.state_value("giftPowerTime") > 0:factor *= GIFT_FACTOR
@@ -128,7 +128,7 @@ static func on_hit(source, target, out: DamageOutcome, spec: Dictionary, options
 			battle.emit_combat_event(&"dark_pop", target.position, {"actor_id": target.battle_id, "to": [me]})
 		if str(target.character_specific_state.get("lightMark", "")) not in ["", me]:
 			target.character_specific_state.erase("lightMark")
-			if source.alive:CharacterAbility.restore_hp(source, source.max_hp * ItemEffects.light_pop(source), source)
+			if source.alive:CharacterAbility.restore_hp(source, source.max_hp * LIGHT_POP_HEAL, source)
 			battle.emit_combat_event(&"light_pop", target.position, {"actor_id": target.battle_id, "to": [me]})
 	if tags.has(&"light") and out.hp_damage > 0 and source.alive:
 		var healed: Array = []
@@ -140,13 +140,14 @@ static func on_hit(source, target, out: DamageOutcome, spec: Dictionary, options
 	if status != &"" and status != &"chain_shock":return
 	if target.alive:
 		var rng: RandomNumberGenerator = battle.rng
-		if tags.has(&"lightning"):add_shock(target, int(options.get("shock_stacks", 1)))
+		# 원소 왕관: the bearer's element stacks always land, one more each time.
+		var crown: bool = ItemEffects.has(source, &"frostCrown");var extra: int = ItemTuning.ELEMENT_CROWN_EXTRA if crown else 0
+		if tags.has(&"lightning"):add_shock(target, int(options.get("shock_stacks", 1)) + extra)
 		if status != &"":return
-		if tags.has(&"fire") and rng.randf() < PROC_CHANCE:add_burn(source, target, BURN_STACKS)
-		if tags.has(&"poison") and rng.randf() < PROC_CHANCE:
-			target.set_state("poisonStacks", target.state_value("poisonStacks") + 1);target.set_state("poisonSource", me)
-		# 서리 왕관: ice always lands a frost stack.
-		if tags.has(&"ice") and not source.ability.own_element(&"ice", options) and (ItemEffects.has(source, &"frostCrown") or rng.randf() < PROC_CHANCE):add_frost(source, target, 1)
+		if tags.has(&"fire") and (crown or rng.randf() < PROC_CHANCE):add_burn(source, target, BURN_STACKS + extra)
+		if tags.has(&"poison") and (crown or rng.randf() < PROC_CHANCE):
+			target.set_state("poisonStacks", target.state_value("poisonStacks") + 1 + extra);target.set_state("poisonSource", me)
+		if tags.has(&"ice") and not source.ability.own_element(&"ice", options) and (crown or rng.randf() < PROC_CHANCE):add_frost(source, target, 1 + extra)
 		if tags.has(&"wind"):target.set_state("headwindTime", HEADWIND_TIME)
 		if tags.has(&"light"):
 			if str(target.character_specific_state.get("lightMark", "")) != me:battle.emit_combat_event(&"light_mark", target.position, {"actor_id": target.battle_id})

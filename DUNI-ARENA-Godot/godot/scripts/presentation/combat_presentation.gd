@@ -47,7 +47,7 @@ var emit_clock: Dictionary={}
 ## Element status damage numbers and badges (ElementEffects).
 const STATUS_COLORS={&"burn":Color("ff9a52"),&"burn_spread":Color("ffb27a"),&"poison":Color("8fe36b"),&"frostbite":Color("a8e4ff"),&"chain_shock":Color("9fdcff"),&"erosion":Color("b48cff"),
 	# Item damage (ItemEffects): small numbers like element statuses.
-	&"chain_ring":Color("ffd27a"),&"bleed":Color("ff5a6a"),&"item_thorns":Color("d8b98a"),&"item_echo":Color("c49dff"),&"item_burst":Color("ffb46a"),&"item_storm":Color("bfe9ff"),&"item_execute":Color("efe6ff")}
+	&"chain_ring":Color("ffd27a"),&"bleed":Color("ff5a6a"),&"item_thorns":Color("d8b98a"),&"item_echo":Color("c49dff"),&"item_burst":Color("ffb46a"),&"item_storm":Color("bfe9ff"),&"item_execute":Color("efe6ff"),&"item_doll":Color("b48cd8"),&"item_star":Color("ffd27a")}
 ## 0.95 item visuals (icons over heads, item effects, lasting looks).
 var item_fx: ItemFx
 var kill_notices: Array[Dictionary]=[]

@@ -18,9 +18,8 @@ var recent: Dictionary = {}
 var bleed_clock: float = 0
 const MAX_MARKS: int = 48
 ## Effects that fire on many hits; at most one every LIMIT_GAP seconds per item.
-const LIMITED = ["vampireFang", "bloodChalice", "greedPouch", "voidHeart", "salvationFeather", "sniperScope", "hexRing"]
+const LIMITED = ["vampireFang", "bloodChalice", "sniperScope", "weakEye", "poisonDagger", "guardChain", "shadowDoll"]
 const LIMIT_GAP: float = .14
-const KIND_COLORS = {"physical": Color("ffa64a"), "magic": Color("7fd0ff")}
 const ELEMENT_COLORS = {"fire": Color("ff8a3d"), "poison": Color("8fe36b"), "ice": Color("a8e4ff"), "lightning": Color("bfe9ff")}
 
 func _init(presentation) -> void:host = presentation
@@ -68,19 +67,10 @@ func event(e: Dictionary) -> void:
 		"thornArmor":_mark("thorns", at, .35, {"to": CharacterPersistence.vector(m.get("to", {}), at)})
 		"firstStrikeRing":
 			host.add_effect("hero_shock", at, Color("fff6d8"), 80, .4);p.burst(at, Color.WHITE, 16, 300, 0, "spark", true)
-		"salvationFeather":
-			if m.get("trail", false):p.burst(at, Color("f4f6ff"), 2, 50, -PI * .5, "mote", false)
-			else:host.add_effect("shield_hit", at, Color("dfe8ff"), 40);p.burst(at, Color("f4f6ff"), 14, 180, -PI * .5, "mote", true)
 		"bleedBlade":p.burst(at, Color("e5525e"), 8, 160, PI * .5, "spark", true)
 		"lifeChalice":
 			_mark("cup", CharacterPersistence.vector(m.get("from", {}), at), .7)
 			host.add_effect("shield_hit", at, Color("ffe08a"), 34)
-		"sporeMoss":
-			host.add_effect("slime_ring", at, Color("8fe36b"), float(m.get("radius", 90)), .55)
-			p.burst(at + Vector2(0, 14), Color("4f8a3a"), 10, 70, 0, "plume", true);p.burst(at, Color("b9f08f"), 8, 120, -PI * .5, "mote", false)
-		"hexRing":
-			var c: Color = KIND_COLORS.get(str(m.get("kind", "physical")), Color.WHITE)
-			_mark("rune", at, .4, {"color": c});p.burst(at, c, 5, 140, 0, "spark", false)
 		"echoStaff":
 			if m.has("from"):_mark("echo", CharacterPersistence.vector(m.from, at), .35, {"to": at})
 			host.add_effect("slime_ring", at, Color("c49dff"), 30, .4)
@@ -89,18 +79,12 @@ func event(e: Dictionary) -> void:
 			if m.get("strike", false):_mark("shield_flash", at, .45)
 			else:_mark("shield_spark", at, .5, {"actor": int(m.actor_id)})
 		"rageHorn":host.add_effect("hero_shock", at, Color("ff5a5a"), 60, .45);p.burst(at, Color("ff6a6a"), 12, 140, -PI * .5, "heal", true)
-		"oathChain":_mark("chain", at, .5, {"to": CharacterPersistence.vector(m.get("to", {}), at)})
-		"markBadge":
-			var light: bool = m.get("light", true)
-			_mark("badge", at, .6, {"color": Color("ffe9a0") if light else Color("b48cff")})
-			host.add_effect("light_pop" if light else "dark_pop", at, Color("ffe9a0") if light else Color("b48cff"), 70, .6)
 		"steelGreatsword":host.add_effect("hero_shock", at, Color("dfe6f0"), 85, .45);p.burst(at, Color("eef3fa"), 14, 260, 0, "shard", true);host.camera.impact(4, at)
 		"elementStone":
 			var c: Color = ELEMENT_COLORS.get(str(m.get("element", "fire")), Color("ffb46a"))
 			host.add_effect("fireball", at, c, float(m.get("radius", 100)) * .8, .7, 0)
 			if shader:host.shader_fx.shock(at, float(m.get("radius", 100)), .45, c)
 			for to in targets:p.burst(CharacterPersistence.vector(to, at), c, 6, 120, 0, "shard", true);_mark("shard", at, .3, {"to": CharacterPersistence.vector(to, at), "color": c})
-		"windTrail":pass
 		"stormCrown":
 			_mark("cloud", at, 1.0)
 			for to in targets:
@@ -116,7 +100,6 @@ func event(e: Dictionary) -> void:
 		"elderHeart":
 			if m.has("grow"):host.add_effect("slime_ring", at, Color("b8875a"), 40, .5);p.burst(at, Color("87b65f"), 10, 120, -PI * .5, "mote", true)
 			else:p.burst(at + Vector2(0, 16), Color("87b65f"), 5, 60, -PI * .5, "mote", false)
-		"regenCore":host.add_effect("slime_ring", at, Color("77edb4"), 44, .6);p.burst(at, Color("77edb4"), 12, 120, -PI * .5, "heal", true)
 		"lifeResonance":
 			host.add_effect("hero_shock", at, Color("8fe36b"), float(m.get("radius", 150)), .7)
 			for to in targets:p.burst(CharacterPersistence.vector(to, at), Color("b9f08f"), 6, 90, -PI * .5, "heal", false)
@@ -126,19 +109,27 @@ func event(e: Dictionary) -> void:
 		"twinMirror":_mark("ripple", at, .7);p.burst(at, Color("dfe8ff"), 12, 160, 0, "mote", true)
 		"mangoSeed":
 			for to in targets:_mark("mango", CharacterPersistence.vector(to, at), .8)
-		"emptyFrame":_mark("frame", at, .9, {"copy": str(m.get("copy", "")), "from": CharacterPersistence.vector(m.get("from", {}), at)})
 		"rewindClock":
 			var path: Array = []
 			for q in m.get("path", []):path.append(CharacterPersistence.vector(q, at))
 			_mark("rewind", at, .9, {"path": path});p.burst(at, Color("d0b8ff"), 14, 160, 0, "mote", true)
 		"invertedHourglass":_mark("hourglass", at, .9);p.burst(at + Vector2(0, -30), Color("eec45e"), 10, 90, -PI * .5, "mote", true)
-		"voidHeart":p.burst(at, Color("1c1728"), 3, 50, 0, "smoke", false)
 		"greedPouch":_mark("coin", at, .5)
 		"overdriveEngine":host.add_effect("slime_ring", at, Color("ff6a3d"), 40, .6);p.burst(at, Color("6b5a5a"), 10, 70, -PI * .5, "smoke", true)
-		"magnetCompass":host.add_effect("slime_ring", at, Color("ff8a9a"), 30, .3)
 		"shadowDoll":
-			host.number("status", at, float(m.get("amount", 0)), Color("a9a6b4"), -100 - int(m.actor_id))
-			_mark("thread", CharacterPersistence.vector(m.get("from", {}), at), .35, {"to": at})
+			# 저주 인형: a dark thread from the doll to the attacker it hurts back.
+			_mark("thread", CharacterPersistence.vector(m.get("from", {}), at), .35, {"to": at});p.burst(at, Color("4a2a5a"), 4, 70, 0, "smoke", false)
+		"guardFeather":host.add_effect("shield_hit", at, Color("dfe8ff"), 44);p.burst(at, Color("f4f6ff"), 14, 180, -PI * .5, "mote", true)
+		"poisonDagger":p.burst(at, Color("8fe36b"), 5, 90, -PI * .5, "mote", false)
+		"weakEye":_mark("crosshair", at, .45)
+		"guardChain":
+			if m.has("amount"):host.number("status", at, float(m.amount), Color("a9a6b4"), -100 - int(m.actor_id))
+			else:_mark("chain", at, .4, {"to": CharacterPersistence.vector(m.get("to", {}), at)})
+		"warDrum":host.add_effect("hero_shock", at, Color("ffb36b"), 160, .6);p.burst(at, Color("ffd08a"), 12, 200, 0, "spark", true)
+		"mimicMask":host.add_effect("slime_ring", at, Color("c49dff"), 60, .5);_mark("badge", at, .6, {"color": Color("c49dff"), "icon": "mimicMask"})
+		"soulReaper":_mark("orb", at, .6, {"to": CharacterPersistence.vector(m.get("to", {}), at), "color": Color("b9d8ff"), "size": 5.0})
+		"starShard":
+			for to in targets:_mark("meteor", CharacterPersistence.vector(to, at), .55, {"radius": float(m.get("radius", 70))})
 
 ## Marks the newest damage number at a point (무한의 칼날 makes it bigger, 영겁의 갑주 cracks it).
 func _boost_number(at: Vector2, flag: String) -> void:
@@ -146,17 +137,8 @@ func _boost_number(at: Vector2, flag: String) -> void:
 		var n: Dictionary = host.numbers[i]
 		if float(n.age) < .3 and n.kind in ["damage", "critical"] and Vector2(n.point).distance_to(at) < 40:n[flag] = true;return
 
-## The ground layer: 바람의 궤적 streaks.
-func draw_ground(c: CanvasItem) -> void:
-	for u in host.battle.units:
-		if not u.alive or not u.character_specific_state.has("windTrail"):continue
-		var trail: Array = u.character_specific_state.windTrail;var now: float = host.battle.clock.elapsed
-		for i in range(1, trail.size()):
-			var a: Dictionary = trail[i - 1];var b: Dictionary = trail[i]
-			var fade: float = 1 - clampf((now - float(b.t)) / ItemTuning.WIND_TRAIL_TIME, 0, 1)
-			var pa := Vector2(float(a.x), float(a.y));var pb := Vector2(float(b.x), float(b.y))
-			c.draw_line(pa, pb, Color("e8fbff", .35 * fade), 10 * u.combat_scale(), true)
-			c.draw_line(pa + Vector2(0, 6), pb + Vector2(0, 6), Color("b5f0c8", .4 * fade), 3, true)
+## The ground layer (nothing since 0.96; kept for the presentation's call order).
+func draw_ground(_c: CanvasItem) -> void:pass
 
 ## Looks that last while the item's condition holds, drawn with the unit (p: body centre, s: scale).
 func draw_unit(c: CanvasItem, u: BattleUnit, p: Vector2, s: float) -> void:
@@ -164,6 +146,11 @@ func draw_unit(c: CanvasItem, u: BattleUnit, p: Vector2, s: float) -> void:
 	var t: float = host.real_age;var stats: UnitCombatStats = u.combat_stats
 	if u.character_specific_state.has("mirrorOf"):
 		c.draw_arc(p, 30 * s, 0, TAU, 32, Color("e8eef8", .55 + .2 * sin(t * 3)), 2, true)
+	# Team auras: 왕의 왕관 (a small gold crown light), 전쟁의 북 (beat rings), 약점 노출 (red reticle).
+	if ItemEffects.king_blessed(u):VfxArt.glow(c, p + Vector2(0, -50 * s), 8 * s, Color("ffd36b"), .45)
+	if ItemEffects.drummed(u) and fposmod(t, .8) < .2:c.draw_arc(p, (26 + fposmod(t, .8) * 40) * s, 0, TAU, 24, Color("ffb36b", .35), 1.5, true)
+	if u.state_value("weakTime") > 0:
+		c.draw_arc(p, 20 * s, t * 2, t * 2 + 1.2, 10, Color("ff5a5a", .8), 2, true);c.draw_arc(p, 20 * s, t * 2 + PI, t * 2 + PI + 1.2, 10, Color("ff5a5a", .8), 2, true)
 	if stats == null or stats.effects.is_empty():return
 	var head: Vector2 = p + Vector2(0, -44 * s)
 	if stats.has(&"berserkerHelm") and ItemEffects.berserk(u):
@@ -178,39 +165,31 @@ func draw_unit(c: CanvasItem, u: BattleUnit, p: Vector2, s: float) -> void:
 	if stats.has(&"oblivionVeil") and u.state_value("shadowTime") > 0:
 		VfxArt.glow(c, p, 40 * s, Color("2a2238"), .45)
 	if stats.has(&"overdriveEngine"):
-		var speed: float = 1 + u.state_value("overdrive") * .25;var at: Vector2 = p + Vector2(26, -20) * s
-		var hot: bool = u.state_value("overheatTime") > 0
+		var speed: float = 1 + minf(30, u.state_value("overdrive")) * .25;var at: Vector2 = p + Vector2(26, -20) * s
 		for k in range(6):
 			var a: float = t * speed + k * TAU / 6
-			c.draw_line(at + Vector2.from_angle(a) * 5 * s, at + Vector2.from_angle(a) * 9 * s, Color("ff5a3a") if hot else Color("c9d2de"), 2.5, true)
-		c.draw_circle(at, 4 * s, Color("ff5a3a") if hot else Color("8a95a6"))
-		if hot:VfxArt.glow(c, p, 38 * s, Color("ff4a2a"), .35)
-	if stats.has(&"magnetCompass"):
-		var r: float = ItemTuning.COMPASS_RADIUS * s
-		for k in range(2):
-			var a: float = t * (.6 if k == 0 else -.4)
-			for j in range(8):c.draw_arc(p, r * (1 - k * .12), a + j * TAU / 8, a + j * TAU / 8 + .35, 6, Color("ff8a9a" if k == 0 else "8ab8ff", .22), 1.5, true)
-	if u.state_value("rewindLeft") > 0:
+			c.draw_line(at + Vector2.from_angle(a) * 5 * s, at + Vector2.from_angle(a) * 9 * s, Color("c9d2de"), 2.5, true)
+		c.draw_circle(at, 4 * s, Color("8a95a6"))
+	if u.state_value("rewindReady") > 0:
 		var at: Vector2 = head + Vector2(0, -16 * s)
 		c.draw_arc(at, 8 * s, 0, TAU, 20, Color("d0b8ff", .8), 1.5, true)
 		c.draw_line(at, at + Vector2.from_angle(-t * 3) * 6 * s, Color("d0b8ff"), 1.5, true)
 	if stats.has(&"mangoSeed"):
-		var stage: int = int(u.state_value("mangoStage"));var at: Vector2 = head + Vector2(18, 0) * s
-		c.draw_line(at, at + Vector2(0, -4 - stage * 2) * s, Color("87b65f"), 2, true)
-		for k in range(mini(stage, 4)):c.draw_circle(at + Vector2((k % 2 * 2 - 1) * 3, -3 - k * 2) * s, 2 * s, Color("8fe36b"))
-		if stage >= ItemTuning.MANGO_STAGES:c.draw_circle(at + Vector2(0, -16) * s, 3 * s, Color("ffb347"))
-	if stats.has(&"elderHeart") and u.state_value("elderStacks") > 0:
-		c.draw_arc(p, 29 * s, 0, TAU, 28, Color("8a6440", .7), 1 + u.state_value("elderStacks") * 1.2, true)
+		var at: Vector2 = head + Vector2(18, 0) * s
+		c.draw_line(at, at + Vector2(0, -8) * s, Color("87b65f"), 2, true);c.draw_circle(at + Vector2(0, -12) * s, 3.5 * s, Color("ffc34a"))
+	if stats.has(&"elderHeart"):c.draw_arc(p, 29 * s, 0, TAU, 28, Color("8a6440", .55), 2, true)
 	if u.state_value("regenTime") > 0:
 		VfxArt.glow(c, p, 36 * s, Color("77edb4"), .3 + .15 * sin(t * 10));c.draw_circle(p, 5 * s, Color("b6ffd8"))
 	if stats.has(&"stormCrown"):VfxArt.glow(c, head + Vector2(0, -10 * s), 14 * s, Color("5a6680"), .4)
-	if stats.has(&"frostCrown"):VfxArt.glow(c, head + Vector2(0, -6 * s), 10 * s, Color("bfeaff"), .45 + .15 * sin(t * 4))
-	if stats.has(&"oathChain") and u.stance == CombatStance.COVER:
-		var ward = host.battle.find_actor(u.cover_actor_id)
-		if ward != null and ward.alive and ward.position.distance_to(p) <= ItemTuning.OATH_RADIUS * s:_chain(c, p, ward.position, .45)
-	if stats.has(&"shadowDoll"):
-		var link = ItemEffects.doll_link(u)
-		if link != null:c.draw_line(p, link.position, Color("17121f", .45), 1.5, true)
+	if stats.has(&"frostCrown"):VfxArt.glow(c, head + Vector2(0, -6 * s), 10 * s, Color("ffb46a").lerp(Color("bfeaff"), .5 + .5 * sin(t * 2)), .45)
+	if stats.has(&"soulReaper") and u.state_value("soulStacks") > 0:
+		for k in range(mini(6, int(u.state_value("soulStacks")))):
+			var a: float = t * 1.5 + k * TAU / 6;VfxArt.glow(c, p + Vector2.from_angle(a) * 24 * s, 5 * s, Color("b9d8ff"), .5)
+	if stats.has(&"guardChain"):
+		var ward = host.battle.units.filter(func(a):return a != u and a.alive and a.team == u.team and not a.character_specific_state.has("mirrorOf"))
+		if not ward.is_empty():
+			ward.sort_custom(func(x, y):return x.position.distance_to(p) < y.position.distance_to(p))
+			_chain(c, p, ward[0].position, .3)
 	if u.state_value("counterCritUntil") > host.battle.clock.elapsed:VfxArt.glow(c, p + Vector2(-22, -18) * s, 8 * s, Color("bfe9ff"), .6 + .3 * sin(t * 12))
 	var ready: bool = u.state_value("firstStrike") > 0 or stats.has(&"steelGreatsword") and u.state_value("smashCount") >= ItemTuning.GREATSWORD_EVERY - 1
 	if ready:VfxArt.glow(c, p + Vector2.from_angle(u.facing) * 30 * s, 9 * s, Color("fff3c8"), .5 + .3 * sin(t * 10))
@@ -241,8 +220,6 @@ func draw_over(c: CanvasItem) -> void:
 				for i in range(5):
 					var a: Vector2 = at + dir.rotated((i - 2) * .35) * 22;c.draw_line(a, a + dir.rotated((i - 2) * .35) * (10 + 10 * (1 - k)), Color("8a6a3a", fade), 3, true)
 			"cup":ArenaIcon.draw(c, at + Vector2(0, -60 - 12 * k), "lifeChalice", 22, Color(1, 1, 1, fade))
-			"rune":
-				c.draw_arc(at, 16 + 8 * k, 0, TAU, 6, Color(m.color, fade), 2.5, true);c.draw_arc(at, 9, k * 4, k * 4 + PI, 6, Color(m.color, fade), 2, true)
 			"echo":c.draw_line(at, Vector2(m.to), Color("c49dff", .6 * fade), 3, true);c.draw_circle(Vector2(m.to), 6 * fade + 2, Color("e6d6ff", fade))
 			"scythe":
 				var a0: float = -2.4 + 2.6 * Motion.out_quint(k)
@@ -254,7 +231,7 @@ func draw_over(c: CanvasItem) -> void:
 				var u = host.battle.find_unit(int(m.actor))
 				if u != null:ArenaIcon.draw(c, u.position + Vector2(-24, -24), "counterShield", 16, Color(1, 1, 1, fade))
 			"chain":_chain(c, at, Vector2(m.to), fade)
-			"badge":ArenaIcon.draw(c, at + Vector2(0, -40 - 10 * k), "markBadge", 26 + 10 * k, Color(1, 1, 1, fade))
+			"badge":ArenaIcon.draw(c, at + Vector2(0, -40 - 10 * k), str(m.get("icon", "")), 26 + 10 * k, Color(1, 1, 1, fade))
 			"shard":c.draw_line(at.lerp(Vector2(m.to), k * .7), at.lerp(Vector2(m.to), minf(1, k * .7 + .2)), Color(m.color, fade), 3, true)
 			"cloud":
 				for i in range(3):VfxArt.glow(c, at + Vector2((i - 1) * 16, -64), 22, Color("3a4258"), .6 * fade)
@@ -269,10 +246,6 @@ func draw_over(c: CanvasItem) -> void:
 			"mango":
 				var q: Vector2 = at + Vector2(0, -70 + 50 * Motion.out_quint(minf(1, k * 1.6)))
 				c.draw_circle(q, 6, Color("ffb347", fade));c.draw_line(q + Vector2(0, -6), q + Vector2(3, -10), Color("4e813e", fade), 2, true)
-			"frame":
-				c.draw_rect(Rect2(at + Vector2(-22, -84), Vector2(44, 44)), Color("eec45e", fade), false, 4)
-				var q: Vector2 = Vector2(m.from).lerp(at + Vector2(0, -62), Motion.out_quint(minf(1, k * 1.5)))
-				if str(m.copy) != "":ArenaIcon.draw(c, q, str(m.copy), 26, Color(1, 1, 1, fade))
 			"rewind":
 				var path: Array = m.path
 				for i in range(path.size() - 1, 0, -1):
@@ -283,6 +256,13 @@ func draw_over(c: CanvasItem) -> void:
 			"coin":
 				var q: Vector2 = at + Vector2(0, -20 - 26 * k);c.draw_circle(q, 5, Color("ffd54a", fade));c.draw_arc(q, 5, 0, TAU, 12, Color("b8822a", fade), 1.5, true)
 			"thread":c.draw_line(at, Vector2(m.to), Color("17121f", .8 * fade), 2, true)
+			"meteor":
+				# A star falls for the first half, then bursts on the ground.
+				var fall: float = minf(1, k * 2);var from: Vector2 = at + Vector2(-90, -220)
+				if k < .5:
+					var head: Vector2 = from.lerp(at, fall);c.draw_line(from.lerp(at, maxf(0, fall - .3)), head, Color("ffe6a0", .8), 4, true);c.draw_circle(head, 6, Color("fff6d8"))
+				else:
+					var b: float = (k - .5) * 2;c.draw_arc(at, float(m.radius) * (.4 + .6 * b), 0, TAU, 28, Color("ffd27a", 1 - b), 3, true);VfxArt.glow(c, at, float(m.radius), Color("ffb46a"), .4 * (1 - b))
 	# Rising icons over the bearers' heads.
 	for pop in pops:
 		var u = host.battle.find_unit(int(pop.actor))

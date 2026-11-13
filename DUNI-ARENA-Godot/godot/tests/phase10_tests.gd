@@ -318,7 +318,7 @@ func blacksmith() -> void:
 	var rare: ItemInstance=t.content.inventory.give(&"woodSword+hawkFeather")
 	var before: float=t.guild.member_stats(m).physical_damage
 	t.content_action(&"equip",{"item_id":rare.item_id,"member_id":m.member_id})
-	before=t.guild.member_stats(m).physical_damage
+	before=t.guild.member_stats(m).attack_speed
 	verify(rare.equipped_to_member_id==m.member_id and not t.content_action(&"enhance",{"item_id":rare.item_id}).ok,"enhance needs the blacksmith")
 	enter_event(t,TowerController.BLACKSMITH);verify(not t.return_map(),"open blacksmith locks map")
 	var start: int=t.guild.state.gold
@@ -327,10 +327,10 @@ func blacksmith() -> void:
 	var base: ItemData=ItemCatalog.get_item(rare.kind);var up: ItemData=ItemCatalog.of(rare)
 	verify(is_equal_approx(up.physical_bonus,base.physical_bonus*1.6) and is_equal_approx(up.attack_speed_bonus,base.attack_speed_bonus*1.6) and is_equal_approx(up.speed_multiplier-1,(base.speed_multiplier-1)*1.6),"+5 boosts stats by 60%")
 	verify(up.opening_awl==base.opening_awl and is_equal_approx(up.ability_power,base.ability_power) and up.display_name==base.display_name+" +5" and base.display_name.find("+")<0,"abilities unchanged, name shows +5")
-	verify(t.guild.member_stats(m).physical_damage>before,"enhanced gear counts in combat stats")
+	verify(t.guild.member_stats(m).attack_speed>before,"enhanced gear counts in combat stats")
 	var epic: ItemInstance=t.content.inventory.give(&"chainRing");var legend: ItemInstance=t.content.inventory.give(&"sovereignSword");var ancient: ItemInstance=t.content.inventory.give(&"gamblerDice")
 	verify(t.content_action(&"enhance",{"item_id":epic.item_id}).ok and t.content_action(&"enhance",{"item_id":legend.item_id}).ok and not t.content_action(&"enhance",{"item_id":ancient.item_id}).ok,"영웅 · 전설 enhance, 고대 does not")
-	verify(ItemCatalog.of(legend).attack_multiplier>ItemCatalog.get_item(&"sovereignSword").attack_multiplier,"legendary stats grow with enhancement")
+	verify(ItemCatalog.of(legend).physical_bonus>ItemCatalog.get_item(&"sovereignSword").physical_bonus,"legendary stats grow with enhancement")
 	var staff: ItemInstance=t.content.inventory.give(&"staff");var gold: int=t.guild.state.gold
 	verify(not t.content_action(&"enhance",{"item_id":staff.item_id}).ok and t.guild.state.gold==gold,"일반 items cannot be enhanced")
 	verify(t.content_action(&"sell",{"item_id":staff.item_id}).ok and t.guild.state.gold==gold+65 and staff.consumed,"sell staff for 65")

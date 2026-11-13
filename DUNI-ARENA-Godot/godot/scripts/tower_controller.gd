@@ -124,17 +124,6 @@ func _settled(result: BattleResult,status: BattleSettlement.Status) -> void:
 	_defer_save=true
 	state.processed_results[result.result_id]=true
 	guild.state.gold+=result.bounty_gold+result.greed_gold
-	# 망고 씨앗: each tower victory grows the seeds the fighters wear by one stage.
-	if result.end_reason==BattleEndReason.Value.VICTORY:
-		for id in result.participating_member_ids:
-			for instance in InventoryService.new(guild.state).equipped(id):
-				if instance.kind==&"mangoSeed":instance.growth=mini(ItemTuning.MANGO_STAGES,instance.growth+1)
-	# 저주받은 왕관: every battle fought wearing it costs 5% of max HP for good.
-	for id in result.participating_member_ids:
-		var member: GuildMemberState=guild.get_member(id)
-		if member!=null and guild.member_stats(member).crown:
-			member.character_specific_state["crownDecay"]=int(member.character_specific_state.get("crownDecay",0))+1
-			member.current_hp=minf(member.current_hp,guild.member_stats(member).max_hp)
 	var room: RoomState=current_room()
 	# Settlement already performed healing and room clear before checking guild death.
 	if room.cleared:

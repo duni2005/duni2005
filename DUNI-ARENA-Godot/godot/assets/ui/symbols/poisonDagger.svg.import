@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c6qykpmchplp6"
-path="res://.godot/imported/windTrail.svg-db9cb761126f061a60a1be5d1f6a8ca6.ctex"
+uid="uid://bl5nqmm7ppc8r"
+path="res://.godot/imported/poisonDagger.svg-440f25e7e1c5cbc6a6d6b6e1bc509150.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/symbols/windTrail.svg"
-dest_files=["res://.godot/imported/windTrail.svg-db9cb761126f061a60a1be5d1f6a8ca6.ctex"]
+source_file="res://assets/ui/symbols/poisonDagger.svg"
+dest_files=["res://.godot/imported/poisonDagger.svg-440f25e7e1c5cbc6a6d6b6e1bc509150.ctex"]
 
 [params]
 

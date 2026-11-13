@@ -282,5 +282,5 @@ func _update_tools() -> void:
 	for tool in [undo_button,redo_button,erase_button,tools_row.get_node("ClearAll")]:tool.queue_redraw()
 	if tool_mode_label!=null:tool_mode_label.text="지우개 켜짐" if board.erase_mode else "";tool_mode_label.add_theme_color_override("font_color",ArenaUI.GOLD)
 	# Units sent out of the guild's sortie limit; full turns gold.
-	var placed: int=plan.entries().size() if plan!=null else 0;var limit: int=GrowthRules.sortie_limit(guild.state)
+	var placed: int=DeploymentRules.counted(guild,plan.entries()) if plan!=null else 0;var limit: int=GrowthRules.sortie_limit(guild.state)
 	sortie_label.text="출정 %d/%d"%[placed,limit];sortie_label.add_theme_color_override("font_color",ArenaUI.GOLD if placed>=limit else ArenaUI.MUTED)

@@ -4,75 +4,19 @@ extends RefCounted
 ## reward (or bought in a shop); nothing combines. Numbers live in ItemTuning.
 ## Legacy items stay loadable for old saves but are no longer handed out.
 const LEGACY = [&"vital",&"fang",&"boots",&"reengrave",&"greenNecklace",&"goldToken",&"vigorTotem",&"chargeTotem",&"predatorFang",&"thickAwl"]
-## 일반: the nine former basics plus three new ones; 재각인 is a 일반 consumable.
+## 일반: the nine former basics, three 0.94 and ten 0.95 stat items; 재각인 is a 일반 consumable.
 const COMMON = [&"warmNecklace",&"woodSword",&"currentOrb",&"ether",&"leatherArmor",&"hawkFeather",&"staff",&"verdantStone",&"redThorn",&"magicCloak",&"sturdyShield",&"scopeLens",&"finisherCharm",&"quillHead",&"steelKnuckle",&"powderPouch",&"broadBlade",&"rustyNail",&"whetstone",&"ironHelm",&"windBoots",&"prismShard"]
-## 희귀: the five former combined items with abilities (their old kind ids are kept so saves keep
-## them) plus three new ones.
-const RARE = [&"warmNecklace+verdantStone",&"currentOrb+ether",&"woodSword+redThorn",&"woodSword+hawkFeather",&"leatherArmor+hawkFeather",&"duelistGlove",&"vanguardShield",&"elementTome",&"berserkerHelm",&"sniperScope",&"vampireFang",&"hunterShuriken",&"thornArmor",&"firstStrikeRing",&"salvationFeather",&"bleedBlade",&"lifeChalice",&"sporeMoss"]
-const EPIC = [&"enchantedBlade",&"overchargeCore",&"chainRing",&"hexRing",&"echoStaff",&"executionScythe",&"counterShield",&"rageHorn",&"oathChain",&"markBadge",&"steelGreatsword",&"elementStone",&"windTrail"]
-## 전설: the three former ancient items plus three new ones. One of each per run.
-const LEGENDARY = [&"phoenixFeather",&"hourglass",&"dragonHeart",&"sovereignSword",&"giantHeart",&"sanctuaryLamp",&"stormCrown",&"infinityEdge",&"skyBowstring",&"oblivionVeil",&"elderHeart",&"regenCore",&"lifeResonance",&"eternalArmor",&"bloodChalice",&"frostCrown"]
-## 고대: custom battles only for now (no tower source).
-const ANCIENT = [&"twoFacedMask",&"cursedCrown",&"gamblerDice",&"twinMirror",&"mangoSeed",&"emptyFrame",&"rewindClock",&"invertedHourglass",&"voidHeart",&"greedPouch",&"overdriveEngine",&"magnetCompass",&"shadowDoll"]
-## 0.95: ten more of each grade (NEW_DEFS; effects run by ItemEffects).
 const NEW_COMMON = [&"finisherCharm",&"quillHead",&"steelKnuckle",&"powderPouch",&"broadBlade",&"rustyNail",&"whetstone",&"ironHelm",&"windBoots",&"prismShard"]
-const NEW_RARE = [&"berserkerHelm",&"sniperScope",&"vampireFang",&"hunterShuriken",&"thornArmor",&"firstStrikeRing",&"salvationFeather",&"bleedBlade",&"lifeChalice",&"sporeMoss"]
-const NEW_EPIC = [&"hexRing",&"echoStaff",&"executionScythe",&"counterShield",&"rageHorn",&"oathChain",&"markBadge",&"steelGreatsword",&"elementStone",&"windTrail"]
-const NEW_LEGENDARY = [&"stormCrown",&"infinityEdge",&"skyBowstring",&"oblivionVeil",&"elderHeart",&"regenCore",&"lifeResonance",&"eternalArmor",&"bloodChalice",&"frostCrown"]
-const NEW_ANCIENT = [&"twinMirror",&"mangoSeed",&"emptyFrame",&"rewindClock",&"invertedHourglass",&"voidHeart",&"greedPouch",&"overdriveEngine",&"magnetCompass",&"shadowDoll"]
-## kind -> [name, fields]; the effect key is the kind itself for the items with an effect.
-const NEW_DEFS = {
-	&"finisherCharm":["필살의 부적",{"ult_damage_bonus":ItemTuning.FINISHER_ULT}],
-	&"quillHead":["깃 화살촉",{"tag_bonuses":{&"projectile":ItemTuning.QUILL_PROJECTILE}}],
-	&"steelKnuckle":["강철 너클",{"tag_bonuses":{&"melee":ItemTuning.KNUCKLE_MELEE}}],
-	&"powderPouch":["화약 주머니",{"tag_bonuses":{&"explosion":ItemTuning.POWDER_EXPLOSION}}],
-	&"broadBlade":["넓은 날",{"tag_bonuses":{&"area":ItemTuning.BROAD_AREA}}],
-	&"rustyNail":["녹슨 못",{"tag_bonuses":{&"dot":ItemTuning.NAIL_DOT}}],
-	&"whetstone":["숫돌",{"crit_damage_bonus":ItemTuning.WHETSTONE_CRIT}],
-	&"ironHelm":["철 투구",{"max_hp_multiplier":1+ItemTuning.IRON_HELM_HP,"armor_bonus":ItemTuning.IRON_HELM_ARMOR}],
-	&"windBoots":["바람 신발",{"speed_multiplier":1+ItemTuning.WIND_BOOTS_SPEED}],
-	&"prismShard":["프리즘 조각",{}],
-	&"berserkerHelm":["광전사의 투구",{"effect":&"berserkerHelm"}],
-	&"sniperScope":["저격수의 조준경",{"effect":&"sniperScope"}],
-	&"vampireFang":["흡혈 송곳니",{"effect":&"vampireFang"}],
-	&"hunterShuriken":["사냥꾼의 표창",{"effect":&"hunterShuriken"}],
-	&"thornArmor":["가시 갑옷",{"effect":&"thornArmor"}],
-	&"firstStrikeRing":["첫 일격의 반지",{"effect":&"firstStrikeRing"}],
-	&"salvationFeather":["구원의 깃털",{"effect":&"salvationFeather"}],
-	&"bleedBlade":["출혈의 칼날",{"effect":&"bleedBlade"}],
-	&"lifeChalice":["생명의 성배",{"effect":&"lifeChalice"}],
-	&"sporeMoss":["독포자 이끼",{"effect":&"sporeMoss"}],
-	&"hexRing":["주술 반지",{"effect":&"hexRing"}],
-	&"echoStaff":["메아리 지팡이",{"effect":&"echoStaff"}],
-	&"executionScythe":["처형의 낫",{"effect":&"executionScythe"}],
-	&"counterShield":["반격의 방패",{"effect":&"counterShield"}],
-	&"rageHorn":["광폭의 뿔",{"effect":&"rageHorn"}],
-	&"oathChain":["맹세의 사슬",{"effect":&"oathChain"}],
-	&"markBadge":["표식 사냥꾼의 휘장",{"effect":&"markBadge"}],
-	&"steelGreatsword":["강철 대검",{"effect":&"steelGreatsword"}],
-	&"elementStone":["원소 폭발석",{"effect":&"elementStone"}],
-	&"windTrail":["바람의 궤적",{"effect":&"windTrail"}],
-	&"stormCrown":["폭풍의 왕관",{"effect":&"stormCrown"}],
-	&"infinityEdge":["무한의 칼날",{"crit_bonus":ItemTuning.INFINITY_CRIT,"crit_damage_bonus":ItemTuning.INFINITY_CRIT_DAMAGE,"effect":&"infinityEdge"}],
-	&"skyBowstring":["천공의 활시위",{"effect":&"skyBowstring"}],
-	&"oblivionVeil":["망각의 장막",{"effect":&"oblivionVeil"}],
-	&"elderHeart":["거목의 심장",{"effect":&"elderHeart"}],
-	&"regenCore":["재생 코어",{"effect":&"regenCore"}],
-	&"lifeResonance":["생명의 공명",{"effect":&"lifeResonance"}],
-	&"eternalArmor":["영겁의 갑주",{"effect":&"eternalArmor"}],
-	&"bloodChalice":["피의 성배",{"effect":&"bloodChalice"}],
-	&"frostCrown":["서리 왕관",{"effect":&"frostCrown"}],
-	&"twinMirror":["쌍둥이의 거울",{"effect":&"twinMirror"}],
-	&"mangoSeed":["망고 씨앗",{"effect":&"mangoSeed"}],
-	&"emptyFrame":["빈 액자",{"effect":&"emptyFrame"}],
-	&"rewindClock":["역행의 시계",{"effect":&"rewindClock"}],
-	&"invertedHourglass":["거꾸로 된 모래시계",{"effect":&"invertedHourglass"}],
-	&"voidHeart":["공허의 심장",{"effect":&"voidHeart"}],
-	&"greedPouch":["탐욕의 주머니",{"effect":&"greedPouch"}],
-	&"overdriveEngine":["폭주 기관",{"effect":&"overdriveEngine"}],
-	&"magnetCompass":["자석 나침반",{"effect":&"magnetCompass"}],
-	&"shadowDoll":["그림자 인형",{"effect":&"shadowDoll"}],
-}
+## 희귀 ~ 고대 (0.96 아이템 재점검): every item has stat lines plus one effect and no penalty. The
+## five old ability items keep their kind ids ("a+b") so saves keep them.
+const RARE = [&"warmNecklace+verdantStone",&"currentOrb+ether",&"woodSword+redThorn",&"woodSword+hawkFeather",&"leatherArmor+hawkFeather",&"duelistGlove",&"vanguardShield",&"elementTome",&"berserkerHelm",&"sniperScope",&"vampireFang",&"hunterShuriken",&"thornArmor",&"bleedBlade",&"lifeChalice",&"firstStrikeRing",&"guardFeather",&"poisonDagger"]
+const EPIC = [&"enchantedBlade",&"overchargeCore",&"chainRing",&"echoStaff",&"steelGreatsword",&"counterShield",&"executionScythe",&"rageHorn",&"piercingAwl",&"guardChain",&"weakEye",&"elementStone",&"swiftCloak"]
+## 전설: one of each per run.
+const LEGENDARY = [&"phoenixFeather",&"hourglass",&"dragonHeart",&"sovereignSword",&"giantHeart",&"sanctuaryLamp",&"stormCrown",&"infinityEdge",&"skyBowstring",&"eternalArmor",&"oblivionVeil",&"elderHeart",&"lifeResonance",&"warDrum",&"bloodChalice",&"frostCrown"]
+## 고대: custom battles only for now (no tower source).
+const ANCIENT = [&"twinMirror",&"mangoSeed",&"cursedCrown",&"rewindClock",&"invertedHourglass",&"greedPouch",&"overdriveEngine",&"gamblerDice",&"commanderScepter",&"mimicMask",&"soulReaper",&"starShard",&"shadowDoll"]
+## 0.96: items that were replaced, and what a save gets instead.
+const REPLACED = {&"salvationFeather":&"guardFeather",&"sporeMoss":&"poisonDagger",&"hexRing":&"piercingAwl",&"oathChain":&"guardChain",&"markBadge":&"weakEye",&"windTrail":&"swiftCloak",&"regenCore":&"lifeResonance",&"emptyFrame":&"commanderScepter",&"twoFacedMask":&"mimicMask",&"voidHeart":&"soulReaper",&"magnetCompass":&"starShard"}
 ## Items of each grade that rewards and shops may hand out (재각인 counts as 일반).
 const POOLS = {&"common":[&"warmNecklace",&"woodSword",&"currentOrb",&"ether",&"leatherArmor",&"hawkFeather",&"staff",&"verdantStone",&"redThorn",&"magicCloak",&"sturdyShield",&"scopeLens",&"reengrave",&"finisherCharm",&"quillHead",&"steelKnuckle",&"powderPouch",&"broadBlade",&"rustyNail",&"whetstone",&"ironHelm",&"windBoots",&"prismShard"],&"rare":RARE,&"epic":EPIC,&"legendary":LEGENDARY,&"ancient":ANCIENT}
 ## The nine basics of 0.93 and earlier (combined items were made of two of these).
@@ -96,37 +40,89 @@ const BASIC_DEFS = {
 	&"sturdyShield":["튼튼한 방패",{"physical_defense_bonus":ItemTuning.STURDY_SHIELD_DEFENSE}],
 	&"scopeLens":["망원 렌즈",{"range_multiplier":1+ItemTuning.SCOPE_RANGE}],
 }
-## The five rare items with abilities, exactly as they were as combined items: both former
-## components' stats x OLD_COMBINE_FACTOR plus the ability.
+const NEW_COMMON_DEFS = {
+	&"finisherCharm":["필살의 부적",{"ult_damage_bonus":ItemTuning.FINISHER_ULT}],
+	&"quillHead":["깃 화살촉",{"tag_bonuses":{&"projectile":ItemTuning.QUILL_PROJECTILE}}],
+	&"steelKnuckle":["강철 너클",{"tag_bonuses":{&"melee":ItemTuning.KNUCKLE_MELEE}}],
+	&"powderPouch":["화약 주머니",{"tag_bonuses":{&"explosion":ItemTuning.POWDER_EXPLOSION}}],
+	&"broadBlade":["넓은 날",{"tag_bonuses":{&"area":ItemTuning.BROAD_AREA}}],
+	&"rustyNail":["녹슨 못",{"tag_bonuses":{&"dot":ItemTuning.NAIL_DOT}}],
+	&"whetstone":["숫돌",{"crit_damage_bonus":ItemTuning.WHETSTONE_CRIT}],
+	&"ironHelm":["철 투구",{"max_hp_multiplier":1+ItemTuning.IRON_HELM_HP,"armor_bonus":ItemTuning.IRON_HELM_ARMOR}],
+	&"windBoots":["바람 신발",{"speed_multiplier":1+ItemTuning.WIND_BOOTS_SPEED}],
+	&"prismShard":["프리즘 조각",{}],
+}
+## kind -> [name, stat lines and effect]. Items with "effect" run in ItemEffects; the old ability
+## flags (totems, fang, awl, gold, phoenix, hourglass, dragon heart...) stay as they were.
 const RARE_DEFS = {
-	&"warmNecklace+verdantStone":["원기 토템",{"vigor_totem":true,"ability_power":1.35},[&"warmNecklace",&"verdantStone"]],
-	&"currentOrb+ether":["충전 토템",{"charge_totem":true,"ability_power":1.25},[&"currentOrb",&"ether"]],
-	&"woodSword+redThorn":["포식자의 엄니",{"kill_growth":true,"ability_power":1.34},[&"woodSword",&"redThorn"]],
-	&"woodSword+hawkFeather":["굵은 송곳",{"opening_awl":true,"ability_power":1.25},[&"woodSword",&"hawkFeather"]],
-	&"leatherArmor+hawkFeather":["황금 토큰",{"victory_gold":55},[&"leatherArmor",&"hawkFeather"]],
-	&"duelistGlove":["결투가의 장갑",{"duelist":true},[]],
-	&"vanguardShield":["선봉의 방패",{"vanguard":true},[]],
-	&"elementTome":["원소술사의 서",{"elementalist":true},[]],
+	&"warmNecklace+verdantStone":["원기 토템",{"max_hp_multiplier":1.1,"vigor_totem":true,"ability_power":1.35}],
+	&"currentOrb+ether":["충전 토템",{"ultimate_bonus":.1,"charge_totem":true,"ability_power":1.25}],
+	&"woodSword+redThorn":["포식자의 엄니",{"physical_bonus":.1,"kill_growth":true,"ability_power":1.34}],
+	&"woodSword+hawkFeather":["굵은 송곳",{"attack_speed_bonus":.08,"opening_awl":true,"ability_power":1.25}],
+	&"leatherArmor+hawkFeather":["황금 토큰",{"max_hp_multiplier":1.1,"victory_gold":55}],
+	&"duelistGlove":["결투가의 장갑",{"attack_speed_bonus":.1,"duelist":true}],
+	&"vanguardShield":["선봉의 방패",{"armor_bonus":12.0,"vanguard":true}],
+	&"elementTome":["원소술사의 서",{"element_bonus":.15,"elementalist":true}],
+	&"berserkerHelm":["광전사의 투구",{"physical_bonus":.1,"effect":&"berserkerHelm"}],
+	&"sniperScope":["저격수의 조준경",{"range_multiplier":1.1,"effect":&"sniperScope"}],
+	&"vampireFang":["흡혈 송곳니",{"physical_bonus":.1,"effect":&"vampireFang"}],
+	&"hunterShuriken":["사냥꾼의 표창",{"crit_bonus":.08,"effect":&"hunterShuriken"}],
+	&"thornArmor":["가시 갑옷",{"armor_bonus":15.0,"effect":&"thornArmor"}],
+	&"bleedBlade":["출혈의 칼날",{"crit_bonus":.08,"effect":&"bleedBlade"}],
+	&"lifeChalice":["생명의 성배",{"heal_power_bonus":.15,"effect":&"lifeChalice"}],
+	&"firstStrikeRing":["첫 일격의 반지",{"crit_damage_bonus":.2,"effect":&"firstStrikeRing"}],
+	&"guardFeather":["수호의 깃털",{"max_hp_multiplier":1.1,"effect":&"guardFeather"}],
+	&"poisonDagger":["독 바른 단검",{"attack_speed_bonus":.08,"effect":&"poisonDagger"}],
 }
 const EPIC_DEFS = {
-	&"enchantedBlade":["마법 부여 검",{"enchant":true}],
-	&"overchargeCore":["과충전 코어",{"overcharge":true}],
-	&"chainRing":["연쇄의 고리",{"chain_ring":true}],
+	&"enchantedBlade":["마법 부여 검",{"physical_bonus":.15,"element_bonus":.15,"enchant":true}],
+	&"overchargeCore":["과충전 코어",{"ultimate_bonus":.2,"overcharge":true}],
+	&"chainRing":["연쇄의 고리",{"attack_speed_bonus":.12,"chain_ring":true}],
+	&"echoStaff":["메아리 지팡이",{"magic_bonus":.18,"effect":&"echoStaff"}],
+	&"steelGreatsword":["강철 대검",{"physical_bonus":.18,"effect":&"steelGreatsword"}],
+	&"counterShield":["반격의 방패",{"armor_bonus":15.0,"crit_damage_bonus":.2,"effect":&"counterShield"}],
+	&"executionScythe":["처형의 낫",{"crit_bonus":.12,"effect":&"executionScythe"}],
+	&"rageHorn":["광폭의 뿔",{"physical_bonus":.15,"effect":&"rageHorn"}],
+	&"piercingAwl":["관통의 송곳",{"physical_bonus":.15,"effect":&"piercingAwl"}],
+	&"guardChain":["수호의 사슬",{"armor_bonus":20.0,"max_hp_multiplier":1.1,"effect":&"guardChain"}],
+	&"weakEye":["약점 간파의 눈",{"crit_bonus":.1,"effect":&"weakEye"}],
+	&"elementStone":["원소 폭발석",{"element_bonus":.2,"effect":&"elementStone"}],
+	&"swiftCloak":["신속의 망토",{"speed_multiplier":1.12,"attack_speed_bonus":.12,"effect":&"swiftCloak"}],
 }
 const LEGENDARY_DEFS = {
-	&"phoenixFeather":["불사조의 깃털",{"max_hp_multiplier":1.1,"phoenix":true}],
+	&"phoenixFeather":["불사조의 깃털",{"max_hp_multiplier":1.15,"phoenix":true}],
 	&"hourglass":["시간의 모래시계",{"ultimate_bonus":.25,"hourglass":true}],
-	&"dragonHeart":["용의 심장",{"max_hp_multiplier":1.15,"dragon_heart":true}],
-	&"sovereignSword":["군주의 검",{"attack_multiplier":1+ItemTuning.SOVEREIGN_ATTACK,"sovereign":true}],
-	&"giantHeart":["거인의 심장",{"max_hp_multiplier":1+ItemTuning.GIANT_HP,"scale_multiplier":ItemTuning.GIANT_SCALE,"speed_multiplier":1+ItemTuning.GIANT_SPEED,"immovable":true}],
-	&"sanctuaryLamp":["성역의 등불",{"sanctuary":true}],
+	&"dragonHeart":["용의 심장",{"max_hp_multiplier":1.15,"armor_bonus":10.0,"dragon_heart":true}],
+	&"sovereignSword":["군주의 검",{"physical_bonus":.25,"magic_bonus":.25,"sovereign":true}],
+	&"giantHeart":["거인의 심장",{"max_hp_multiplier":1+ItemTuning.GIANT_HP,"scale_multiplier":ItemTuning.GIANT_SCALE,"immovable":true}],
+	&"sanctuaryLamp":["성역의 등불",{"max_hp_multiplier":1.15,"armor_bonus":10.0,"sanctuary":true}],
+	&"stormCrown":["폭풍의 왕관",{"magic_bonus":.2,"ultimate_bonus":.15,"effect":&"stormCrown"}],
+	&"infinityEdge":["무한의 칼날",{"physical_bonus":.15,"crit_bonus":ItemTuning.INFINITY_CRIT,"crit_damage_bonus":ItemTuning.INFINITY_CRIT_DAMAGE,"effect":&"infinityEdge"}],
+	&"skyBowstring":["천공의 활시위",{"attack_speed_bonus":.15,"tag_bonuses":{&"projectile":.2},"effect":&"skyBowstring"}],
+	&"eternalArmor":["영겁의 갑주",{"max_hp_multiplier":1.15,"armor_bonus":25.0,"effect":&"eternalArmor"}],
+	&"oblivionVeil":["암살자의 장막",{"physical_bonus":.15,"crit_bonus":.15,"effect":&"oblivionVeil"}],
+	&"elderHeart":["거목의 심장",{"max_hp_multiplier":1.25,"effect":&"elderHeart"}],
+	&"lifeResonance":["생명의 공명",{"max_hp_multiplier":1.15,"ultimate_bonus":.15,"effect":&"lifeResonance"}],
+	&"warDrum":["전쟁의 북",{"attack_speed_bonus":.15,"effect":&"warDrum"}],
+	&"bloodChalice":["피의 성배",{"max_hp_multiplier":1.15,"effect":&"bloodChalice"}],
+	&"frostCrown":["원소 왕관",{"magic_bonus":.15,"element_bonus":.3,"effect":&"frostCrown"}],
 }
 const ANCIENT_DEFS = {
-	&"twoFacedMask":["두 얼굴의 가면",{"kind_swap":true}],
-	&"cursedCrown":["저주받은 왕관",{"crown":true}],
-	&"gamblerDice":["도박사의 주사위",{"dice":true}],
+	&"twinMirror":["쌍둥이의 거울",{"all_stats":ItemTuning.ALL_STATS_SMALL,"effect":&"twinMirror"}],
+	&"mangoSeed":["황금 망고",{"max_hp_multiplier":1.2,"effect":&"mangoSeed"}],
+	&"cursedCrown":["왕의 왕관",{"all_stats":ItemTuning.CROWN_STATS,"effect":&"cursedCrown"}],
+	&"rewindClock":["시간술사의 시계",{"attack_speed_bonus":.15,"ultimate_bonus":.2,"effect":&"rewindClock"}],
+	&"invertedHourglass":["끝없는 모래시계",{"ultimate_bonus":.3,"effect":&"invertedHourglass"}],
+	&"greedPouch":["탐욕의 황금손",{"physical_bonus":.15,"magic_bonus":.15,"effect":&"greedPouch"}],
+	&"overdriveEngine":["폭주 기관",{"attack_speed_bonus":.15,"effect":&"overdriveEngine"}],
+	&"gamblerDice":["행운의 주사위",{"all_stats":ItemTuning.ALL_STATS_SMALL,"effect":&"gamblerDice"}],
+	&"commanderScepter":["지휘관의 홀",{"max_hp_multiplier":1.15,"armor_bonus":10.0,"effect":&"commanderScepter"}],
+	&"mimicMask":["흉내쟁이의 가면",{"physical_bonus":.2,"magic_bonus":.2,"effect":&"mimicMask"}],
+	&"soulReaper":["영혼 수확자",{"max_hp_multiplier":1.15,"physical_bonus":.15,"magic_bonus":.15,"effect":&"soulReaper"}],
+	&"starShard":["별의 파편",{"magic_bonus":.25,"element_bonus":.2,"effect":&"starShard"}],
+	&"shadowDoll":["저주 인형",{"max_hp_multiplier":1.2,"armor_bonus":15.0,"effect":&"shadowDoll"}],
 }
-const BONUS_FIELDS = ["physical_bonus","magic_bonus","element_bonus","ultimate_bonus","armor_bonus","attack_speed_bonus","crit_bonus","physical_defense_bonus","magic_defense_bonus"]
+const BONUS_FIELDS = ["physical_bonus","magic_bonus","element_bonus","ultimate_bonus","armor_bonus","attack_speed_bonus","crit_bonus","physical_defense_bonus","magic_defense_bonus","crit_damage_bonus","heal_power_bonus","all_stats"]
 const MULTIPLIER_FIELDS = ["max_hp_multiplier","attack_multiplier","speed_multiplier","healing_multiplier","range_multiplier"]
 static var _definitions: Dictionary = {}
 static var _enhanced: Dictionary = {}
@@ -138,26 +134,9 @@ static func all() -> Dictionary:
 		_definitions[&"reengrave"]=_definitions[&"reengrave"].duplicate();_definitions[&"reengrave"].grade=&"common"
 		for kind in COMMON:
 			if BASIC_DEFS.has(kind):_definitions[kind]=_make(kind,BASIC_DEFS[kind][0],&"common",BASIC_DEFS[kind][1],ItemTuning.BASIC_PRICES[kind])
-		for kind in RARE:
-			if not RARE_DEFS.has(kind):continue
-			var fields: Dictionary=RARE_DEFS[kind][1].duplicate()
-			var parts: Array=RARE_DEFS[kind][2]
-			for part in parts:
-				var stats: Dictionary=BASIC_DEFS[part][1]
-				for field in stats:
-					if field in BONUS_FIELDS:fields[field]=float(fields.get(field,0))+float(stats[field])*ItemTuning.OLD_COMBINE_FACTOR
-					else:fields[field]=float(fields.get(field,1))+(float(stats[field])-1)*ItemTuning.OLD_COMBINE_FACTOR
-			_definitions[kind]=_make(kind,RARE_DEFS[kind][0],&"rare",fields,ItemTuning.GRADE_PRICES[&"rare"])
-		for kind in EPIC:
-			if EPIC_DEFS.has(kind):_definitions[kind]=_make(kind,EPIC_DEFS[kind][0],&"epic",EPIC_DEFS[kind][1],ItemTuning.GRADE_PRICES[&"epic"])
-		for kind in LEGENDARY:
-			if LEGENDARY_DEFS.has(kind):_definitions[kind]=_make(kind,LEGENDARY_DEFS[kind][0],&"legendary",LEGENDARY_DEFS[kind][1],ItemTuning.GRADE_PRICES[&"legendary"])
-		for kind in ANCIENT:
-			if ANCIENT_DEFS.has(kind):_definitions[kind]=_make(kind,ANCIENT_DEFS[kind][0],&"ancient",ANCIENT_DEFS[kind][1],ItemTuning.GRADE_PRICES[&"ancient"])
-		for pair in [[NEW_COMMON,&"common"],[NEW_RARE,&"rare"],[NEW_EPIC,&"epic"],[NEW_LEGENDARY,&"legendary"],[NEW_ANCIENT,&"ancient"]]:
-			for kind in pair[0]:
-				var gold: int=ItemTuning.NEW_COMMON_PRICES[kind] if pair[1]==&"common" else ItemTuning.GRADE_PRICES[pair[1]]
-				_definitions[kind]=_make(kind,NEW_DEFS[kind][0],pair[1],NEW_DEFS[kind][1],gold)
+			else:_definitions[kind]=_make(kind,NEW_COMMON_DEFS[kind][0],&"common",NEW_COMMON_DEFS[kind][1],ItemTuning.NEW_COMMON_PRICES[kind])
+		for pair in [[RARE_DEFS,&"rare"],[EPIC_DEFS,&"epic"],[LEGENDARY_DEFS,&"legendary"],[ANCIENT_DEFS,&"ancient"]]:
+			for kind in pair[0]:_definitions[kind]=_make(kind,pair[0][kind][0],pair[1],pair[0][kind][1],ItemTuning.GRADE_PRICES[pair[1]])
 	return _definitions.duplicate()
 static func get_item(kind: StringName) -> ItemData:return all().get(kind)
 ## Items that can be equipped or offered (no legacy), lowest grade first.
@@ -193,6 +172,9 @@ static func enhanced(kind: StringName,level: int) -> ItemData:
 		var item: ItemData=base.duplicate();var boost: float=1+ENHANCE_BOOST[clampi(level,0,MAX_ENHANCE)]
 		for field in BONUS_FIELDS:item.set(field,float(base.get(field))*boost)
 		for field in MULTIPLIER_FIELDS:item.set(field,1+(float(base.get(field))-1)*boost)
+		var tags: Dictionary={}
+		for tag in base.tag_bonuses:tags[tag]=float(base.tag_bonuses[tag])*boost
+		item.tag_bonuses=tags
 		item.display_name="%s +%d"%[base.display_name,level];item.description=describe(item);_enhanced[key]=item
 	return _enhanced[key]
 static func can_enhance(instance: ItemInstance) -> bool:
@@ -243,96 +225,101 @@ static func _make(kind: StringName,title: String,grade: StringName,fields: Dicti
 	item.description=describe(item)
 	return item
 
-## One line per effect, generated from the numbers so text and rules never drift apart.
+## Stat lines, then the effect in one sentence, generated from the numbers so text and rules never
+## drift apart.
 static func describe(item: ItemData) -> String:
 	var lines: Array[String]=[]
 	var pct:=func(v: float) -> String:return "+%s%%"%_num(v*100)
-	if item.physical_bonus>0:lines.append("물리 피해 "+pct.call(item.physical_bonus))
-	if item.magic_bonus>0:lines.append("마법 피해 "+pct.call(item.magic_bonus))
+	if item.all_stats>0:lines.append("모든 스탯 "+pct.call(item.all_stats))
+	if item.max_hp_multiplier>1:lines.append("최대 HP "+pct.call(item.max_hp_multiplier-1))
+	if item.physical_bonus>0 and is_equal_approx(item.physical_bonus,item.magic_bonus):lines.append("물리·마법 피해 "+pct.call(item.physical_bonus))
+	else:
+		if item.physical_bonus>0:lines.append("물리 피해 "+pct.call(item.physical_bonus))
+		if item.magic_bonus>0:lines.append("마법 피해 "+pct.call(item.magic_bonus))
 	if item.element_bonus>0:lines.append("속성 피해 "+pct.call(item.element_bonus))
 	if item.attack_multiplier>1:lines.append("공격력 "+pct.call(item.attack_multiplier-1))
-	if item.max_hp_multiplier>1:lines.append("최대 HP "+pct.call(item.max_hp_multiplier-1))
 	if item.armor_bonus>0:lines.append("방어력 +%s"%_num(item.armor_bonus))
 	if item.physical_defense_bonus>0:lines.append("물리 방어력 +%s"%_num(item.physical_defense_bonus))
 	if item.magic_defense_bonus>0:lines.append("마법 방어력 +%s"%_num(item.magic_defense_bonus))
-	if item.attack_speed_bonus>0:lines.append("공격속도 "+pct.call(item.attack_speed_bonus))
 	if item.speed_multiplier>1:lines.append("이동속도 "+pct.call(item.speed_multiplier-1))
 	elif item.speed_multiplier<1:lines.append("이동속도 -%s%%"%_num((1-item.speed_multiplier)*100))
+	if item.attack_speed_bonus>0:lines.append("공격속도 "+pct.call(item.attack_speed_bonus))
 	if item.range_multiplier>1:lines.append("사거리 "+pct.call(item.range_multiplier-1))
 	if item.crit_bonus>0:lines.append("치명타 확률 +%s%%p"%_num(item.crit_bonus*100))
+	if item.crit_damage_bonus>0:lines.append("치명타 피해량 "+pct.call(item.crit_damage_bonus))
 	if item.ultimate_bonus>0:lines.append("궁극기 충전 "+pct.call(item.ultimate_bonus))
-	if item.healing_multiplier>1:lines.append("주는 · 받는 치유 "+pct.call(item.healing_multiplier-1))
-	if item.vigor_totem:lines.append("5초마다 주변 아군 HP %d 회복"%roundi(6*item.ability_power))
-	if item.charge_totem:lines.append("4초마다 주변 아군 궁극기 +%d%%"%roundi(4*item.ability_power))
-	if item.kill_growth:lines.append("처치마다 공격력 영구 +%s%%"%String.num(1.5*item.ability_power,1))
-	if item.opening_awl:lines.append("전투 시작 시 송곳 투척 · 적중한 적 %s초 기절"%String.num(4*item.ability_power,1))
-	if item.victory_gold>0:lines.append("생존 승리 시 %d G"%item.victory_gold)
-	if item.duelist:lines.append("같은 대상을 연속 공격할수록 피해 +%s%% 누적(최대 +%s%%) · 대상이 바뀌면 초기화"%[_num(ItemTuning.DUELIST_STEP*100),_num(ItemTuning.DUELIST_MAX*100)])
-	if item.vanguard:lines.append("전투 시작 후 %d초간 받는 피해 -%s%%"%[int(ItemTuning.VANGUARD_TIME),_num((1-ItemTuning.VANGUARD_TAKEN)*100)])
-	if item.elementalist:lines.append("화상 · 맹독 · 빙결 · 감전 · 침식에 걸린 적에게 주는 피해 +%s%%"%_num((ItemTuning.ELEMENTALIST_DEALT-1)*100))
-	if item.enchant:lines.append("기본공격에 자신의 속성 부여(없으면 화염)")
-	if item.overcharge:lines.append("궁극기 사용 직후 게이지 %d%% 회복"%int(ItemTuning.OVERCHARGE_REFUND))
-	if item.chain_ring:lines.append("기본공격 %d번째마다 %d 거리 안의 가장 가까운 다른 적에게 같은 피해"%[ItemTuning.CHAIN_EVERY,int(ItemTuning.CHAIN_RANGE)])
-	if item.sovereign:lines.append("처치마다 반경 %d 안 아군 공격력 +%s%% (%d초, 최대 %d중첩)"%[int(ItemTuning.SOVEREIGN_RADIUS),_num(ItemTuning.SOVEREIGN_BUFF*100),int(ItemTuning.SOVEREIGN_TIME),ItemTuning.SOVEREIGN_STACKS])
-	if item.scale_multiplier>1:lines.append("몸집 %s배"%String.num(item.scale_multiplier,1))
-	if item.immovable:lines.append("넉백 · 끌림 면역")
-	if item.sanctuary:lines.append("반경 %d 안 아군(자신 포함) 받는 피해 -%s%%"%[int(ItemTuning.SANCTUARY_RADIUS),_num((1-ItemTuning.SANCTUARY_TAKEN)*100)])
-	if item.kind_swap:lines.append("모든 피해의 물리 · 마법 유형과 물리 · 마법 피해 스탯이 서로 뒤바뀐다")
-	if item.crown:lines.append("모든 스탯 +%s%% · 탑에서 전투가 끝날 때마다 최대 HP 영구 -%s%%"%[_num(ItemTuning.CROWN_STATS*100),_num(ItemTuning.CROWN_DECAY*100)])
-	if item.dice:lines.append("전투 시작마다 무작위 스탯 하나 +%s%%, 다른 하나 -%s%%"%[_num(ItemTuning.DICE_UP*100),_num(-ItemTuning.DICE_DOWN*100)])
-	if item.phoenix:lines.append("전투당 1회, 쓰러지면 HP 40%로 부활 · 2초 무적")
-	if item.hourglass:lines.append("궁극기 사용 직후 게이지 35% 회복")
-	if item.dragon_heart:lines.append("4초마다 주변 적에게 공격력 60% 화염 피해")
 	if item.ult_damage_bonus>0:lines.append("궁극기 피해량 "+pct.call(item.ult_damage_bonus))
+	if item.healing_multiplier>1:lines.append("주는 · 받는 치유 "+pct.call(item.healing_multiplier-1))
+	if item.heal_power_bonus>0:lines.append("주는 치유 "+pct.call(item.heal_power_bonus))
 	for tag in item.tag_bonuses:lines.append("%s 피해 %s"%[UnitStatTable.TAG_NAMES.get(tag,String(tag)),pct.call(float(item.tag_bonuses[tag]))])
 	if item.kind==&"prismShard" and item.element_choice==&"":lines.append("얻을 때 7속성 중 하나가 정해지고 그 속성 피해 "+pct.call(ItemTuning.PRISM_BONUS))
-	if item.crit_damage_bonus>0:lines.append("치명타 피해량 "+pct.call(item.crit_damage_bonus))
+	# Effects (one sentence each).
+	if item.vigor_totem:lines.append("5초마다 주변 아군 HP %d 회복"%roundi(6*item.ability_power))
+	if item.charge_totem:lines.append("4초마다 주변 아군 궁극기 +%d%%"%roundi(4*item.ability_power))
+	if item.kill_growth:lines.append("처치할 때마다 공격력 +%s%% (런 동안 유지)"%_num(1.5*item.ability_power))
+	if item.opening_awl:lines.append("전투 시작 시 송곳을 던져 맞은 적 %s초 기절"%_num(4*item.ability_power))
+	if item.victory_gold>0:lines.append("살아서 이기면 %d G"%item.victory_gold)
+	if item.duelist:lines.append("같은 적을 계속 때릴수록 피해 +%s%% (최대 +%s%%)"%[_num(ItemTuning.DUELIST_STEP*100),_num(ItemTuning.DUELIST_MAX*100)])
+	if item.vanguard:lines.append("전투 시작 후 %d초간 받는 피해 -%s%%"%[int(ItemTuning.VANGUARD_TIME),_num((1-ItemTuning.VANGUARD_TAKEN)*100)])
+	if item.elementalist:lines.append("화상·맹독·빙결·감전·침식 중인 적에게 피해 +%s%%"%_num((ItemTuning.ELEMENTALIST_DEALT-1)*100))
+	if item.enchant:lines.append("기본공격에 장착자의 속성이 붙음(속성이 없으면 화염)")
+	if item.overcharge:lines.append("궁극기를 쓴 직후 게이지 %d%% 회복"%int(ItemTuning.OVERCHARGE_REFUND))
+	if item.chain_ring:lines.append("기본공격 %d번째마다 가까운 다른 적도 같은 피해를 받음"%ItemTuning.CHAIN_EVERY)
+	if item.sovereign:lines.append("처치할 때마다 주변 아군 공격력 +%s%% (%d초, 최대 %d번 겹침)"%[_num(ItemTuning.SOVEREIGN_BUFF*100),int(ItemTuning.SOVEREIGN_TIME),ItemTuning.SOVEREIGN_STACKS])
+	if item.immovable:lines.append("몸집이 커지고 넉백·끌림에 면역")
+	if item.sanctuary:lines.append("주변 아군(자신 포함)이 받는 피해 -%s%%"%_num((1-ItemTuning.SANCTUARY_TAKEN)*100))
+	if item.phoenix:lines.append("전투당 1회, 쓰러지면 HP 40%로 부활하고 2초 무적")
+	if item.hourglass:lines.append("궁극기를 쓴 직후 게이지 35% 회복")
+	if item.dragon_heart:lines.append("4초마다 주변 적에게 화염 피해")
 	if item.effect!=&"":lines.append(effect_text(item.effect))
 	return " · ".join(lines)
-## The special effect of a 0.95 item, from the numbers in ItemTuning.
+## The special effect of a 0.95/0.96 item in one sentence, from the numbers in ItemTuning.
 static func effect_text(effect: StringName) -> String:
 	var p:=func(v: float) -> String:return _num(v*100)+"%"
 	match effect:
 		&"berserkerHelm":return "HP %s 이하일 때 공격속도 +%s"%[p.call(ItemTuning.BERSERK_HP),p.call(ItemTuning.BERSERK_ATTACK_SPEED)]
-		&"sniperScope":return "대상과 %d 이상 떨어져 있으면 주는 피해 +%s"%[int(ItemTuning.SCOPE_DISTANCE),p.call(ItemTuning.SCOPE_DEALT)]
-		&"vampireFang":return "직접 공격으로 준 피해의 %s 회복"%p.call(ItemTuning.VAMPIRE_LEECH)
-		&"hunterShuriken":return "처치 시 %d초간 공격속도 +%s"%[int(ItemTuning.HUNTER_TIME),p.call(ItemTuning.HUNTER_ATTACK_SPEED)]
-		&"thornArmor":return "근접공격 피해를 받으면 받은 피해의 %s를 공격자에게 물리 피해로 반사"%p.call(ItemTuning.THORN_REFLECT)
-		&"firstStrikeRing":return "전투마다 첫 기본공격 피해 +%s"%p.call(ItemTuning.FIRST_STRIKE)
-		&"salvationFeather":return "HP %s 이하 아군에게 다가갈 때 이동속도 +%s, 닿으면 그 아군에게 최대 HP %s 보호막(전투당 %d회)"%[p.call(ItemTuning.SALVATION_HP),p.call(ItemTuning.SALVATION_SPEED),p.call(ItemTuning.SALVATION_SHIELD),ItemTuning.SALVATION_USES]
-		&"bleedBlade":return "치명타 시 %d초 출혈: %s초마다 물리 지속 피해(그 치명타 피해의 %s를 나눠서)"%[int(ItemTuning.BLEED_TIME),String.num(ItemTuning.BLEED_EVERY,1),p.call(ItemTuning.BLEED_SHARE)]
-		&"lifeChalice":return "주는 치유 중 최대 HP를 넘는 양은 대상의 보호막으로(대상 최대 HP %s까지)"%p.call(ItemTuning.CHALICE_SHIELD_CAP)
-		&"sporeMoss":return "직접 공격에 맞으면 %s 확률로 반경 %d 안 적에게 맹독 1스택"%[p.call(ItemTuning.SPORE_CHANCE),int(ItemTuning.SPORE_RADIUS)]
-		&"hexRing":return "기본공격의 피해 유형이 대상의 방어가 더 낮은 쪽(물리 · 마법)으로 바뀐다"
-		&"echoStaff":return "마법 직접 공격 시 %s 확률로 %s초 뒤 같은 피해의 %s가 한 번 더"%[p.call(ItemTuning.ECHO_CHANCE),String.num(ItemTuning.ECHO_DELAY,2),p.call(ItemTuning.ECHO_SHARE)]
-		&"executionScythe":return "치명타가 HP %s 이하 적에게 들어가면 즉시 처치(엘리트 · 보스 제외)"%p.call(ItemTuning.SCYTHE_HP)
-		&"counterShield":return "패링 · 회피 성공 시 %d초 안의 다음 공격이 확정 치명타"%int(ItemTuning.COUNTER_SHIELD_TIME)
-		&"rageHorn":return "저돌적일 때 받는 피해 증가 무효 · 처치 시 최대 HP %s 회복"%p.call(ItemTuning.HORN_HEAL)
-		&"oathChain":return "엄호 중 지키는 아군 곁에서 받은 피해의 %s를 자신의 보호막으로(최대 HP %s까지)"%[p.call(ItemTuning.OATH_SHARE),p.call(ItemTuning.OATH_CAP)]
-		&"markBadge":return "광휘 · 암흑 표식을 터뜨리면 효과 2배(회복 %s, 피해 +%s)"%[p.call(ItemTuning.BADGE_LIGHT_HEAL),p.call(ItemTuning.BADGE_DARK_POP-1)]
-		&"steelGreatsword":return "기본공격 %d번째마다 피해 %s 강타 + 넉백"%[ItemTuning.GREATSWORD_EVERY,p.call(ItemTuning.GREATSWORD_DEALT)]
-		&"elementStone":return "치명타 시 대상의 화상 · 맹독 · 빙결 · 감전 스택 절반을 반경 %d 안 다른 적에게 옮기고 마법 폭발(10 + 마법 피해 50%%)"%int(ItemTuning.STONE_RADIUS)
-		&"windTrail":return "지나간 자리에 %d초간 기류 흔적 · 그 위를 지나는 적은 역풍"%int(ItemTuning.WIND_TRAIL_TIME)
-		&"stormCrown":return "궁극기마다 반경 %d 안 모든 적에게 낙뢰(15 + 마법 피해 80%%) + 감전 %d스택"%[int(ItemTuning.STORM_RADIUS),ItemTuning.STORM_SHOCK]
-		&"infinityEdge":return "치명타가 금빛 칼날로 번뜩인다"
-		&"skyBowstring":return "투사체가 적을 최대 %d명 관통 · 관통마다 피해 +%s"%[ItemTuning.BOWSTRING_PIERCE,p.call(ItemTuning.BOWSTRING_STEP)]
-		&"oblivionVeil":return "전투 시작 시 %d초 은신 · 은신 중 첫 공격 피해 ×%d · 공격하면 드러난다"%[int(ItemTuning.VEIL_TIME),int(ItemTuning.VEIL_STRIKE)]
-		&"elderHeart":return "%d초마다 최대 HP %s 회복 · %d초마다 최대 HP +%s(전투 동안, 최대 %d스택)"%[int(ItemTuning.ELDER_HEAL_EVERY),p.call(ItemTuning.ELDER_HEAL),int(ItemTuning.ELDER_GROW_EVERY),p.call(ItemTuning.ELDER_GROW),ItemTuning.ELDER_STACKS]
-		&"regenCore":return "궁극기 사용 시 HP %s 회복 + %d초간 받는 피해 -%s"%[p.call(ItemTuning.REGEN_HEAL),int(ItemTuning.REGEN_TIME),p.call(1-ItemTuning.REGEN_TAKEN)]
-		&"lifeResonance":return "궁극기 사용 시 반경 %d 안 아군 HP %s 회복"%[int(ItemTuning.RESONANCE_RADIUS),p.call(ItemTuning.RESONANCE_HEAL)]
-		&"eternalArmor":return "한 번에 받는 피해가 최대 HP의 %s를 넘지 않는다(상태 이상 피해 제외)"%p.call(ItemTuning.ETERNAL_CAP)
-		&"bloodChalice":return "출정한 아군 전원이 직접 공격으로 준 피해의 %s 회복"%p.call(ItemTuning.BLOOD_LEECH)
-		&"frostCrown":return "얼음 공격의 빙결 스택 확률 100%% · 빙결된 적을 처치하면 반경 %d 안 적에게 빙결 %d스택"%[int(ItemTuning.FROST_CROWN_RADIUS),ItemTuning.FROST_CROWN_STACKS]
-		&"twinMirror":return "전투 시작 시 분신 소환(HP · 피해 %s, 아이템 효과 · 궁극기 없음, 쓰러져도 손실 없음)"%p.call(ItemTuning.MIRROR_HP)
-		&"mangoSeed":return "탑 전투 승리마다 1단계(최대 %d) · %d단계부터 %d초마다 아군 전원 HP %s 회복(커스텀 전투는 %d단계)"%[ItemTuning.MANGO_STAGES,ItemTuning.MANGO_STAGES,int(ItemTuning.MANGO_EVERY),p.call(ItemTuning.MANGO_HEAL),ItemTuning.MANGO_STAGES]
-		&"emptyFrame":return "전투 시작 시 가장 가까운 아군의 아이템 하나(고대 제외)를 그 전투 동안 복사"
-		&"rewindClock":return "전투 시작 %d초 후 HP와 위치를 전투 시작 때로 한 번 되돌린다"%int(ItemTuning.REWIND_AT)
-		&"invertedHourglass":return "터닝포인트마다 궁극기 게이지가 가득 찬다(터닝포인트가 없는 전투는 %d초, 이후 %d초마다) · 초월 게이지는 차지 않는다"%[int(ItemTuning.HOURGLASS_FIRST),int(ItemTuning.HOURGLASS_EVERY)]
-		&"voidHeart":return "회복하지 못한다 · 받을 치유 %d마다 공격력 +%s(최대 +%s)"%[int(ItemTuning.VOID_PER),p.call(ItemTuning.VOID_STEP),p.call(ItemTuning.VOID_MAX)]
-		&"greedPouch":return "직접 공격이 맞을 때마다 %d G(전투당 최대 %d G, 탑에서만 지급) · 받는 피해 +%s"%[ItemTuning.GREED_GOLD,ItemTuning.GREED_MAX,p.call(ItemTuning.GREED_TAKEN-1)]
-		&"overdriveEngine":return "매초 공격속도 +%s 누적 · %d초가 되면 %d초 과열(행동 불가) 후 초기화"%[p.call(ItemTuning.OVERDRIVE_STEP),int(ItemTuning.OVERDRIVE_TIME),int(ItemTuning.OVERHEAT_TIME)]
-		&"magnetCompass":return "반경 %d 안 모든 투사체가 자신 쪽으로 휜다 · 적 투사체는 자신이 맞고, 아군 투사체는 통과하며 피해 +%s"%[int(ItemTuning.COMPASS_RADIUS),p.call(ItemTuning.COMPASS_BOOST)]
-		&"shadowDoll":return "받는 피해의 %s를 가장 가까운 적에게 떠넘긴다 · 주는 피해 -%s"%[p.call(ItemTuning.DOLL_SHARE),p.call(1-ItemTuning.DOLL_DEALT)]
+		&"sniperScope":return "멀리 있는 적(%d 이상)에게 피해 +%s"%[int(ItemTuning.SCOPE_DISTANCE),p.call(ItemTuning.SCOPE_DEALT)]
+		&"vampireFang":return "준 피해의 %s만큼 회복"%p.call(ItemTuning.VAMPIRE_LEECH)
+		&"hunterShuriken":return "처치하면 %d초간 공격속도 +%s"%[int(ItemTuning.HUNTER_TIME),p.call(ItemTuning.HUNTER_ATTACK_SPEED)]
+		&"thornArmor":return "근접 공격을 받으면 피해의 %s를 되돌려 줌"%p.call(ItemTuning.THORN_REFLECT)
+		&"bleedBlade":return "치명타를 맞은 적은 %d초간 출혈(그 피해의 %s 추가)"%[int(ItemTuning.BLEED_TIME),p.call(ItemTuning.BLEED_SHARE)]
+		&"lifeChalice":return "넘치는 치유는 대상의 보호막이 됨(최대 HP %s까지)"%p.call(ItemTuning.CHALICE_SHIELD_CAP)
+		&"firstStrikeRing":return "%d초마다 다음 기본공격 피해 +%s"%[int(ItemTuning.FIRST_STRIKE_EVERY),p.call(ItemTuning.FIRST_STRIKE)]
+		&"guardFeather":return "HP가 %s 아래로 떨어지면 보호막(최대 HP %s), 전투당 1회"%[p.call(ItemTuning.GUARD_FEATHER_HP),p.call(ItemTuning.GUARD_FEATHER_SHIELD)]
+		&"poisonDagger":return "기본공격 시 %s 확률로 맹독 1스택"%p.call(ItemTuning.POISON_DAGGER_CHANCE)
+		&"echoStaff":return "마법 공격 시 %s 확률로 절반 피해가 한 번 더"%p.call(ItemTuning.ECHO_CHANCE)
+		&"steelGreatsword":return "기본공격 %d번째마다 %s 강타 + 넉백"%[ItemTuning.GREATSWORD_EVERY,p.call(ItemTuning.GREATSWORD_DEALT)]
+		&"counterShield":return "패링·회피에 성공하면 다음 공격이 반드시 치명타"
+		&"executionScythe":return "HP %s 이하인 적을 공격하면 즉시 처치. 엘리트·보스에게는 대신 피해 +%s"%[p.call(ItemTuning.SCYTHE_HP),p.call(ItemTuning.SCYTHE_ELITE)]
+		&"rageHorn":return "처치하면 HP %s 회복. 저돌적 성향이면 받는 피해 증가가 사라짐"%p.call(ItemTuning.HORN_HEAL)
+		&"piercingAwl":return "장착자의 공격은 적 방어의 %s를 무시"%p.call(ItemTuning.PIERCE_DEFENSE)
+		&"guardChain":return "가장 가까운 아군이 받는 피해의 %s를 대신 받고, 그 피해는 절반으로 줄어듦"%p.call(ItemTuning.GUARD_CHAIN_SHARE)
+		&"weakEye":return "장착자가 공격한 적은 %d초간 받는 피해 +%s (아군 전체가 이득)"%[int(ItemTuning.WEAK_TIME),p.call(ItemTuning.WEAK_TAKEN-1)]
+		&"elementStone":return "화상·맹독·빙결·감전 중인 적을 처치하면 폭발해 주변 적에게 피해 + 같은 속성 %d스택"%ItemTuning.STONE_STACKS
+		&"swiftCloak":return "받는 투사체 피해 -%s"%p.call(1-ItemTuning.SWIFT_PROJECTILE_TAKEN)
+		&"stormCrown":return "궁극기를 쓸 때마다 주변 모든 적에게 낙뢰 + 감전 %d스택"%ItemTuning.STORM_SHOCK
+		&"infinityEdge":return "치명타는 적 방어의 %s를 무시"%p.call(ItemTuning.PIERCE_DEFENSE)
+		&"skyBowstring":return "투사체가 적을 %d명까지 꿰뚫고, 꿰뚫을 때마다 피해 +%s"%[ItemTuning.BOWSTRING_PIERCE,p.call(ItemTuning.BOWSTRING_STEP)]
+		&"eternalArmor":return "한 번에 최대 HP의 %s 넘는 피해를 받지 않음"%p.call(ItemTuning.ETERNAL_CAP)
+		&"oblivionVeil":return "전투 시작 시와 처치할 때마다 %d초 은신, 은신 중 공격은 피해 %d배"%[int(ItemTuning.VEIL_TIME),int(ItemTuning.VEIL_STRIKE)]
+		&"elderHeart":return "매초 최대 HP의 %s%% 회복"%_num(ItemTuning.ELDER_REGEN*100)
+		&"lifeResonance":return "궁극기를 쓰면 자신과 주변 아군 HP %s 회복 + %d초간 받는 피해 -%s"%[p.call(ItemTuning.RESONANCE_HEAL),int(ItemTuning.REGEN_TIME),p.call(1-ItemTuning.REGEN_TAKEN)]
+		&"warDrum":return "출정한 아군 전원 공격속도 +%s, 전투 시작 후 %d초간은 +%s"%[p.call(ItemTuning.DRUM_SPEED),int(ItemTuning.DRUM_OPENING_TIME),p.call(ItemTuning.DRUM_OPENING)]
+		&"bloodChalice":return "아군 전원이 준 피해의 %s만큼 회복(장착자는 %s)"%[p.call(ItemTuning.BLOOD_LEECH),p.call(ItemTuning.BLOOD_LEECH_SELF)]
+		&"frostCrown":return "장착자의 속성 스택은 확률 없이 항상 걸리고 %d스택 더 붙음"%ItemTuning.ELEMENT_CROWN_EXTRA
+		&"twinMirror":return "전투 시작 시 분신이 함께 싸움(HP·피해 %s). 분신이 쓰러져도 손실 없음"%p.call(ItemTuning.MIRROR_HP)
+		&"mangoSeed":return "전투 시작 시 아군 전원 보호막(최대 HP %s), %d초마다 아군 전원 HP %s 회복"%[p.call(ItemTuning.MANGO_SHIELD),int(ItemTuning.MANGO_EVERY),p.call(ItemTuning.MANGO_HEAL)]
+		&"cursedCrown":return "장착자가 살아 있는 동안 아군 전원 모든 스탯 +%s"%p.call(ItemTuning.KING_AURA)
+		&"rewindClock":return "쓰러질 피해를 받으면 %d초 전의 HP와 위치로 되돌아감(전투당 1회)"%int(ItemTuning.REWIND_BACK)
+		&"invertedHourglass":return "터닝포인트마다 궁극기가 가득 참"
+		&"greedPouch":return "처치할 때마다 %d G. 가진 골드 %d당 공격력 +%s (최대 +%s)"%[ItemTuning.GREED_KILL_GOLD,ItemTuning.GREED_PER,p.call(ItemTuning.GREED_STEP),p.call(ItemTuning.GREED_MAX)]
+		&"overdriveEngine":return "전투 중 매초 공격속도 +%s (최대 +%s)"%[p.call(ItemTuning.OVERDRIVE_STEP),p.call(ItemTuning.OVERDRIVE_MAX)]
+		&"gamblerDice":return "전투가 시작될 때마다 주사위를 굴려 스탯 하나가 +%s~%s"%[_num(ItemTuning.DICE_MIN*100),p.call(ItemTuning.DICE_MAX)]
+		&"commanderScepter":return "장착자는 출정 인원에 세지 않음(한 명 더 출정)"
+		&"mimicMask":return "궁극기를 쓰면 같은 궁극기가 절반 위력으로 한 번 더 나감"
+		&"soulReaper":return "전장에서 누군가 쓰러질 때마다 HP %s 회복, 최대 HP와 공격력 +%s (전투 동안)"%[p.call(ItemTuning.SOUL_HEAL),p.call(ItemTuning.SOUL_GROW)]
+		&"starShard":return "%d초마다 무작위 적 %d명에게 유성이 떨어져 범위 피해"%[int(ItemTuning.STAR_EVERY),ItemTuning.STAR_TARGETS]
+		&"shadowDoll":return "받는 모든 피해의 %s를 공격한 적에게 되돌려 줌"%p.call(ItemTuning.DOLL_REFLECT)
 	return ""
 ## 15 -> "15", 12.5 -> "12.5".
 static func _num(v: float) -> String:

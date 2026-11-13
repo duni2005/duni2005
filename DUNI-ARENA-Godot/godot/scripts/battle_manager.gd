@@ -468,6 +468,7 @@ func find_actor(id: String) -> BattleUnit:
 func character_death(victim,source) -> void:
 	var enemy_kill: bool=is_instance_valid(source) and source.team!=victim.team and not victim.character_specific_state.has("mirrorOf")
 	victim.ability.on_death(victim)
+	ItemEffects.on_death(victim)
 	if enemy_kill:
 		source.ability.on_kill(source,victim)
 		EquipmentCombatEffects.on_kill(source);ItemEffects.on_kill(source,victim)

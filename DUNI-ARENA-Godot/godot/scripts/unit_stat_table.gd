@@ -227,7 +227,8 @@ const DAMAGE = {
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]
 const ITEM = {&"dragon_heart":[&"item", &"magic", 15, 0.6, [&"fire", &"area"], "용의 심장"], &"chain_ring":[&"item", &"", 0, 0, [], "연쇄의 고리"],
 	&"bleed":[&"item", &"physical", 0, 0, [&"dot"], "출혈"], &"thorn_armor":[&"item", &"physical", 0, 0, [], "가시 갑옷"], &"echo_staff":[&"item", &"magic", 0, 0, [], "메아리 지팡이"],
-	&"element_stone":[&"item", &"magic", 10, 0.5, [&"explosion", &"area"], "원소 폭발석"], &"storm_crown":[&"item", &"magic", 15, 0.8, [&"lightning"], "폭풍의 왕관"], &"execution":[&"item", &"physical", 0, 0, [], "처형의 낫"]}
+	&"element_stone":[&"item", &"magic", 10, 0.5, [&"explosion", &"area"], "원소 폭발석"], &"storm_crown":[&"item", &"magic", 15, 0.8, [&"lightning"], "폭풍의 왕관"], &"execution":[&"item", &"physical", 0, 0, [], "처형의 낫"],
+	&"cursed_doll":[&"item", &"", 0, 0, [], "저주 인형"], &"star_shard":[&"item", &"magic", 20, 0.6, [&"explosion", &"area"], "별의 파편"]}
 ## Turning-point special strategies; the ratio grows with tower progress (see EnemyStrategyPlanner).
 const STRATEGY = {&"strategy_smash":[&"system", &"", 0, 2.0, [&"area"], "특수전략 · 강타"], &"strategy_cleave":[&"system", &"", 0, 1.5, [], "특수전략 · 가르기"], &"strategy_slash":[&"system", &"", 0, 1.3, [&"area"], "특수전략 · 참격"], &"strategy_sweep":[&"system", &"", 0, 2.4, [&"area"], "특수전략 · 휩쓸어 모으기"]}
 
@@ -289,7 +290,6 @@ static func damage_stat(u, kind: StringName) -> float:
 static func raw(u, key: StringName) -> float:
 	var s: Dictionary = spec(spec_type(u, key), key)
 	var kind: StringName = s.kind
-	if u is BattleUnit and u.combat_stats != null and u.combat_stats.kind_swap:kind = ItemEffects.flip(kind)
 	return s.base + damage_stat(u, kind) * s.ratio
 static func has_element(tags: Array) -> bool:
 	return tags.any(func(t):return t in ELEMENTS)

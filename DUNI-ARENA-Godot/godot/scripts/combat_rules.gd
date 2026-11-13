@@ -21,11 +21,14 @@ static func defense_sum(unit) -> float:
 			if friend.alive:aura=maxf(aura,friend.ability.defense_aura(friend,unit))
 	return ((unit.defense_power + unit.additional_defense+EquipmentCombatEffects.armor(unit)+aura) * (1.15 if unit.stance == CombatStance.COVER else 1)*(unit.ability.defense_factor(unit) if unit.battle.full_characters_enabled else 1))
 ## Damage left after defense: defense plus physical or magic defense for that kind of hit.
-static func mitigation(unit, kind: StringName) -> float:
+## `pen`: share of a positive defense the attack ignores (관통의 송곳, 무한의 칼날).
+static func mitigation(unit, kind: StringName, pen: float = 0) -> float:
 	var extra: float = 0
 	if unit.combat_stats != null:extra = unit.combat_stats.physical_defense if kind == &"physical" else unit.combat_stats.magic_defense
 	else:extra = UnitStatTable.base_physical_defense(unit.data.type_id) if kind == &"physical" else UnitStatTable.base_magic_defense(unit.data.type_id)
-	return UnitStatTable.mitigation(defense_sum(unit) + extra)
+	var total: float = defense_sum(unit) + extra
+	if pen > 0 and total > 0:total *= 1 - pen
+	return UnitStatTable.mitigation(total)
 static func armor(unit) -> float:
 	return maxf(0, defense(unit) - unit.defense_power)
 static func taken(unit) -> float:

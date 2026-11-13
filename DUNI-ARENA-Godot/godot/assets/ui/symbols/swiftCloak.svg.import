@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dx0v0oo4neni2"
-path="res://.godot/imported/oathChain.svg-5b96ae451dc74f76f6b9fcd88a6b22ff.ctex"
+uid="uid://cid11xk6mao1k"
+path="res://.godot/imported/swiftCloak.svg-31fff52fd077035c6e2cd503aae3813f.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/symbols/oathChain.svg"
-dest_files=["res://.godot/imported/oathChain.svg-5b96ae451dc74f76f6b9fcd88a6b22ff.ctex"]
+source_file="res://assets/ui/symbols/swiftCloak.svg"
+dest_files=["res://.godot/imported/swiftCloak.svg-31fff52fd077035c6e2cd503aae3813f.ctex"]
 
 [params]
 

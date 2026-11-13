@@ -40,9 +40,18 @@ static func validate(guild: GuildManager, entry: DeploymentEntry, entries: Array
 		return Code.ALREADY_DEPLOYED
 	if moving and not exists:
 		return Code.NOT_DEPLOYED
-	if not moving and entries.size() >= GrowthRules.sortie_limit(guild.state):
+	# 지휘관의 홀: its bearer goes out without taking a sortie place.
+	if not moving and not ItemEffects.sortie_free(guild.member_stats(member)) and counted(guild, entries) >= GrowthRules.sortie_limit(guild.state):
 		return Code.SORTIE_FULL
 	return position_error(entry.position, entries, blockers, entry.member_id if moving else "")
+
+## Deployed units that take a sortie place (all but 지휘관의 홀 bearers).
+static func counted(guild: GuildManager, entries: Array) -> int:
+	var n: int = 0
+	for e in entries:
+		var m: GuildMemberState = guild.get_member(e.member_id)
+		if m == null or not ItemEffects.sortie_free(guild.member_stats(m)):n += 1
+	return n
 
 static func validate_all(guild: GuildManager, entries: Array[DeploymentEntry], blockers: Array[Vector2]) -> Code:
 	if entries.is_empty():

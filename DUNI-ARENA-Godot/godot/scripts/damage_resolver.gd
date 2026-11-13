@@ -95,7 +95,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 			damage*=.7 if source.cosmic_marked else 1
 			damage*=ElementEffects.outgoing(source,target,spec,options)
 			if not status and not recoil:damage*=ItemEffects.outgoing(source,target,options,spec)
-			if not options.get("mirror_shard",false):damage*=target.ability.incoming_factor(target,source,options)*ItemEffects.incoming(target)
+			if not options.get("mirror_shard",false):damage*=target.ability.incoming_factor(target,source,options)*ItemEffects.incoming(target,spec)
 			if not recoil and not options.get("mirror_raw",false) and not duel_result and source.state_value("paladinBlessingTime")>0:damage*=1.3
 		var interception: Dictionary=target.ability.pre_damage(target,source,damage,options)
 		if not interception.is_empty():out.reflected_damage=interception.get("reflected",0);return complete(source,target,out)
@@ -112,7 +112,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 		return complete(source, target, out)
 	var amount: float = CombatRules.js_round(damage * CombatRules.taken(target)*100/(100+CombatRules.armor(target))*(1 if collision else 1+maxf(0,battle.clock.elapsed-60)/70))
 	if full:
-		var mitigation: float=CombatRules.mitigation(target,kind)
+		var mitigation: float=CombatRules.mitigation(target,kind,ItemEffects.defense_pen(source,out.critical) if not collision else 0.0)
 		if options.get("mirror_shard",false):amount=CombatRules.js_round(damage*mitigation)
 		elif duel_result:amount=CombatRules.js_round(damage*CombatRules.taken(target)*mitigation)
 		else:
@@ -167,7 +167,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 		shares=CharacterCombat.plan_share(target,maxf(0,amount-target.shield_hp),source,options,kind)
 		shares.append_array(ItemEffects.plan_share(target,maxf(0,amount-target.shield_hp),source,kind))
 		for share in shares:
-			if not share.get("extra",false):amount-=float(share.damage)
+			if not share.get("extra",false):amount-=float(share.get("cut",share.damage))
 		var threshold: float=float(options.get("execute_threshold",0))
 		executed=threshold>0 and amount>target.shield_hp and target.current_hp-maxf(0,amount-target.shield_hp)<=target.max_hp*threshold+1e-7
 		if CharacterLifecycle.intercept_lethal(target,maxf(0,amount-target.shield_hp),executed):out.avoided=true;return complete(source,target,out)
