@@ -45,7 +45,11 @@ var orbs: Array[Dictionary]=[]
 const FIST_CHARGE_END: float=.64
 var emit_clock: Dictionary={}
 ## Element status damage numbers and badges (ElementEffects).
-const STATUS_COLORS={&"burn":Color("ff9a52"),&"burn_spread":Color("ffb27a"),&"poison":Color("8fe36b"),&"frostbite":Color("a8e4ff"),&"chain_shock":Color("9fdcff"),&"erosion":Color("b48cff")}
+const STATUS_COLORS={&"burn":Color("ff9a52"),&"burn_spread":Color("ffb27a"),&"poison":Color("8fe36b"),&"frostbite":Color("a8e4ff"),&"chain_shock":Color("9fdcff"),&"erosion":Color("b48cff"),
+	# Item damage (ItemEffects): small numbers like element statuses.
+	&"chain_ring":Color("ffd27a"),&"bleed":Color("ff5a6a"),&"item_thorns":Color("d8b98a"),&"item_echo":Color("c49dff"),&"item_burst":Color("ffb46a"),&"item_storm":Color("bfe9ff"),&"item_execute":Color("efe6ff")}
+## 0.95 item visuals (icons over heads, item effects, lasting looks).
+var item_fx: ItemFx
 var kill_notices: Array[Dictionary]=[]
 ## Multi-kill (original spectator): kills within KILL_CHAIN_WINDOW battle seconds chain per killer.
 const MULTI_KILL_NAMES=["","","더블 킬","트리플 킬","쿼드라 킬","펜타 킬","헥사 킬"]
@@ -80,8 +84,13 @@ func _ready() -> void:
 	shader_fx=ShaderFxLayer.new();add_child(shader_fx)
 	glow_layer=CombatGlowLayer.new();glow_layer.host=self;add_child(glow_layer)
 	bar_overlay=BarOverlay.new();bar_overlay.host=self;add_child(bar_overlay)
+	if item_fx==null:item_fx=ItemFx.new(self)
 func attach(value: BattleManager) -> void:
 	cleanup();battle=value
+	if item_fx==null:item_fx=ItemFx.new(self)
+	item_fx.clear()
+	# 설정 · 셰이더 이펙트 off: shapes instead of shader effects.
+	if not GameSettings.shader_effects:use_shader_fx=false
 	if not is_instance_valid(battle):return
 	map_side=ArenaMap.SIDES[battle.map];camera.side=map_side;camera.view=ArenaMap.VIEWS[battle.map];camera.reset()
 	show()
@@ -263,6 +272,8 @@ func _death(u,source) -> void:
 	add_effect("death",u.position,u.team_color(),115*u.combat_scale(),.72)
 	effects[-1]["type"]=u.data.type_id;effects[-1]["scale"]=u.combat_scale()
 	particles.burst(u.position,u.team_color(),52,380,0,"shard",true)
+	# 거울 분신: it shatters without a kill notice.
+	if u.character_specific_state.has("mirrorOf"):particles.burst(u.position,Color("e8eef8"),20,220,0,"shard",true);return
 	feed.push_front("%s %s 사망"%["아군" if u.original_team==0 else "적",u.data.display_name])
 	if feed.size()>3:feed.pop_back()
 	var killer: bool=is_instance_valid(source) and source!=u
@@ -453,6 +464,7 @@ func advance(delta: float) -> void:
 		var fresh: int=mini(total-event_total,battle.combat_events.size());event_total=total
 		for i in range(battle.combat_events.size()-fresh,battle.combat_events.size()):
 			var e: Dictionary=battle.combat_events[i];var kind: String=String(e.kind)
+			if kind=="item_proc" or kind=="item_fx":item_fx.event(e);continue
 			if kind=="ult_impact":
 				add_effect("ult_impact",e.point,AttackVisuals.ink(int(e.metadata.get("type",0))),float(e.metadata.get("radius",110)),1.1)
 				particles.burst(e.point,Color("c8a77c"),20,340,0,"shard",true);particles.burst(e.point,Color("6b5a4a"),12,90,0,"smoke",true)
@@ -745,7 +757,7 @@ func advance(delta: float) -> void:
 			if u.stun_remaining>0 and float(old.stun)<=0:add_effect("stun",u.position,ArenaUI.GOLD,32)
 			if u.invincible_remaining>0 and float(old.inv)<=0:add_effect("invincible",u.position,ArenaUI.GOLD,38)
 			previous[u.battle_id]={"hp":u.current_hp,"shield":u.shield_hp,"stun":u.stun_remaining,"inv":u.invincible_remaining}
-	_status_emitters(delta);_advance_orbs(delta)
+	_status_emitters(delta);_advance_orbs(delta);item_fx.advance(delta)
 	var rows: Array=[]
 	for unit in battle.units:
 		if unit.alive:rows.append({"position":unit.position,"velocity":unit.velocity,"scale":unit.combat_scale()})
@@ -798,7 +810,7 @@ func _draw() -> void:
 			if z.get("ultimate",false):_ult_zone(z,point,radius)
 			if z.kind=="discharge":
 				for i in range(8):VisualShapes.bolt(self,point,point+Vector2.from_angle(i*TAU/8+real_age)*radius,c,i,3)
-	if not battle.finished:EnemyStrategyView.draw_ground(self,battle,real_age)
+	if not battle.finished:EnemyStrategyView.draw_ground(self,battle,real_age);item_fx.draw_ground(self)
 	for u in battle.units:
 		if u.alive:AttackVisuals.frog_action(self,u)
 	for attack in battle.melee_strikes:
@@ -822,6 +834,7 @@ func _draw() -> void:
 		if u.alive and u.character_specific_state.has("snowball"):_draw_snowball(u)
 	particles.draw(self)
 	_draw_orbs()
+	if not battle.finished:item_fx.draw_over(self)
 	for e in effects:
 		if e.kind=="ultimate":
 			var caster: BattleUnit=battle.find_actor(String(e.get("actor","")))
@@ -1170,7 +1183,12 @@ func _draw() -> void:
 		if e.kind in ["parry_success","warrior_parry","clash"]:draw_string(ThemeDB.fallback_font,e.point+Vector2(-26,-50-t*18),{"parry_success":"패링","warrior_parry":"반격","clash":"상쇄"}[e.kind],HORIZONTAL_ALIGNMENT_LEFT,-1,18,c)
 	for n in numbers:
 		var prefix: String="+" if n.kind=="heal" else "흡수 " if n.kind=="shield" else ""
-		draw_string(ThemeDB.fallback_font,n.point+Vector2(-14+(16 if n.kind=="status" else 0),-38-float(n.age)*42),prefix+str(ceili(n.value)),HORIZONTAL_ALIGNMENT_LEFT,-1,23 if n.kind=="critical" else 14 if n.kind=="status" else 18,Color(n.color,1-clampf(float(n.age)/.9,0,1)))
+		var size: int=23 if n.kind=="critical" else 14 if n.kind=="status" else 18
+		# 무한의 칼날: bigger gold criticals; 영겁의 갑주: a cracked number.
+		if n.get("big",false):size=31
+		var at: Vector2=n.point+Vector2(-14+(16 if n.kind=="status" else 0),-38-float(n.age)*42);var nc: Color=Color(n.color,1-clampf(float(n.age)/.9,0,1))
+		draw_string(ThemeDB.fallback_font,at,prefix+str(ceili(n.value)),HORIZONTAL_ALIGNMENT_LEFT,-1,size,nc)
+		if n.get("cracked",false):draw_polyline(PackedVector2Array([at+Vector2(-2,-16),at+Vector2(8,-8),at+Vector2(4,-4),at+Vector2(16,2)]),Color(ArenaUI.GOLD,nc.a),2,true)
 	if battle.transcendence!=null:
 		var action: Dictionary=battle.transcendence.aim if not battle.transcendence.aim.is_empty() else battle.transcendence.cast
 		if not action.is_empty():
@@ -1359,6 +1377,7 @@ func _ability_state(u: BattleUnit,parent: Transform2D) -> void:
 	
 	_new_character_state(u,p,s)
 	_ult_empowered(u,p,s)
+	item_fx.draw_unit(self,u,p,s)
 
 func _new_character_state(u: BattleUnit,p: Vector2,s: float) -> void:
 	# 말뚝 tether: rope to the stake and the allowed circle.

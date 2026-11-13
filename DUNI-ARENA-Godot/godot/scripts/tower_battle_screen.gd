@@ -192,6 +192,8 @@ func _format_result(result: BattleResult) -> void:
 		result_rewards.text="승리 보상\n골드 +%d\n토큰 +%d"%[room.gold_reward+equipment_gold,room.token_reward]
 	if result.bounty_gold>0:
 		result_rewards.text=(result_rewards.text+"\n" if result_rewards.visible else "")+"현상금 +%d G"%result.bounty_gold;result_rewards.visible=true
+	if result.greed_gold>0:
+		result_rewards.text=(result_rewards.text+"\n" if result_rewards.visible else "")+"탐욕 +%d G"%result.greed_gold;result_rewards.visible=true
 	result_label.hide();result_banner.hide()
 	_show_item_reward()
 ## The item reward of a won room: pick one (or skip) before going back to the map.

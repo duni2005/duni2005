@@ -8,5 +8,5 @@ static func assemble(data: UnitData, entry: EnemySpawnEntry) -> UnitCombatStats:
 	stats.max_hp = floorf(stats.max_hp + .5)
 	stats.attack = entry.damage_multiplier
 	stats.physical_defense *= entry.defense_multiplier;stats.magic_defense *= entry.defense_multiplier
-	stats.scale = entry.body_scale
+	stats.scale = entry.body_scale;stats.rank = entry.rank
 	return stats

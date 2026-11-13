@@ -6,3 +6,6 @@ var equipped_to_member_id: String = ""
 var consumed: bool = false
 ## Blacksmith enhancement level of a rare item, 0..ItemCatalog.MAX_ENHANCE.
 var enhance: int = 0
+## 0.95: the element a 프리즘 조각 rolled (&"" otherwise) and a 망고 씨앗's stage (0..5).
+var variant: StringName = &""
+var growth: int = 0

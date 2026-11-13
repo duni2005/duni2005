@@ -40,6 +40,7 @@ func advance(real_delta: float) -> void:
 		var extra: float = battle.clock.progress_slowdown(real_delta, BRAKE)
 		if battle.clock.is_turning_paused():
 			current.phase = TurningPointState.Phase.PAUSED
+			ItemEffects.on_turning_point(battle)
 			current.remaining_real_time = maxf(0, DURATION - extra)
 			current.enemy_plans = build_plans()
 			for unit in battle.units:

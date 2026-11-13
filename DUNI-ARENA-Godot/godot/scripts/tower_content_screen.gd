@@ -376,7 +376,7 @@ func _event_reward_text(outcome: Dictionary) -> String:
 	var ids: Array=outcome.get("items",[outcome.item_id] if outcome.has("item_id") else [])
 	for id in ids:
 		var item: ItemInstance=controller.content.inventory.get_item(id)
-		if item!=null:names.append(ItemCatalog.get_item(item.kind).display_name)
+		if item!=null:names.append(ItemCatalog.of(item).display_name)
 	if not names.is_empty():return " · ".join(names)
 	if outcome.has("card_id"):return StrategyCardCatalog.get_card(controller.guild.state.get_strategy_card(outcome.card_id).kind).display_name+" 전략카드"
 	return outcome_text(outcome)

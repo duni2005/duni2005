@@ -51,7 +51,7 @@ func resolve_minimal(source, target, raw_damage: float) -> DamageOutcome:
 	return outcome
 
 func complete(source, target, outcome: DamageOutcome) -> DamageOutcome:
-	if battle.full_characters_enabled and (outcome.avoided or outcome.parried):StanceRules.grant_counter(target, source)
+	if battle.full_characters_enabled and (outcome.avoided or outcome.parried):StanceRules.grant_counter(target, source);ItemEffects.on_defended(target)
 	if outcome.hp_damage > 0: damage_applied.emit(source, target, outcome.hp_damage, outcome.critical)
 	damage_resolved.emit(source, target, outcome)
 	return outcome
@@ -74,12 +74,13 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	var duel_result: bool=options.get("duel_result",false)
 	var full: bool=battle.full_characters_enabled
 	var spec: Dictionary=UnitStatTable.spec(int(options.get("dmg_type",UnitStatTable.spec_type(source,StringName(options.get("dmg",&"basic"))) if is_instance_valid(source) else -1)),StringName(options.get("dmg",&"basic"))) if full else {}
-	if full and is_instance_valid(source):spec=ItemEffects.adjust_spec(source,spec)
+	if full and is_instance_valid(source):spec=ItemEffects.adjust_spec(source,spec,target)
 	var kind: StringName=spec.get("kind",&"physical")
 	var plain: bool=recoil or options.get("mirror_raw",false) or options.get("plain",false)
 	if not collision:
 		var chance: float=(EquipmentCombatEffects.crit(source)+source.ability.critical_bonus(source,target)) if full else source.data.critical_chance+EquipmentCombatEffects.crit(source)
-		out.critical = options.get("critical", true) and rng.randf() < clampf(chance,0,1)
+		# 반격의 방패: an armed sure critical is spent by the next attack.
+		out.critical = options.get("critical", true) and ((full and not status and ItemEffects.sure_crit(source,options)) or rng.randf() < clampf(chance,0,1))
 		if not full:damage *= (CRITICAL_MULTIPLIER if out.critical else 1.0)*EquipmentCombatEffects.damage_factor(source,options)
 		elif not plain:
 			var stats: UnitCombatStats=source.combat_stats
@@ -93,7 +94,7 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 		if source!=null and not collision:
 			damage*=.7 if source.cosmic_marked else 1
 			damage*=ElementEffects.outgoing(source,target,spec,options)
-			if not status and not recoil:damage*=ItemEffects.outgoing(source,target,options)
+			if not status and not recoil:damage*=ItemEffects.outgoing(source,target,options,spec)
 			if not options.get("mirror_shard",false):damage*=target.ability.incoming_factor(target,source,options)*ItemEffects.incoming(target)
 			if not recoil and not options.get("mirror_raw",false) and not duel_result and source.state_value("paladinBlessingTime")>0:damage*=1.3
 		var interception: Dictionary=target.ability.pre_damage(target,source,damage,options)
@@ -117,6 +118,8 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 		else:
 			amount=CombatRules.js_round(damage*CombatRules.taken(target)*target.ability.incoming_reduction(target)*mitigation*(1 if collision else 1+maxf(0,battle.clock.elapsed-60)/70))
 			if not target.duel.is_empty() and source!=null and source.actor_id() not in [target.duel.master,target.duel.target]:amount=CombatRules.js_round(amount*(.2 if target.duel.master==target.actor_id() else .35))
+		# Item damage derived from damage already dealt (메아리 · 출혈 · 처형) lands as it is.
+		if options.get("fixed",false):amount=CombatRules.js_round(raw_damage)
 	var impulse: float = options.get("impulse", source.data.attack_profile.impulse if is_instance_valid(source) else 0)
 	var angle: float = options.get("angle", (target.position-source.position).angle() if is_instance_valid(source) else 0)
 	if collision:
@@ -160,7 +163,9 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	var shares: Array[Dictionary]=[]
 	var executed: bool=false
 	if battle.full_characters_enabled:
+		if not collision:amount=ItemEffects.cap_hit(target,amount,status)
 		shares=CharacterCombat.plan_share(target,maxf(0,amount-target.shield_hp),source,options,kind)
+		shares.append_array(ItemEffects.plan_share(target,maxf(0,amount-target.shield_hp),source,kind))
 		for share in shares:
 			if not share.get("extra",false):amount-=float(share.damage)
 		var threshold: float=float(options.get("execute_threshold",0))

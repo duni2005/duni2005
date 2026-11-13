@@ -5,15 +5,16 @@ var cast: Dictionary = {}
 var serial: int = 0
 var think: float = .5
 func blocked(u) -> bool:
-	return StatusController.skill_charge_blocked(u) or not cast.is_empty()
+	return StatusController.skill_charge_blocked(u) or not cast.is_empty() or u.character_specific_state.has("mirrorOf")
 func efficiency(u) -> float:
 	return EquipmentCombatEffects.ultimate_power(u)*u.ability.charge_rate(u)*(.2 if (u.data.type_id==3 and u.state_value("shadowTime")>0 or u.data.type_id==4 and u.state_value("guardianUltTime")>0) else 1)
 func gain(u,amount: float) -> float:
 	if blocked(u) or u.data.ultimate_windup<0 or amount<=0:return 0
 	var before: float=u.ultimate_gauge;u.ultimate_gauge=clampf(before+amount,0,100);return u.ultimate_gauge-before
 func charge(u,damage: float,dealt: bool) -> void:
-	if StatusController.skill_charge_blocked(u) or damage<=0:return
-	if (u.battle.get("custom_mode")==true or not u.source_member_id.is_empty() and u.team==0) and u.puppet_control.is_empty() and (u.battle.transcendence==null or u.battle.transcendence.cast.get("actor","")!=u.actor_id()):
+	if StatusController.skill_charge_blocked(u) or damage<=0 or u.character_specific_state.has("mirrorOf"):return
+	# 거꾸로 된 모래시계: the bearer's transcendence gauge never fills.
+	if not ItemEffects.has(u,&"invertedHourglass") and (u.battle.get("custom_mode")==true or not u.source_member_id.is_empty() and u.team==0) and u.puppet_control.is_empty() and (u.battle.transcendence==null or u.battle.transcendence.cast.get("actor","")!=u.actor_id()):
 		u.transcendence_gauge=clampf(u.transcendence_gauge+damage/u.max_hp*(12 if dealt else 16),0,100)
 	gain(u,damage/u.max_hp*(65 if dealt else 90)*(1.3 if u.data.type_id==3 else 1.2 if u.data.type_id==0 else 1)*efficiency(u))
 func advance(u,dt: float) -> void:

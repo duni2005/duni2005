@@ -45,8 +45,12 @@ static func nearest(u,list: Array):
 	var sorted: Array=list.duplicate();sorted.sort_custom(func(a,b):return u.position.distance_to(a.position)<u.position.distance_to(b.position));return sorted[0] if not sorted.is_empty() else null
 static func restore_hp(target, base: float, source=null) -> float:
 	if target==null or not target.alive or base<=0:return 0
-	var gain: float=minf(target.max_hp-target.current_hp,base*(source.healing_power*ElementEffects.healing(source) if source!=null else 1)*target.healing_received*ElementEffects.healing(target))
-	target.current_hp+=gain;target.battle.stats.heal(source,target,gain);return gain
+	var want: float=base*(source.healing_power*ElementEffects.healing(source) if source!=null else 1)*target.healing_received*ElementEffects.healing(target)
+	# 공허의 심장 turns healing into attack; 생명의 성배 turns overhealing into a shield.
+	if ItemEffects.void_heal(target,want):return 0
+	var gain: float=minf(target.max_hp-target.current_hp,want)
+	target.current_hp+=gain;target.battle.stats.heal(source,target,gain)
+	ItemEffects.overflow(target,want-gain,source);return gain
 static func shoot(u,angle: float,damage: float,settings: Dictionary={}) -> BattleProjectile:
 	var p:=u.battle.PROJECTILE_SCENE.instantiate() as BattleProjectile
 	p.initialize(u,angle)

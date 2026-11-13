@@ -85,6 +85,27 @@ const ENTRIES = {
 	&"hourglass":["시간의 모래시계", &"item", "hourglass", "궁극기를 쓴 직후 게이지 35%를 되찾는다."],
 	&"dragon_heart":["용의 심장", &"item", "dragonHeart", "주기적으로 주변에 화염 폭발을 일으킨다."],
 	&"victory_gold":["황금 토큰", &"item", "goldToken", "살아서 승리하면 골드를 얻는다."],
+	# 0.95 item statuses (ItemEffects; numbers in ItemTuning).
+	&"bleed":["출혈", &"debuff", "bleedBlade", "출혈의 칼날 치명타에 베였다. 0.5초마다 물리 지속 피해를 받는다. 다시 걸리면 시간이 갱신된다."],
+	&"berserk":["광전", &"buff", "berserkerHelm", "광전사의 투구. HP가 절반 이하인 동안 공격속도가 크게 오른다."],
+	&"hunt":["사냥 본능", &"buff", "hunterShuriken", "사냥꾼의 표창. 처치 직후 잠시 공격속도가 크게 오른다."],
+	&"first_strike":["첫 일격", &"buff", "firstStrikeRing", "첫 일격의 반지. 이번 전투의 첫 기본공격이 아주 강해진다."],
+	&"salvation":["구원 질주", &"buff", "salvationFeather", "구원의 깃털. 위태로운 아군에게 달려가는 중이라 빠르고, 닿으면 그 아군에게 보호막을 씌운다."],
+	&"counter_crit":["치명 반격", &"buff", "counterShield", "반격의 방패. 막거나 피한 직후라 다음 공격이 반드시 치명타다."],
+	&"veil_strike":["망각의 일격", &"buff", "oblivionVeil", "망각의 장막. 은신에서 나오는 첫 공격의 피해가 3배다."],
+	&"regen_barrier":["재생 장벽", &"buff", "regenCore", "재생 코어. 궁극기 직후 잠시 받는 피해가 줄어든다."],
+	&"elder_growth":["거목 성장", &"growth", "elderHeart", "거목의 심장. 주기적으로 회복하고, 10초마다 최대 HP가 늘어난다."],
+	&"mango_growth":["망고 성장", &"growth", "mangoSeed", "망고 씨앗. 탑 전투에서 이길 때마다 자라고, 다 자라면 아군 전원을 주기적으로 회복시킨다."],
+	&"void_charge":["공허 축적", &"growth", "voidHeart", "공허의 심장. 받을 치유를 삼켜 공격력으로 바꾼다."],
+	&"overdrive":["폭주", &"growth", "overdriveEngine", "폭주 기관. 매초 공격속도가 쌓이다가 한계에 이르면 과열된다."],
+	&"smash_ready":["강타 준비", &"unique", "steelGreatsword", "강철 대검. 기본공격 세 번째마다 강타가 나간다."],
+	&"mirror_clone":["거울 분신", &"unique", "twinMirror", "쌍둥이의 거울이 만든 분신. 아이템 효과와 궁극기가 없고, 쓰러져도 손실이 없다."],
+	&"rewind_wait":["역행 대기", &"unique", "rewindClock", "역행의 시계. 시간이 다 되면 HP와 위치가 전투 시작 때로 돌아간다."],
+	&"shadow_link":["그림자 연결", &"unique", "shadowDoll", "그림자 인형. 받는 피해의 일부를 연결된 적에게 떠넘긴다."],
+	&"blood_blessing":["피의 가호", &"item", "bloodChalice", "피의 성배. 직접 공격으로 준 피해의 일부를 회복한다(아군 전원)."],
+	&"frame":["액자", &"item", "emptyFrame", "빈 액자. 가까운 아군의 아이템 하나를 이번 전투 동안 복사했다."],
+	&"greed":["탐욕", &"item", "greedPouch", "탐욕의 주머니. 직접 공격이 맞을 때마다 골드를 모으고(탑에서만 지급), 받는 피해가 늘어난다."],
+	&"overheat":["과열", &"control", "overdriveEngine", "폭주 기관이 과열되어 아무 행동도 할 수 없다."],
 }
 
 static func entry(key: StringName) -> Array:return ENTRIES.get(key, ["", &"buff", "star", ""])
@@ -121,7 +142,7 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	elif subject is EnemyRoomState:type_id = subject.unit_type_id;stats = subject.combat_stats if stats == null else stats
 	var now: float = u.battle.clock.elapsed if u != null else 0.0
 	# 제어
-	if _num(s, "stun") > 0:add.call(&"frozen" if _num(s, "frozenTime") > 0 else &"stun", _secs(_num(s, "stun")))
+	if _num(s, "stun") > 0:add.call(&"frozen" if _num(s, "frozenTime") > 0 else &"overheat" if _num(s, "overheatTime") > 0 else &"stun", _secs(_num(s, "stun")))
 	if _num(s, "tetherTime") > 0:add.call(&"tether", _secs(_num(s, "tetherTime")))
 	if _num(s, "magnetTime") > 0:add.call(&"magnet", _secs(_num(s, "magnetTime")))
 	if u != null:
@@ -152,6 +173,7 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if _num(s, "frenzyTime") > 0:add.call(&"drug_frenzy", _secs(_num(s, "frenzyTime")))
 	if _num(s, "suppressTime") > 0:add.call(&"suppress", _secs(_num(s, "suppressTime")))
 	if _num(s, "whisperStacks") > 0:add.call(&"whisper", "%d/3" % int(_num(s, "whisperStacks")))
+	if _num(s, "bleedTime") > 0:add.call(&"bleed", _secs(_num(s, "bleedTime")))
 	# 표식
 	if not str(s.get("lightMark", "")).is_empty():add.call(&"light_mark")
 	if not str(s.get("darkMark", "")).is_empty():add.call(&"dark_mark")
@@ -173,6 +195,13 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if _num(s, "shadowTime") > 0:add.call(&"shadow", _secs(_num(s, "shadowTime")))
 	if s.get("saintFallen", false) == true:add.call(&"frenzy")
 	if type_id == 17 and not (u != null and u.hero_rescue_used):add.call(&"rescue_ready")
+	if u != null and stats != null and stats.has(&"berserkerHelm") and ItemEffects.berserk(u):add.call(&"berserk")
+	if _num(s, "hunterTime") > 0:add.call(&"hunt", _secs(_num(s, "hunterTime")))
+	if _num(s, "firstStrike") > 0:add.call(&"first_strike")
+	if s.get("salvationRun", false) == true:add.call(&"salvation", "남은 %d회" % int(_num(s, "salvationUses")))
+	if u != null and _num(s, "counterCritUntil") > now:add.call(&"counter_crit", _secs(_num(s, "counterCritUntil") - now))
+	if _num(s, "veilReady") > 0:add.call(&"veil_strike")
+	if _num(s, "regenTime") > 0:add.call(&"regen_barrier", _secs(_num(s, "regenTime")))
 	# 성장
 	if _num(s, "predatorStacks") > 0:add.call(&"predator", _stacks(_num(s, "predatorStacks")))
 	if _num(s, "dolphinStacks") > 0:add.call(&"shrink", _stacks(_num(s, "dolphinStacks")))
@@ -180,6 +209,10 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if _num(s, "fogTime") > 0:add.call(&"plague_fog", _secs(_num(s, "fogTime")))
 	if _num(s, "golemCharge") > 0:add.call(&"golem_charge", "%d%%" % roundi(_num(s, "golemCharge") * 100))
 	if s.has("mimicType"):add.call(&"mimic", CharacterCatalog.all()[int(s.mimicType)].display_name)
+	if stats != null and stats.has(&"elderHeart") and u != null:add.call(&"elder_growth", "%d/%d" % [int(_num(s, "elderStacks")), ItemTuning.ELDER_STACKS])
+	if stats != null and stats.has(&"mangoSeed"):add.call(&"mango_growth", "%d/%d" % [int(_num(s, "mangoStage")) if u != null else stats.mango_stage, ItemTuning.MANGO_STAGES])
+	if u != null and _num(s, "voidHeal") > 0:add.call(&"void_charge", "+%d%%" % roundi(ItemEffects.void_bonus(u) * 100))
+	if u != null and stats != null and stats.has(&"overdriveEngine") and _num(s, "overheatTime") <= 0:add.call(&"overdrive", "+%d%%" % roundi(floorf(_num(s, "overdrive")) * ItemTuning.OVERDRIVE_STEP * 100))
 	# 고유
 	if type_id == 23 and s.has("ammo"):add.call(&"ammo", "%d/20" % int(_num(s, "ammo")))
 	if type_id == 34 and s.has("bolts"):add.call(&"bolts", "%d/7" % int(_num(s, "bolts")))
@@ -187,6 +220,12 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if type_id == 32 and s.has("oil"):add.call(&"oil", "%d/%d" % [int(_num(s, "oil")), 30])
 	if s.get("sniperBurstReady", false) == true:add.call(&"sniper_burst")
 	if s.get("tankFlameReady", false) == true:add.call(&"tank_flame")
+	if stats != null and stats.has(&"steelGreatsword") and u != null:add.call(&"smash_ready", "%d/%d" % [int(_num(s, "smashCount")) + 1, ItemTuning.GREATSWORD_EVERY])
+	if s.has("mirrorOf"):add.call(&"mirror_clone")
+	if _num(s, "rewindLeft") > 0:add.call(&"rewind_wait", _secs(_num(s, "rewindLeft")))
+	if u != null and stats != null and stats.has(&"shadowDoll"):
+		var link = ItemEffects.doll_link(u)
+		if link != null:add.call(&"shadow_link", link.data.display_name)
 	# 아이템
 	if stats != null:
 		if stats.vigor_totem_count > 0:add.call(&"vigor_totem", "×%d" % stats.vigor_totem_count)
@@ -199,4 +238,7 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 		if stats.hourglass_count > 0:add.call(&"hourglass", "×%d" % stats.hourglass_count)
 		if stats.dragon_heart_count > 0:add.call(&"dragon_heart", "×%d" % stats.dragon_heart_count)
 		if stats.victory_gold > 0:add.call(&"victory_gold", "%d G" % stats.victory_gold)
+		if stats.has(&"greedPouch") and u != null:add.call(&"greed", "%d/%d" % [int(_num(s, "greedGold")), ItemTuning.GREED_MAX])
+	if s.has("frameItem"):add.call(&"frame", str(s.frameItem))
+	if u != null and u.alive and ItemEffects.blood_blessed(u):add.call(&"blood_blessing")
 	return rows

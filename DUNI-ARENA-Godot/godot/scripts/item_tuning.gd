@@ -107,3 +107,117 @@ const DICE_UP: float = 1.0
 const DICE_DOWN: float = -.3
 const DICE_STATS: Array[String] = ["max_hp", "physical_damage", "magic_damage", "defense", "speed", "attack_speed"]
 const DICE_STAT_NAMES = {"max_hp":"최대 HP", "physical_damage":"물리 피해", "magic_damage":"마법 피해", "defense":"방어력", "speed":"이동속도", "attack_speed":"공격속도"}
+
+# ---- 0.95 items (ItemEffects runs them; ItemCatalog writes the text from these) ----
+## Prices of the ten 0.95 일반 items (higher grades use GRADE_PRICES).
+const NEW_COMMON_PRICES = {&"finisherCharm":150, &"quillHead":140, &"steelKnuckle":140, &"powderPouch":140, &"broadBlade":140, &"rustyNail":130, &"whetstone":150, &"ironHelm":130, &"windBoots":130, &"prismShard":150}
+## 일반 stat lines.
+const FINISHER_ULT: float = .15
+const QUILL_PROJECTILE: float = .15
+const KNUCKLE_MELEE: float = .15
+const POWDER_EXPLOSION: float = .2
+const BROAD_AREA: float = .15
+const NAIL_DOT: float = .2
+const WHETSTONE_CRIT: float = .25
+const IRON_HELM_HP: float = .08
+const IRON_HELM_ARMOR: float = 6
+const WIND_BOOTS_SPEED: float = .12
+## 프리즘 조각: one of these elements, fixed when the item is won (seeded), +PRISM_BONUS to it.
+const PRISM_ELEMENTS: Array[StringName] = [&"fire", &"ice", &"poison", &"lightning", &"wind", &"light", &"dark"]
+const PRISM_BONUS: float = .3
+
+## Item-icon pop over a unit's head when a special effect fires: life, and the gap before the
+## same item may pop again on the same unit.
+const PROC_ICON_TIME: float = .8
+const PROC_ICON_GAP: float = 1.0
+
+## 희귀
+const BERSERK_HP: float = .5
+const BERSERK_ATTACK_SPEED: float = .35
+const SCOPE_DISTANCE: float = 250
+const SCOPE_DEALT: float = .2
+const VAMPIRE_LEECH: float = .1
+const HUNTER_TIME: float = 3
+const HUNTER_ATTACK_SPEED: float = .5
+const THORN_REFLECT: float = .25
+const FIRST_STRIKE: float = 1.5
+const SALVATION_HP: float = .3
+const SALVATION_RANGE: float = 420
+const SALVATION_SPEED: float = .4
+const SALVATION_REACH: float = 60
+const SALVATION_SHIELD: float = .15
+const SALVATION_SHIELD_TIME: float = 6
+const SALVATION_USES: int = 2
+const BLEED_TIME: float = 3
+const BLEED_EVERY: float = .5
+const BLEED_SHARE: float = .3
+const CHALICE_SHIELD_CAP: float = .2
+const CHALICE_SHIELD_TIME: float = 5
+const SPORE_CHANCE: float = .25
+const SPORE_RADIUS: float = 90
+## 영웅
+const ECHO_CHANCE: float = .2
+const ECHO_SHARE: float = .5
+const ECHO_DELAY: float = .15
+const SCYTHE_HP: float = .12
+const COUNTER_SHIELD_TIME: float = 3
+const HORN_HEAL: float = .1
+const OATH_SHARE: float = .3
+const OATH_CAP: float = .3
+const OATH_RADIUS: float = 140
+const OATH_SHIELD_TIME: float = 5
+const BADGE_LIGHT_HEAL: float = .1
+const BADGE_DARK_POP: float = 1.4
+const GREATSWORD_EVERY: int = 3
+const GREATSWORD_DEALT: float = 1.5
+const GREATSWORD_PUSH: float = 420
+const STONE_RADIUS: float = 100
+const WIND_TRAIL_TIME: float = 2
+const WIND_TRAIL_STEP: float = .2
+const WIND_TRAIL_WIDTH: float = 34
+## 전설
+const STORM_RADIUS: float = 300
+const STORM_SHOCK: int = 2
+const INFINITY_CRIT: float = .2
+const INFINITY_CRIT_DAMAGE: float = .6
+const BOWSTRING_PIERCE: int = 4
+const BOWSTRING_STEP: float = .15
+const VEIL_TIME: float = 5
+const VEIL_STRIKE: float = 3
+const ELDER_HEAL_EVERY: float = 5
+const ELDER_HEAL: float = .03
+const ELDER_GROW_EVERY: float = 10
+const ELDER_GROW: float = .02
+const ELDER_STACKS: int = 5
+const REGEN_HEAL: float = .2
+const REGEN_TIME: float = 2
+const REGEN_TAKEN: float = .7
+const RESONANCE_RADIUS: float = 150
+const RESONANCE_HEAL: float = .15
+const ETERNAL_CAP: float = .15
+const BLOOD_LEECH: float = .05
+const FROST_CROWN_RADIUS: float = 100
+const FROST_CROWN_STACKS: int = 2
+## 고대
+const MIRROR_HP: float = .5
+const MIRROR_DAMAGE: float = .5
+const MANGO_STAGES: int = 5
+const MANGO_EVERY: float = 10
+const MANGO_HEAL: float = .05
+const REWIND_AT: float = 30
+const HOURGLASS_FIRST: float = 12
+const HOURGLASS_EVERY: float = 30
+const VOID_PER: float = 10
+const VOID_STEP: float = .01
+const VOID_MAX: float = 1.0
+const GREED_GOLD: int = 1
+const GREED_MAX: int = 100
+const GREED_TAKEN: float = 1.25
+const OVERDRIVE_STEP: float = .03
+const OVERDRIVE_TIME: float = 30
+const OVERHEAT_TIME: float = 3
+const COMPASS_RADIUS: float = 220
+const COMPASS_TURN: float = 5.0
+const COMPASS_BOOST: float = .3
+const DOLL_SHARE: float = .3
+const DOLL_DEALT: float = .6

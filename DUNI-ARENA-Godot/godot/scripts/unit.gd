@@ -101,7 +101,7 @@ var velocity: Vector2 = Vector2.ZERO
 ## Base walking speed; reads include element slows (ElementEffects headwind).
 var base_move_speed: float
 var move_speed: float:
-	get: return base_move_speed * ElementEffects.move_speed(self) if not character_specific_state.is_empty() else base_move_speed
+	get: return base_move_speed * ElementEffects.move_speed(self) * ItemEffects.move_speed(self) if not character_specific_state.is_empty() else base_move_speed
 	set(value): base_move_speed = value
 var target = null
 var alive: bool = true
@@ -159,7 +159,8 @@ func announce_death(source) -> void:
 	# Legacy receive_damage still announces immediately through its default API.
 	if not alive and not death_emitted:
 		if battle.full_characters_enabled: battle.character_death(self,source)
-		battle.stats.kill(source,self)
+		# 거울 분신: its fall is no kill for anyone.
+		if not character_specific_state.has("mirrorOf"):battle.stats.kill(source,self)
 		death_emitted=true
 		died.emit(self,source)
 

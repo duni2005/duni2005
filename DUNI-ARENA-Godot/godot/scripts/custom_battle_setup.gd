@@ -110,10 +110,13 @@ func stats_for(entry: Dictionary) -> UnitCombatStats:
 	# Level 0 stats with the same multiplicative item rules as guild members.
 	var data: UnitData = CharacterCatalog.all()[int(entry.type)]
 	var stats := UnitCombatStats.from_table(data)
-	for kind in entry.items:
-		var item: ItemData = ItemCatalog.get_item(kind)
+	for slot in range(entry.items.size()):
+		var kind: StringName = entry.items[slot]
+		var item: ItemData = ItemCatalog.prism(ItemCatalog.custom_prism(int(entry.id), slot)) if kind == &"prismShard" else ItemCatalog.get_item(kind)
 		if item == null:continue
 		stats.apply_item(item)
+	# 망고 씨앗 is fully grown in custom battles.
+	if stats.has(&"mangoSeed"):stats.mango_stage = ItemTuning.MANGO_STAGES
 	stats.finish_items()
 	stats.max_hp = floorf(stats.max_hp + .5)
 	stats.equipment_attack_without_growth = stats.attack

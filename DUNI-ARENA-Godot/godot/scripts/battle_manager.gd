@@ -100,6 +100,7 @@ func start_battle(placements: Array[Dictionary], seed_value: int = -1, map_id: i
 			actor.ability.on_spawn(actor)
 			if actor.stance==CombatStance.COVER:CharacterLifecycle.bind_cover(actor)
 		for actor in units:CharacterPersistence.restore_control(actor)
+		ItemEffects.on_battle_start(self)
 	check_outcome()
 	return true
 
@@ -267,7 +268,8 @@ func check_outcome() -> void:
 		return
 	var factions: Dictionary = {}
 	for unit in units:
-		if unit.alive:
+		# A 거울 분신 alone does not keep its side in the fight.
+		if unit.alive and not unit.character_specific_state.has("mirrorOf"):
 			factions[unit.original_team if full_characters_enabled else unit.team] = true
 	if factions.size() > 1:
 		return
@@ -303,7 +305,7 @@ func finish_with_reason(reason: BattleEndReason.Value, winning_team: int) -> boo
 			result.survivors.append(unit.battle_id)
 		result.units.append({"battle_id": unit.battle_id, "type_id": unit.data.type_id, "team": unit.team, "hp": unit.current_hp, "alive": unit.alive, "position": unit.position})
 		result.capture_member(unit)
-		if not unit.source_member_id.is_empty():result.bounty_gold += int(unit.state_value("bountyGold"))
+		if not unit.source_member_id.is_empty():result.bounty_gold += int(unit.state_value("bountyGold"));result.greed_gold += ItemEffects.greed_gold(unit)
 		result.capture_enemy(unit)
 	# Discard runtime execution AFTER detached persistence snapshots are captured.
 	for unit in units:
@@ -444,7 +446,7 @@ func simulate_common(delta: float) -> void:
 		if full_characters_enabled and unit.data.type_id==5:unit.ability.tick(unit,delta)
 		if unit.combat.can_start(unit,unit.target): unit.combat.start(unit,unit.target,rng)
 		unit.queue_redraw()
-	if full_characters_enabled:BindingController.advance(self,delta);ElementEffects.advance(self,delta)
+	if full_characters_enabled:BindingController.advance(self,delta);ElementEffects.advance(self,delta);ItemEffects.advance(self,delta)
 	if not spawn_queue.is_empty():_flush_spawns()
 	PhysicalAttackSystem.advance(self,delta)
 	for wave in combat_waves: wave.advance(self,delta)
@@ -464,9 +466,9 @@ func find_actor(id: String) -> BattleUnit:
 		if u.actor_id()==id:return u
 	return null
 func character_death(victim,source) -> void:
-	var enemy_kill: bool=is_instance_valid(source) and source.team!=victim.team
+	var enemy_kill: bool=is_instance_valid(source) and source.team!=victim.team and not victim.character_specific_state.has("mirrorOf")
 	victim.ability.on_death(victim)
 	if enemy_kill:
 		source.ability.on_kill(source,victim)
-		EquipmentCombatEffects.on_kill(source);ItemEffects.on_kill(source)
+		EquipmentCombatEffects.on_kill(source);ItemEffects.on_kill(source,victim)
 	CharacterLifecycle.on_death(victim)

@@ -10,6 +10,7 @@ static func assemble(data: UnitData,member: GuildMemberState,inventory: Inventor
 		var item: ItemData=ItemCatalog.of(instance)
 		if item==null:continue
 		stats.apply_item(item)
+		if instance.kind==&"mangoSeed":stats.mango_stage=maxi(stats.mango_stage,instance.growth)
 	stats.finish_items()
 	# 저주받은 왕관: every tower battle worn costs 5% of max HP for good.
 	var decay: int=int(member.character_specific_state.get("crownDecay",0))

@@ -14,6 +14,8 @@ func give(kind: StringName,receipt: String="") -> ItemInstance:
 	if ItemCatalog.get_item(kind)==null or not valid():return null
 	if not receipt.is_empty() and run.inventory_receipts.has(receipt):return get_item(run.inventory_receipts[receipt])
 	var item:=ItemInstance.new();item.item_id=run.next_item_number;item.kind=kind;run.next_item_number+=1;run.inventory.append(item)
+	# 프리즘 조각: its element is fixed when won, from the run and the item number (seeded).
+	if kind==&"prismShard":item.variant=ItemTuning.PRISM_ELEMENTS[posmod(hash("%s/%d"%[run.run_id,item.item_id]),ItemTuning.PRISM_ELEMENTS.size())]
 	if not receipt.is_empty():run.inventory_receipts[receipt]=item.item_id
 	return item
 func consume_reward(request: RewardRequest) -> bool:

@@ -146,7 +146,10 @@ func _fit(dialog: AcceptDialog) -> void:
 	# Wrapped text can over-grow a window on its first layout pass; shrink it to its content.
 	await get_tree().process_frame
 	if not dialog.visible:return
-	dialog.size=Vector2i(dialog.size.x,ceili(dialog.get_contents_minimum_size().y));dialog.move_to_center()
+	# Back to the popup width (a tab with long lines may have widened it), never under the content.
+	var width: int=maxi(ceili(dialog.get_contents_minimum_size().x),mini(380,int(get_viewport_rect().size.x)-24))
+	dialog.size=Vector2i(width,0);await get_tree().process_frame
+	dialog.size=Vector2i(width,ceili(dialog.get_contents_minimum_size().y));dialog.move_to_center()
 # ---- Setup ----
 func refresh() -> void:
 	for child in cost_row.get_children():cost_row.remove_child(child);child.queue_free()
@@ -207,6 +210,7 @@ func _render_unit() -> void:
 	var tabs:=HBoxContainer.new();unit_body.add_child(tabs)
 	for pair in [["stance","행동성향"],["items","아이템"]]:
 		var t:=_button(tabs,pair[1],func():unit_tab=pair[0];_render_unit());t.toggle_mode=true;t.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ArenaUI.tab(t);t.set_pressed_no_signal(unit_tab==pair[0])
+	if unit_dialog.visible:call_deferred("_fit",unit_dialog)
 	if unit_tab=="stance":
 		for stance in CombatStance.VALUES:
 			var b:=_button(unit_body,"%s\n%s"%[ArenaUI.stance(stance),ArenaUI.STANCE_HELP[stance]],func():setup.set_stance(unit_id,stance);_render_unit();board.queue_redraw())
@@ -217,20 +221,23 @@ func _render_unit() -> void:
 		var slots:=HBoxContainer.new();unit_body.add_child(slots)
 		for i in range(CustomBattleSetup.MAX_ITEMS):
 			if i<entry.items.size():
-				var item: ItemData=ItemCatalog.get_item(entry.items[i])
-				var s:=_button(slots,item.display_name+"  ×",func():setup.unequip(unit_id,i);_render_unit();board.queue_redraw());s.size_flags_horizontal=Control.SIZE_EXPAND_FILL;s.add_theme_font_size_override("font_size",12);ArenaUI.with_icon(s,String(entry.items[i]),18)
+				var item: ItemData=ItemCatalog.prism(ItemCatalog.custom_prism(int(entry.id),i)) if entry.items[i]==&"prismShard" else ItemCatalog.get_item(entry.items[i])
+				var s:=_button(slots,item.display_name+"  ×",func():setup.unequip(unit_id,i);_render_unit();board.queue_redraw());s.size_flags_horizontal=Control.SIZE_EXPAND_FILL;s.clip_text=true;s.custom_minimum_size.x=0;s.add_theme_font_size_override("font_size",12);ArenaUI.with_icon(s,String(entry.items[i]),18)
 			else:
 				var empty:=Label.new();empty.text="+ 빈 슬롯";empty.size_flags_horizontal=Control.SIZE_EXPAND_FILL;empty.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;empty.custom_minimum_size.y=44;empty.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;empty.add_theme_color_override("font_color",ArenaUI.MUTED);slots.add_child(empty)
-		var stat_line:=Label.new();stat_line.text="%s 피해 · HP %d · 공격력 %d%% · 물리 %s · 마법 %s · 방어 %s%s"%[CharacterCatalog.damage_label(int(entry.type)),int(stats.max_hp),roundi(stats.attack*100),ArenaUI.number(stats.physical_damage),ArenaUI.number(stats.magic_damage),ArenaUI.number(stats.defense+stats.armor)," · 치유 +%d%%"%int(round((stats.healing_power-1)*100)) if stats.healing_power>1 else ""];stat_line.add_theme_font_size_override("font_size",12);stat_line.add_theme_color_override("font_color",ArenaUI.HP);unit_body.add_child(stat_line)
+		var stat_line:=Label.new();stat_line.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;stat_line.custom_minimum_size.x=280;stat_line.text="%s 피해 · HP %d · 공격력 %d%% · 물리 %s · 마법 %s · 방어 %s%s"%[CharacterCatalog.damage_label(int(entry.type)),int(stats.max_hp),roundi(stats.attack*100),ArenaUI.number(stats.physical_damage),ArenaUI.number(stats.magic_damage),ArenaUI.number(stats.defense+stats.armor)," · 치유 +%d%%"%int(round((stats.healing_power-1)*100)) if stats.healing_power>1 else ""];stat_line.add_theme_font_size_override("font_size",12);stat_line.add_theme_color_override("font_color",ArenaUI.HP);unit_body.add_child(stat_line)
 		# Items by grade, one tab per grade (고대 only here).
 		var grades:=HBoxContainer.new();grades.add_theme_constant_override("separation",3);unit_body.add_child(grades)
 		for grade in ItemTuning.GRADES:
 			var g:=_button(grades,ItemTuning.GRADE_NAMES[grade],func():item_grade_tab=grade;_render_unit());g.toggle_mode=true;g.size_flags_horizontal=Control.SIZE_EXPAND_FILL;g.clip_text=true;g.custom_minimum_size.x=40;g.add_theme_font_size_override("font_size",12);ArenaUI.tab(g)
 			g.add_theme_color_override("font_color",ItemTuning.GRADE_COLORS[grade]);g.add_theme_color_override("font_pressed_color",ItemTuning.GRADE_COLORS[grade].lightened(.4));g.set_pressed_no_signal(item_grade_tab==grade)
-		var grid:=GridContainer.new();grid.columns=4;unit_body.add_child(grid)
-		for kind in CustomBattleSetup.equippable_items().filter(func(k):return ItemCatalog.grade_of(k)==item_grade_tab):
+		# The grade's items: five a row, at most three rows tall (a longer grade scrolls, like an inventory).
+		var kinds: Array=CustomBattleSetup.equippable_items().filter(func(k):return ItemCatalog.grade_of(k)==item_grade_tab)
+		var grid_scroll:=ScrollContainer.new();grid_scroll.horizontal_scroll_mode=ScrollContainer.SCROLL_MODE_DISABLED;grid_scroll.custom_minimum_size.y=mini(3,ceili(kinds.size()/5.0))*48;unit_body.add_child(grid_scroll)
+		var grid:=GridContainer.new();grid.columns=5;grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL;grid_scroll.add_child(grid)
+		for kind in kinds:
 			var item: ItemData=ItemCatalog.get_item(kind);var tint: Color=ItemTuning.GRADE_COLORS[item.grade]
-			var c:=_button(grid,"",func():item_choice=kind;_render_unit());c.toggle_mode=true;c.custom_minimum_size=Vector2(60,44);c.tooltip_text=item.display_name;ArenaUI.with_icon(c,String(kind),24);c.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER;ArenaUI.tab(c);c.set_pressed_no_signal(item_choice==kind)
+			var c:=_button(grid,"",func():item_choice=kind;_render_unit());c.toggle_mode=true;c.custom_minimum_size=Vector2(54,44);c.tooltip_text=item.display_name;ArenaUI.with_icon(c,String(kind),24);c.icon_alignment=HORIZONTAL_ALIGNMENT_CENTER;ArenaUI.tab(c);c.set_pressed_no_signal(item_choice==kind)
 			# Grade-coloured border, thicker from 영웅 up.
 			var normal: StyleBoxFlat=ArenaUI.box(Color(tint.darkened(.82),1),Color(tint,.8));normal.set_border_width_all(2 if ItemTuning.FRAME[item.grade].thick else 1);c.add_theme_stylebox_override("normal",normal)
 		var detail:=Label.new();detail.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;detail.add_theme_font_size_override("font_size",12);unit_body.add_child(detail)

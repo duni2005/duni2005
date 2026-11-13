@@ -96,6 +96,7 @@ static func validate_run(run: RunState) -> SaveLoadResult:
 	if not inventory.valid():return reject("inventory_identity_or_ownership")
 	for item in run.inventory:
 		if item.enhance<0 or item.enhance>ItemCatalog.MAX_ENHANCE or item.enhance>0 and not ItemCatalog.get_item(item.kind).grade in ItemTuning.ENHANCE_GRADES:return reject("item_enhance")
+		if item.variant!=&"" and not (item.kind==&"prismShard" and item.variant in ItemTuning.PRISM_ELEMENTS) or item.growth<0 or item.growth>ItemTuning.MANGO_STAGES:return reject("item_variant")
 	for member in run.guild_members.values():
 		if inventory.equipped(member.member_id).size()>GuildMemberCombatStats.equipment_limit(member):return reject("equipment_slots")
 	var cards: Dictionary={};highest=0

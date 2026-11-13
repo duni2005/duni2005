@@ -2,7 +2,7 @@ class_name GameSettings
 extends RefCounted
 ## Player preferences, stored apart from run saves in user://settings.cfg, in three groups:
 ## 게임플레이 (vibration, screen-shake strength, damage numbers, UI animation), 그래픽 (frame limit,
-## particle quality) and 소리 (master / music / sound-effect volume on their own audio buses).
+## particle quality, shader effects) and 소리 (master / music / sound-effect volume on their own audio buses).
 const PATH := "user://settings.cfg"
 ## Screen shake: 끄기 / 약하게 / 보통 / 강하게.
 const SHAKE_LEVELS := ["끄기", "약하게", "보통", "강하게"]
@@ -20,6 +20,8 @@ static var shake_level: int = 2
 static var damage_numbers: bool = true
 static var fps_limit: int = 0
 static var particles: int = 2
+## 셰이더 이펙트: off draws battle shockwaves, fire and bolts as plain shapes.
+static var shader_effects: bool = true
 static var master_volume: float = 1.0
 static var music_volume: float = 1.0
 static var sfx_volume: float = 1.0
@@ -39,6 +41,7 @@ static func load_settings() -> void:
 		fps_limit = int(file.get_value("graphics", "fps_limit", 0))
 		if fps_limit not in FPS_CHOICES:fps_limit = 0
 		particles = clampi(int(file.get_value("graphics", "particles", 2)), 0, 2)
+		shader_effects = bool(file.get_value("graphics", "shader_effects", true))
 		master_volume = clampf(float(file.get_value("audio", "master", 1.0)), 0, 1)
 		music_volume = clampf(float(file.get_value("audio", "music", 1.0)), 0, 1)
 		sfx_volume = clampf(float(file.get_value("audio", "sfx", 1.0)), 0, 1)
@@ -48,13 +51,13 @@ static func save_settings() -> void:
 	var file := ConfigFile.new()
 	file.set_value("gameplay", "vibration", vibration);file.set_value("gameplay", "motion", motion)
 	file.set_value("gameplay", "shake_level", shake_level);file.set_value("gameplay", "damage_numbers", damage_numbers)
-	file.set_value("graphics", "fps_limit", fps_limit);file.set_value("graphics", "particles", particles)
+	file.set_value("graphics", "fps_limit", fps_limit);file.set_value("graphics", "particles", particles);file.set_value("graphics", "shader_effects", shader_effects)
 	file.set_value("audio", "master", master_volume);file.set_value("audio", "music", music_volume);file.set_value("audio", "sfx", sfx_volume)
 	file.save(PATH);apply()
 
 static func value(key: String):
 	return {"vibration": vibration, "motion": motion, "shake": shake_level > 0, "shake_level": shake_level, "damage_numbers": damage_numbers,
-		"fps_limit": fps_limit, "particles": particles, "master": master_volume, "music": music_volume, "sfx": sfx_volume}.get(key)
+		"fps_limit": fps_limit, "particles": particles, "shader_effects": shader_effects, "master": master_volume, "music": music_volume, "sfx": sfx_volume}.get(key)
 
 static func set_value(key: String, v) -> void:
 	match key:
@@ -65,6 +68,7 @@ static func set_value(key: String, v) -> void:
 		"damage_numbers":damage_numbers = bool(v)
 		"fps_limit":fps_limit = int(v) if int(v) in FPS_CHOICES else 0
 		"particles":particles = clampi(int(v), 0, 2)
+		"shader_effects":shader_effects = bool(v)
 		"master":master_volume = clampf(float(v), 0, 1)
 		"music":music_volume = clampf(float(v), 0, 1)
 		"sfx":sfx_volume = clampf(float(v), 0, 1)

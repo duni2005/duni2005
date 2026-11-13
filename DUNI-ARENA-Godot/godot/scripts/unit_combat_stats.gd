@@ -58,6 +58,12 @@ var sanctuary: bool = false
 var kind_swap: bool = false
 var crown: bool = false
 var dice: bool = false
+## 0.95 items: effect key -> how many worn, the items themselves (빈 액자 copies one), the enemy
+## rank (normal / elite / boss; 처형의 낫 spares the last two) and the 망고 씨앗 stage.
+var effects: Dictionary = {}
+var items: Array = []
+var rank: StringName = &"normal"
+var mango_stage: int = 0
 
 ## Base stats of a character from UnitStatTable, with level-style growth factors.
 static func from_table(data: UnitData,hp_factor: float=1,damage_factor: float=1,defense_factor: float=1,speed_factor: float=1) -> UnitCombatStats:
@@ -88,6 +94,20 @@ func apply_item(item: ItemData) -> void:
 	enchant=enchant or item.enchant;overcharge_count+=int(item.overcharge);chain_ring=chain_ring or item.chain_ring
 	sovereign=sovereign or item.sovereign;immovable=immovable or item.immovable;sanctuary=sanctuary or item.sanctuary
 	kind_swap=kind_swap or item.kind_swap;crown=crown or item.crown;dice=dice or item.dice
+	if item.effect!=&"":effects[item.effect]=int(effects.get(item.effect,0))+1
+	for tag in item.tag_bonuses:
+		var field: Dictionary=element_bonus if tag in UnitStatTable.ELEMENTS else tag_bonus
+		field[tag]=float(field.get(tag,0))+float(item.tag_bonuses[tag])
+	ult_damage+=item.ult_damage_bonus;crit_damage+=item.crit_damage_bonus
+	items.append(item)
+## A worn item's effect (0.95 items).
+func has(effect: StringName) -> bool:return effects.has(effect)
+## 빈 액자: an item added for one battle after finish_items (its damage powers scale the damage
+## stats right away).
+func add_item_live(item: ItemData) -> void:
+	var physical: float=physical_power;var magic: float=magic_power
+	apply_item(item)
+	physical_damage*=physical_power/physical;magic_damage*=magic_power/magic
 ## Item damage powers scale the physical / magic damage stats; call once after all items.
 ## 저주받은 왕관 raises every stat; 두 얼굴의 가면 then swaps the physical and magic damage stats.
 func finish_items() -> void:

@@ -10,8 +10,9 @@ extends RefCounted
 ## v6: the run stores guild expansion (roster size and recruit odds upgrades).
 ## v7: items by grade (0.94): the 40 removed combined items are taken away and refunded, rooms
 ## store their item reward pick, blacksmith trade counts are dropped.
-const CURRENT_VERSION=7
-const MIGRATION_LABEL="item-grades-v7"
+## v8: items store a variant (프리즘 조각's element) and a growth stage (망고 씨앗) (0.95).
+const CURRENT_VERSION=8
+const MIGRATION_LABEL="item-variants-v8"
 static func prepare(value: Variant) -> SaveLoadResult:
 	if not value is Dictionary or not SaveValueCodec.integer(value.get("schema_version")):
 		return SaveLoadResult.failure(SaveLoadResult.Code.VALIDATION_ERROR,"schema_required")
@@ -22,6 +23,7 @@ static func prepare(value: Variant) -> SaveLoadResult:
 	if int(document.schema_version)==4:document=v4_to_v5(document)
 	if int(document.schema_version)==5:document=v5_to_v6(document)
 	if int(document.schema_version)==6:document=v6_to_v7(document)
+	if int(document.schema_version)==7:document=v7_to_v8(document)
 	if int(document.schema_version)!=CURRENT_VERSION:return SaveLoadResult.failure(SaveLoadResult.Code.UNSUPPORTED_VERSION,"unsupported_schema")
 	var result:=SaveLoadResult.new();result.document=document;return result
 ## Levels become the experience that reaches them, runs start without sortie upgrades, and a
@@ -102,6 +104,16 @@ static func v6_to_v7(source: Dictionary) -> Dictionary:
 		if not room.has("item_choice"):room["item_choice"]=""
 		var event=room.get("event")
 		if event is Dictionary and event.get("purchases") is Dictionary:event.purchases.erase("trade")
+	return document
+## Every item gets an empty variant and growth stage 0 (no 0.94 item has either).
+static func v7_to_v8(source: Dictionary) -> Dictionary:
+	var document: Dictionary=source.duplicate(true);document.schema_version=8;document.migration_version=MIGRATION_LABEL
+	var run=document.get("run")
+	if run is Dictionary and run.get("inventory") is Array:
+		for item in run.inventory:
+			if not item is Dictionary:continue
+			if not item.has("variant"):item["variant"]=""
+			if not item.has("growth"):item["growth"]=0
 	return document
 ## "아이템 개편으로 사라진 조합 아이템 2개를 회수하고 520 G를 돌려드렸습니다." (empty when nothing changed)
 static func refund_notice(kinds: Array,gold: int) -> String:

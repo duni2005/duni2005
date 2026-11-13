@@ -50,3 +50,10 @@ extends Resource
 @export var kind_swap: bool = false
 @export var crown: bool = false
 @export var dice: bool = false
+## 0.95: one special effect key run by ItemEffects (&"" = stats only), bonuses by damage tag or
+## element (tag -> share), ultimate / critical damage bonuses, and the element a 프리즘 조각 rolled.
+@export var effect: StringName = &""
+@export var tag_bonuses: Dictionary = {}
+@export var ult_damage_bonus: float = 0
+@export var crit_damage_bonus: float = 0
+@export var element_choice: StringName = &""

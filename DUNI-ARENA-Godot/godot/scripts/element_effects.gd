@@ -81,7 +81,7 @@ static func outgoing(source, target, spec: Dictionary, options: Dictionary) -> f
 	var factor: float = 1
 	if spec.get("tags", []).has(&"wind"):factor *= 1 + WIND_DAMAGE * source.state_value("windStacks")
 	var mark: String = str(target.character_specific_state.get("darkMark", ""))
-	if not mark.is_empty() and mark != source.actor_id() and direct(spec, options):factor *= DARK_POP
+	if not mark.is_empty() and mark != source.actor_id() and direct(spec, options):factor *= ItemEffects.dark_pop(source, target.position)
 	# 목표 (석궁): wind damage taken +15% in all (the general +10% comes from taken()).
 	if target.state_value("targetedTime") > 0 and spec.get("tags", []).has(&"wind"):factor *= TARGETED_WIND / TARGETED_TAKEN
 	if source.state_value("giftPowerTime") > 0:factor *= GIFT_FACTOR
@@ -109,6 +109,7 @@ static func healing(u) -> float:return POISON_HEAL if u.state_value("poisonStack
 ## Called when a unit acts (starts an attack or counter, parries, dodges, casts an ultimate).
 static func on_action(u, attack: bool = false) -> void:
 	if not _on(u):return
+	ItemEffects.on_action(u, attack)
 	if u.state_value("erosionTime") > 0:u.set_state("erodePending", u.state_value("erodePending") + 1)
 	if attack and UnitStatTable.spec(u.data.type_id, &"basic").tags.has(&"wind"):u.set_state("windStacks", minf(WIND_MAX, u.state_value("windStacks") + 1))
 
@@ -127,7 +128,7 @@ static func on_hit(source, target, out: DamageOutcome, spec: Dictionary, options
 			battle.emit_combat_event(&"dark_pop", target.position, {"actor_id": target.battle_id, "to": [me]})
 		if str(target.character_specific_state.get("lightMark", "")) not in ["", me]:
 			target.character_specific_state.erase("lightMark")
-			if source.alive:CharacterAbility.restore_hp(source, source.max_hp * LIGHT_POP_HEAL, source)
+			if source.alive:CharacterAbility.restore_hp(source, source.max_hp * ItemEffects.light_pop(source), source)
 			battle.emit_combat_event(&"light_pop", target.position, {"actor_id": target.battle_id, "to": [me]})
 	if tags.has(&"light") and out.hp_damage > 0 and source.alive:
 		var healed: Array = []
@@ -144,7 +145,8 @@ static func on_hit(source, target, out: DamageOutcome, spec: Dictionary, options
 		if tags.has(&"fire") and rng.randf() < PROC_CHANCE:add_burn(source, target, BURN_STACKS)
 		if tags.has(&"poison") and rng.randf() < PROC_CHANCE:
 			target.set_state("poisonStacks", target.state_value("poisonStacks") + 1);target.set_state("poisonSource", me)
-		if tags.has(&"ice") and not source.ability.own_element(&"ice", options) and rng.randf() < PROC_CHANCE:add_frost(source, target, 1)
+		# 서리 왕관: ice always lands a frost stack.
+		if tags.has(&"ice") and not source.ability.own_element(&"ice", options) and (ItemEffects.has(source, &"frostCrown") or rng.randf() < PROC_CHANCE):add_frost(source, target, 1)
 		if tags.has(&"wind"):target.set_state("headwindTime", HEADWIND_TIME)
 		if tags.has(&"light"):
 			if str(target.character_specific_state.get("lightMark", "")) != me:battle.emit_combat_event(&"light_mark", target.position, {"actor_id": target.battle_id})

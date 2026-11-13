@@ -31,6 +31,8 @@ static func apply_shares(owner,shares: Array[Dictionary]) -> void:
 		var absorbed: float=StrategyEffects.absorb(target,amount)
 		var actual: float=target.receive_damage(amount-absorbed,s.source,true)
 		target.battle.stats.damage(s.source,target,actual+absorbed)
+		# 그림자 인형: the passed-on damage shows as a grey number over the enemy.
+		if s.get("doll",false) and is_instance_valid(s.source):ItemEffects.fx(s.source,&"shadowDoll",target.position,{"amount":actual+absorbed,"from":CharacterPersistence.point(s.source.position)})
 		if actual>0:target.ability.on_damage(target,actual,{"puppet_shared":true})
 		target.ultimate.charge(target,actual+absorbed,false)
 		if s.source!=null and s.source.team!=target.team:s.source.damage_dealt+=actual;s.source.ultimate.charge(s.source,actual+absorbed,true)

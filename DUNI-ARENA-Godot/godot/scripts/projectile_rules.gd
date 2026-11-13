@@ -55,5 +55,7 @@ static func hit(p,target) -> DamageOutcome:
 		return out
 	var options: Dictionary=p.attack_instance.options(target.position-p.velocity*(.008 if p.kind=="sniper" else .08));options["melee"]=false
 	out=p.source.battle.damage_resolver.resolve(p.source,target,p.damage,options)
+	# 천공의 활시위: the shot flies on through up to BOWSTRING_PIERCE enemies.
+	if ItemEffects.pierce(p):return out
 	if not p.piercing:p.live=false;p.attack_instance.life=0
 	return out

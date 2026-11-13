@@ -54,4 +54,6 @@ func capture_enemy(unit: BattleUnit) -> void:
 var member_victory_gold: Dictionary = {}
 ## Gold from 바운티 헌터 bounties collected by guild members, paid however the battle ends.
 var bounty_gold: int = 0
+## 탐욕의 주머니 gold collected by the guild units (paid in the tower).
+var greed_gold: int = 0
 var stats: Array = [] # BattleStats rows for the result screen's 통계 page

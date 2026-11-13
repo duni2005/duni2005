@@ -220,6 +220,7 @@ func _build_settings() -> void:
 	var gfx: VBoxContainer=settings_pages.graphics
 	gfx.add_child(_choice_row("fps_limit","프레임 제한","낮추면 배터리와 발열이 줄어듭니다.",["30","60","무제한"],GameSettings.FPS_CHOICES))
 	gfx.add_child(_choice_row("particles","파티클 품질","낮추면 이펙트 입자가 줄어 가벼워집니다.",GameSettings.PARTICLE_LEVELS,[0,1,2]))
+	gfx.add_child(_toggle_row("shader_effects","셰이더 이펙트","끄면 충격파 · 불길 · 번개를 단순한 도형으로 그립니다."))
 	var snd: VBoxContainer=settings_pages.sound
 	for row in [["master","마스터 볼륨"],["music","배경음악"],["sfx","효과음"]]:snd.add_child(_volume_row(row[0],row[1]))
 	var about:=Label.new();about.text="DUNI ARENA · v"+str(ProjectSettings.get_setting("application/config/version","dev"));about.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER;about.add_theme_font_size_override("font_size",11);about.add_theme_color_override("font_color",ArenaUI.MUTED);column.add_child(about)
