@@ -66,6 +66,9 @@ static func on_battle_start(battle) -> void:
 		if stats.has(&"starShard"):u.set_state("starClock",ItemTuning.STAR_EVERY)
 		if stats.has(&"twinMirror"):_spawn_mirror(u)
 		if stats.has(&"warDrum"):proc(u,&"warDrum");fx(u,&"warDrum",u.position)
+		if stats.has(&"cursedCrown"):proc(u,&"cursedCrown");fx(u,&"cursedCrown",u.position,{"to":_allies(u).map(func(a):return CharacterPersistence.point(a.position))})
+		if stats.has(&"gamblerDice"):proc(u,&"gamblerDice");fx(u,&"gamblerDice",u.position,{"stat":str(u.character_specific_state.get("diceUp","")),"roll":u.state_value("diceRoll")})
+		if stats.has(&"commanderScepter"):proc(u,&"commanderScepter");fx(u,&"commanderScepter",u.position)
 ## 쌍둥이의 거울: a copy at MIRROR_HP / MIRROR_DAMAGE with no item effects and no ultimate.
 static func _spawn_mirror(u) -> void:
 	var stats: UnitCombatStats=u.combat_stats.copy()
@@ -137,7 +140,7 @@ static func incoming(target,spec: Dictionary={}) -> float:
 		if stats.vanguard and target.battle.clock.elapsed<ItemTuning.VANGUARD_TIME:factor*=ItemTuning.VANGUARD_TAKEN;proc(target,&"vanguardShield");fx(target,&"vanguardShield",target.position)
 		# 광폭의 뿔: the 저돌적 damage-taken penalty does not apply.
 		if stats.has(&"rageHorn") and target.stance==CombatStance.RUSH:factor/=StanceRules.RUSH_TAKEN
-		if stats.has(&"swiftCloak") and spec.get("tags",[]).has(&"projectile"):factor*=ItemTuning.SWIFT_PROJECTILE_TAKEN
+		if stats.has(&"swiftCloak") and spec.get("tags",[]).has(&"projectile"):factor*=ItemTuning.SWIFT_PROJECTILE_TAKEN;proc(target,&"swiftCloak");fx(target,&"swiftCloak",target.position)
 	if target.state_value("regenTime")>0:factor*=ItemTuning.REGEN_TAKEN
 	if target.state_value("weakTime")>0:factor*=ItemTuning.WEAK_TAKEN
 	if king_blessed(target):factor/=1+ItemTuning.KING_AURA
@@ -239,6 +242,7 @@ static func _struck(source,target,out: DamageOutcome,spec: Dictionary,options: D
 		if leech>0 and CharacterAbility.restore_hp(source,dealt*leech,source)>0:
 			fx(source,&"bloodChalice" if blood else &"vampireFang",target.position,{"to":CharacterPersistence.point(source.position)})
 	if stats==null or stats.effects.is_empty():return
+	if direct and stats.has(&"piercingAwl"):fx(source,&"piercingAwl",target.position,{"angle":(target.position-source.position).angle()})
 	if direct and stats.has(&"weakEye") and target.alive:
 		if target.state_value("weakTime")<=0:fx(source,&"weakEye",target.position)
 		target.set_state("weakTime",ItemTuning.WEAK_TIME)
@@ -407,6 +411,7 @@ static func pierce(p) -> bool:
 	var done: int=int(p.metadata.get("pierced",0))
 	if done>=ItemTuning.BOWSTRING_PIERCE:return false
 	p.metadata["pierced"]=done+1;p.damage*=1+ItemTuning.BOWSTRING_STEP;p.power=p.damage
+	fx(p.source,&"skyBowstring",p.position,{"count":done+1,"angle":p.velocity.angle()})
 	if p.attack_instance!=null:p.attack_instance.damage=p.damage;p.attack_instance.power=p.power
 	if done==0:proc(p.source,&"skyBowstring")
 	return true
@@ -447,7 +452,13 @@ static func advance(battle,dt: float) -> void:
 		if stats.has(&"rewindClock") and u.state_value("rewindReady")>0:_record(u)
 		if stats.has(&"invertedHourglass") and u.character_specific_state.has("hourglassAt") and _now(u)>=u.state_value("hourglassAt"):
 			u.set_state("hourglassAt",u.state_value("hourglassAt")+ItemTuning.HOURGLASS_EVERY);_fill_gauge(u)
-		if stats.has(&"overdriveEngine"):u.set_state("overdrive",u.state_value("overdrive")+dt)
+		if stats.has(&"overdriveEngine"):
+			var before: int=int(u.state_value("overdrive")/10);u.set_state("overdrive",u.state_value("overdrive")+dt)
+			if int(u.state_value("overdrive")/10)>before and before<3:proc(u,&"overdriveEngine");fx(u,&"overdriveEngine",u.position,{"level":before+1})
+		if stats.has(&"berserkerHelm"):
+			var on: bool=berserk(u)
+			if on and u.state_value("berserkOn")<=0:proc(u,&"berserkerHelm");fx(u,&"berserkerHelm",u.position)
+			u.set_state("berserkOn",1.0 if on else 0.0)
 		if stats.has(&"starShard"):
 			u.set_state("starClock",u.state_value("starClock")-dt)
 			if u.state_value("starClock")<=0:u.set_state("starClock",ItemTuning.STAR_EVERY);_meteors(u)

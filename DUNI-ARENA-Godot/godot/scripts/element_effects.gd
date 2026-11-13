@@ -142,6 +142,9 @@ static func on_hit(source, target, out: DamageOutcome, spec: Dictionary, options
 		var rng: RandomNumberGenerator = battle.rng
 		# 원소 왕관: the bearer's element stacks always land, one more each time.
 		var crown: bool = ItemEffects.has(source, &"frostCrown");var extra: int = ItemTuning.ELEMENT_CROWN_EXTRA if crown else 0
+		if crown:
+			for t in [&"fire", &"poison", &"ice", &"lightning"]:
+				if tags.has(t):ItemEffects.proc(source, &"frostCrown");ItemEffects.fx(source, &"frostCrown", target.position, {"element": String(t) if t != &"ice" else "ice"});break
 		if tags.has(&"lightning"):add_shock(target, int(options.get("shock_stacks", 1)) + extra)
 		if status != &"":return
 		if tags.has(&"fire") and (crown or rng.randf() < PROC_CHANCE):add_burn(source, target, BURN_STACKS + extra)

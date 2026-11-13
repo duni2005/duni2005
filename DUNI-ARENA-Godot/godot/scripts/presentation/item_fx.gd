@@ -22,7 +22,8 @@ const MAX_MARKS: int = 64
 ## Size / particle multiplier by grade rank (일반 0 .. 고대 4).
 const GRADE_SCALE = [1.0, 1.3, 1.65, 2.05, 2.5]
 ## Effects that fire on many hits: at most one every LIMIT_GAP seconds per item, small burst only.
-const LIMITED = ["vampireFang", "bloodChalice", "sniperScope", "weakEye", "poisonDagger", "guardChain", "shadowDoll", "enchantedBlade", "duelistGlove", "elementTome", "vanguardShield", "sanctuaryLamp", "elderHeart"]
+const LIMITED = ["vampireFang", "bloodChalice", "sniperScope", "weakEye", "poisonDagger", "guardChain", "shadowDoll", "enchantedBlade", "duelistGlove", "elementTome", "vanguardShield", "sanctuaryLamp", "elderHeart", "piercingAwl", "swiftCloak", "frostCrown", "giantHeart", "skyBowstring"]
+const STAT_NAMES = {"max_hp": "최대 HP", "physical_damage": "물리 피해", "magic_damage": "마법 피해", "defense": "방어력", "speed": "이동속도", "attack_speed": "공격속도"}
 const LIMIT_GAP: float = .18
 const ICON_LIFE: float = ItemTuning.PROC_ICON_TIME
 const ELEMENT_COLORS = {"fire": Color("ff8a3d"), "poison": Color("8fe36b"), "ice": Color("a8e4ff"), "lightning": Color("bfe9ff"), "wind": Color("9ff0d8"), "light": Color("ffe9a0"), "dark": Color("b48cff")}
@@ -141,7 +142,8 @@ func event(e: Dictionary) -> void:
 		"steelGreatsword":
 			host.add_effect("hero_shock", at, Color("dfe6f0"), 110 * g, .5);p.burst(at, Color("eef3fa"), int(18 * g), 320, 0, "shard", true);host.camera.impact(6, at)
 			if shader:host.shader_fx.shock(at, 90 * g, .4, Color("dfe6f0"))
-		"piercingAwl":_mark("pierce", at, .35, {"size": g})
+		"piercingAwl":
+			_mark("pierce", at, .4, {"size": g, "angle": float(m.get("angle", 0))});p.burst(at, Color("eef3fa"), int(6 * g), 240, float(m.get("angle", 0)), "shard", false)
 		"guardChain":
 			if m.has("amount"):host.number("status", at, float(m.amount), Color("a9a6b4"), -100 - int(m.actor_id))
 			else:_mark("chain", at, .5, {"to": CharacterPersistence.vector(m.get("to", {}), at), "size": g})
@@ -154,7 +156,7 @@ func event(e: Dictionary) -> void:
 			for to in targets:
 				var hit: Vector2 = CharacterPersistence.vector(to, at)
 				p.burst(hit, col, int(8 * g), 160, 0, "spark", true);_mark("shard", at, .4, {"to": hit, "color": col})
-		"swiftCloak":p.burst(at, Color("c8f8ff"), int(8 * g), 160, 0, "spark", false)
+		"swiftCloak":_mark("swirl", at, .5, {"size": g});p.burst(at, Color("c8f8ff"), int(10 * g), 200, 0, "spark", false)
 		# ---- 전설 ----
 		"phoenixFeather":
 			host.add_effect("fireball", at, Color("ff9a3d"), 60 * g, .9, 0);_mark("wings", at, 1.1, {"size": g})
@@ -165,7 +167,9 @@ func event(e: Dictionary) -> void:
 			p.burst(at, Color("ff7a3a"), int(16 * g), rad * 2.2, 0, "flame", true)
 		"sovereignSword":
 			_mark("crown_wave", at, .9, {"radius": float(m.get("radius", 200))});p.burst(at, Color("ffe08a"), int(22 * g), 300, -PI * .5, "spark", true)
-		"giantHeart":host.camera.impact(4, at)
+		"giantHeart":
+			host.add_effect("hero_shock", at, Color("ff8a6a"), 70 * g, .45);_mark("text", at, .7, {"text": "면역", "color": Color("ffc9a8")})
+			p.burst(at + Vector2(0, 20), Color("8a7a6a"), int(10 * g), 120, 0, "smoke", true);host.camera.impact(3, at)
 		"sanctuaryLamp":
 			var from: Vector2 = CharacterPersistence.vector(m.get("from", {}), at)
 			_mark("beam", from, .4, {"to": at, "color": Color("fff0b0")});host.add_effect("shield_hit", at, Color("fff0b0"), 34)
@@ -179,7 +183,10 @@ func event(e: Dictionary) -> void:
 			host.camera.impact(9, at)
 		"infinityEdge":
 			_mark("blade", at, .45, {"size": g});_boost_number(at, "big");p.burst(at, Color("ffd54a"), int(14 * g), 320, 0, "spark", true)
-		"skyBowstring":p.burst(at, Color("bfe9ff"), int(10 * g), 200, 0, "spark", true)
+		"skyBowstring":
+			var n: int = int(m.get("count", 1))
+			_mark("pierce", at, .45, {"size": g * (1 + n * .15), "angle": float(m.get("angle", 0)), "color": Color("bfe9ff")})
+			host.add_effect("slime_ring", at, Color("bfe9ff"), (26 + n * 8) * g, .35);p.burst(at, Color("e8f8ff"), int((8 + n * 3) * g), 260, float(m.get("angle", 0)), "spark", true)
 		"oblivionVeil":
 			if m.get("cloak", false):
 				p.burst(at, Color("2a2238"), int(24 * g), 90, 0, "smoke", true);_mark("veil", at, .8, {"size": g})
@@ -197,7 +204,9 @@ func event(e: Dictionary) -> void:
 		"warDrum":
 			for i in range(3):_mark("beat", at, .9, {"delay": i * .18, "size": g})
 			p.burst(at, Color("ffd08a"), int(20 * g), 260, 0, "spark", true);host.camera.impact(5, at)
-		"frostCrown":p.burst(at, Color("e2f6ff"), int(18 * g), 260, 0, "shard", true)
+		"frostCrown":
+			var col: Color = ELEMENT_COLORS.get(str(m.get("element", "ice")), Color("e2f6ff"))
+			_mark("crown_mark", at, .6, {"color": col});p.burst(at, col, int(12 * g), 220, 0, "shard", true);host.add_effect("slime_ring", at, col, 40 * g, .45)
 		# ---- 고대 ----
 		"twinMirror":_mark("ripple", at, .9, {"size": g});p.burst(at, Color("dfe8ff"), int(24 * g), 220, 0, "mote", true)
 		"mangoSeed":
@@ -205,7 +214,12 @@ func event(e: Dictionary) -> void:
 				var hit: Vector2 = CharacterPersistence.vector(to, at)
 				_mark("mango", hit, 1.0, {"size": g, "shield": m.get("shield", false)})
 				if m.get("shield", false):host.add_effect("shield_hit", hit, Color("ffd36b"), 50)
-		"cursedCrown":_mark("icon", at + Vector2(0, -70), 1.0, {"icon": "cursedCrown", "size": 34 * g})
+		"cursedCrown":
+			_mark("icon", at + Vector2(0, -70), 1.2, {"icon": "cursedCrown", "size": 34 * g})
+			for to in targets:
+				var hit: Vector2 = CharacterPersistence.vector(to, at)
+				_mark("beam", at, .9, {"to": hit, "color": Color("ffd36b")});_mark("crown_mark", hit, 1.0, {"color": Color("ffd36b")})
+				p.burst(hit, Color("ffe08a"), int(8 * g), 140, -PI * .5, "mote", true)
 		"rewindClock":
 			var path: Array = []
 			for q in m.get("path", []):path.append(CharacterPersistence.vector(q, at))
@@ -214,7 +228,10 @@ func event(e: Dictionary) -> void:
 		"greedPouch":
 			for i in range(5):_mark("coin", at + Vector2((i - 2) * 9, 0), .8, {"delay": i * .05, "size": g})
 			p.burst(at, Color("ffd54a"), int(12 * g), 200, -PI * .5, "spark", true)
-		"overdriveEngine":host.add_effect("slime_ring", at, Color("ff6a3d"), 50 * g, .6);p.burst(at, Color("ffb46a"), int(14 * g), 160, -PI * .5, "flame", true)
+		"overdriveEngine":
+			var lv: int = int(m.get("level", 1));var col: Color = Color("ffd08a").lerp(Color("ff4a2a"), lv / 3.0)
+			host.add_effect("hero_shock", at, col, (50 + lv * 20) * g, .55);p.burst(at, col, int((12 + lv * 6) * g), 200, -PI * .5, "flame", true)
+			_mark("text", at, .9, {"text": "폭주 +%d%%" % (lv * 30), "color": col});host.camera.impact(2 + lv, at)
 		"mimicMask":
 			host.add_effect("hero_shock", at, Color("c49dff"), 110 * g, .6);_mark("icon", at + Vector2(0, -70), .9, {"icon": "mimicMask", "size": 34 * g})
 			_mark("ripple", at, .8, {"size": g * 1.4});host.camera.impact(6, at)
@@ -226,7 +243,24 @@ func event(e: Dictionary) -> void:
 		"shadowDoll":
 			_mark("thread", CharacterPersistence.vector(m.get("from", {}), at), .5, {"to": at});p.burst(at, Color("6a3a8a"), int(10 * g), 120, 0, "smoke", false)
 			host.add_effect("slime_ring", at, Color("b48cd8"), 36 * g, .4)
-		"commanderScepter":pass
+		"commanderScepter":
+			_mark("banner", at, 1.4, {"color": Color("b884ff")});p.burst(at, Color("d9c2ff"), int(16 * g), 160, -PI * .5, "mote", true)
+		"gamblerDice":
+			var stat: String = STAT_NAMES.get(str(m.get("stat", "")), "")
+			_mark("dice", at, 1.3, {"size": g})
+			if stat != "":_mark("text", at, 1.6, {"text": "%s +%d%%" % [stat, roundi(float(m.get("roll", 0)) * 100)], "color": Color("ffd27a"), "delay": .5})
+			p.burst(at, Color("ff6a86"), int(14 * g), 200, -PI * .5, "spark", true)
+		"berserkerHelm":
+			host.add_effect("hero_shock", at, Color("ff4a3a"), 70 * g, .5);_mark("text", at, .8, {"text": "광전", "color": Color("ff7a6a")})
+			p.burst(at, Color("ff5a4a"), int(16 * g), 220, -PI * .5, "flame", true)
+		"warmNecklace+verdantStone":
+			var rad: float = float(m.get("radius", 165));_mark("ring_fill", at, .7, {"radius": rad, "color": Color("77edb4")})
+			p.burst(at, Color("9ff5c4"), int(12 * g), 120, -PI * .5, "heal", true)
+		"currentOrb+ether":
+			var rad: float = float(m.get("radius", 165));_mark("ring_fill", at, .7, {"radius": rad, "color": Color("b884ff")})
+			p.burst(at, Color("d9c2ff"), int(12 * g), 140, -PI * .5, "mote", true)
+		"woodSword+redThorn":_mark("fang", at, .8, {"size": g});p.burst(at, Color("ff6a5a"), int(12 * g), 200, -PI * .5, "spark", true)
+		"woodSword+hawkFeather":p.burst(at, Color("eef3fa"), int(10 * g), 260, 0, "spark", true);host.add_effect("slime_ring", at, Color("5fb0ff"), 40 * g, .4)
 
 ## Marks the newest damage number at a point (무한의 칼날 makes it bigger, 영겁의 갑주 cracks it).
 func _boost_number(at: Vector2, flag: String) -> void:
@@ -339,6 +373,11 @@ func _chain(c: CanvasItem, a: Vector2, b: Vector2, alpha: float, size: float) ->
 
 ## Short effects and the rising item icons, above everything on the field.
 func draw_over(c: CanvasItem) -> void:
+	# 천공의 활시위: shots that pierced glow brighter and leave a longer tail.
+	for pr in host.battle.projectiles:
+		if not pr.live or int(pr.metadata.get("pierced", 0)) <= 0:continue
+		var n: int = int(pr.metadata.pierced);var back: Vector2 = pr.position - pr.velocity.normalized() * (30 + 22 * n)
+		VfxArt.glow(c, pr.position, 14 + 6 * n, Color("bfe9ff"), .3 + .1 * n);c.draw_line(back, pr.position, Color("e8f8ff", .45 + .1 * n), 2 + n, true)
 	for m in marks:
 		var age: float = float(m.age) - float(m.get("delay", 0))
 		if age < 0:continue
@@ -419,7 +458,35 @@ func draw_over(c: CanvasItem) -> void:
 			"chain":_chain(c, at, Vector2(m.to), fade, g * .8)
 			"horns":
 				for side in [-1, 1]:c.draw_colored_polygon(PackedVector2Array([at + Vector2(side * 10, -40), at + Vector2(side * 30, -70 - 10 * k), at + Vector2(side * 4, -44)]), Color("ff4a4a", fade))
-			"pierce":c.draw_line(at + Vector2(-40, 0) * g * .7, at + Vector2(40, 0) * g * .7, Color("eef3fa", fade), 3, true);c.draw_colored_polygon(PackedVector2Array([at + Vector2(40, 0) * g * .7, at + Vector2(28, -6) * g * .7, at + Vector2(28, 6) * g * .7]), Color("eef3fa", fade))
+			"pierce":
+				# A spike driven through the target along the attack.
+				var dir: Vector2 = Vector2.from_angle(float(m.get("angle", 0)));var nrm: Vector2 = dir.orthogonal();var col: Color = m.get("color", Color("eef3fa"))
+				var back: Vector2 = at - dir * 46 * g * .7;var tip: Vector2 = at + dir * (46 + 20 * k) * g * .7
+				c.draw_line(back, tip, Color(col, fade), 4, true);VfxArt.glow(c, at, 18 * g, col, .4 * fade)
+				c.draw_colored_polygon(PackedVector2Array([tip, tip - dir * 14 + nrm * 7, tip - dir * 14 - nrm * 7]), Color(col, fade))
+			"swirl":
+				for i in range(3):
+					var a: float = k * 6 + i * TAU / 3;c.draw_arc(at, (24 + i * 6) * g * .7, a, a + 1.6, 12, Color("c8f8ff", .8 * fade), 3, true)
+			"text":c.draw_string(ArenaUI.heading_font(), at + Vector2(-40, -78 - 18 * k), str(m.text), HORIZONTAL_ALIGNMENT_CENTER, 80, 20, Color(m.color, fade))
+			"crown_mark":
+				var q: Vector2 = at + Vector2(0, -56 - 10 * k);VfxArt.glow(c, q, 18, m.color, .5 * fade);_crown(c, q, 10, Color(m.color, fade))
+			"banner":
+				var q: Vector2 = at + Vector2(0, -50 - 30 * Motion.out_quint(minf(1, k * 2)))
+				c.draw_line(q + Vector2(-16, 26), q + Vector2(-16, -24), Color("e8d8b0", fade), 3, true)
+				c.draw_colored_polygon(PackedVector2Array([q + Vector2(-14, -24), q + Vector2(22, -18), q + Vector2(14, -8), q + Vector2(22, 2), q + Vector2(-14, -2)]), Color(m.color, fade))
+				ArenaIcon.draw(c, q + Vector2(4, -12), "commanderScepter", 16, Color(1, 1, 1, fade))
+			"dice":
+				for i in range(2):
+					var q: Vector2 = at + Vector2((i - .5) * 34, -70 + 20 * absf(sin(k * 9 + i))) * g * .6;var r: float = 12 * g * .6
+					var a: float = k * 10 * (1 - k) + i
+					var box: PackedVector2Array = PackedVector2Array()
+					for j in range(5):box.append(q + Vector2.from_angle(a + j * PI * .5 + PI * .25) * r * 1.41)
+					c.draw_colored_polygon(box.slice(0, 4), Color("f4f1ea", fade) if i == 0 else Color("e5525e", fade));c.draw_polyline(box, Color("2b2230", fade), 2, true)
+			"ring_fill":
+				c.draw_circle(at, float(m.radius) * Motion.out_quint(k), Color(m.color, .14 * fade));c.draw_arc(at, float(m.radius) * Motion.out_quint(k), 0, TAU, 48, Color(m.color, .8 * fade), 3, true)
+			"fang":
+				for side in [-1, 1]:c.draw_colored_polygon(PackedVector2Array([at + Vector2(side * 6, -70), at + Vector2(side * 16, -70), at + Vector2(side * 9, -48 + 6 * k)]), Color("fff4ea", fade))
+				VfxArt.glow(c, at + Vector2(0, -60), 20, Color("ff5a4a"), .45 * fade)
 			"shard":c.draw_line(at.lerp(Vector2(m.to), k * .7), at.lerp(Vector2(m.to), minf(1, k * .7 + .25)), Color(m.color, fade), 4, true)
 			"cloud":
 				for i in range(4):VfxArt.glow(c, at + Vector2((i - 1.5) * 20, -80) * g * .7, 28 * g * .7, Color("2e3446"), .75 * fade)

@@ -8,6 +8,7 @@ static func advance(u,dt: float) -> void:
 		while u.state_value("totemClock")<=1e-8:
 			u.set_state("totemClock",u.state_value("totemClock")+5)
 			u.battle.emit_combat_event(&"vigor_totem",u.position,{"radius":165*u.combat_scale()})
+			ItemEffects.proc(u,&"warmNecklace+verdantStone");ItemEffects.fx(u,&"warmNecklace+verdantStone",u.position,{"radius":165*u.combat_scale()})
 			for a in u.battle.units.filter(func(actor):return actor.alive and actor.team==u.team):
 				if a.position.distance_to(u.position)<=165*u.combat_scale():CharacterAbility.restore_hp(a,6*_power(u,&"vigor_totem_power",u.vigor_totem_count)*(.6 if a==u else 1),u)
 	if _stat(u,&"dragon_heart_count",0)>0:
@@ -24,6 +25,7 @@ static func advance(u,dt: float) -> void:
 		while u.state_value("chargeTotemClock")<=1e-8:
 			u.set_state("chargeTotemClock",u.state_value("chargeTotemClock")+4)
 			u.battle.emit_combat_event(&"charge_totem",u.position,{"radius":165*u.combat_scale()})
+			ItemEffects.proc(u,&"currentOrb+ether");ItemEffects.fx(u,&"currentOrb+ether",u.position,{"radius":165*u.combat_scale()})
 			for a in u.battle.units.filter(func(actor):return actor.alive and actor.team==u.team):
 				if a.position.distance_to(u.position)<=165*u.combat_scale():a.ultimate.gain(a,4*_power(u,&"charge_totem_power",u.charge_totem_count)*(.6 if a==u else 1)*a.ultimate.efficiency(a))
 
@@ -60,6 +62,7 @@ static func after_ultimate(u) -> void:
 static func on_kill(source) -> void:
 	if source.source_member_id.is_empty() or source.fang_count<=0 or source.combat_stats==null:return
 	source.equipment_fang_kills+=source.fang_count
+	ItemEffects.proc(source,&"woodSword+redThorn");ItemEffects.fx(source,&"woodSword+redThorn",source.position,{"kills":source.equipment_fang_kills})
 	source.combat_stats.attack=source.combat_stats.equipment_attack_without_growth*(1+source.equipment_fang_kills*source.combat_stats.fang_rate())
 static func launch_opening(battle: BattleManager) -> void:
 	for u in battle.units:
@@ -70,3 +73,4 @@ static func launch_opening(battle: BattleManager) -> void:
 			p.hidden_launch=false;p.attack_instance.hidden_launch=false
 			p.attack_instance.clash_radius=13 if u.data.type_id==2 else 7 if u.data.type_id==1 else 9
 			battle.emit_combat_event(&"opening_awl",u.position,{"source":u.actor_id()})
+			ItemEffects.proc(u,&"woodSword+hawkFeather");ItemEffects.fx(u,&"woodSword+hawkFeather",u.position)
