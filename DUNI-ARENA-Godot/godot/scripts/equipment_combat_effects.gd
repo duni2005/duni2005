@@ -17,6 +17,7 @@ static func advance(u,dt: float) -> void:
 			u.set_state("dragonClock",4)
 			var radius: float=130*u.combat_scale()
 			u.battle.emit_combat_event(&"dragon_heart",u.position,{"radius":radius,"actor_id":u.battle_id})
+			ItemEffects.proc(u,&"dragonHeart");ItemEffects.fx(u,&"dragonHeart",u.position,{"radius":radius})
 			CharacterAbility.area_damage(u,u.position,radius,UnitStatTable.raw(u,&"dragon_heart")*_stat(u,&"dragon_heart_count",0),60,{"dmg":&"dragon_heart","critical":false,"damage_kind":&"magic","element":&"fire"})
 	if u.charge_totem_count>0:
 		u.set_state("chargeTotemClock",u.state_value("chargeTotemClock",4)-dt)
@@ -49,6 +50,7 @@ static func awl_strength(u) -> float:
 static func phoenix(u) -> bool:
 	if _stat(u,&"phoenix_count",0)<=0 or u.phoenix_used:return false
 	u.phoenix_used=true;u.current_hp=maxf(u.current_hp,u.max_hp*.4);u.invincible_remaining=maxf(u.invincible_remaining,2)
+	ItemEffects.proc(u,&"phoenixFeather");ItemEffects.fx(u,&"phoenixFeather",u.position)
 	u.battle.emit_combat_event(&"phoenix",u.position,{"actor_id":u.battle_id});return true
 ## 시간의 모래시계: the gauge refills 35% right after an ultimate.
 static func after_ultimate(u) -> void:

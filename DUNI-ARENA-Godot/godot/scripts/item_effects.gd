@@ -84,13 +84,14 @@ static func _cloak(u) -> void:
 # ---- The damage pipeline ----
 ## The damage instance as this attacker really deals it: 마법 부여 검 adds the bearer's element to
 ## basic attacks.
-static func adjust_spec(source,spec: Dictionary,_target=null) -> Dictionary:
+static func adjust_spec(source,spec: Dictionary,target=null) -> Dictionary:
 	var stats: UnitCombatStats=_stats(source)
 	if stats==null or not stats.enchant or spec.get("skill",&"")!=&"basic":return spec
 	var out: Dictionary=spec.duplicate();out.tags=Array(spec.get("tags",[])).duplicate()
 	var element: StringName=CharacterCatalog.element(source.data.type_id)
 	if element==&"":element=ItemTuning.ENCHANT_DEFAULT_ELEMENT
 	if not element in out.tags:out.tags.append(element)
+	if is_instance_valid(target):proc(source,&"enchantedBlade");fx(source,&"enchantedBlade",target.position,{"element":String(element)})
 	return out
 ## Share of the target's defense the attack ignores: 관통의 송곳 always, 무한의 칼날 on criticals.
 static func defense_pen(source,critical: bool) -> float:
@@ -122,7 +123,8 @@ static func outgoing(source,target,options: Dictionary,spec: Dictionary={}) -> f
 		else:stacks=0
 		source.set_state("duelTarget",target.actor_id());source.set_state("duelStacks",stacks)
 		factor*=1+stacks*ItemTuning.DUELIST_STEP
-	if stats.elementalist and elemental(target):factor*=ItemTuning.ELEMENTALIST_DEALT
+		if stacks>0:proc(source,&"duelistGlove");fx(source,&"duelistGlove",target.position,{"stacks":stacks})
+	if stats.elementalist and elemental(target):factor*=ItemTuning.ELEMENTALIST_DEALT;proc(source,&"elementTome");fx(source,&"elementTome",target.position)
 	return factor
 static func elemental(u) -> bool:
 	return u.state_value("burnStacks")>0 or u.state_value("poisonStacks")>0 or u.state_value("frostStacks")>0 or u.state_value("frozenTime")>0 or u.state_value("shockStacks")>0 or u.state_value("erosionTime")>0
@@ -132,7 +134,7 @@ static func elite(u) -> bool:
 static func incoming(target,spec: Dictionary={}) -> float:
 	var factor: float=1.0;var stats: UnitCombatStats=_stats(target)
 	if stats!=null:
-		if stats.vanguard and target.battle.clock.elapsed<ItemTuning.VANGUARD_TIME:factor*=ItemTuning.VANGUARD_TAKEN
+		if stats.vanguard and target.battle.clock.elapsed<ItemTuning.VANGUARD_TIME:factor*=ItemTuning.VANGUARD_TAKEN;proc(target,&"vanguardShield");fx(target,&"vanguardShield",target.position)
 		# 광폭의 뿔: the 저돌적 damage-taken penalty does not apply.
 		if stats.has(&"rageHorn") and target.stance==CombatStance.RUSH:factor/=StanceRules.RUSH_TAKEN
 		if stats.has(&"swiftCloak") and spec.get("tags",[]).has(&"projectile"):factor*=ItemTuning.SWIFT_PROJECTILE_TAKEN
@@ -142,7 +144,7 @@ static func incoming(target,spec: Dictionary={}) -> float:
 	for ally in target.battle.units:
 		var lamp: UnitCombatStats=_stats(ally)
 		if lamp!=null and lamp.sanctuary and ally.alive and ally.team==target.team and ally.position.distance_to(target.position)<=ItemTuning.SANCTUARY_RADIUS*ally.combat_scale():
-			factor*=ItemTuning.SANCTUARY_TAKEN;break
+			factor*=ItemTuning.SANCTUARY_TAKEN;proc(ally,&"sanctuaryLamp");fx(ally,&"sanctuaryLamp",target.position,{"from":CharacterPersistence.point(ally.position)});break
 	return factor
 ## Attack % from items in battle: 군주의 검 stacks, 영혼 수확자, 왕의 왕관's aura.
 static func attack_factor(u) -> float:
@@ -223,6 +225,7 @@ static func after_hit(source,target,out: DamageOutcome,spec: Dictionary,options:
 		if d<=near:near=d;best=e
 	if best==null:return
 	source.battle.emit_combat_event(&"chain_ring",target.position,{"actor_id":source.battle_id,"to":CharacterPersistence.point(best.position)})
+	proc(source,&"chainRing");fx(source,&"chainRing",target.position,{"to":[CharacterPersistence.point(best.position)]})
 	source.battle.damage_resolver.resolve(source,best,out.resolved_damage,{"dmg":&"chain_ring","plain":true,"status":&"chain_ring","chain_ring":true,"critical":false,"impulse":0,"attack_origin":target.position})
 ## `source` (with items) hit an enemy `target`.
 static func _struck(source,target,out: DamageOutcome,spec: Dictionary,options: Dictionary) -> void:
@@ -287,7 +290,9 @@ static func bleed(source,target,dealt: float) -> void:
 # ---- Ultimates, kills, deaths ----
 static func after_ultimate(u) -> void:
 	var stats: UnitCombatStats=_stats(u)
-	if stats!=null and stats.overcharge_count>0:u.ultimate_gauge=clampf(u.ultimate_gauge+ItemTuning.OVERCHARGE_REFUND*stats.overcharge_count,0,100)
+	if stats!=null and stats.overcharge_count>0:
+		u.ultimate_gauge=clampf(u.ultimate_gauge+ItemTuning.OVERCHARGE_REFUND*stats.overcharge_count,0,100);proc(u,&"overchargeCore");fx(u,&"overchargeCore",u.position)
+	if stats!=null and stats.hourglass_count>0:proc(u,&"hourglass");fx(u,&"hourglass",u.position)
 	if stats==null or not u.alive:return
 	if stats.has(&"stormCrown"):
 		var radius: float=ItemTuning.STORM_RADIUS*u.combat_scale();var struck: Array=[]
@@ -326,6 +331,7 @@ static func on_kill(source,victim=null) -> void:
 		if stats.has(&"greedPouch"):source.set_state("greedGold",source.state_value("greedGold")+ItemTuning.GREED_KILL_GOLD);proc(source,&"greedPouch");fx(source,&"greedPouch",victim.position if victim!=null else source.position)
 		if stats.has(&"elementStone") and victim!=null:_element_burst(source,victim)
 	if stats==null or not stats.sovereign:return
+	proc(source,&"sovereignSword");fx(source,&"sovereignSword",source.position,{"radius":ItemTuning.SOVEREIGN_RADIUS*source.combat_scale()})
 	source.battle.emit_combat_event(&"sovereign_roar",source.position,{"actor_id":source.battle_id,"radius":ItemTuning.SOVEREIGN_RADIUS*source.combat_scale()})
 	for ally in source.battle.units:
 		if not ally.alive or ally.team!=source.team or ally.position.distance_to(source.position)>ItemTuning.SOVEREIGN_RADIUS*source.combat_scale():continue
