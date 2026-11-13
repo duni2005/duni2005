@@ -103,8 +103,11 @@ func route_loaded() -> void:
 			var node: RoomState=controller.current_room()
 			# A win saved before its item was picked: pick (or skip) here, then go on.
 			if controller.content!=null and controller.content.pending_reward(node):
-				var row:=ItemRewardRow.new();body.add_child(row);row.setup(node.item_choices,&"")
-				row.picked.connect(func(kind):if controller.content_action(&"pick_reward",{"kind":kind}).ok and controller.return_map():show_map())
+				var row:=ItemRewardRow.new();row.with_stats=false;body.add_child(row);row.setup(node.item_choices,&"")
+				row.picked.connect(func(kind):
+					if not controller.content_action(&"pick_reward",{"kind":kind}).ok:return
+					row.queue_free()
+					ItemGainShow.play(self,kind).finished.connect(func():if controller.return_map():show_map()))
 			else:make_button(body,"정산 완료 · 지도로 계속",func():if controller.return_map():show_map())
 	else:_show_selected_room()
 	_show_item_notice()

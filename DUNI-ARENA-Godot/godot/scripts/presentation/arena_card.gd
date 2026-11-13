@@ -36,6 +36,11 @@ var owner_type: int=-1
 var rarity: Color=Color(0,0,0,0)
 ## Item cards: the item's grade (ItemTuning.GRADES) draws the grade frame like a unit's rarity.
 var item_grade: StringName=&""
+## Shop shelf / reward cards: copies left ("×N" corner badge, 0 = none), the top tag text (grade or
+## category) and a short line under the title (a strategy card's usage).
+var copies: int=0
+var tag_text: String=""
+var rule_text: String=""
 const SLOT_COLORS={"equipment":["1b2440","5a7ad0","장비"],"consumable":["1a2e2a","5fb592","소모품"],"equipped":["1c3438","4fc6c0","장착"],"strategy":["2a2142","a07ad8","전략"],"cooldown":["1a1826","5a4f72","대기"]}
 var cached_style: StyleBoxFlat
 ## Entrance (UiMotion.enter): seconds since the card's mask started opening (negative while it
@@ -311,21 +316,8 @@ func _draw() -> void:
 		write(Vector2(0,70 if compact_room else 92),title,11 if compact_room else 14,Color("eef1fa") if not disabled else muted,size.x,true)
 		write(Vector2(0,89 if compact_room else 114),status_text,10 if compact_room else 11,muted,size.x,true)
 		return
-	if card_type=="product" and slot_kind=="card":
-		# Strategy cards on the shop shelf look like the cards in hand, with the price below.
-		StrategyCardArt.draw(self,Rect2(Vector2(4,4),size-Vector2(8,48)),kind,title,description,"","used" if sold else "ready","")
-		_shelf_tag("전략카드",Color("a07ad8"))
-		draw_price_chip(Rect2(6,size.y-37,size.x-12,30),"구매 완료")
-		return
 	if card_type=="product":
-		if slot_kind=="item":_shelf_tag("아이템",rarity if rarity.a>0 else Color("7f8aa6"))
-		if rarity.a>0:VfxArt.glow(self,Vector2(size.x*.5,28),30,rarity,.25)
-		draw_badge(Vector2(size.x*.5,28),20,gold)
-		ArenaIcon.draw(self,Vector2(size.x*.5,28),kind,25,gold)
-		write(Vector2(4,66),title,12,rarity.lightened(.3) if rarity.a>0 else Color("eef1fa"),size.x-8,true)
-		draw_multiline_string(get_theme_default_font(),Vector2(6,86),description,HORIZONTAL_ALIGNMENT_CENTER,size.x-12,11,3,muted)
-		draw_price_chip(Rect2(6,size.y-37,size.x-12,30),"구매 완료")
-		return
+		_draw_product();return
 	if card_type=="library":
 		# Custom battle character card: name, portrait, temporary cost.
 		write(Vector2(0,17),title,11,Color("eef1fa"),size.x,true)
@@ -420,6 +412,53 @@ func _draw() -> void:
 			draw_colored_polygon(points,gold)
 
 ## Shop shelf tag in the top-left corner: 아이템 or 전략카드.
+## Shop and reward cards: a tag row on top (nothing drawn over it), the item icon in its badge or
+## the strategy card's art window, the name (two lines), a short rule line, the effect text filling
+## the rest, and the price / grade chip at the bottom when there is one.
+func _draw_product() -> void:
+	var is_card: bool=slot_kind=="card"
+	var theme: Array=StrategyCardArt.theme_for(kind) if is_card else []
+	var accent: Color=(theme[1] if is_card else rarity if rarity.a>0 else Color("8f9ab6"))
+	var dim: bool=sold
+	var w: float=size.x;var font: Font=get_theme_default_font()
+	# Tag row.
+	var tag: String=tag_text if not tag_text.is_empty() else "전략카드" if is_card else "아이템"
+	var tw: float=font.get_string_size(tag,HORIZONTAL_ALIGNMENT_LEFT,-1,10).x+12
+	var pill: StyleBoxFlat=ArenaUI.box(Color(accent,.22),Color(accent,.8));pill.set_corner_radius_all(6)
+	draw_style_box(pill,Rect2(7,7,tw,17));write(Vector2(13,20),tag,10,accent.lightened(.45))
+	if copies>1:
+		var cw: float=font.get_string_size("×%d"%copies,HORIZONTAL_ALIGNMENT_LEFT,-1,11).x+12
+		var chip: StyleBoxFlat=ArenaUI.box(Color("3a2f18"),Color("c9a24a"));chip.set_corner_radius_all(6)
+		draw_style_box(chip,Rect2(w-cw-7,7,cw,17));write(Vector2(w-cw-1,20),"×%d"%copies,11,ArenaUI.GOLD)
+	# Art.
+	var art_h: float=clampf(size.y*.27,46,72);var art_c: Vector2=Vector2(w*.5,30+art_h*.5)
+	if is_card:
+		var win:=Rect2(Vector2(w*.5-art_h*.75,30),Vector2(art_h*1.5,art_h))
+		var box: StyleBoxFlat=ArenaUI.box(Color(theme[0],1),Color(accent,.7));box.set_corner_radius_all(8);draw_style_box(box,win)
+		VfxArt.glow(self,art_c,art_h*.7,accent,.25);ArenaIcon.draw(self,art_c,kind,art_h*.66,Color(1,1,1,.5 if dim else 1))
+	else:
+		if rarity.a>0:VfxArt.glow(self,art_c,art_h*.75,rarity,.25)
+		draw_badge(art_c,art_h*.42,Color(accent,.9) if rarity.a>0 else ArenaUI.GOLD)
+		ArenaIcon.draw(self,art_c,kind,art_h*.52,Color(1,1,1,.5 if dim else 1))
+	# Name (up to two lines) and the rule line.
+	var y: float=30+art_h+20
+	var name_color: Color=rarity.lightened(.3) if rarity.a>0 else Color("eef1fa")
+	var heading: Font=ArenaUI.heading_font();var name_size: int=14 if w>=110 else 13
+	var lines: int=mini(2,int(ceil(heading.get_string_size(title,HORIZONTAL_ALIGNMENT_LEFT,-1,name_size).x/maxf(1,w-14))))
+	draw_multiline_string(heading,Vector2(7,y),title,HORIZONTAL_ALIGNMENT_CENTER,w-14,name_size,2,Color(name_color,.55 if dim else 1))
+	y+=lines*(name_size+4)+2
+	if not rule_text.is_empty():
+		write(Vector2(6,y+2),rule_text,10,Color(accent.lightened(.35),.9),w-12,true);y+=16
+	# Effect text in the space left above the chip.
+	var bottom: float=size.y-(44 if not price.is_empty() else 10)
+	var max_lines: int=int((bottom-y)/15)
+	if max_lines>0:draw_multiline_string(font,Vector2(8,y+10),description,HORIZONTAL_ALIGNMENT_CENTER,w-16,11,max_lines,Color(muted_text(),.6 if dim else 1))
+	if not price.is_empty():draw_price_chip(Rect2(7,size.y-38,w-14,30),"구매 완료")
+	if dim:
+		draw_rect(Rect2(Vector2.ZERO,size),Color(0,0,0,.35))
+		var band:=Rect2(Vector2(0,art_c.y-12),Vector2(w,24));draw_rect(band,Color(0,0,0,.6))
+		write(Vector2(0,band.get_center().y+5),"구매 완료",13,Color("c9d0e6"),w,true)
+func muted_text() -> Color:return Color("aab2c8")
 func _shelf_tag(label: String,col: Color) -> void:
 	var w: float=get_theme_default_font().get_string_size(label,HORIZONTAL_ALIGNMENT_LEFT,-1,8).x+8
 	draw_style_box(ArenaUI.box(Color(col,.3),Color(col,.85)),Rect2(5,5,w,13));write(Vector2(9,15),label,8,col.lightened(.45))

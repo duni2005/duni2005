@@ -49,6 +49,7 @@ var motion_tab: String=""
 var emblem: PanelEmblem
 var deal_cards: bool=false
 var content_tabs: HBoxContainer
+var offer_dialog: AcceptDialog
 var offers_grid: GridContainer
 var content_menu: AcceptDialog
 var storage_status: Label
@@ -229,32 +230,79 @@ func render_recruit(node: RoomState) -> void:
 ## The guild's inventory or upgrade page inside a shop or recruit room.
 func _guild_panel(tab: String) -> void:
 	var panel:=GuildManagementPanel.new();panel.controller=controller;panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;content_box.add_child(panel);panel.show_tab(tab);panel.modified.connect(refresh_wallet);panel.promoted.connect(presentation_requested.emit)
-## Items and strategy cards on one shelf: items first, then cards drawn as real strategy cards.
+## Items and strategy cards on one shelf, three to a row (the shelf scrolls when it is long).
+## Tapping a product opens its description; only its 구매 button (or the one in the description)
+## buys. Copies of one product share a card ("×2"): it sells the next copy still on the shelf.
 func render_shop(node: RoomState) -> void:
 	var all: Array=node.shop.offers.filter(func(o):return o.category==&"equipment")+node.shop.offers.filter(func(o):return o.category==&"card")
-	# Copies of one product share a card ("×2"): it sells the next copy still on the shelf.
 	var stock: Array=[];var copies: Dictionary={}
 	for offer in all:
 		var key: String="%s:%s"%[offer.category,offer.kind]
 		if not copies.has(key):copies[key]=[];stock.append(key)
 		copies[key].append(offer)
-	# Phones: three to a row across the panel; wide screens: one centred row of fixed-width cards.
-	var wide: bool=get_viewport_rect().size.x>=700
-	# A full shelf (3~5 items plus cards) goes four to a row on phones, so it never needs scrolling.
-	var crowded: bool=not wide and stock.size()>6
-	offers_grid=GridContainer.new();offers_grid.columns=mini(8,stock.size()) if wide else 4 if crowded else 3;offers_grid.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-	if wide:var center:=CenterContainer.new();content_box.add_child(center);center.add_child(offers_grid)
-	else:content_box.add_child(offers_grid)
+	var view: Vector2=get_viewport_rect().size
+	var width: float=floorf(minf(210,(minf(view.x,760)-60)/3.0));var height: float=clampf(width*1.55,190,250)
+	offers_grid=GridContainer.new();offers_grid.name="Shelf";offers_grid.columns=3;offers_grid.add_theme_constant_override("h_separation",8);offers_grid.add_theme_constant_override("v_separation",12)
+	var center:=CenterContainer.new();center.size_flags_horizontal=Control.SIZE_EXPAND_FILL;content_box.add_child(center);center.add_child(offers_grid)
 	for key in stock:
 		var left: Array=copies[key].filter(func(o):return not o.purchased)
 		var offer: ShopOffer=left[0] if not left.is_empty() else copies[key].back()
-		var item: ItemData=ItemCatalog.get_item(offer.kind) if offer.category==&"equipment" else null
-		var card: StrategyCardData=StrategyCardCatalog.get_card(offer.kind) if offer.category==&"card" else null
-		var b:=ArenaCard.new();b.text=(item.display_name if item!=null else card.display_name)+" · 구매";b.name=offer.offer_id
-		b.card_type="product";b.slot_kind="card" if card!=null else "item";b.rarity=ItemCatalog.grade_color(offer.kind) if item!=null and not item.consumable else Color(0,0,0,0);b.title=item.display_name if item!=null else card.display_name;b.description=item.description if item!=null else card.description;b.kind=String(offer.kind);b.price="구매 완료" if offer.purchased else "%d G"%offer.gold_price;b.sold=offer.purchased;b.custom_minimum_size=Vector2((150 if stock.size()<=6 else 128) if wide else 0,190 if wide else 150 if crowded else 168);b.size_flags_horizontal=Control.SIZE_EXPAND_FILL
-		if item!=null and not item.consumable:b.item_grade=item.grade
-		if left.size()>1:b.title+=" ×%d"%left.size()
-		b.tooltip_text=b.description;ArenaUI.bind(b,_action.bind(&"buy",{"offer_id":offer.offer_id}));offers_grid.add_child(b);b.disabled=offer.purchased or controller.guild.state.gold<offer.gold_price
+		var cell:=VBoxContainer.new();cell.add_theme_constant_override("separation",6);offers_grid.add_child(cell)
+		var b:=_offer_card(offer,left.size());b.custom_minimum_size=Vector2(width,height);cell.add_child(b)
+		ArenaUI.bind(b,_show_offer.bind(offer.offer_id))
+		var buy:=Button.new();buy.name="Buy";buy.custom_minimum_size=Vector2(width,44);cell.add_child(buy)
+		if offer.purchased:buy.text="구매 완료";buy.disabled=true
+		else:
+			ArenaUI.price_button(buy,"구매","gold",offer.gold_price);buy.custom_minimum_size.x=width
+			buy.disabled=controller.guild.state.gold<offer.gold_price
+			ArenaUI.bind(buy,_action.bind(&"buy",{"offer_id":offer.offer_id}))
+## One product as a card (no price on it: the 구매 button under it carries the price).
+func _offer_card(offer: ShopOffer,left: int) -> ArenaCard:
+	var item: ItemData=ItemCatalog.get_item(offer.kind) if offer.category==&"equipment" else null
+	var card: StrategyCardData=StrategyCardCatalog.get_card(offer.kind) if offer.category==&"card" else null
+	var b:=ArenaCard.new();b.name=offer.offer_id;b.card_type="product";b.kind=String(offer.kind);b.sold=offer.purchased;b.copies=left
+	b.text=(item.display_name if item!=null else card.display_name)+" · 설명"
+	if item!=null:
+		b.slot_kind="item";b.title=item.display_name;b.description=item.description
+		b.tag_text="소모품" if item.consumable else ItemCatalog.grade_name(offer.kind)
+		if not item.consumable:b.rarity=ItemCatalog.grade_color(offer.kind);b.item_grade=item.grade
+	else:
+		b.slot_kind="card";b.title=card.display_name;b.description=card.description;b.tag_text="전략카드";b.rule_text=_card_rule(card)
+	b.tooltip_text=b.description
+	return b
+static func _card_rule(card: StrategyCardData) -> String:
+	return ["1회 사용","층마다 1회","쿨타임"][card.usage_rule] if card.usage_rule>=0 and card.usage_rule<3 else ""
+## The product's description window, with its own 구매 button.
+func _show_offer(offer_id: String) -> void:
+	var node: RoomState=controller.current_room();var offer: ShopOffer=null
+	for o in node.shop.offers:
+		if o.offer_id==offer_id:offer=o
+	if offer==null:return
+	if offer_dialog==null:
+		offer_dialog=AcceptDialog.new();offer_dialog.title="상품";offer_dialog.get_ok_button().text="닫기";add_child(offer_dialog);ArenaModalBackdrop.new().connect_window(offer_dialog,self)
+	for child in offer_dialog.get_children():
+		if child is VBoxContainer:offer_dialog.remove_child(child);child.queue_free()
+	var col:=VBoxContainer.new();col.add_theme_constant_override("separation",10);offer_dialog.add_child(col)
+	var item: ItemData=ItemCatalog.get_item(offer.kind) if offer.category==&"equipment" else null
+	var card: StrategyCardData=StrategyCardCatalog.get_card(offer.kind) if offer.category==&"card" else null
+	ArenaUI.dialog_header(offer_dialog,col,item.display_name if item!=null else card.display_name)
+	var head:=HBoxContainer.new();head.add_theme_constant_override("separation",12);col.add_child(head)
+	var art:=_offer_card(offer,0);art.custom_minimum_size=Vector2(104,150);art.mouse_filter=Control.MOUSE_FILTER_IGNORE;art.description="";head.add_child(art)
+	var facts:=VBoxContainer.new();facts.size_flags_horizontal=Control.SIZE_EXPAND_FILL;facts.add_theme_constant_override("separation",4);head.add_child(facts)
+	var kind_label:=Label.new();kind_label.add_theme_font_size_override("font_size",13)
+	if item!=null:
+		kind_label.text=("소모품" if item.consumable else ItemCatalog.grade_name(offer.kind)+" 아이템");kind_label.add_theme_color_override("font_color",ItemCatalog.grade_color(offer.kind).lightened(.3))
+	else:kind_label.text="전략카드 · "+_card_rule(card);kind_label.add_theme_color_override("font_color",Color("c9a2ff"))
+	facts.add_child(kind_label)
+	var price_label:=Label.new();price_label.text="%d G"%offer.gold_price;price_label.add_theme_font_override("font",ArenaUI.numbers_font());price_label.add_theme_font_size_override("font_size",20);price_label.add_theme_color_override("font_color",ArenaUI.GOLD);facts.add_child(price_label)
+	var owned:=Label.new();owned.text="보유 골드 %s G"%ArenaUI.grouped(controller.guild.state.gold);owned.add_theme_font_size_override("font_size",11);owned.add_theme_color_override("font_color",ArenaUI.MUTED);facts.add_child(owned)
+	var text:=Label.new();text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;text.custom_minimum_size.x=minf(320,get_viewport_rect().size.x-70);text.text=item.description if item!=null else card.description;col.add_child(text)
+	var buy:=Button.new();buy.name="DialogBuy";buy.custom_minimum_size.y=46;col.add_child(buy)
+	if offer.purchased:buy.text="구매 완료";buy.disabled=true
+	else:
+		ArenaUI.price_button(buy,"구매","gold",offer.gold_price);buy.disabled=controller.guild.state.gold<offer.gold_price
+		ArenaUI.bind(buy,func():offer_dialog.hide();_action(&"buy",{"offer_id":offer.offer_id}))
+	offer_dialog.popup_centered(Vector2i(mini(380,int(get_viewport_rect().size.x)-24),0))
 func _refresh_party() -> void:
 	clear(party_members)
 	for member in controller.guild.all_members():
