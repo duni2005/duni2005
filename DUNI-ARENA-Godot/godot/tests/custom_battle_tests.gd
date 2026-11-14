@@ -76,6 +76,7 @@ func run(tree: SceneTree) -> void:
 	items_0940(tree)
 	items_0960(tree)
 	items_0970(tree)
+	cards_0980(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -1514,7 +1515,7 @@ func items_0940(tree: SceneTree) -> void:
 	var loaded: SaveLoadResult=SaveSnapshotLoader.restore(doc)
 	verify(loaded.ok() and loaded.run.gold==gold_before+260 and loaded.run.inventory.all(func(i):return String(i.kind)!="woodSword+staff"),"v6 save: removed combination refunded 260 G")
 	verify(loaded.ok() and loaded.run.item_notice.contains("마검") and loaded.run.item_notice.contains("260 G"),"one-time notice names the item and the gold")
-	verify(SaveMigrator.CURRENT_VERSION==9,"save version 9")
+	verify(SaveMigrator.CURRENT_VERSION==10,"save version 10")
 
 ## 0.95: fifty more items (ten per grade) and their twenty statuses.
 func _spec(skill: StringName,kind: StringName,tags: Array) -> Dictionary:return {"key":&"basic","skill":skill,"kind":kind,"base":0.0,"ratio":1.0,"tags":tags,"label":""}
@@ -1789,6 +1790,98 @@ func items_0970(tree: SceneTree) -> void:
 	verify(DeploymentRules.validate(t.guild,entry,[],[])==DeploymentRules.Code.BOSS_LOCKED,"…and the deployment refuses it")
 	var cleared:=BattleResult.new();cleared.end_reason=BattleEndReason.Value.VICTORY;cleared.participating_member_ids.assign([m0.member_id]);cleared.surviving_member_ids.assign([m0.member_id])
 	give.call(&"goldenGoose",m0);verify(int(BuildItems.settle(t.guild,cleared).choices)==1,"황금 거위: one more reward choice")
+## 0.98 전략카드 개편: kinds (소모 / 일반 / 쿨타임 N by won rooms), conditions, the loadout of
+## five, unit / position / instant use, disruption by grade, 봉인의 낙인, 방벽, 망고 연회, save v10.
+func cards_0980(tree: SceneTree) -> void:
+	var expect: Dictionary={&"mango":["소모",&"ally",70],&"shield":["일반",&"ally",120],&"taunt":["일반",&"ally",160],&"charge":["쿨타임 1",&"ally",170],&"evade":["쿨타임 2",&"ally",140],&"iron":["일반",&"ally",220],&"disrupt":["일반",&"enemy",150],&"block":["쿨타임 2",&"enemy",220],&"seal":["소모",&"enemy",180],&"barrier":["쿨타임 1",&"position",200],&"feast":["소모",&"instant",240]}
+	var data_ok: bool=StrategyCardCatalog.DEFINITIONS.size()==11
+	for k in expect:
+		var d: StrategyCardData=StrategyCardCatalog.get_card(k)
+		if d==null or d.kind_text()!=expect[k][0] or d.use_mode!=expect[k][1] or d.gold_price!=expect[k][2]:data_ok=false;push_error("card data "+String(k))
+	verify(data_ok,"0.98: 11 cards with kind, use and price as planned")
+	verify(StrategyCardCatalog.get_card(&"iron").tags()==["일반","조건: 근접형"] and StrategyCardCatalog.get_card(&"block").tags()==["쿨타임 2","조건: 특수전략 준비 중인 적","방해: 위험 이하"],"tags: [kind] [조건] [방해]")
+	verify(StrategyCardCatalog.get_card(&"iron").description.contains("쿨타임 3초") and StrategyCardCatalog.get_card(&"mango").amount==.3,"old effects kept (철벽방어's 3 s is an effect number)")
+	verify(DEFINITIONS_ICONS(),"every card and use mode has an icon")
+	var helper:=Phase5Tests.new();helper.host=tree;var f: Dictionary=helper.fixture();helper.pause(f);f.tp.current.enemy_plans.clear()
+	var tp: TurningPointManager=f.tp;var st: RunState=f.guild.state;var b: BattleManager=f.battle
+	var ids: Dictionary={}
+	for k in StrategyCardCatalog.DEFINITIONS:ids[k]=st.give_strategy_card(k).card_id
+	var warrior: BattleUnit=b.units[0];var foe: BattleUnit=b.units[2]
+	verify(StrategyCardExecutor.apply(tp,ids.mango,warrior.source_member_id,"x0").code==StrategyCardExecutor.Code.NOT_IN_HAND,"only the cards taken in can be played")
+	for k in ids:tp.hand.append(ids[k])
+	# Conditions: 철벽방어 needs a 근접형 ally.
+	var archer=null
+	for u in b.units:
+		if u.team==0 and u.data.attack_range>=StrategyCardTuning.MELEE_RANGE:archer=u
+	if archer!=null:verify(StrategyCardExecutor.apply(tp,ids.iron,archer.source_member_id,"x1").code==StrategyCardExecutor.Code.CONDITION,"철벽방어 refused on a ranged ally")
+	verify(StrategyCardExecutor.target_hint(StrategyCardCatalog.get_card(&"iron"))=="근접형 아군을 선택하세요","the reason shown when the target does not fit")
+	# Disruption by grade.
+	verify(StrategyCardExecutor.hand_state(tp,st.get_strategy_card(ids.disrupt))==&"blocked","no enemy prepares a strategy: disruption cards are dimmed")
+	var plan:=helper.make_plan(f,EnemyTurningPlan.SMASH);tp.current.enemy_plans.append(plan)
+	verify(StrategyCardExecutor.targets(tp,StrategyCardCatalog.get_card(&"disrupt")).is_empty() and StrategyCardExecutor.targets(tp,StrategyCardCatalog.get_card(&"block"))==[foe],"교란 cannot reach a 위험 strategy, 차단 can")
+	verify(StrategyCardExecutor.apply(tp,ids.disrupt,foe.actor_id(),"x2").code==StrategyCardExecutor.Code.CONDITION,"교란 refused on a 위험 strategy")
+	var events: int=int(b.combat_event_counts.get(&"plan_broken",0))
+	verify(tp.play(ids.block,foe.actor_id()).code==StrategyCardExecutor.Code.OK and not plan in tp.current.enemy_plans and int(b.combat_event_counts.get(&"plan_broken",0))==events+1,"차단 removes the strategy (its badge breaks)")
+	verify(st.get_strategy_card(ids.block).wins_left==2 and StrategyCardExecutor.hand_state(tp,st.get_strategy_card(ids.block))==&"used","차단: used face down, 2 wins of cooldown")
+	plan=helper.make_plan(f,EnemyTurningPlan.SWEEP);tp.current.enemy_plans.append(plan)
+	verify(tp.play(ids.seal,foe.actor_id()).code==StrategyCardExecutor.Code.OK and st.get_strategy_card(ids.seal).consumed and tp.plan_of(foe)==null,"봉인의 낙인 removes even 고위험 and is consumed")
+	verify(foe.state_value("planSealedThrough")==tp.serial+1,"…and seals the next turning point")
+	# Position: 방벽 설치.
+	verify(tp.play(ids.barrier,"",Vector2(-50,300)).code==StrategyCardExecutor.Code.NO_POSITION,"방벽 outside the field is refused")
+	verify(tp.play(ids.barrier,"",Vector2(400,400)).code==StrategyCardExecutor.Code.OK and b.card_walls.size()==1 and is_equal_approx(Vector2(b.card_walls[0].a).distance_to(Vector2(b.card_walls[0].b)),160),"방벽 설치: a 160-long wall")
+	var shot: BattleProjectile=CharacterAbility.shoot(foe,PI,10,{"dmg":&"basic"});shot.position=Vector2(420,400);shot.velocity=Vector2(-600,0)
+	var wall: Dictionary=b.card_walls[0];wall.a=Vector2(400,320);wall.b=Vector2(400,480)
+	shot.previous_position=Vector2(420,400);shot.position=Vector2(390,400)
+	verify(CardWalls.blocks(shot) and not shot.live,"an enemy shot crossing the wall stops")
+	var own: BattleProjectile=CharacterAbility.shoot(warrior,0,10,{"dmg":&"basic"});own.previous_position=Vector2(390,400);own.position=Vector2(410,400)
+	verify(not CardWalls.blocks(own),"allied shots pass")
+	CardWalls.advance(b,8.1);verify(b.card_walls.is_empty(),"the wall lasts 8 s")
+	# Instant: 망고 연회.
+	for u in b.units:
+		if u.team==0:u.current_hp=u.max_hp*.5;u.ultimate_gauge=10
+	verify(tp.play(ids.feast).code==StrategyCardExecutor.Code.OK and is_equal_approx(warrior.current_hp,warrior.max_hp*.7) and is_equal_approx(warrior.ultimate_gauge,40) and st.get_strategy_card(ids.feast).consumed,"망고 연회: every ally +20% HP and +30 gauge, consumed")
+	verify(not tp.hand_cards().any(func(c):return c.card_id==ids.feast),"a consumed card leaves the hand")
+	# 일반 once per battle; a retried battle gives it back.
+	verify(tp.play(ids.shield,warrior.actor_id()).code==StrategyCardExecutor.Code.OK and tp.play(ids.shield,warrior.actor_id()).code==StrategyCardExecutor.Code.USED,"일반: once per battle")
+	var fresh:=TurningPointManager.new(b,f.guild);verify(fresh.used_cards.is_empty(),"…and ready again in the next battle")
+	# Cooldowns count won rooms only.
+	st.count_card_win();verify(st.get_strategy_card(ids.block).wins_left==1 and st.get_strategy_card(ids.barrier).wins_left==0,"a won room counts down every cooldown")
+	# Loadout: hand from the run's choice.
+	st.card_loadout.assign([ids.mango,ids.shield]);var t2:=TurningPointManager.new(b,f.guild)
+	verify(t2.hand==[ids.mango,ids.shield],"the hand is the loadout chosen before deployment")
+	b.finish_with_reason(BattleEndReason.Value.RETREAT,-1);b.free()
+	# The selection panel: five slots, cooldown cards cannot go in, 이전 구성.
+	var t:=TowerController.new();t.new_run(19,73);var rs: RunState=t.guild.state
+	for k in [&"disrupt",&"block",&"seal",&"barrier",&"feast"]:rs.give_strategy_card(k)
+	rs.strategy_cards[-1].wins_left=1
+	var panel:=CardLoadoutPanel.new();tree.root.add_child(panel);panel.open(t.guild)
+	var added: int=0
+	for c in rs.strategy_cards:
+		if panel.add(c.card_id):added+=1
+	verify(added==5 and panel.chosen.size()==5,"at most five cards")
+	verify(not panel.add(rs.strategy_cards[-1].card_id) and not rs.strategy_cards[-1].card_id in panel.chosen,"a card on cooldown cannot be chosen")
+	panel.confirm();verify(rs.card_loadout==panel.chosen and rs.last_card_loadout==panel.chosen,"확정 stores the loadout and the last loadout")
+	rs.strategy_cards[0].consumed=true;panel.open(t.guild);panel.fill_previous()
+	verify(panel.chosen.size()==4 and not rs.strategy_cards[0].card_id in panel.chosen,"이전 구성 refills, leaving out cards that are gone")
+	panel.queue_free()
+	# Save v10.
+	var doc: Dictionary=JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(t,"v9",1).document))
+	doc.schema_version=9;doc.run.erase("card_loadout");doc.run.erase("last_card_loadout")
+	for c in doc.run.strategy_cards:c.erase("wins_left");c["used_depth"]=0;c["used_floors"]=[0];c["ready_floor"]=0
+	doc.run.strategy_cards[1]["ready_floor"]=int(doc.run.tower.unlocked_floor)+3
+	var charge_doc: Dictionary=doc.run.strategy_cards[1]
+	var back: SaveLoadResult=SaveSnapshotLoader.restore(doc)
+	var kind: StringName=StringName(charge_doc.kind);var cd: StrategyCardData=StrategyCardCatalog.get_card(kind)
+	var expected: int=mini(3,cd.cooldown_wins) if cd.usage_rule==StrategyCardData.Usage.COOLDOWN else 0
+	verify(back.ok() and back.run.strategy_cards.size()==rs.strategy_cards.size() and back.run.get_strategy_card(int(charge_doc.card_id)).wins_left==expected,"v9 save: cards kept, a floor cooldown becomes wins (capped), floor records dropped")
+	verify(back.ok() and back.run.card_loadout.is_empty(),"v9 save: no loadout yet")
+	rs.card_loadout.assign([999]);verify(not SaveSnapshotLoader.restore(JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(t,"bad",1).document))).ok(),"a loadout naming an unknown card is rejected")
+func DEFINITIONS_ICONS() -> bool:
+	for k in StrategyCardCatalog.DEFINITIONS:
+		if ArenaIcon.texture(String(k))==null:return false
+	for k in ["use_unit","use_place","use_instant","card_back"]:
+		if ArenaIcon.texture(k)==null:return false
+	return true
 ## 무한의 칼날: critical hits ignore 30% of the defense; the stat lines are on the item.
 func setup_edge_check() -> void:
 	var e:=CustomBattleSetup.new();e.add(0,0,Vector2(200,200));var plain: UnitCombatStats=e.stats_for(e.entries[0]);e.equip(int(e.entries[0].id),&"infinityEdge")

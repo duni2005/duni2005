@@ -38,7 +38,7 @@ func round_trip() -> void:
 		verify(loaded!=null and loaded.kind==item.kind and loaded.equipped_to_member_id==item.equipped_to_member_id and loaded.consumed==item.consumed,"inventory ownership")
 	for card in c.guild.state.strategy_cards:
 		var loaded: StrategyCardInstance=restored.run.get_strategy_card(card.card_id)
-		verify(loaded!=null and loaded.used_depth==card.used_depth and loaded.ready_floor==card.ready_floor and loaded.used_floors==card.used_floors and loaded.consumed==card.consumed,"individual card state")
+		verify(loaded!=null and loaded.wins_left==card.wins_left and loaded.consumed==card.consumed,"individual card state")
 	verify(restored.run.next_item_number==c.guild.state.next_item_number and restored.run.next_strategy_card_number==c.guild.state.next_strategy_card_number,"item/card counters")
 	for room in c.guild.state.tower.map.rooms.values():
 		var loaded: RoomState=restored.run.tower.map.get_room(room.room_id)

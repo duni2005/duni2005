@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StrategyCardData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/strategy_card_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"seal"
+display_name = "봉인의 낙인"
+usage_rule = 0
+description = "특수전략 제거 (고위험 포함) · 그 적은 다음 터닝포인트에 특수전략을 준비하지 못함"
+amount = 0
+duration = 0
+gold_price = 180
+cooldown_wins = 0
+use_mode = &"enemy"
+condition = &"planning"
+disrupt = &"high"
+extra = 1

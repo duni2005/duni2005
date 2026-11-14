@@ -318,11 +318,11 @@ func room_persistence_and_cards() -> void:
 	verify(e.ultimate.cast.target==u.actor_id() and e.ultimate.cast.t==.4 and e.current_hp==130,"enemy cast reconnects with new unit")
 	b.clock.elapsed=12;b.turning.advance(.01);b.turning.advance(2)
 	verify(b.turning.is_paused(),"cards real TP hold")
-	var charge: StrategyCardInstance=guild.state.give_strategy_card(&"charge")
-	verify(StrategyCardExecutor.apply(b.turning,charge.card_id,member.member_id,"stunned").code==StrategyCardExecutor.Code.NO_EFFECT and charge.ready_floor==0,"charge rejects stun without record")
+	var charge: StrategyCardInstance=guild.state.give_strategy_card(&"charge");b.turning.hand.append(charge.card_id)
+	verify(StrategyCardExecutor.apply(b.turning,charge.card_id,member.member_id,"stunned").code==StrategyCardExecutor.Code.NO_EFFECT and charge.wins_left==0,"charge rejects stun without record")
 	u.stun_remaining=0;u.ultimate.cast.clear();u.ultimate_gauge=0
 	verify(StrategyCardExecutor.apply(b.turning,charge.card_id,member.member_id,"charge").code==StrategyCardExecutor.Code.OK and u.ultimate_gauge==50,"charge actual gain50")
-	var mango: StrategyCardInstance=guild.state.give_strategy_card(&"mango");u.current_hp=1;u.healing_received=1.1
+	var mango: StrategyCardInstance=guild.state.give_strategy_card(&"mango");b.turning.hand.append(mango.card_id);u.current_hp=1;u.healing_received=1.1
 	verify(StrategyCardExecutor.apply(b.turning,mango.card_id,member.member_id,"mango").code==StrategyCardExecutor.Code.OK and is_equal_approx(u.current_hp,1+u.data.max_hp*.3*1.1),"mango uses healing received")
 	b.finish_with_reason(BattleEndReason.Value.RETREAT,-1);b.free()
 	verify(reserve.is_alive(),"reserve unaffected")
@@ -386,17 +386,20 @@ func all_character_cards_and_plans() -> void:
 		b.enable_turning_points(guild);b.clock.elapsed=12;b.turning.advance(.01);b.turning.advance(2)
 		verify(b.turning.is_paused(),"26 types TP hold %d"%kind)
 		u.current_hp=u.data.max_hp*.5
-		var mango: StrategyCardInstance=guild.state.give_strategy_card(&"mango")
+		var mango: StrategyCardInstance=guild.state.give_strategy_card(&"mango");b.turning.hand.append(mango.card_id)
 		verify(StrategyCardExecutor.apply(b.turning,mango.card_id,member.member_id,"mango_%d"%kind).code==StrategyCardExecutor.Code.OK,"mango %d"%kind)
 		verify(is_equal_approx(u.current_hp,u.data.max_hp*.8),"mango30%% %d"%kind)
 		u.ultimate_gauge=0
-		var charge: StrategyCardInstance=guild.state.give_strategy_card(&"charge")
+		var charge: StrategyCardInstance=guild.state.give_strategy_card(&"charge");b.turning.hand.append(charge.card_id)
 		var out: Dictionary=StrategyCardExecutor.apply(b.turning,charge.card_id,member.member_id,"charge_%d"%kind)
 		verify(out.code==(StrategyCardExecutor.Code.NO_EFFECT if kind==7 else StrategyCardExecutor.Code.OK),"charge supported ultimate %d"%kind)
 		for card_kind in [&"shield",&"iron",&"evade",&"taunt"]:
-			var card: StrategyCardInstance=guild.state.give_strategy_card(card_kind)
-			verify(StrategyCardExecutor.apply(b.turning,card.card_id,member.member_id,str(card_kind)+str(kind)).code==StrategyCardExecutor.Code.OK,"card %s/type%d"%[card_kind,kind])
-		verify(u.shield_hp==100 and u.shield_remaining==8 and u.iron_defense_remaining==15 and u.parry_cooldown==0,"shield/iron runtime %d"%kind)
+			var card: StrategyCardInstance=guild.state.give_strategy_card(card_kind);b.turning.hand.append(card.card_id)
+			# 철벽방어 carries the condition 근접형.
+			var expect: int=StrategyCardExecutor.Code.CONDITION if card_kind==&"iron" and u.data.attack_range>=StrategyCardTuning.MELEE_RANGE else StrategyCardExecutor.Code.OK
+			verify(StrategyCardExecutor.apply(b.turning,card.card_id,member.member_id,str(card_kind)+str(kind)).code==expect,"card %s/type%d"%[card_kind,kind])
+		var melee: bool=u.data.attack_range<StrategyCardTuning.MELEE_RANGE
+		verify(u.shield_hp==100 and u.shield_remaining==8 and (u.iron_defense_remaining==15 and u.parry_cooldown==0 or not melee),"shield/iron runtime %d"%kind)
 		var plan:=EnemyTurningPlan.new();plan.source_enemy_id=e.source_enemy_id;plan.plan_type=EnemyTurningPlan.OVERCHARGE;plan.metadata=EnemyTurningPlan.special_metadata(kind)
 		e.stun_remaining=1;var before: float=e.ultimate_gauge
 		EnemyPlanExecutor.execute(plan,b)

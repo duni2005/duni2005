@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StrategyCardData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/strategy_card_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"feast"
+display_name = "망고 연회"
+usage_rule = 0
+description = "아군 전원 HP 20% 회복 · 궁극기 +30"
+amount = 0.2
+duration = 0
+gold_price = 240
+cooldown_wins = 0
+use_mode = &"instant"
+condition = &""
+disrupt = &""
+extra = 30

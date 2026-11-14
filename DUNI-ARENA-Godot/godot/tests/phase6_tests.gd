@@ -14,6 +14,8 @@ func fixture(hold: bool = true) -> Dictionary:
 	helper.host = host
 	var f: Dictionary = helper.fixture()
 	for kind in StrategyCardCatalog.DEFINITIONS: f.guild.state.give_strategy_card(kind)
+	# Every owned card is in the battle's hand (the loadout chosen before deployment).
+	for c in f.guild.state.strategy_cards: f.tp.hand.append(c.card_id)
 	if hold:
 		helper.pause(f)
 		f.tp.current.enemy_plans.clear()
@@ -63,23 +65,24 @@ func immediate() -> void:
 	verify(not ok(use(f, &"mango", 0, "heal2")), "once cannot reuse different request")
 	verify(u.current_hp == 85, "no duplicate recovery")
 	var extra: StrategyCardInstance = f.guild.state.give_strategy_card(&"mango")
+	verify(StrategyCardExecutor.apply(f.tp, extra.card_id, u.source_member_id, "outside").code == StrategyCardExecutor.Code.NOT_IN_HAND, "a card left out of the loadout cannot be played")
+	f.tp.hand.append(extra.card_id)
 	u.current_hp = 140
 	verify(ok(StrategyCardExecutor.apply(f.tp, extra.card_id, u.source_member_id, "clamp")) and u.current_hp == 150, "HP cap")
 	verify(extra.card_id != card(f, &"mango").card_id, "same kind separate instance IDs")
 	verify(f.guild.state.give_strategy_card(&"unknown") == null, "unknown grant rejected")
 	u.ultimate_gauge = 100
 	verify(use(f, &"charge").code == StrategyCardExecutor.Code.NO_EFFECT, "full ultimate no effect")
-	verify(card(f, &"charge").ready_floor == 0, "no effect cooldown not started")
+	verify(card(f, &"charge").wins_left == 0 and not f.tp.used_cards.has(card(f, &"charge").card_id), "no effect cooldown not started")
 	u.ultimate_gauge = 37
-	f.guild.state.strategy_progress.current_depth = 1
-	f.guild.state.strategy_progress.unlocked_floor = 7
 	verify(ok(use(f, &"charge")) and u.ultimate_gauge == 87, "charge50 percentage points")
-	verify(card(f, &"charge").ready_floor == 10, "highest unlocked7 plus3 not current1 plus2")
-	f.guild.state.strategy_progress.unlocked_floor = 9
-	verify(not ok(use(f, &"charge")), "two intervening floors not ready")
-	f.guild.state.strategy_progress.unlocked_floor = 10
-	verify(ok(use(f, &"charge")) and u.ultimate_gauge == 100, "ready boundary inclusive gauge clamp")
-	verify(card(f, &"charge").ready_floor == 13, "next cooldown starts highest unlocked")
+	verify(card(f, &"charge").wins_left == 1, "쿨타임 1: one won room to go")
+	verify(use(f, &"charge").code == StrategyCardExecutor.Code.USED, "used this battle")
+	f.tp.used_cards.clear()
+	verify(use(f, &"charge").code == StrategyCardExecutor.Code.COOLDOWN, "a new battle before a win: still on cooldown")
+	f.guild.state.count_card_win()
+	verify(ok(use(f, &"charge")) and u.ultimate_gauge == 100, "ready after one win, gauge clamp")
+	verify(card(f, &"charge").wins_left == 1, "next cooldown starts again")
 	verify(f.guild.state.strategy_use_receipts.size() == 4, "only successful uses recorded")
 	clear(f)
 func shield_and_iron() -> void:
@@ -91,13 +94,13 @@ func shield_and_iron() -> void:
 	verify(ok(use(f, &"iron")), "iron immediate state")
 	verify(u.iron_defense_remaining == 15 and u.parry_cooldown == 0 and u.defense_cooldown == 0, "iron15 resets warrior readiness")
 	verify(ParryReadiness.is_ready(u) and ParryReadiness.cooldown_duration(u) == 3, "3sec readiness override")
-	verify(card(f, &"iron").ready_floor == 3 and not ok(use(f, &"iron")), "iron cooldown")
+	verify(use(f, &"iron").code == StrategyCardExecutor.Code.USED and not card(f, &"iron").consumed, "iron: 일반, once per battle")
 	verify(ok(use(f, &"shield")), "shield immediate")
 	verify(u.shield_hp == 100 and u.shield_remaining == 8, "100hp eight seconds")
 	verify(not ok(use(f, &"shield")), "shield once")
-	var shield2: StrategyCardInstance = f.guild.state.give_strategy_card(&"shield")
-	verify(ok(StrategyCardExecutor.apply(f.tp, shield2.card_id, u.source_member_id, "refresh")), "web allows unchanged shield refresh consuming new copy")
-	verify(u.shield_hp == 100 and shield2.consumed, "shield replaces never stacks")
+	var shield2: StrategyCardInstance = f.guild.state.give_strategy_card(&"shield");f.tp.hand.append(shield2.card_id)
+	verify(ok(StrategyCardExecutor.apply(f.tp, shield2.card_id, u.source_member_id, "refresh")), "a second copy refreshes the shield")
+	verify(u.shield_hp == 100 and not shield2.consumed and f.tp.used_cards.has(shield2.card_id), "shield replaces never stacks; 일반 copies stay")
 	f.battle.simulate(5)
 	verify(u.shield_remaining == 8 and u.iron_defense_remaining == 15, "hold timers frozen")
 	verify(f.battle.damage_resolver.apply(f.battle.units[2], u, 60) == 0 and u.shield_hp == 100, "normal attacks blocked hold")
@@ -133,9 +136,9 @@ func pending_and_order() -> void:
 	verify(f.tp.current.pending_commands.size() == 2 and u.position == where and u.strategy_dash.is_empty(), "hold never moves")
 	verify(enemy.taunted_until == 0, "taunt deferred too")
 	verify(not ok(use(f, &"evade")) and f.tp.current.pending_commands.size() == 2, "samecopy no duplicate commands")
-	var extra: StrategyCardInstance = f.guild.state.give_strategy_card(&"evade")
+	var extra: StrategyCardInstance = f.guild.state.give_strategy_card(&"evade");f.tp.hand.append(extra.card_id)
 	verify(StrategyCardExecutor.apply(f.tp, extra.card_id, u.source_member_id, "pendingdup").code == StrategyCardExecutor.Code.NO_EFFECT, "secondcopy same pending rejected")
-	verify(extra.used_depth == -1, "pending failure leaves copy unused")
+	verify(extra.wins_left == 0 and not f.tp.used_cards.has(extra.card_id), "pending failure leaves copy unused")
 	var p := EnemyTurningPlan.new()
 	p.plan_type = EnemyTurningPlan.MOVE
 	p.source_enemy_id = enemy.source_enemy_id
@@ -154,7 +157,7 @@ func pending_and_order() -> void:
 	f.battle.clock.elapsed = time
 	f.battle.simulate(.1)
 	verify(u.position.distance_to(where) > 0 and not f.battle.finished, "evade real movement not full retreat")
-	verify(card(f, &"evade").used_depth == 0 and card(f, &"evade").used_floors == [0], "floor records")
+	verify(card(f, &"evade").wins_left == 2, "쿨타임 2: two won rooms to go")
 	f.battle.clock.elapsed = time+8
 	f.battle.simulate(.01)
 	verify(u.command_retreat_until < f.battle.clock.elapsed, "flee expires simulation time")
@@ -163,7 +166,7 @@ func pending_and_order() -> void:
 	for e in f.battle.units:
 		if e.team == 1: e.alive = false
 	verify(use(f, &"taunt").code == StrategyCardExecutor.Code.NO_EFFECT, "no target no consumption")
-	verify(card(f, &"taunt").used_depth == -1, "emptytaunt nofloor record")
+	verify(not f.tp.used_cards.has(card(f, &"taunt").card_id), "empty taunt leaves no use record")
 	clear(f)
 func selection_and_auto() -> void:
 	groups += 1
@@ -212,13 +215,13 @@ func persistence_retry() -> void:
 	verify(next.units[0].shield_hp == 100 and next.units[0].iron_defense_remaining == 15, "effects re-injected")
 	verify(next.units[0].ultimate_gauge == 50 and next.units[0].command_retreat_until == 0, "gauge persists pending doesnot")
 	verify(next.turning.current == null and next.turning.next_at == 12, "fresh TurningPointState")
-	verify(run.strategy_cards.size() == counts and card(f, &"shield").consumed, "no retry grant/reset")
-	verify(not StrategyCardExecutor.availability(card(f, &"evade"), run.strategy_progress), "usedfloor persists retry")
-	run.strategy_progress.current_depth = 1
-	verify(StrategyCardExecutor.availability(card(f, &"evade"), run.strategy_progress), "different depth floor usable")
-	run.strategy_progress.current_depth = 0
-	verify(not StrategyCardExecutor.availability(card(f, &"evade"), run.strategy_progress), "revisit usedfloor blocked")
-	verify(not StrategyCardExecutor.availability(card(f, &"charge"), run.strategy_progress), "cooldown persists retry")
+	verify(run.strategy_cards.size() == counts and not card(f, &"shield").consumed, "no retry grant/reset")
+	verify(StrategyCardExecutor.availability(card(f, &"shield")) and next.turning.used_cards.is_empty(), "일반 card ready again in the retried battle")
+	verify(not StrategyCardExecutor.availability(card(f, &"evade")) and not StrategyCardExecutor.availability(card(f, &"charge")), "cooldown persists retry (retreats count no wins)")
+	run.count_card_win()
+	verify(StrategyCardExecutor.availability(card(f, &"charge")) and not StrategyCardExecutor.availability(card(f, &"evade")), "one win: 쿨타임 1 ready, 쿨타임 2 not")
+	run.count_card_win()
+	verify(StrategyCardExecutor.availability(card(f, &"evade")), "two wins: 쿨타임 2 ready")
 	next.free()
 	clear(f)
 	f = fixture()
@@ -275,8 +278,8 @@ func edge_commands() -> void:
 	verify(ok(use(f, &"iron", 0, "ironhook")), "iron hook success")
 	verify(events == [[f.battle.units[0].source_member_id, 15.0, 3.0]], "exact future parry call contract")
 	verify(not ok(use(f, &"iron", 0, "ironhook")) and events.size() == 1, "no duplicate hook")
-	f.guild.state.strategy_progress.unlocked_floor = 3
-	verify(ok(use(f, &"iron", 0, "ironrefresh")) and events.size() == 2, "ready boundary allows iron refresh")
+	f.tp.used_cards.clear() # the next battle: 일반 cards are back
+	verify(ok(use(f, &"iron", 0, "ironrefresh")) and events.size() == 2, "a new battle allows iron again")
 	var u2: BattleUnit = f.battle.units[0]
 	u2.shield_hp = 41
 	u2.shield_remaining = 3

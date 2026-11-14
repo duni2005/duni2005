@@ -4,9 +4,13 @@
 script = ExtResource("1")
 kind = &"iron"
 display_name = "철벽방어"
-usage_rule = 2
+usage_rule = 1
 description = "패링 준비 · 15초 쿨타임 3초"
 amount = 3
 duration = 15
-
 gold_price = 220
+cooldown_wins = 0
+use_mode = &"ally"
+condition = &"melee"
+disrupt = &""
+extra = 0

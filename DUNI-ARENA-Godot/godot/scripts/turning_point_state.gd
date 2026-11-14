@@ -8,6 +8,8 @@ var trigger_simulation_time: float = 0.0
 var remaining_real_time: float = 0.0
 var enemy_plans: Array[EnemyTurningPlan] = []
 var selected_member_id: String = ""
+## The unit (ally or enemy) unit cards are played on, chosen on the field or in the strip.
+var selected_actor_id: String = ""
 var resolved: bool = false
 var selected_card_id: int = 0
 var selection_serial: int = 0

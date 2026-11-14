@@ -436,6 +436,10 @@ func _draw_product() -> void:
 		var win:=Rect2(Vector2(w*.5-art_h*.75,30),Vector2(art_h*1.5,art_h))
 		var box: StyleBoxFlat=ArenaUI.box(Color(theme[0],1),Color(accent,.7));box.set_corner_radius_all(8);draw_style_box(box,win)
 		VfxArt.glow(self,art_c,art_h*.7,accent,.25);ArenaIcon.draw(self,art_c,kind,art_h*.66,Color(1,1,1,.5 if dim else 1))
+		# Use icon (유닛 / 위치 / 즉시) on the art window's corner.
+		var card_data: StrategyCardData=StrategyCardCatalog.get_card(StringName(kind))
+		if card_data!=null:
+			var ic: Vector2=Vector2(win.end.x-9,win.position.y+9);draw_circle(ic,9,Color(0,0,0,.6));draw_arc(ic,9,0,TAU,16,Color(accent,.8),1.5,true);ArenaIcon.draw(self,ic,card_data.use_icon(),13,Color.WHITE)
 	else:
 		if rarity.a>0:VfxArt.glow(self,art_c,art_h*.75,rarity,.25)
 		draw_badge(art_c,art_h*.42,Color(accent,.9) if rarity.a>0 else ArenaUI.GOLD)

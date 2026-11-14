@@ -4,9 +4,13 @@
 script = ExtResource("1")
 kind = &"evade"
 display_name = "전투회피"
-usage_rule = 1
+usage_rule = 2
 description = "재개 시 대시 · 6초 도주"
 amount = 0
 duration = 6
-
 gold_price = 140
+cooldown_wins = 2
+use_mode = &"ally"
+condition = &""
+disrupt = &""
+extra = 0

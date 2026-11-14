@@ -1,9 +1,8 @@
 class_name StrategyCardInstance
 extends RefCounted
-## Web id/kind/usedDepth/usedFloors/readyFloor. Consumed copies kept for audit.
+## One owned copy. wins_left: battle rooms still to win before a used 쿨타임 card is ready
+## (0 = ready). A used 소모 copy is consumed and kept for audit.
 var card_id: int
 var kind: StringName
-var used_depth: int = -1
-var used_floors: Array[int] = []
-var ready_floor: int = 0
+var wins_left: int = 0
 var consumed: bool = false

@@ -29,6 +29,10 @@ var strategy_cards: Array[StrategyCardInstance] = []
 var next_strategy_card_number: int = 1
 var strategy_progress := StrategyProgressContext.new()
 var strategy_use_receipts: Dictionary = {}
+## Card ids taken into the next / current room battle (chosen before deployment, at most
+## StrategyCardTuning.LOADOUT_SIZE) and the last confirmed choice (이전 구성).
+var card_loadout: Array[int] = []
+var last_card_loadout: Array[int] = []
 ## Sortie upgrades bought this run (see GrowthRules.sortie_limit).
 var sortie_level: int = 0
 ## Guild expansion: roster size upgrades (GrowthRules.roster_limit) and recruit odds upgrades
@@ -47,6 +51,10 @@ func give_strategy_card(kind: StringName) -> StrategyCardInstance:
 	card.kind = kind
 	strategy_cards.append(card)
 	return card
+## A battle room was won: every card on cooldown is one win closer.
+func count_card_win() -> void:
+	for card in strategy_cards:
+		if card.wins_left > 0: card.wins_left -= 1
 func get_strategy_card(id: int) -> StrategyCardInstance:
 	for card in strategy_cards:
 		if card.card_id == id: return card

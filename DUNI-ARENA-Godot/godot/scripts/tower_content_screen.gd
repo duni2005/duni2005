@@ -271,7 +271,7 @@ func _offer_card(offer: ShopOffer,left: int) -> ArenaCard:
 	b.tooltip_text=b.description
 	return b
 static func _card_rule(card: StrategyCardData) -> String:
-	return ["1회 사용","층마다 1회","쿨타임"][card.usage_rule] if card.usage_rule>=0 and card.usage_rule<3 else ""
+	return card.rule_line()
 ## The product's description window, with its own 구매 button.
 func _show_offer(offer_id: String) -> void:
 	var node: RoomState=controller.current_room();var offer: ShopOffer=null

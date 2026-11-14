@@ -63,6 +63,8 @@ func run() -> void:
 	screen.full_character_debug=false
 	root.add_child(screen)
 	await frames()
+	# 전투 전 카드 선택: confirm an empty choice, then deploy.
+	await click(center(screen.loadout_panel.confirm_button));await frames()
 	var members:Array[GuildMemberState]=screen.guild.all_members()
 	for pair in [[0,Vector2(100,220)],[1,Vector2(100,620)],[3,Vector2(220,420)]]:
 		await click(center(screen.roster.get_node(members[pair[0]].member_id)))
@@ -101,11 +103,10 @@ func run() -> void:
 	var card:StrategyCardInstance
 	for c in screen.guild.state.strategy_cards:
 		if c.kind==&"iron":card=c
-	var scroll:ScrollContainer=screen.turning_panel.card_row.get_parent()
-	scroll.scroll_horizontal=int(screen.turning_panel.card_buttons[card.card_id].position.x-8)
+	# Played as the hand plays it after a swipe: on the unit chosen on the field.
+	battle.turning.hand.append(card.card_id);screen.turning_panel.select_actor(source.actor_id())
+	screen.turning_panel._play_requested(card.card_id,Vector2.ZERO)
 	await frames()
-	await click(center(screen.turning_panel.card_buttons[card.card_id]))
-	await click(center(screen.turning_panel.use_button))
 	verify(source.iron_defense_remaining==15 and source.parry_cooldown==0,"GUIiron real readiness")
 	verify(not ParryReadiness.is_ready(source),"iron doesnot bypass stun")
 	root.content_scale_size=Vector2i(390,844);root.size=Vector2i(390,844)
@@ -145,6 +146,7 @@ func run() -> void:
 	verify(members[0].character_specific_state.get("stun",-1)==.3,"allycommon persistence throughretreat")
 	await click(center(screen.next_button),true)
 	verify(screen.board.editing and screen.plan.entries().size()==3,"same room formationrestored")
+	screen.loadout_panel.confirm();screen._process(0);await frames()
 	await click(center(screen.start_button),true)
 	verify(screen.room.battle_attempt_count==2 and screen.battle.common_combat_enabled,"retry commonmode")
 	screen.battle.set_physics_process(false)

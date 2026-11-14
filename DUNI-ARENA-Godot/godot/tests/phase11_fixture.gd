@@ -18,8 +18,9 @@ static func make() -> TowerController:
 	for pair in [[7,{"ammo":1,"reloadRemaining":2.7}],[10,{"lostSword":{"dx":90.0,"dy":-35.0,"vx":40.0,"vy":-10.0,"flight":.3,"rotation":.4,"sizeBoost":1.06,"scale":1.0},"guardStacks":2}],[12,{"predatorStacks":4}],[11,{"dolphinStacks":5,"curseTime":2.3}],[16,{"paladinSwings":3,"paladinBlessingTime":4.1}],[20,{"shockStacks":3}],[18,{"face":.7,"tankHeadingAngle":.9}],[25,{"shotsFired":2}],[15,{"satelliteBursts":[{"remaining":.16,"damage":2.8}]}]]:
 		var member: GuildMemberState=c.guild.create_member(pair[0]);member.character_specific_state=pair[1]
 	a.character_specific_state={"cooldown":.73,"shieldHp":44,"shieldTime":3.1,"parryCooldown":6.2,"stun":.4,"test_counter":3,"totemClock":2.1}
-	for card in run.strategy_cards:card.used_depth=0;card.used_floors=[0];card.ready_floor=2
-	run.strategy_cards[2].consumed=true;run.give_strategy_card(&"charge").ready_floor=3
+	for card in run.strategy_cards:card.wins_left=0
+	run.strategy_cards[2].consumed=true;run.give_strategy_card(&"charge").wins_left=1
+	run.last_card_loadout.assign([run.strategy_cards[0].card_id,run.strategy_cards[1].card_id])
 	run.strategy_use_receipts["fixture-use"]={"card_id":run.strategy_cards[2].card_id,"kind":"shield"}
 	run.last_formation.capture([DeploymentEntry.new(a.member_id,Vector2(180,400)),DeploymentEntry.new(b.member_id,Vector2(180,200))])
 	var battle_room: RoomState=run.tower.map.get_room("0:3");battle_room.discovered=true;battle_room.visited=true;battle_room.battle_attempt_count=1;run.tower.visited_rooms[battle_room.room_id]=true

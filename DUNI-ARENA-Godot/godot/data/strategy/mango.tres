@@ -8,5 +8,9 @@ usage_rule = 0
 description = "최대 HP 30% 회복"
 amount = 0.3
 duration = 0
-
 gold_price = 70
+cooldown_wins = 0
+use_mode = &"ally"
+condition = &""
+disrupt = &""
+extra = 0

@@ -41,6 +41,8 @@ var physical_serial: int = 0
 var knockback_serial: int = 0
 var collision_pairs: Dictionary = {}
 var combat_events: Array[Dictionary] = []
+## 방벽 설치 walls (CardWalls).
+var card_walls: Array[Dictionary] = []
 var combat_event_counts: Dictionary = {}
 var stats := BattleStats.new() # per-unit totals for the result screen's 통계 page
 var zones := BattleZones.new()
@@ -419,6 +421,7 @@ func simulate_common(delta: float) -> void:
 			StatusController.interrupt(unit)
 		StrategyEffects.advance(unit,delta)
 	if full_characters_enabled:zones.advance(self,delta)
+	if not card_walls.is_empty():CardWalls.advance(self,delta)
 	for unit in units:
 		if not unit.alive: continue
 		if unit.stun_remaining > 0:

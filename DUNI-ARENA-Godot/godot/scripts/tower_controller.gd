@@ -36,7 +36,8 @@ func new_run(map_seed: int=1,combat_seed: int=2) -> bool:
 	release_runtime_connections()
 	var run:=RunState.new();guild=GuildManager.new(run);run.gold=1200;run.tokens=5;run.tower=TowerRunState.new()
 	for type in [0,0,1,5]:guild.create_member(type)
-	for kind in [&"mango",&"evade",&"shield",&"shield"]:run.give_strategy_card(kind)
+	# 0.98: a fifth card (교란) so the first battle already fills the five-card hand.
+	for kind in [&"mango",&"evade",&"shield",&"shield",&"disrupt"]:run.give_strategy_card(kind)
 	run.tower.map=generator.generate(map_seed,run.run_id);combat_rng.seed=combat_seed;session=null;battle=null
 	content_rng.seed=map_seed^0x628da7;content=TowerContentService.new(guild,content_rng);prediction_battle=null
 	for node in run.tower.map.rooms.values():
@@ -128,6 +129,10 @@ func _settled(result: BattleResult,status: BattleSettlement.Status) -> void:
 	var room: RoomState=current_room()
 	# 0.97 items: victory healing, EXP and gold, item growth (승전의 술잔, 신참의 배지, 황금 거위...).
 	var items: Dictionary=BuildItems.settle(guild,result)
+	# Strategy cards: a won room brings every cooldown one win closer (retreats and defeats do not);
+	# the next entry chooses its cards again.
+	if result.end_reason==BattleEndReason.Value.VICTORY:guild.state.count_card_win()
+	guild.state.card_loadout.clear()
 	# Settlement already performed healing and room clear before checking guild death.
 	if room.cleared:
 		state.cleared_rooms[room.room_id]=true

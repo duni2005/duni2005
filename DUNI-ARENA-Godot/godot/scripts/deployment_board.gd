@@ -4,6 +4,9 @@ extends Control
 signal battle_unit_selected(actor_id: String)
 var selected_actor_id: String = ""
 var strategy_actor_id: String = "" # enemy whose turning-point strategy card is open
+## A unit card is held: the units it can be played on (actor ids) are highlighted.
+var card_focus_on: bool = false
+var card_focus_ids: Array = []
 signal selection_changed(member_id: String)
 signal placement_changed(error: DeploymentRules.Code)
 signal edit_started
@@ -44,6 +47,13 @@ func floor_side() -> float:
 func floor_span() -> float:
 	return view_side() if not editing and is_instance_valid(battle) else floor_side()
 
+## Arena point to screen (global) and back; arena units per screen pixel.
+func screen_point(logical: Vector2) -> Vector2:
+	return get_global_transform() * presentation.parent_transform * logical
+func logical_from_screen(global_point: Vector2) -> Vector2:
+	return presentation.parent_transform.affine_inverse() * (get_global_transform().affine_inverse() * global_point)
+func pixels_per_unit() -> float:
+	return (get_global_transform() * presentation.parent_transform).x.length()
 func logical_point(local: Vector2) -> Vector2:
 	var rect: Rect2 = board_rect()
 	var point: Vector2=(local-rect.position)*view_side()/maxf(rect.size.x,1)
@@ -243,6 +253,8 @@ func _gui_input(event: InputEvent) -> void:
 				if EnemyStrategyView.plan_for(battle,u.actor_id())!=null:
 					if inspected==u.actor_id():unit_info_requested.emit(u.data.type_id,"",null,u)
 					else:strategy_actor_id=u.actor_id()
+					# It is also chosen as the target of unit cards.
+					selected_actor_id=u.actor_id();battle_unit_selected.emit(selected_actor_id)
 					accept_event();return
 				# Tapping the selected unit again opens its description.
 				if selected_actor_id==u.actor_id():unit_info_requested.emit(u.data.type_id,u.source_member_id if u.original_team==0 else "",null,u);accept_event();return

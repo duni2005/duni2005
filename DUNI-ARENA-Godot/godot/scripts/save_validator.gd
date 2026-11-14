@@ -101,11 +101,14 @@ static func validate_run(run: RunState) -> SaveLoadResult:
 		if inventory.equipped(member.member_id).size()>GuildMemberCombatStats.equipment_limit(member):return reject("equipment_slots")
 	var cards: Dictionary={};highest=0
 	for card in run.strategy_cards:
-		if card.card_id<1 or cards.has(card.card_id) or StrategyCardCatalog.get_card(card.kind)==null or card.used_depth< -1 or card.used_depth>14 or card.ready_floor<0:return reject("card")
-		for depth in card.used_floors:
-			if depth<0 or depth>=15 or card.used_floors.count(depth)!=1:return reject("card_floors")
+		if card.card_id<1 or cards.has(card.card_id) or StrategyCardCatalog.get_card(card.kind)==null or card.wins_left<0 or card.wins_left>StrategyCardCatalog.get_card(card.kind).cooldown_wins:return reject("card")
 		cards[card.card_id]=true;highest=maxi(highest,card.card_id)
 	if run.next_strategy_card_number<=highest or run.next_strategy_card_number<1:return reject("card_counter")
+	# The loadouts name owned cards, each once, at most LOADOUT_SIZE.
+	for loadout in [run.card_loadout,run.last_card_loadout]:
+		if loadout.size()>StrategyCardTuning.LOADOUT_SIZE:return reject("card_loadout")
+		for id in loadout:
+			if not cards.has(id) or loadout.count(id)!=1:return reject("card_loadout")
 	var seen: Dictionary={}
 	for entry in run.last_formation.entries:
 		# Removed promotion donors may still occur in last formation: Phase3 ignores them.

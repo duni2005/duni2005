@@ -125,7 +125,7 @@ func show_tab(key: String) -> void:
 			grid.columns = maxi(3, int(width / 112))
 			for kind in StrategyCardCatalog.DEFINITIONS:
 				var data: StrategyCardData = StrategyCardCatalog.get_card(kind)
-				var c: ArenaCard = _card(String(kind), "product", String(kind), data.display_name, "%d G" % data.gold_price, Color(0, 0, 0, 0), Vector2(104, 168));c.slot_kind = "card";c.description = data.description
+				var c: ArenaCard = _card(String(kind), "product", String(kind), data.display_name, "%d G" % data.gold_price, Color(0, 0, 0, 0), Vector2(104, 168));c.slot_kind = "card";c.description = data.description;c.rule_text = data.rule_line()
 		"event":
 			grid.columns = maxi(3, int(width / 96))
 			for row in EVENTS:_card(row[0], "slot", row[1], row[2], "", Color(0, 0, 0, 0), Vector2(86, 72))
@@ -191,8 +191,8 @@ func _select(node_name: String) -> void:
 			detail_text.text = "%s\n%s" % [data.description, source]
 		"card":
 			var data: StrategyCardData = StrategyCardCatalog.get_card(StringName(key));icon_kind = key
-			detail_title.text = data.display_name;detail_sub.text = {StrategyCardData.Usage.ONCE:"한 번 쓰면 사라짐", StrategyCardData.Usage.FLOOR:"층마다 한 번", StrategyCardData.Usage.COOLDOWN:"쓴 뒤 대기 시간"}.get(data.usage_rule, "") + " · %d G" % data.gold_price
-			detail_text.text = "%s\n터닝포인트에서 쓴다. 상점 · 보물상자 · 복권 · 토큰 상점에서 얻는다." % data.description
+			detail_title.text = data.display_name;detail_sub.text = data.rule_line() + " · %d G" % data.gold_price
+			detail_text.text = "%s\n소모는 쓰면 사라지고, 일반은 가지고 들어간 전투마다 1번, 쿨타임 N은 쓴 뒤 전투방을 N번 이기면 다시 쓸 수 있다. 전투방 배치 전에 최대 5장을 골라 들고 가고, 터닝포인트에서 패의 카드를 위로 밀어 올려 쓴다. 상점 · 보물상자 · 복권 · 토큰 상점에서 얻는다." % data.description
 		"event":
 			for row in EVENTS:
 				if row[0] == key:icon_kind = row[1];detail_title.text = row[2];detail_text.text = row[3]

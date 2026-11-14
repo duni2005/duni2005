@@ -8,5 +8,9 @@ usage_rule = 1
 description = "가까운 적 2명 · 8초 도발"
 amount = 2
 duration = 8
-
 gold_price = 160
+cooldown_wins = 0
+use_mode = &"ally"
+condition = &""
+disrupt = &""
+extra = 0

@@ -52,6 +52,11 @@ var end_overlay: RetreatPresentation
 var end_presenting: bool=false
 var end_board_height: float=0
 var last_end_id: String=""
+## 전투 전 카드 선택: shown before deployment while the guild owns cards; 확정 hands over to
+## deployment, "카드 다시 고르기" comes back until the battle starts.
+var card_stage: bool=false
+var loadout_panel: CardLoadoutPanel
+var recards_button: Button
 
 func _build_ui() -> void:
 	if OS.has_feature("web"):ArenaUI.fit_window(get_tree().root)
@@ -102,7 +107,7 @@ func _build_ui() -> void:
 	deployment_legend = column.get_child(board.get_index()+1)
 	var aim_overlay:=TranscendenceOverlay.new();aim_overlay.screen=self;add_child(aim_overlay)
 	turning_panel = TurningPointPanel.new()
-	turning_panel.name = "TurningPointPanel"
+	turning_panel.name = "TurningPointPanel";turning_panel.board = board
 	debug_button=_button(start_button.get_parent(),"개발 정보 OFF",toggle_debug);debug_button.hide()
 	selected_details=Label.new();selected_details.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;column.add_child(selected_details);selected_details.hide()
 	feedback=Label.new();feedback.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;feedback.max_lines_visible=2;feedback.mouse_filter=Control.MOUSE_FILTER_IGNORE;feedback.add_theme_font_size_override("font_size",12);feedback.add_theme_color_override("font_color",ArenaUI.GOLD);board.add_child(feedback);feedback.hide()
@@ -123,6 +128,10 @@ func _build_ui() -> void:
 	battle_cue=BattleCueOverlay.new();battle_cue.board=board;add_child(battle_cue)
 	var kill_feed:=KillFeed.new();kill_feed.board=board;kill_feed.status=status;add_child(kill_feed)
 	end_overlay=RetreatPresentation.new();add_child(end_overlay)
+	loadout_panel=CardLoadoutPanel.new();loadout_panel.name="CardLoadout";arena_home.add_child(loadout_panel);loadout_panel.hide()
+	loadout_panel.confirmed.connect(func():card_stage=false;_refresh_roster())
+	recards_button=_button(actions_home,"카드 다시 고르기",func():card_stage=true;loadout_panel.chosen.assign(guild.state.card_loadout);loadout_panel.render())
+	ArenaUI.quiet(recards_button);recards_button.add_theme_font_size_override("font_size",12);ArenaUI.with_icon(recards_button,"card",14)
 
 func _ensure_room() -> void:
 	if room != null:
@@ -142,11 +151,15 @@ func begin_deployment() -> void:
 		return
 	enemies = CombatPersistence.placements(room, guild)
 	super.begin_deployment()
+	# Every entry chooses its cards again (used 소모 cards are gone, 일반 cards are back).
+	guild.state.card_loadout.clear()
+	card_stage=guild.state.strategy_cards.any(func(c):return not c.consumed)
+	if loadout_panel!=null:loadout_panel.open(guild)
 	retreat_button.disabled = true
 	_update_room_hud()
 
 func start_battle() -> void:
-	if not board.editing:
+	if not board.editing or card_stage:
 		return
 	_reset_ending()
 	for icon in trans_row.get_children():trans_row.remove_child(icon);icon.queue_free()
@@ -271,10 +284,10 @@ func _process(delta: float) -> void:
 		for button in [remove_button,clear_button,restore_button]:button.visible=debug_enabled
 	var turning: TurningPointManager = battle.turning if is_instance_valid(battle) else null
 	turning_panel.refresh(turning)
-	# During a turning point the field ring follows the ally chosen in the strip.
+	# During a turning point the field ring follows the unit chosen (field or strip), ally or enemy.
 	if turning!=null and turning.is_paused() and turning.current!=null:
-		var chosen: BattleUnit=EnemyPlanExecutor.find_member(battle,turning.current.selected_member_id)
-		board.selected_actor_id=chosen.actor_id() if chosen!=null else ""
+		var chosen: BattleUnit=battle.find_actor(turning.current.selected_actor_id) if not turning.current.selected_actor_id.is_empty() else EnemyPlanExecutor.find_member(battle,turning.current.selected_member_id)
+		board.selected_actor_id=chosen.actor_id() if chosen!=null and chosen.alive else ""
 	character_debug_row.visible=board.editing and full_character_debug and debug_enabled
 	_refresh_transcendence(0 if watch_paused else delta)
 	turning_panel.debug_enabled=debug_enabled
@@ -290,6 +303,13 @@ func _process(delta: float) -> void:
 	room_hud.visible = true
 	status.visible = not paused and (not board.editing or debug_enabled)
 	deployment_hint.visible=board.editing
+	# Card choice first: the loadout replaces the deployment controls under the field.
+	var choosing: bool=board.editing and card_stage
+	loadout_panel.visible=choosing
+	recards_button.visible=board.editing and not card_stage and guild.state.strategy_cards.any(func(c):return not c.consumed)
+	if choosing:
+		roster.get_parent().visible=false;tools_row.visible=false;actions_home.visible=false
+	elif board.editing:tools_row.visible=true
 	battle_toolbar.visible=not board.editing and not finished and not paused
 	for speed in speed_buttons:
 		speed_buttons[speed].disabled=watch_paused or not is_instance_valid(battle) or battle.clock.state!=BattleClock.State.NORMAL;speed_buttons[speed].set_pressed_no_signal(is_instance_valid(battle) and int(battle.clock.speed)==speed)
@@ -418,6 +438,7 @@ func _layout_arena() -> void:
 		_move_layout_child(actions_home,5)
 	else:
 		_move_layout_child(board,2)
+		_move_layout_child(loadout_panel,3)
 		_move_layout_child(tools_row,3)
 		_move_layout_child(roster.get_parent(),4)
 		_move_layout_child(actions_home,5)
@@ -479,7 +500,7 @@ func _select_from_field(actor_id: String) -> void:
 		var current: BattleUnit=EnemyPlanExecutor.find_member(battle,battle.turning.current.selected_member_id)
 		if current!=null:board.selected_actor_id=current.actor_id()
 		return
-	if unit.alive and not unit.source_member_id.is_empty() and unit.original_team==0:battle.turning.current.selected_member_id=unit.source_member_id
+	turning_panel.select_actor(actor_id)
 
 ## 통계: every unit's damage, healing, kills and ultimates from the finished battle, as bars.
 func _open_stats() -> void:

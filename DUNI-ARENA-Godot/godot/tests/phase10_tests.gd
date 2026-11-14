@@ -254,7 +254,7 @@ func rest_events() -> void:
 		if String(reward).begins_with("gold"):verify(t.guild.state.gold==before-200+int(String(reward).trim_prefix("gold")),"lottery gold exact")
 		elif reward==&"tokens":verify(t.guild.state.gold==before-200 and t.guild.state.tokens==8,"lottery3tokens")
 		elif reward==&"unit":verify(t.guild.all_members().size()==5,"lottery recruits individual")
-		elif reward==&"strategy":verify(t.guild.state.strategy_cards.size()==5,"lottery card")
+		elif reward==&"strategy":verify(t.guild.state.strategy_cards.size()==6,"lottery card (5 starting cards + 1)")
 		else:verify(t.content.inventory.available().size()==(2 if reward==&"items" else 1),"lottery item copies")
 		before=t.guild.state.gold;var random_state: int=t.content_rng.state
 		verify(not t.content_action(&"event",{"choice":&"lottery"}).ok and t.guild.state.gold==before and t.content_rng.state==random_state,"repeat lottery unchanged")
@@ -441,7 +441,7 @@ func combat() -> void:
 	u.current_hp=40;b.clock.elapsed=12;b.turning.advance(.01);b.turning.advance(2)
 	var clock: float=u.state_value("totemClock");var hp: float=u.current_hp;b.simulate(1)
 	verify(u.state_value("totemClock")==clock and u.current_hp==hp,"hold freezes totem")
-	var card: StrategyCardInstance=t.guild.state.strategy_cards[0];b.turning.current.selected_member_id=m.member_id;b.turning.select_card(card.card_id)
+	var card: StrategyCardInstance=t.guild.state.strategy_cards[0];b.turning.hand.append(card.card_id);b.turning.current.selected_member_id=m.member_id;b.turning.current.selected_actor_id="";b.turning.select_card(card.card_id)
 	verify(b.turning.use_selected_card().get("code")==StrategyCardExecutor.Code.OK and is_equal_approx(u.current_hp,40+u.max_hp*.3*1.1),"mango through real gear healing")
 	u.transcendence_gauge=100;u.ultimate.cast.clear();u.stun_remaining=0;u.combat.cancel(u)
 	verify(b.transcendence.begin(u,Vector2.ZERO),"manual transcend aim")

@@ -39,7 +39,7 @@ func map_tests() -> void:
 	verify(map.rooms.size()==120,"120 pure room records")
 	verify(t.guild.state.gold==1200 and t.guild.state.tokens==5 and t.guild.state.player_hp==100,"actual initial resources")
 	verify(t.guild.all_members().map(func(m):return m.unit_type_id)==[0,0,1,5],"web initial guild")
-	verify(t.guild.state.strategy_cards.map(func(c):return c.kind)==[&"mango",&"evade",&"shield",&"shield"],"web initial cards")
+	verify(t.guild.state.strategy_cards.map(func(c):return c.kind)==[&"mango",&"evade",&"shield",&"shield",&"disrupt"],"initial cards (0.98: + 교란)")
 	for depth in range(15):
 		var floor: FloorState=map.floors[depth];var count: int=6+depth/3
 		verify(floor.room_ids.size()==count,"depth room count")

@@ -316,8 +316,8 @@ func clock_and_persistence() -> void:
 	verify([held_strike.age,held_strike.life,held_wave.age,held_wave.life]==attack_state,"hold freezes active strike andwave")
 	verify(f.battle.clock.elapsed==simtime and f.tp.current.remaining_real_time==30,"hold freezes simulation but advancesreal")
 	verify(f.battle.damage_resolver.resolve(enemy,u,20).hp_damage==0,"hold rejects damage")
-	var charge:StrategyCardInstance=f.guild.state.give_strategy_card(&"charge")
-	verify(StrategyCardExecutor.apply(f.tp,charge.card_id,u.source_member_id,"stuncharge").code==StrategyCardExecutor.Code.NO_EFFECT and charge.ready_floor==0,"stun blocks charge without consuming")
+	var charge:StrategyCardInstance=f.guild.state.give_strategy_card(&"charge");f.tp.hand.append(charge.card_id)
+	verify(StrategyCardExecutor.apply(f.tp,charge.card_id,u.source_member_id,"stuncharge").code==StrategyCardExecutor.Code.NO_EFFECT and charge.wins_left==0,"stun blocks charge without consuming")
 	f.tp.current.enemy_plans.clear()
 	verify(f.tp.resolve(),"manual resume common")
 	f.battle.simulate(.1)
@@ -489,6 +489,7 @@ func advanced_physical_and_cards() -> void:
 	u=f.battle.units[0]
 	var iron:StrategyCardInstance=f.guild.state.give_strategy_card(&"iron")
 	var evade:StrategyCardInstance=f.guild.state.give_strategy_card(&"evade")
+	f.tp.hand.append_array([iron.card_id,evade.card_id])
 	verify(StrategyCardExecutor.apply(f.tp,iron.card_id,u.source_member_id,"commoniron").code==StrategyCardExecutor.Code.OK,"real ironcard applies")
 	var runner:BattleUnit=f.battle.units[1]
 	var at:Vector2=runner.position

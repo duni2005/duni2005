@@ -8,5 +8,9 @@ usage_rule = 2
 description = "궁극기 +50%p"
 amount = 50
 duration = 0
-
 gold_price = 170
+cooldown_wins = 1
+use_mode = &"ally"
+condition = &""
+disrupt = &""
+extra = 0

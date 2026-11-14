@@ -50,6 +50,8 @@ func display_contract():
 	verify(card.custom_minimum_size.y>=88 and fits(card),"inventory summary has space for gear row")
 	await shot("inventory");ui.guild_dialog.hide();ui.select_room("0:3");await frames();ui.fx.advance(3)
 	var screen: TowerBattleScreen=ui.battle_screen
+	verify(screen.card_stage and screen.loadout_panel.visible,"card choice first in a battle room")
+	screen._process(0);await frames();await tap(screen.loadout_panel.confirm_button);screen._process(0);await frames()
 	var tools: Array=screen.tools_row.get_children().filter(func(c):return c is Button)
 	verify(tools.size()==4,"four separate deployment tools")
 	for tool in tools:verify(tool.size.x>=44 and tool.size.y>=44 and fits(tool),"small tool remains a touch target")
@@ -86,7 +88,8 @@ func display_contract():
 	b.turning.advance(2);screen._process(0);await frames()
 	var ally_card: ArenaCard=screen.turning_panel.allies.get_node(member.member_id);var ally_identity: int=ally_card.get_instance_id()
 	var mango: StrategyCardInstance=g.state.give_strategy_card(&"mango");b.turning.current.selected_member_id=member.member_id;screen._process(0);await frames()
-	await tap(screen.turning_panel.card_buttons[mango.card_id]);screen._process(0);await frames();await tap(screen.turning_panel.use_button);screen._process(0)
+	b.turning.hand.append(mango.card_id);screen.turning_panel.select_actor(b.units[0].actor_id());screen._process(0);await frames()
+	screen.turning_panel._play_requested(mango.card_id,Vector2.ZERO);screen._process(0)
 	verify(b.turning.current.last_card_result.code==StrategyCardExecutor.Code.OK,"real mango UI action works on first touch")
 	verify(ally_card.hp>83 and ally_card.hp==b.units[0].current_hp,"TP member HP display updates immediately after heal")
 	verify(ally_card.get_instance_id()==ally_identity,"stance/card updates keep the held ally card alive")

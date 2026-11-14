@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StrategyCardData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/strategy_card_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"block"
+display_name = "차단"
+usage_rule = 2
+description = "적 1명의 특수전략 제거 (위험 이하)"
+amount = 0
+duration = 0
+gold_price = 220
+cooldown_wins = 2
+use_mode = &"enemy"
+condition = &"planning"
+disrupt = &"danger"
+extra = 0

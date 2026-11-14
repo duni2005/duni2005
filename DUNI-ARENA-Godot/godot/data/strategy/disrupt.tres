@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="StrategyCardData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/strategy_card_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"disrupt"
+display_name = "교란"
+usage_rule = 1
+description = "적 1명의 특수전략 제거 (일반 등급)"
+amount = 0
+duration = 0
+gold_price = 150
+cooldown_wins = 0
+use_mode = &"enemy"
+condition = &"planning"
+disrupt = &"normal"
+extra = 0

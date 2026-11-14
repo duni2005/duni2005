@@ -220,8 +220,8 @@ func render() -> void:
  var consumables: Array=controller.content.inventory.available().filter(func(i):return ItemCatalog.get_item(i.kind).consumable)
  var worn: Array=guild.state.inventory.filter(func(i):return not i.consumed and not i.equipped_to_member_id.is_empty())
  var cards: Array=guild.state.strategy_cards.filter(func(c):return not c.consumed)
- var ready: Array=cards.filter(func(c):return StrategyCardExecutor.availability(c,guild.state.strategy_progress))
- var waiting: Array=cards.filter(func(c):return not StrategyCardExecutor.availability(c,guild.state.strategy_progress))
+ var ready: Array=cards.filter(func(c):return StrategyCardExecutor.availability(c))
+ var waiting: Array=cards.filter(func(c):return not StrategyCardExecutor.availability(c))
  # Slots are kept per item/card and only created for new ones: adding a slot reshapes its label.
  var pool: Dictionary={}
  for child in inventory_grid.get_children():pool[String(child.name)]=child
@@ -240,9 +240,9 @@ func render() -> void:
  for card in ready+waiting:
   var data: StrategyCardData=StrategyCardCatalog.get_card(card.kind);var on_hold: bool=card in waiting
   var key: String="card_%d_%s"%[card.card_id,on_hold];var button: ArenaCard=pool.get(key);pool.erase(key)
-  if button==null:button=ArenaCard.new();button.name=key;ArenaUI.bind(button,_inspect_card.bind(data,on_hold))
+  if button==null:button=ArenaCard.new();button.name=key;ArenaUI.bind(button,_inspect_card.bind(data,on_hold,card.wins_left))
   button.kind=String(card.kind);button.title=data.display_name;button.description=data.description;button.text="🃏 %s · 전략카드"%data.display_name;button.status_text="전략"
-  button.price=("%d층부터"%(card.ready_floor+1) if data.usage_rule==StrategyCardData.Usage.COOLDOWN else "다음 층") if on_hold else "일회성" if data.usage_rule==StrategyCardData.Usage.ONCE else "층당 1회" if data.usage_rule==StrategyCardData.Usage.FLOOR else "두 층 쿨타임"
+  button.price="%d승 후"%card.wins_left if on_hold else data.kind_text()
   button.card_type="slot";button.slot_kind="cooldown" if on_hold else "strategy";button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description
   button.queue_redraw();order.append(button)
  # Empty slots fill only the rows that fit, so the grid scrolls only when items need it.
@@ -356,12 +356,11 @@ func _inspect(id: int) -> void:
  item_note.add_theme_color_override("font_color",ArenaUI.DANGER if full else ArenaUI.MUTED)
  item_dialog.get_ok_button().text="사용" if data.consumable else "장착";item_dialog.get_ok_button().disabled=not controller.content.can_manage() or full or member==null
  _show_item_sheet(String(item.kind),data.display_name,"소모품" if data.consumable else "%s 장비"%ItemCatalog.grade_name(item.kind),data.description,Color(0,0,0,0) if data.consumable else ItemCatalog.instance_color(item))
-func _inspect_card(data: StrategyCardData,on_hold: bool=false) -> void:
+func _inspect_card(data: StrategyCardData,on_hold: bool=false,wins_left: int=0) -> void:
  pending_item_id=0;item_target.visible=false
- item_note.text="재사용 대기 중입니다. 표시된 층에 도달하면 다시 쓸 수 있습니다." if on_hold else "전투 중 터닝포인트에서 아군을 골라 사용합니다.";item_note.add_theme_color_override("font_color",ArenaUI.MUTED)
+ item_note.text="쿨타임 중 · 전투방을 %d번 더 이기면 다시 쓸 수 있습니다."%wins_left if on_hold else "전투방 배치 전에 가지고 들어갈 카드(최대 %d장)로 고르고, 터닝포인트에서 위로 밀어 올려 사용합니다."%StrategyCardTuning.LOADOUT_SIZE;item_note.add_theme_color_override("font_color",ArenaUI.MUTED)
  item_dialog.get_ok_button().text="터닝포인트에서 사용";item_dialog.get_ok_button().disabled=true
- var usage: String="일회성" if data.usage_rule==StrategyCardData.Usage.ONCE else "층당 1회" if data.usage_rule==StrategyCardData.Usage.FLOOR else "두 층 쿨타임"
- _show_item_sheet(String(data.kind),data.display_name,"전략카드 · "+usage,data.description)
+ _show_item_sheet(String(data.kind),data.display_name,"전략카드 · "+data.rule_line(),data.description)
 func _confirm_item() -> void:
  if pending_item_id==0:return
  var result: Dictionary=controller.content_action(&"equip",{"item_id":pending_item_id,"member_id":pending_member_id});status.text="장비 적용" if result.ok else "장비 적용 불가 · "+String(result.code)

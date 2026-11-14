@@ -28,6 +28,9 @@ func run() -> void:
 		var screen:=TowerScreen.new();root.add_child(screen);screen.controller.new_run(19,73);screen.show_map();await frames()
 		screen.select_room("0:3");await frames()
 		var room: TowerBattleScreen=screen.battle_screen
+		room._process(0);await frames()
+		verify(room.card_stage and fits(room.loadout_panel.confirm_button) and fits(room.loadout_panel.slots),"card choice fits "+str(resolution))
+		room.loadout_panel.confirm();room._process(0);await frames()
 		var members: Array[GuildMemberState]=screen.controller.guild.all_members()
 		for i in range(members.size()):room.plan.place(members[i].member_id,Vector2(140+100*(i%2),260+220*(i/2)))
 		room._refresh_roster();await frames()
@@ -43,7 +46,7 @@ func run() -> void:
 		await shot("native-%dx%d-battle"%[resolution.x,resolution.y])
 		room.battle.clock.elapsed=12;room.battle.turning.advance(.01);room.battle.turning.advance(2);await frames()
 		verify(room.battle.turning.is_paused(),"real TP hold")
-		verify(fits(room.turning_panel.resume_button) and fits(room.turning_panel.use_button),"TP key actions reachable")
+		verify(fits(room.turning_panel.resume_button) and fits(room.turning_panel.hand),"TP key actions reachable")
 		verify(fits(room.turning_panel.choices[CombatStance.COVER]),"all stances reachable")
 		verify(fits(room.room_hud),"TP persistent status reachable")
 		await shot("native-%dx%d-tp"%[resolution.x,resolution.y])

@@ -86,6 +86,8 @@ func advance(delta: float) -> void:
 	previous_position = position
 	position += velocity * (minf(available,float(metadata.get("flight",available))) if source.battle.full_characters_enabled and kind=="bomb" else available)
 	lifetime -= delta
+	if not source.battle.card_walls.is_empty() and CardWalls.blocks(self):
+		queue_redraw();return
 	if source.battle.full_characters_enabled:
 		if kind=="bomb":
 			metadata.flight=maxf(0,float(metadata.flight)-delta)

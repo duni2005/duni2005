@@ -4,9 +4,13 @@
 script = ExtResource("1")
 kind = &"shield"
 display_name = "보호막"
-usage_rule = 0
+usage_rule = 1
 description = "100 보호막 · 8초"
 amount = 100
 duration = 8
-
 gold_price = 120
+cooldown_wins = 0
+use_mode = &"ally"
+condition = &""
+disrupt = &""
+extra = 0
