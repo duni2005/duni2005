@@ -1,7 +1,7 @@
 class_name DeploymentRules
 extends RefCounted
 ## Tower rules, not custom mode's 24-unit limit. No UI strings or state writes.
-enum Code { OK, UNKNOWN_MEMBER, DEAD_MEMBER, ALREADY_DEPLOYED, NOT_DEPLOYED, OUTSIDE_DEPLOYMENT_ZONE, TOO_CLOSE, INVALID_POSITION, INVALID_TEAM, EMPTY_DEPLOYMENT, INVALID_ENEMY, SORTIE_FULL }
+enum Code { OK, UNKNOWN_MEMBER, DEAD_MEMBER, ALREADY_DEPLOYED, NOT_DEPLOYED, OUTSIDE_DEPLOYMENT_ZONE, TOO_CLOSE, INVALID_POSITION, INVALID_TEAM, EMPTY_DEPLOYMENT, INVALID_ENEMY, SORTIE_FULL, BOSS_LOCKED }
 const MIN_POSITION := Vector2(40, 40)
 const MAX_POSITION := Vector2(380, 760)
 ## MIGRATION_NOTE: fixed center distance ignores character body size.
@@ -40,10 +40,20 @@ static func validate(guild: GuildManager, entry: DeploymentEntry, entries: Array
 		return Code.ALREADY_DEPLOYED
 	if moving and not exists:
 		return Code.NOT_DEPLOYED
+	# 사냥 허가증: its bearer cannot go into a chapter boss room.
+	if not moving and boss_locked(guild, member):
+		return Code.BOSS_LOCKED
 	# 지휘관의 홀: its bearer goes out without taking a sortie place.
 	if not moving and not ItemEffects.sortie_free(guild.member_stats(member)) and counted(guild, entries) >= GrowthRules.sortie_limit(guild.state):
 		return Code.SORTIE_FULL
 	return position_error(entry.position, entries, blockers, entry.member_id if moving else "")
+
+## 사냥 허가증: the member wears one and the selected tower room is a chapter boss room.
+static func boss_locked(guild: GuildManager, member: GuildMemberState) -> bool:
+	if guild == null or member == null or guild.state.tower == null or guild.state.tower.map == null:
+		return false
+	var room: RoomState = guild.state.tower.map.get_room(guild.state.tower.selected_room_id)
+	return room != null and room.room_type == RoomType.BOSS and guild.member_stats(member).has(&"huntLicense")
 
 ## Deployed units that take a sortie place (all but 지휘관의 홀 bearers).
 static func counted(guild: GuildManager, entries: Array) -> int:

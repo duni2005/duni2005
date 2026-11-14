@@ -47,7 +47,8 @@ var emit_clock: Dictionary={}
 ## Element status damage numbers and badges (ElementEffects).
 const STATUS_COLORS={&"burn":Color("ff9a52"),&"burn_spread":Color("ffb27a"),&"poison":Color("8fe36b"),&"frostbite":Color("a8e4ff"),&"chain_shock":Color("9fdcff"),&"erosion":Color("b48cff"),
 	# Item damage (ItemEffects): small numbers like element statuses.
-	&"chain_ring":Color("ffd27a"),&"bleed":Color("ff5a6a"),&"item_thorns":Color("d8b98a"),&"item_echo":Color("c49dff"),&"item_burst":Color("ffb46a"),&"item_storm":Color("bfe9ff"),&"item_execute":Color("efe6ff"),&"item_doll":Color("b48cd8"),&"item_star":Color("ffd27a")}
+	&"chain_ring":Color("ffd27a"),&"bleed":Color("ff5a6a"),&"item_thorns":Color("d8b98a"),&"item_echo":Color("c49dff"),&"item_burst":Color("ffb46a"),&"item_storm":Color("bfe9ff"),&"item_execute":Color("efe6ff"),&"item_doll":Color("b48cd8"),&"item_star":Color("ffd27a"),
+	&"item_spear":Color("ffcf8a"),&"item_splash":Color("e8d2b0"),&"item_thunder":Color("fff27a"),&"item_wave":Color("ffb36b"),&"item_spirit":Color("a8fff0"),&"item_dragon":Color("ff8a3d"),&"item_volcano":Color("ff6a2a"),&"item_slam":Color("e0c090")}
 ## 0.95 item visuals (icons over heads, item effects, lasting looks).
 var item_fx: ItemFx
 var kill_notices: Array[Dictionary]=[]
@@ -273,7 +274,7 @@ func _death(u,source) -> void:
 	effects[-1]["type"]=u.data.type_id;effects[-1]["scale"]=u.combat_scale()
 	particles.burst(u.position,u.team_color(),52,380,0,"shard",true)
 	# 거울 분신: it shatters without a kill notice.
-	if u.character_specific_state.has("mirrorOf"):particles.burst(u.position,Color("e8eef8"),20,220,0,"shard",true);return
+	if u.character_specific_state.has("mirrorOf"):particles.burst(u.position,Color("a8fff0") if u.character_specific_state.has("spiritOf") else Color("e8eef8"),20,220,0,"mote" if u.character_specific_state.has("spiritOf") else "shard",true);return
 	feed.push_front("%s %s 사망"%["아군" if u.original_team==0 else "적",u.data.display_name])
 	if feed.size()>3:feed.pop_back()
 	var killer: bool=is_instance_valid(source) and source!=u

@@ -16,7 +16,7 @@ func select_target(unit, candidates: Array):
 	if unit.battle.full_characters_enabled and unit.data.type_id in [15,24]:return unit.ability.choose_target(unit,unit.enemies())
 	if unit.taunted_until > unit.battle.clock.elapsed:
 		for candidate in candidates:
-			if candidate.source_member_id == unit.taunted_member_id and is_valid_enemy(unit, candidate):
+			if (candidate.source_member_id == unit.taunted_member_id or candidate.source_member_id.is_empty() and candidate.actor_id() == unit.taunted_member_id) and is_valid_enemy(unit, candidate):
 				return candidate
 	if unit.battle.full_characters_enabled:
 		if unit.stance==CombatStance.RUSH:return rush_target(unit)

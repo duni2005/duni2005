@@ -43,6 +43,7 @@ func advance(real_delta: float) -> void:
 			ItemEffects.on_turning_point(battle)
 			current.remaining_real_time = maxf(0, DURATION - extra)
 			current.enemy_plans = build_plans()
+			ItemEffects.cancel_plans(battle, current.enemy_plans)
 			for unit in battle.units:
 				if unit.alive and not unit.source_member_id.is_empty():
 					current.selected_member_id = unit.source_member_id

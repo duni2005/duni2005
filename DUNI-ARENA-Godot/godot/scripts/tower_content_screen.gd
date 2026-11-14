@@ -263,7 +263,7 @@ func _offer_card(offer: ShopOffer,left: int) -> ArenaCard:
 	var b:=ArenaCard.new();b.name=offer.offer_id;b.card_type="product";b.kind=String(offer.kind);b.sold=offer.purchased;b.copies=left
 	b.text=(item.display_name if item!=null else card.display_name)+" · 설명"
 	if item!=null:
-		b.slot_kind="item";b.title=item.display_name;b.description=item.description
+		b.slot_kind="item";b.title=item.display_name;b.description=ItemCatalog.body_text(item)
 		b.tag_text="소모품" if item.consumable else ItemCatalog.grade_name(offer.kind)
 		if not item.consumable:b.rarity=ItemCatalog.grade_color(offer.kind);b.item_grade=item.grade
 	else:
@@ -296,7 +296,8 @@ func _show_offer(offer_id: String) -> void:
 	facts.add_child(kind_label)
 	var price_label:=Label.new();price_label.text="%d G"%offer.gold_price;price_label.add_theme_font_override("font",ArenaUI.numbers_font());price_label.add_theme_font_size_override("font_size",20);price_label.add_theme_color_override("font_color",ArenaUI.GOLD);facts.add_child(price_label)
 	var owned:=Label.new();owned.text="보유 골드 %s G"%ArenaUI.grouped(controller.guild.state.gold);owned.add_theme_font_size_override("font_size",11);owned.add_theme_color_override("font_color",ArenaUI.MUTED);facts.add_child(owned)
-	var text:=Label.new();text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;text.custom_minimum_size.x=minf(320,get_viewport_rect().size.x-70);text.text=item.description if item!=null else card.description;col.add_child(text)
+	var text:=Label.new();text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;text.custom_minimum_size.x=minf(320,get_viewport_rect().size.x-70);text.text=ItemCatalog.body_text(item) if item!=null else card.description;col.add_child(text)
+	if item!=null:ArenaUI.cost_label(col,offer.kind,12).custom_minimum_size.x=text.custom_minimum_size.x
 	var buy:=Button.new();buy.name="DialogBuy";buy.custom_minimum_size.y=46;col.add_child(buy)
 	if offer.purchased:buy.text="구매 완료";buy.disabled=true
 	else:

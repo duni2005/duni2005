@@ -62,6 +62,8 @@ var all_stats: float = 0
 var effects: Dictionary = {}
 var items: Array = []
 var rank: StringName = &"normal"
+## 0.97: what an owned item has grown to (effect -> ItemInstance.growth: dragon stage, streak...).
+var growth: Dictionary = {}
 
 ## Base stats of a character from UnitStatTable, with level-style growth factors.
 static func from_table(data: UnitData,hp_factor: float=1,damage_factor: float=1,defense_factor: float=1,speed_factor: float=1) -> UnitCombatStats:
@@ -91,7 +93,7 @@ func apply_item(item: ItemData) -> void:
 	duelist=duelist or item.duelist;vanguard=vanguard or item.vanguard;elementalist=elementalist or item.elementalist
 	enchant=enchant or item.enchant;overcharge_count+=int(item.overcharge);chain_ring=chain_ring or item.chain_ring
 	sovereign=sovereign or item.sovereign;immovable=immovable or item.immovable;sanctuary=sanctuary or item.sanctuary
-	all_stats+=item.all_stats;healing_power*=1+item.heal_power_bonus
+	all_stats+=item.all_stats;healing_power*=1+item.heal_power_bonus;healing_received*=1+item.heal_taken_bonus
 	if item.effect!=&"":effects[item.effect]=int(effects.get(item.effect,0))+1
 	for tag in item.tag_bonuses:
 		var field: Dictionary=element_bonus if tag in UnitStatTable.ELEMENTS else tag_bonus

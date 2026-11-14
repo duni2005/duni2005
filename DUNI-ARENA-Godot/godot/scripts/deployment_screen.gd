@@ -141,7 +141,10 @@ func _rebuild_roster() -> void:
 		button.custom_minimum_size = Vector2(88, 122)
 		button.toggle_mode = true
 		button.set_pressed_no_signal(member.member_id == board.selected_id)
-		button.disabled = not board.editing or not member.is_alive()
+		# 사냥 허가증: dimmed in a chapter boss room, with the reason on the card.
+		var locked: bool=DeploymentRules.boss_locked(guild,member)
+		if locked:button.status_text="사냥 허가증 · 보스 방 불가";button.tooltip_text="사냥 허가증을 낀 유닛은 챕터 보스 방에 출정할 수 없습니다."
+		button.disabled = not board.editing or not member.is_alive() or locked
 		button.queue_redraw()
 	for child in roster.get_children():
 		if child.name not in ids:roster.remove_child(child);child.queue_free()

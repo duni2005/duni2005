@@ -39,6 +39,7 @@ var item_icon: TextureRect
 var item_name: Label
 var item_kind: Label
 var item_desc: Label
+var item_cost: Label
 var item_target: PanelContainer
 var item_portrait: TextureRect
 var item_member: Label
@@ -298,6 +299,7 @@ func _build_item_dialog() -> void:
  item_name=Label.new();item_name.add_theme_font_override("font",ArenaUI.heading_font());item_name.add_theme_font_size_override("font_size",20);item_name.add_theme_color_override("font_color",ArenaUI.GOLD);names.add_child(item_name)
  item_kind=Label.new();item_kind.add_theme_font_size_override("font_size",12);item_kind.add_theme_color_override("font_color",ArenaUI.MUTED);names.add_child(item_kind)
  item_desc=Label.new();item_desc.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;item_desc.add_theme_font_size_override("font_size",14);body.add_child(item_desc)
+ item_cost=ArenaUI.cost_label(body,&"",13)
  item_target=PanelContainer.new();var target_style: StyleBoxFlat=ArenaUI.card_style();target_style.content_margin_left=10;target_style.content_margin_right=10;target_style.content_margin_top=8;target_style.content_margin_bottom=8;item_target.add_theme_stylebox_override("panel",target_style);body.add_child(item_target)
  var target_row:=HBoxContainer.new();target_row.add_theme_constant_override("separation",10);item_target.add_child(target_row)
  item_portrait=TextureRect.new();item_portrait.custom_minimum_size=Vector2(44,44);item_portrait.expand_mode=TextureRect.EXPAND_IGNORE_SIZE;item_portrait.stretch_mode=TextureRect.STRETCH_KEEP_ASPECT_CENTERED;target_row.add_child(item_portrait)
@@ -310,11 +312,15 @@ func _build_item_dialog() -> void:
  for button in [ok,cancel]:button.add_theme_font_size_override("font_size",15)
  ArenaUI.primary(ok);ok.add_theme_color_override("font_disabled_color",ArenaUI.MUTED)
 func _show_item_sheet(icon: String,name: String,kind: String,description: String,grade: Color=Color(0,0,0,0)) -> void:
+ # 대가 items: the cost stands apart in red.
+ var cost: String=ItemCatalog.cost_text(StringName(icon)) if ItemCatalog.get_item(StringName(icon))!=null else ""
+ item_cost.text=cost;item_cost.visible=cost!=""
+ if cost!="":description=description.replace(" · "+cost,"")
  item_icon.texture=ArenaIcon.texture(icon);item_name.text=name;item_kind.text=kind;item_desc.text=description.replace(" · ","\n")
  item_name.add_theme_color_override("font_color",grade.lightened(.2) if grade.a>0 else ArenaUI.GOLD);item_kind.add_theme_color_override("font_color",grade if grade.a>0 else ArenaUI.MUTED)
  # Fix the text width first so wrapped lines size the sheet, not the other way round.
  var width: int=mini(380,int(get_viewport_rect().size.x)-24)
- for label in [item_desc,item_note]:label.custom_minimum_size.x=width-36
+ for label in [item_desc,item_note,item_cost]:label.custom_minimum_size.x=width-36
  item_dialog.popup_centered(Vector2i(width,0));call_deferred("_settle_item_sheet",width)
 func _settle_item_sheet(width: int) -> void:
  # The first layout pass can wrap text at a stale width and over-grow the window; shrink to content.

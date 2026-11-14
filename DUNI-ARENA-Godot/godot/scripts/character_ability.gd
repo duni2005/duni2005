@@ -72,6 +72,7 @@ static func shoot(u,angle: float,damage: float,settings: Dictionary={}) -> Battl
 	a.impulse=settings.get("impulse",u.data.attack_profile.impulse);a.life=p.lifetime;a.hidden_launch=u.combat.hidden_launch if u.combat_state!=CombatController.State.IDLE else CombatPerception.concealed(u)
 	a.metadata=p.metadata.duplicate(true);a.metadata.kind=p.kind
 	p.attack_instance=a;u.battle.projectiles.append(p);u.battle.add_child(p)
+	if u.battle.full_characters_enabled:BuildItems.twin(u,angle,damage,settings)
 	return p
 static func melee(u,damage: float,overrides: Dictionary={}) -> AttackInstance:
 	var profile: AttackData=u.combat.profile(u).duplicate()
@@ -83,6 +84,8 @@ static func melee(u,damage: float,overrides: Dictionary={}) -> AttackInstance:
 		if u.battle.ultimate_actor==u:strike.metadata["ultimate"]=true
 	return strike
 static func area_damage(u,point: Vector2,radius: float,damage: float,impulse: float,options: Dictionary={}) -> void:
+	# 폭발 화약통: the bearer's explosions reach further.
+	if u.battle.full_characters_enabled and UnitStatTable.spec(u.data.type_id,StringName(options.get("dmg",&"basic"))).tags.has(&"explosion"):radius=BuildItems.blast_radius(u,radius)
 	for enemy in u.enemies(false):
 		if enemy.unavailable() or point.distance_to(enemy.position)>radius+24*enemy.combat_scale():continue
 		var opts: Dictionary=options.duplicate();opts.merge({"attack_origin":point,"visible_hazard":true,"angle":(enemy.position-point).angle(),"impulse":impulse},true)

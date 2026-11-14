@@ -27,6 +27,7 @@ static func collision_damage(unit, force: float, source) -> float:
 	if not unit.alive or unit.invincible_remaining > 0 or force < 160: return 0
 	var amount: float = maxf(1, CombatRules.js_round((force - 100) * .055))
 	var hp: float=unit.battle.damage_resolver.resolve(source, unit, amount, {"collision": true, "critical": false, "impulse": 0}).hp_damage
+	if hp>0:BuildItems.slam(unit,source)
 	if hp>0 and unit.alive and unit.knockback_collision_stun>0 and source!=null and source.team!=unit.team and source.data.type_id in [16,33]:StatusController.stun(unit,unit.knockback_collision_stun)
 	return hp
 static func collision(a, b) -> void:

@@ -301,6 +301,8 @@ func finish_with_reason(reason: BattleEndReason.Value, winning_team: int) -> boo
 	result.elapsed = clock.elapsed
 	result.stats = stats.snapshot(self)
 	for unit in units:
+		# Battle-only max HP (용사의 휘장, 고독한 왕의 검...) is not carried back to the guild.
+		if unit.has_meta("hp_cap"):unit.current_hp=minf(unit.current_hp,float(unit.get_meta("hp_cap")))
 		if unit.alive:
 			result.survivors.append(unit.battle_id)
 		result.units.append({"battle_id": unit.battle_id, "type_id": unit.data.type_id, "team": unit.team, "hp": unit.current_hp, "alive": unit.alive, "position": unit.position})

@@ -69,13 +69,13 @@ static func on_battle_start(battle) -> void:
 		if stats.has(&"cursedCrown"):proc(u,&"cursedCrown");fx(u,&"cursedCrown",u.position,{"to":_allies(u).map(func(a):return CharacterPersistence.point(a.position))})
 		if stats.has(&"gamblerDice"):proc(u,&"gamblerDice");fx(u,&"gamblerDice",u.position,{"stat":str(u.character_specific_state.get("diceUp","")),"roll":u.state_value("diceRoll")})
 		if stats.has(&"commanderScepter"):proc(u,&"commanderScepter");fx(u,&"commanderScepter",u.position)
+		BuildItems.on_battle_start(battle,u,stats)
 ## 쌍둥이의 거울: a copy at MIRROR_HP / MIRROR_DAMAGE with no item effects and no ultimate.
 static func _spawn_mirror(u) -> void:
 	var stats: UnitCombatStats=u.combat_stats.copy()
 	stats.max_hp*=ItemTuning.MIRROR_HP;stats.physical_damage*=ItemTuning.MIRROR_DAMAGE;stats.magic_damage*=ItemTuning.MIRROR_DAMAGE
-	stats.effects={};stats.items=[]
-	for flag in ["duelist","vanguard","elementalist","enchant","chain_ring","sovereign","immovable","sanctuary"]:stats.set(flag,false)
-	for count in ["vigor_totem_count","charge_totem_count","fang_count","opening_awl_count","phoenix_count","hourglass_count","dragon_heart_count","overcharge_count","victory_gold"]:stats.set(count,0)
+	stats.effects={};stats.items=[];stats.growth={}
+	BuildItems._strip(stats)
 	var side: Vector2=Vector2.from_angle(u.facing+PI*.5)*44*u.combat_scale()
 	u.battle.queue_spawn(u,u.position+side,stats,{"mirrorOf":u.actor_id()},side*3)
 	proc(u,&"twinMirror");fx(u,&"twinMirror",u.position+side)
@@ -87,8 +87,14 @@ static func _cloak(u) -> void:
 # ---- The damage pipeline ----
 ## The damage instance as this attacker really deals it: 마법 부여 검 adds the bearer's element to
 ## basic attacks.
-static func adjust_spec(source,spec: Dictionary,target=null) -> Dictionary:
+static func adjust_spec(source,spec: Dictionary,target=null,options: Dictionary={}) -> Dictionary:
 	var stats: UnitCombatStats=_stats(source)
+	var more: Array=Array(options.get("extra_tags",[]))
+	if stats!=null:more.append_array(BuildItems.extra_tags(source,spec))
+	if not more.is_empty():
+		spec=spec.duplicate();spec.tags=Array(spec.get("tags",[])).duplicate()
+		for t in more:
+			if not t in spec.tags:spec.tags.append(t)
 	if stats==null or not stats.enchant or spec.get("skill",&"")!=&"basic":return spec
 	var out: Dictionary=spec.duplicate();out.tags=Array(spec.get("tags",[])).duplicate()
 	var element: StringName=CharacterCatalog.element(source.data.type_id)
@@ -128,6 +134,7 @@ static func outgoing(source,target,options: Dictionary,spec: Dictionary={}) -> f
 		factor*=1+stacks*ItemTuning.DUELIST_STEP
 		if stacks>0:proc(source,&"duelistGlove");fx(source,&"duelistGlove",target.position,{"stacks":stacks})
 	if stats.elementalist and elemental(target):factor*=ItemTuning.ELEMENTALIST_DEALT;proc(source,&"elementTome");fx(source,&"elementTome",target.position)
+	if not stats.effects.is_empty():factor*=BuildItems.outgoing(source,target,stats,direct)
 	return factor
 static func elemental(u) -> bool:
 	return u.state_value("burnStacks")>0 or u.state_value("poisonStacks")>0 or u.state_value("frostStacks")>0 or u.state_value("frozenTime")>0 or u.state_value("shockStacks")>0 or u.state_value("erosionTime")>0
@@ -144,6 +151,7 @@ static func incoming(target,spec: Dictionary={}) -> float:
 	if target.state_value("regenTime")>0:factor*=ItemTuning.REGEN_TAKEN
 	if target.state_value("weakTime")>0:factor*=ItemTuning.WEAK_TAKEN
 	if king_blessed(target):factor/=1+ItemTuning.KING_AURA
+	factor*=BuildItems.incoming(target)
 	for ally in target.battle.units:
 		var lamp: UnitCombatStats=_stats(ally)
 		if lamp!=null and lamp.sanctuary and ally.alive and ally.team==target.team and ally.position.distance_to(target.position)<=ItemTuning.SANCTUARY_RADIUS*ally.combat_scale():
@@ -152,7 +160,7 @@ static func incoming(target,spec: Dictionary={}) -> float:
 ## Attack % from items in battle: 군주의 검 stacks, 영혼 수확자, 왕의 왕관's aura.
 static func attack_factor(u) -> float:
 	var stacks: float=u.state_value("sovereignStacks") if u.state_value("sovereignTime")>0 else 0.0
-	return (1+stacks*ItemTuning.SOVEREIGN_BUFF)*(1+u.state_value("soulStacks")*ItemTuning.SOUL_GROW)*(1+ItemTuning.KING_AURA if king_blessed(u) else 1.0)
+	return (1+stacks*ItemTuning.SOVEREIGN_BUFF)*(1+u.state_value("soulStacks")*ItemTuning.SOUL_GROW)*(1+ItemTuning.KING_AURA if king_blessed(u) else 1.0)*BuildItems.attack_factor(u)
 ## 탐욕의 황금손: attack % from the gold held.
 static func greed_attack(gold: int) -> float:return minf(ItemTuning.GREED_MAX,floorf(float(gold)/ItemTuning.GREED_PER)*ItemTuning.GREED_STEP)
 ## Attack-speed factor: 광전사의 투구, 사냥꾼의 표창, 폭주 기관, 전쟁의 북, 왕의 왕관.
@@ -164,10 +172,10 @@ static func attack_speed(u) -> float:
 	if u.state_value("hunterTime")>0:k*=1+ItemTuning.HUNTER_ATTACK_SPEED
 	if drummed(u):k*=1+(ItemTuning.DRUM_OPENING if _now(u)<ItemTuning.DRUM_OPENING_TIME else ItemTuning.DRUM_SPEED)
 	if king_blessed(u):k*=1+ItemTuning.KING_AURA
-	return k
+	return k*BuildItems.attack_speed(u)
 static func berserk(u) -> bool:return u.alive and u.current_hp<=u.max_hp*ItemTuning.BERSERK_HP
 ## Move-speed factor: 왕의 왕관's aura.
-static func move_speed(u) -> float:return 1+ItemTuning.KING_AURA if king_blessed(u) else 1.0
+static func move_speed(u) -> float:return (1+ItemTuning.KING_AURA if king_blessed(u) else 1.0)*BuildItems.move_speed(u)
 ## A living bearer of the effect on the unit's side (team auras; one bearer is enough).
 static func _side_has(u,effect: StringName) -> bool:
 	if u.battle==null:return false
@@ -205,11 +213,17 @@ static func _nearest_ally(u):
 		if near==null or a.position.distance_to(u.position)<near.position.distance_to(u.position):near=a
 	return near
 ## 반격의 방패: a parry or dodge arms a sure critical hit.
-static func on_defended(u) -> void:
-	if not is_instance_valid(u) or not u.alive or not has(u,&"counterShield"):return
+static func on_defended(u,parried: bool=false) -> void:
+	if not is_instance_valid(u) or not u.alive:return
+	BuildItems.on_defended(u,parried)
+	if not has(u,&"counterShield"):return
 	u.set_state("counterCritUntil",_now(u)+ItemTuning.COUNTER_SHIELD_TIME);proc(u,&"counterShield");fx(u,&"counterShield",u.position)
-static func sure_crit(source,options: Dictionary) -> bool:
-	if not is_instance_valid(source) or source.state_value("counterCritUntil")<=_now(source) or options.get("collision",false):return false
+static func sure_crit(source,options: Dictionary,target=null) -> bool:
+	if not is_instance_valid(source) or options.get("collision",false):return false
+	if BuildItems.sure_crit(source,target):
+		if _now(source)-source.state_value("abyssFx")>.5:source.set_state("abyssFx",_now(source));proc(source,&"abyssScythe");fx(source,&"abyssScythe",target.position)
+		return true
+	if source.state_value("counterCritUntil")<=_now(source):return false
 	source.set_state("counterCritUntil",0.0);fx(source,&"counterShield",source.position,{"strike":true});return true
 
 ## A hit landed (on HP or shield).
@@ -242,6 +256,7 @@ static func _struck(source,target,out: DamageOutcome,spec: Dictionary,options: D
 		if leech>0 and CharacterAbility.restore_hp(source,dealt*leech,source)>0:
 			fx(source,&"bloodChalice" if blood else &"vampireFang",target.position,{"to":CharacterPersistence.point(source.position)})
 	if stats==null or stats.effects.is_empty():return
+	BuildItems.struck(source,target,out,spec,options,stats,direct)
 	if direct and stats.has(&"piercingAwl"):fx(source,&"piercingAwl",target.position,{"angle":(target.position-source.position).angle()})
 	if direct and stats.has(&"weakEye") and target.alive:
 		if target.state_value("weakTime")<=0:fx(source,&"weakEye",target.position)
@@ -270,6 +285,7 @@ static func _struck(source,target,out: DamageOutcome,spec: Dictionary,options: D
 static func _was_struck(target,source,out: DamageOutcome,spec: Dictionary,options: Dictionary) -> void:
 	var stats: UnitCombatStats=_stats(target)
 	if stats==null or stats.effects.is_empty() or not target.alive:return
+	BuildItems.was_struck(target,stats)
 	var taken: float=out.hp_damage+out.shield_absorbed
 	var direct: bool=ElementEffects.direct(spec,options) and out.status==&""
 	if stats.has(&"thornArmor") and direct and spec.get("tags",[]).has(&"melee") and taken>0 and source.alive:
@@ -298,6 +314,7 @@ static func after_ultimate(u) -> void:
 		u.ultimate_gauge=clampf(u.ultimate_gauge+ItemTuning.OVERCHARGE_REFUND*stats.overcharge_count,0,100);proc(u,&"overchargeCore");fx(u,&"overchargeCore",u.position)
 	if stats!=null and stats.hourglass_count>0:proc(u,&"hourglass");fx(u,&"hourglass",u.position)
 	if stats==null or not u.alive:return
+	BuildItems.after_ultimate(u,stats)
 	if stats.has(&"stormCrown"):
 		var radius: float=ItemTuning.STORM_RADIUS*u.combat_scale();var struck: Array=[]
 		for e in u.enemies(false):
@@ -324,6 +341,14 @@ static func after_ultimate(u) -> void:
 static func on_turning_point(battle) -> void:
 	for u in battle.units:
 		if u.alive and has(u,&"invertedHourglass"):_fill_gauge(u)
+## 지휘관의 나침반: each bearer cancels one of the enemy's special strategies at random.
+static func cancel_plans(battle,plans: Array) -> void:
+	for u in battle.units:
+		if plans.is_empty():return
+		if not u.alive or not has(u,&"commanderCompass"):continue
+		var plan=plans.pop_at(battle.rng.randi_range(0,plans.size()-1))
+		var enemy=EnemyPlanExecutor.find_enemy(battle,plan.source_enemy_id)
+		proc(u,&"commanderCompass");fx(u,&"commanderCompass",u.position,{"to":CharacterPersistence.point(enemy.position) if enemy!=null else CharacterPersistence.point(u.position)})
 static func _fill_gauge(u) -> void:
 	u.ultimate_gauge=100;proc(u,&"invertedHourglass");fx(u,&"invertedHourglass",u.position)
 static func on_kill(source,victim=null) -> void:
@@ -334,6 +359,7 @@ static func on_kill(source,victim=null) -> void:
 		if stats.has(&"oblivionVeil"):_cloak(source);proc(source,&"oblivionVeil")
 		if stats.has(&"greedPouch"):source.set_state("greedGold",source.state_value("greedGold")+ItemTuning.GREED_KILL_GOLD);proc(source,&"greedPouch");fx(source,&"greedPouch",victim.position if victim!=null else source.position)
 		if stats.has(&"elementStone") and victim!=null:_element_burst(source,victim)
+		BuildItems.on_kill(source,victim)
 	if stats==null or not stats.sovereign:return
 	proc(source,&"sovereignSword");fx(source,&"sovereignSword",source.position,{"radius":ItemTuning.SOVEREIGN_RADIUS*source.combat_scale()})
 	source.battle.emit_combat_event(&"sovereign_roar",source.position,{"actor_id":source.battle_id,"radius":ItemTuning.SOVEREIGN_RADIUS*source.combat_scale()})
@@ -364,6 +390,7 @@ static func _element_burst(source,victim) -> void:
 ## Anyone fell: 영혼 수확자 bearers heal and grow (a fallen 거울 분신 counts too).
 static func on_death(victim) -> void:
 	if victim.battle==null or not victim.battle.full_characters_enabled:return
+	BuildItems.on_death(victim)
 	for u in victim.battle.units:
 		if u==victim or not u.alive or not has(u,&"soulReaper"):continue
 		var stats: UnitCombatStats=_own(u)
@@ -429,9 +456,12 @@ static func advance(battle,dt: float) -> void:
 		if u.character_specific_state.has("echoes"):_echoes(u,dt)
 		for key in ["hunterTime","regenTime","weakTime"]:
 			if u.state_value(key)>0:u.set_state(key,maxf(0,u.state_value(key)-dt))
-		if _clone(u) and not u.has_meta("mirror_shown"):u.set_meta("mirror_shown",true);u.modulate=Color(.85,.92,1,.72);u.ultimate_gauge=0;u.transcendence_gauge=0
+		BuildItems.tick(u,dt)
+		if not u.alive:continue
+		if _clone(u) and not BuildItems.spirit(u) and not u.has_meta("mirror_shown"):u.set_meta("mirror_shown",true);u.modulate=Color(.85,.92,1,.72);u.ultimate_gauge=0;u.transcendence_gauge=0
 		var stats: UnitCombatStats=_stats(u)
 		if stats==null or stats.effects.is_empty() or not u.alive:continue
+		BuildItems.advance(u,stats,dt)
 		if stats.has(&"oblivionVeil") and u.data.type_id!=3:
 			u.hidden_from_enemies=u.state_value("shadowTime")>0
 			if u.state_value("shadowTime")<=0:u.set_state("veilHidden",0.0)

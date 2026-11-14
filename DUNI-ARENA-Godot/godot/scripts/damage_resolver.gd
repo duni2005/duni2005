@@ -51,7 +51,7 @@ func resolve_minimal(source, target, raw_damage: float) -> DamageOutcome:
 	return outcome
 
 func complete(source, target, outcome: DamageOutcome) -> DamageOutcome:
-	if battle.full_characters_enabled and (outcome.avoided or outcome.parried):StanceRules.grant_counter(target, source);ItemEffects.on_defended(target)
+	if battle.full_characters_enabled and (outcome.avoided or outcome.parried):StanceRules.grant_counter(target, source);ItemEffects.on_defended(target,outcome.parried)
 	if outcome.hp_damage > 0: damage_applied.emit(source, target, outcome.hp_damage, outcome.critical)
 	damage_resolved.emit(source, target, outcome)
 	return outcome
@@ -74,13 +74,13 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 	var duel_result: bool=options.get("duel_result",false)
 	var full: bool=battle.full_characters_enabled
 	var spec: Dictionary=UnitStatTable.spec(int(options.get("dmg_type",UnitStatTable.spec_type(source,StringName(options.get("dmg",&"basic"))) if is_instance_valid(source) else -1)),StringName(options.get("dmg",&"basic"))) if full else {}
-	if full and is_instance_valid(source):spec=ItemEffects.adjust_spec(source,spec,target)
+	if full and is_instance_valid(source):spec=ItemEffects.adjust_spec(source,spec,target,options)
 	var kind: StringName=spec.get("kind",&"physical")
 	var plain: bool=recoil or options.get("mirror_raw",false) or options.get("plain",false)
 	if not collision:
 		var chance: float=(EquipmentCombatEffects.crit(source)+source.ability.critical_bonus(source,target)) if full else source.data.critical_chance+EquipmentCombatEffects.crit(source)
 		# 반격의 방패: an armed sure critical is spent by the next attack.
-		out.critical = options.get("critical", true) and ((full and not status and ItemEffects.sure_crit(source,options)) or rng.randf() < clampf(chance,0,1))
+		out.critical = options.get("critical", true) and ((full and not status and ItemEffects.sure_crit(source,options,target)) or rng.randf() < clampf(chance,0,1))
 		if not full:damage *= (CRITICAL_MULTIPLIER if out.critical else 1.0)*EquipmentCombatEffects.damage_factor(source,options)
 		elif not plain:
 			var stats: UnitCombatStats=source.combat_stats
@@ -144,6 +144,11 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 			DodgeController.start(target, source,&"healer" if target.data.type_id==5 else &"roll")
 			out.avoided = true
 			return complete(source, target, out)
+	# 결투가의 망토: its own dodge on top of the stance and role dodges.
+	if full and not reducing and can_evade and BuildItems.dodge(target):
+		DodgeController.start(target, source)
+		out.avoided = true
+		return complete(source, target, out)
 	var warrior_defended: bool = not transcend and not duel_result and not collision and not recoil and not reducing and target.stun_remaining <= 0 and target.data.type_id == 0 and target.defense_cooldown <= 0 and target.parry_cooldown <= 0
 	if warrior_defended:
 		target.defense_cooldown = ParryReadiness.cooldown_duration(target)

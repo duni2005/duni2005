@@ -103,6 +103,20 @@ const ENTRIES = {
 	&"war_drum":["전쟁의 북", &"item", "warDrum", "전쟁의 북. 아군 전원의 공격속도가 오른다(전투 초반에는 더 크게)."],
 	&"king_aura":["왕의 가호", &"item", "cursedCrown", "왕의 왕관. 왕관을 쓴 아군이 살아 있는 동안 모든 스탯이 오른다."],
 	&"greed":["탐욕", &"item", "greedPouch", "탐욕의 황금손. 처치할 때마다 골드를 모은다(탑에서만 지급)."],
+	# 0.97 빌드 지원 아이템
+	&"beast_form":["야수 변신", &"buff", "beastHide", "야수의 가죽. 몸집 · 공격속도 · 이동속도가 크게 오르고 준 피해의 일부를 회복한다."],
+	&"spirit":["영혼", &"unique", "soulLantern", "영혼의 등불이 불러낸 쓰러진 아군의 영혼. 잠시 더 싸우다 사라지고, 사라져도 손실이 없다."],
+	&"time_stop":["시간 정지", &"control", "thiefWatch", "시간 도둑의 회중시계. 시간이 멈춰 아무것도 할 수 없다."],
+	&"banner_aura":["깃발 범위", &"buff", "legionBanner", "군단장의 깃발 근처. 공격력이 오르고 받는 피해가 줄어든다."],
+	&"dragon_stage":["용 성장 단계", &"growth", "dragonEgg", "새끼 용의 알. 전투에 이길 때마다 새끼 용이 자라 불길이 세진다."],
+	&"cape_dodge":["결투가의 몸놀림", &"buff", "duelCape", "결투가의 망토. 회피할 때마다 공격속도가 올라간다."],
+	&"vengeance":["복수심", &"growth", "vengeanceMask", "복수의 가면. 쓰러진 아군마다 공격력 · 공격속도가 오른다."],
+	&"crest_taunt":["기사의 도전", &"control", "knightCrest", "수호 기사의 문장. 문장을 낀 유닛만 공격한다."],
+	&"deep_freeze":["영구 동토", &"debuff", "permafrostScepter", "영구 동토의 왕홀로 얼어붙어 받는 피해가 크게 늘어난다."],
+	&"charge_ready":["돌격 준비", &"buff", "chargeHorn", "돌격 나팔. 다음 공격이 대상을 기절시킨다."],
+	&"pact_off":["계약 중단", &"debuff", "pactSeal", "계약의 인장. 골드가 모자라 이번 전투는 스탯 보너스가 꺼졌다."],
+	&"lonely_king":["고독한 왕", &"buff", "lonelyKingSword", "고독한 왕의 검. 비어 있는 출정 칸만큼 모든 스탯이 오른다."],
+	&"item_growth":["아이템 성장", &"growth", "conquerorCrown", "런 동안 자라는 아이템(정복 층 · 연승 · 대기 · 신앙)."],
 }
 
 static func entry(key: StringName) -> Array:return ENTRIES.get(key, ["", &"buff", "star", ""])
@@ -216,7 +230,7 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if s.get("sniperBurstReady", false) == true:add.call(&"sniper_burst")
 	if s.get("tankFlameReady", false) == true:add.call(&"tank_flame")
 	if stats != null and stats.has(&"steelGreatsword") and u != null:add.call(&"smash_ready", "%d/%d" % [int(_num(s, "smashCount")) + 1, ItemTuning.GREATSWORD_EVERY])
-	if s.has("mirrorOf"):add.call(&"mirror_clone")
+	if s.has("mirrorOf") and not s.has("spiritOf"):add.call(&"mirror_clone")
 	if _num(s, "rewindReady") > 0:add.call(&"rewind_ready")
 	# 아이템
 	if stats != null:
@@ -234,4 +248,22 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if u != null and u.alive and ItemEffects.blood_blessed(u):add.call(&"blood_blessing")
 	if u != null and u.alive and ItemEffects.drummed(u):add.call(&"war_drum")
 	if u != null and u.alive and ItemEffects.king_blessed(u):add.call(&"king_aura")
+	# 0.97 빌드 지원 아이템
+	if _num(s, "beastTime") > 0:add.call(&"beast_form", _secs(_num(s, "beastTime")))
+	if s.has("spiritOf"):add.call(&"spirit", _secs(_num(s, "spiritTime")))
+	if _num(s, "timeStopTime") > 0:add.call(&"time_stop", _secs(_num(s, "timeStopTime")))
+	if u != null and u.alive and BuildItems.bannered(u):add.call(&"banner_aura")
+	if _num(s, "capeTime") > 0:add.call(&"cape_dodge", "+%d%%" % roundi(_num(s, "capeStacks") * ItemTuning.CAPE_ATTACK_SPEED * 100))
+	if _num(s, "vengeance") > 0:add.call(&"vengeance", "+%d%%" % roundi(_num(s, "vengeance") * ItemTuning.VENGEANCE_STEP * 100))
+	if _num(s, "crestTaunt") > 0 and u != null and u.taunted_until > now:add.call(&"crest_taunt", _secs(u.taunted_until - now))
+	if _num(s, "frozenTime") > 0 and _num(s, "deepFreeze") > 0:add.call(&"deep_freeze", _secs(_num(s, "frozenTime")))
+	if _num(s, "hornStun") > 0:add.call(&"charge_ready")
+	if _num(s, "pactOff") > 0:add.call(&"pact_off")
+	if _num(s, "lonelyEmpty") > 0:add.call(&"lonely_king", "+%d%%" % roundi(_num(s, "lonelyEmpty") * ItemTuning.LONELY_STEP * 100))
+	if stats != null:
+		if stats.has(&"dragonEgg"):add.call(&"dragon_stage", "%d/%d단계" % [BuildItems.dragon_stage(stats), ItemTuning.DRAGON_STAGES])
+		var grown: Array = []
+		for pair in [[&"conquerorCrown", "정복 %d층"], [&"streakBelt", "연승 %d"], [&"reserveBadge", "대기 %d"], [&"mangoRosary", "승리 %d/5"]]:
+			if stats.has(pair[0]):grown.append(pair[1] % int(stats.growth.get(pair[0], 0)))
+		if not grown.is_empty():add.call(&"item_growth", " · ".join(grown))
 	return rows

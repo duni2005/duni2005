@@ -317,7 +317,7 @@ func move_home(u,enemy,dt: float) -> bool:
 func move_stance(u,enemy,dt: float) -> bool:
 	var now: float=u.battle.clock.elapsed
 	if u.stance==CombatStance.CAUTIOUS and (move_home(u,enemy,dt) or move_rear(u,enemy,dt) or move_precommit(u,enemy,dt) or move_defensive(u,enemy,dt)):return true
-	var taunting: bool=u.taunted_until>now and enemy!=null and enemy.source_member_id==u.taunted_member_id
+	var taunting: bool=u.taunted_until>now and enemy!=null and (enemy.source_member_id==u.taunted_member_id or enemy.source_member_id.is_empty() and enemy.actor_id()==u.taunted_member_id)
 	if u.stance==CombatStance.NORMAL and not taunting:return false
 	if not u.lost_sword.is_empty() or u.data.type_id==6 and u.combat_state!=CombatController.State.IDLE:return false
 	if u.stance==CombatStance.COVER and u.friends().is_empty() and not taunting:

@@ -18,12 +18,13 @@ static func play(host: Control, item_kind: StringName) -> ItemGainShow:
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);mouse_filter = Control.MOUSE_FILTER_STOP;z_index = 50
 	var data: ItemData = ItemCatalog.get_item(kind)
-	card = ArenaCard.new();card.card_type = "product";card.slot_kind = "item";card.kind = String(kind);card.title = data.display_name;card.description = data.description
+	card = ArenaCard.new();card.card_type = "product";card.slot_kind = "item";card.kind = String(kind);card.title = data.display_name;card.description = ItemCatalog.body_text(data)
 	card.tag_text = "소모품" if data.consumable else ItemCatalog.grade_name(kind) + " 아이템";card.item_grade = data.grade if not data.consumable else &"";card.rarity = ItemCatalog.grade_color(kind) if not data.consumable else Color(0, 0, 0, 0)
 	card.mouse_filter = Control.MOUSE_FILTER_IGNORE;card.size = Vector2(170, 236);add_child(card)
 	name_label = _label("", 13, ArenaUI.MUTED);name_label.text = "아이템 획득"
 	grade_label = _label(data.display_name, 24, ItemCatalog.grade_color(kind).lightened(.3))
 	var hint := _label("화면을 누르면 넘어갑니다", 11, Color(ArenaUI.MUTED, .7));hint.name = "Hint"
+	var cost := _label(ItemCatalog.cost_text(kind), 13, ArenaUI.COST_RED);cost.name = "Cost";cost.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_layout()
 	resized.connect(_layout)
 func _label(text: String, font_size: int, color: Color) -> Label:
@@ -36,6 +37,7 @@ func _layout() -> void:
 	name_label.position = Vector2(0, card.position.y + card.size.y + 22);name_label.size = Vector2(size.x, 20)
 	grade_label.position = Vector2(0, name_label.position.y + 20);grade_label.size = Vector2(size.x, 34)
 	var hint: Label = get_node("Hint");hint.position = Vector2(0, size.y - 60);hint.size = Vector2(size.x, 20)
+	var cost: Label = get_node("Cost");cost.custom_minimum_size = Vector2(minf(size.x - 32, 420), 0);cost.position = Vector2((size.x - cost.custom_minimum_size.x) * .5, grade_label.position.y + 38);cost.size = Vector2(cost.custom_minimum_size.x, 0)
 
 func _gui_input(event: InputEvent) -> void:
 	if (event is InputEventMouseButton or event is InputEventScreenTouch) and event.pressed:accept_event();close()
@@ -50,8 +52,9 @@ func _process(dt: float) -> void:
 	var flip: float = clampf(t / .45, 0, 1)
 	card.scale = Vector2(maxf(.02, Motion.out_quint(flip)), 1) * (1.0 + .12 * (1 - Motion.out_quint(clampf(t / .7, 0, 1))))
 	name_label.modulate.a = clampf((t - .45) / .25, 0, 1);grade_label.modulate.a = clampf((t - .55) / .25, 0, 1)
-	get_node("Hint").modulate.a = clampf((t - .9) / .3, 0, 1)
-	if t >= LIFE:close()
+	get_node("Hint").modulate.a = clampf((t - .9) / .3, 0, 1);get_node("Cost").modulate.a = clampf((t - .65) / .25, 0, 1)
+	# A 대가 item stays a little longer so its red cost can be read.
+	if t >= LIFE + (1.2 if get_node("Cost").text != "" else 0.0):close()
 	queue_redraw()
 
 func _draw() -> void:

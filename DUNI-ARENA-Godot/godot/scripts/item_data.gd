@@ -57,3 +57,5 @@ extends Resource
 ## 0.96: "모든 스탯 +N%" (max HP, damage, defenses, speeds) and healing given only.
 @export var all_stats: float = 0
 @export var heal_power_bonus: float = 0
+## 0.97: healing received only (수호자의 휘장).
+@export var heal_taken_bonus: float = 0

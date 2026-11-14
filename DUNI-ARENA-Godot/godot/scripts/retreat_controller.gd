@@ -39,4 +39,11 @@ func request(battle: BattleManager, run: RunState) -> bool:
 	if check(battle, run) != Code.OK:
 		return false
 	processing = true
+	# 배수진의 인장: the bearers fall instead of leaving.
+	for unit in BuildItems.retreat_victims(battle):
+		ItemEffects.fx(unit, &"lastStandSeal", unit.position)
+		unit.invincible_remaining = 0
+		unit.receive_damage(unit.current_hp + unit.shield_hp + 1, null)
+	if not battle.units.any(func(u): return u.alive and not u.source_member_id.is_empty()):
+		return battle.finish_with_reason(BattleEndReason.Value.DEFEAT, 1)
 	return battle.finish_with_reason(BattleEndReason.Value.RETREAT, -1)

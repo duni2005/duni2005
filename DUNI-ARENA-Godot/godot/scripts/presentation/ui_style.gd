@@ -279,7 +279,7 @@ static func _button_input(event: InputEvent,button: Button) -> void:
 	elif event is InputEventMouseMotion and event.device!=-1 and event.button_mask!=0:
 		if event.position.distance_to(button.get_meta("tap_origin"))>18:button.set_meta("drag_canceled",true)
 static func reason(code: String) -> String:
-	return {"OUTSIDE_DEPLOYMENT_ZONE":"강조된 배치 영역 안을 선택하세요.","TOO_CLOSE":"다른 유닛과 최소 58만큼 거리를 두세요.","DEAD_MEMBER":"사망한 길드원은 배치할 수 없습니다.","ALREADY_DEPLOYED":"이미 배치된 길드원입니다. 위치를 옮길 수 있습니다.","SORTIE_FULL":"출정 인원이 가득 찼습니다. 강화 탭의 길드 확장에서 출정 가능 수를 늘릴 수 있습니다.","GUILD_FULL":"길드를 확장해 길드 인원을 늘리세요","INVALID_POSITION":"유효한 전장 위치를 선택하세요.","INSUFFICIENT_GOLD":"골드가 부족합니다.","INSUFFICIENT_TOKENS":"토큰이 부족합니다.","NO_EFFECT":"현재 대상에게 효과가 없습니다.","INVALID_TARGET":"살아 있는 아군을 선택하세요.","NOT_AVAILABLE":"이번 층에서 사용할 수 없습니다.","UNAVAILABLE":"사용 기록 또는 쿨타임 때문에 사용할 수 없습니다.","NOT_HOLD":"전투가 완전히 정지한 뒤 사용할 수 있습니다.","DUPLICATE":"이미 적용된 카드입니다.","NOT_PAUSED":"터닝포인트 정지 중에 사용할 수 있습니다."}.get(code,code.replace("_"," ").to_lower())
+	return {"OUTSIDE_DEPLOYMENT_ZONE":"강조된 배치 영역 안을 선택하세요.","TOO_CLOSE":"다른 유닛과 최소 58만큼 거리를 두세요.","DEAD_MEMBER":"사망한 길드원은 배치할 수 없습니다.","ALREADY_DEPLOYED":"이미 배치된 길드원입니다. 위치를 옮길 수 있습니다.","SORTIE_FULL":"출정 인원이 가득 찼습니다. 강화 탭의 길드 확장에서 출정 가능 수를 늘릴 수 있습니다.","BOSS_LOCKED":"사냥 허가증을 낀 유닛은 챕터 보스 방에 출정할 수 없습니다.","GUILD_FULL":"길드를 확장해 길드 인원을 늘리세요","INVALID_POSITION":"유효한 전장 위치를 선택하세요.","INSUFFICIENT_GOLD":"골드가 부족합니다.","INSUFFICIENT_TOKENS":"토큰이 부족합니다.","NO_EFFECT":"현재 대상에게 효과가 없습니다.","INVALID_TARGET":"살아 있는 아군을 선택하세요.","NOT_AVAILABLE":"이번 층에서 사용할 수 없습니다.","UNAVAILABLE":"사용 기록 또는 쿨타임 때문에 사용할 수 없습니다.","NOT_HOLD":"전투가 완전히 정지한 뒤 사용할 수 있습니다.","DUPLICATE":"이미 적용된 카드입니다.","NOT_PAUSED":"터닝포인트 정지 중에 사용할 수 있습니다."}.get(code,code.replace("_"," ").to_lower())
 
 static func plain(value: String) -> String:
 	var out: String=""
@@ -289,6 +289,12 @@ static func plain(value: String) -> String:
 		out+=value[i]
 	return out.strip_edges()
 
+## The red 대가 line of an item (사냥 허가증 · 배수진의 인장 · 계약의 인장), hidden for others.
+const COST_RED := Color("ff6b6b")
+static func cost_label(parent: Node,kind: StringName,font_size: int=12,center: bool=false) -> Label:
+	var l:=Label.new();l.name="CostLine";l.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;l.add_theme_font_size_override("font_size",font_size);l.add_theme_color_override("font_color",COST_RED)
+	if center:l.horizontal_alignment=HORIZONTAL_ALIGNMENT_CENTER
+	l.text=ItemCatalog.cost_text(kind);l.visible=l.text!="";parent.add_child(l);return l
 ## Window title bar: title on the left, a round close button on the right, a hairline below.
 static func dialog_header(window: AcceptDialog,column: VBoxContainer,title: String) -> Button:
 	window.borderless=true;window.transparent_bg=true;window.get_ok_button().hide()

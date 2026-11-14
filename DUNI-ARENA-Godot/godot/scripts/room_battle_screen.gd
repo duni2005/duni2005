@@ -172,9 +172,35 @@ func start_battle() -> void:
 	_update_room_hud()
 
 func _retreat() -> void:
+	# 배수진의 인장: warn that its bearers fall, and ask once more (the battle waits).
+	if session != null and is_instance_valid(battle) and not BuildItems.retreat_victims(battle).is_empty() and session.retreat.check(battle, guild.state) == RetreatController.Code.OK:
+		if not watch_paused:_toggle_watch_pause()
+		_confirm_last_stand(BuildItems.retreat_victims(battle))
+		return
+	_do_retreat()
+func _do_retreat() -> void:
 	if watch_paused:_toggle_watch_pause()
 	if session == null or not session.request_retreat():
 		status.text = "20초 이후 양쪽에 생존자가 있을 때 후퇴할 수 있습니다."
+
+var last_stand_dialog: AcceptDialog
+func _confirm_last_stand(units: Array) -> void:
+	if not is_instance_valid(last_stand_dialog):
+		last_stand_dialog=AcceptDialog.new();add_child(last_stand_dialog);ArenaModalBackdrop.new().connect_window(last_stand_dialog,self)
+		var column:=VBoxContainer.new();column.add_theme_constant_override("separation",10);last_stand_dialog.add_child(column);ArenaUI.dialog_header(last_stand_dialog,column,"배수진의 인장")
+		var warn:=Label.new();warn.name="Warn";warn.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;warn.custom_minimum_size.x=260;warn.add_theme_color_override("font_color",Color("ff6b6b"));column.add_child(warn)
+		var row:=HBoxContainer.new();row.add_theme_constant_override("separation",8);column.add_child(row)
+		var back:=Button.new();back.text="계속 싸우기";back.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ArenaUI.bind(back,_cancel_last_stand);row.add_child(back)
+		var go:=Button.new();go.text="그래도 후퇴";go.size_flags_horizontal=Control.SIZE_EXPAND_FILL;ArenaUI.danger(go);ArenaUI.bind(go,func():last_stand_dialog.hide();_do_retreat());row.add_child(go)
+		last_stand_dialog.close_requested.connect(_cancel_last_stand)
+	var names: Array=units.map(func(u):return u.data.display_name)
+	var last: String=names[-1];var code: int=last.unicode_at(last.length()-1)
+	var particle: String="이" if code>=0xAC00 and code<=0xD7A3 and (code-0xAC00)%28!=0 else "가"
+	last_stand_dialog.find_child("Warn",true,false).text="후퇴하면 %s%s 쓰러집니다.\n(배수진의 인장: 장착자는 후퇴할 수 없습니다)"%[", ".join(names),particle]
+	last_stand_dialog.popup_centered(Vector2i(mini(360,int(get_viewport_rect().size.x)-32),150))
+func _cancel_last_stand() -> void:
+	if is_instance_valid(last_stand_dialog):last_stand_dialog.hide()
+	if watch_paused:_toggle_watch_pause()
 
 func _room_finished(result: BattleResult, applied: BattleSettlement.Status) -> void:
 	if watch_paused:

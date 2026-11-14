@@ -75,6 +75,7 @@ func run(tree: SceneTree) -> void:
 	fumble(tree)
 	items_0940(tree)
 	items_0960(tree)
+	items_0970(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -297,7 +298,7 @@ func items(tree: SceneTree) -> void:
 	# Grades (0.94): 일반 12 + 재각인, 희귀 8, 영웅 3, 전설 6, 고대 3; nothing combines.
 	var all: Dictionary=ItemCatalog.all();var count: Dictionary={}
 	for k in all:count[all[k].grade]=int(count.get(all[k].grade,0))+1
-	verify(count.get(&"common")==23 and count.get(&"rare")==18 and count.get(&"epic")==13 and count.get(&"legendary")==16 and count.get(&"ancient")==13,"item grades 23 / 18 / 13 / 16 / 13 (0.95: +10 each)")
+	verify(count.get(&"common")==33 and count.get(&"rare")==32 and count.get(&"epic")==27 and count.get(&"legendary")==30 and count.get(&"ancient")==27,"item grades 33 / 32 / 27 / 30 / 27 (0.97: +10 일반, +14 each above)")
 	verify(ItemCatalog.get_item(&"woodSword+woodSword")==null and ItemCatalog.removed_combination("woodSword+woodSword") and ItemCatalog.refund("woodSword+staff")==260,"combined items are gone (refund = two material prices)")
 	verify(ItemCatalog.get_item(&"warmNecklace+verdantStone").vigor_totem and ItemCatalog.grade_of(&"woodSword+redThorn")==&"rare" and is_equal_approx(ItemCatalog.get_item(&"woodSword+redThorn").physical_bonus,.1),"the five ability rares keep their effect with one 일반 stat line (0.96)")
 	verify(ItemCatalog.grade_of(&"phoenixFeather")==&"legendary" and ItemCatalog.grade_of(&"mimicMask")==&"ancient","old ancients are 전설; 고대 is new")
@@ -1534,7 +1535,7 @@ func items_0960(tree: SceneTree) -> void:
 			var stronger: bool=worn.max_hp>plain.max_hp or worn.physical_damage>plain.physical_damage or worn.magic_damage>plain.magic_damage or worn.armor>plain.armor or worn.attack_speed>plain.attack_speed or worn.crit>plain.crit or worn.crit_damage>plain.crit_damage or worn.ultimate_power>plain.ultimate_power or worn.element_power>plain.element_power or worn.speed>plain.speed or worn.range_multiplier>plain.range_multiplier or worn.healing_power>plain.healing_power or not worn.tag_bonus.is_empty()
 			if not stronger:stats_ok=false;push_error("no stat line: "+String(kind))
 			if ArenaIcon.texture(String(kind))==null:icons=false;push_error("no icon: "+String(kind))
-			if kind!=&"weakEye" and item.description.contains("받는 피해 +") or item.description.contains("행동 불가") or item.description.contains("회복하지 못"):texts=false
+			if not kind in [&"weakEye",&"permafrostScepter"] and item.description.contains("받는 피해 +") or item.description.contains("행동 불가") or item.description.contains("회복하지 못"):texts=false
 	verify(stats_ok,"0.96: every 희귀+ item has at least one stat line")
 	verify(icons,"0.96: every item has an icon")
 	verify(texts,"0.96: no penalties left in the texts")
@@ -1653,6 +1654,141 @@ func items_0960(tree: SceneTree) -> void:
 	var kinds: Dictionary={&"bleed":&"debuff",&"weak_exposed":&"debuff",&"berserk":&"buff",&"hunt":&"buff",&"first_strike":&"buff",&"counter_crit":&"buff",&"veil_strike":&"buff",&"regen_barrier":&"buff",&"soul_harvest":&"growth",&"overdrive":&"growth",&"smash_ready":&"unique",&"mirror_clone":&"unique",&"rewind_ready":&"unique",&"blood_blessing":&"item",&"war_drum":&"item",&"king_aura":&"item",&"greed":&"item"}
 	verify(kinds.keys().all(func(k):return StatusCatalog.ENTRIES.has(k) and StatusCatalog.ENTRIES[k][1]==kinds[k] and ArenaIcon.texture(StatusCatalog.ENTRIES[k][2])!=null),"item statuses with their kinds and icons")
 	verify(not [&"salvation",&"overheat",&"frame",&"void_charge",&"shadow_link",&"elder_growth",&"mango_growth"].any(func(k):return StatusCatalog.ENTRIES.has(k)),"statuses of removed effects are gone")
+## 0.97 빌드 지원 아이템: 66 items (일반 10 · 희귀 14 · 영웅 14 · 전설 14 · 고대 14), the build items'
+## battle effects and the system items' tower rules.
+func items_0970(tree: SceneTree) -> void:
+	var fresh: Array=ItemCatalog.BUILD_COMMON+ItemCatalog.RARE.slice(18)+ItemCatalog.EPIC.slice(13)+ItemCatalog.LEGENDARY.slice(16)+ItemCatalog.ANCIENT.slice(13)
+	verify(fresh.size()==66 and fresh.all(func(k):return ItemCatalog.get_item(k)!=null and ArenaIcon.texture(String(k))!=null),"0.97: 66 new items, each with an icon")
+	verify(ItemCatalog.BUILD_COMMON.all(func(k):return ItemCatalog.get_item(k).description.count("+")==2),"0.97 일반: two stat lines each")
+	verify(fresh.all(func(k):return ItemCatalog.get_item(k).grade==&"common" or ItemCatalog.get_item(k).description.split(" · ").size()>=2),"희귀 and up: stats and an effect")
+	verify(ItemCatalog.cost_text(&"huntLicense").begins_with("대가") and ItemCatalog.cost_text(&"pactSeal").contains("20 G") and ItemCatalog.cost_text(&"lastStandSeal").contains("사망") and ItemCatalog.cost_text(&"giantRing")=="","대가 items carry a separate cost line")
+	verify(not ItemCatalog.body_text(ItemCatalog.get_item(&"lastStandSeal")).contains("대가") and ItemCatalog.get_item(&"lastStandSeal").description.contains("대가"),"the body text leaves the cost for the red line")
+	var e:=CustomBattleSetup.new();e.add(0,0,Vector2(200,200));var plain: UnitCombatStats=e.stats_for(e.entries[0]);e.equip(int(e.entries[0].id),&"guardianBadge")
+	verify(is_equal_approx(e.stats_for(e.entries[0]).healing_received,plain.healing_received*1.1),"수호자의 휘장: healing received +10%")
+	var basic: Dictionary=_spec(&"basic",&"physical",[&"melee"])
+	# 희귀 · 빌드
+	var b:=gear_duel(tree,[[0,0,Vector2(200,400),[&"fangNecklace",&"frostOrb"]],[0,0,Vector2(200,560),[&"emberFlint",&"shadowClaw"]],[0,1,Vector2(300,400),[]],[0,1,Vector2(330,560),[&"tailwindFan"]],[0,1,Vector2(600,640),[&"stormWings"]],[0,0,Vector2(120,700),[&"shieldHammer"]]])
+	var a: BattleUnit=b.units[0];var c: BattleUnit=b.units[1];var foe: BattleUnit=b.units[2];var fan: BattleUnit=b.units[3];var wings: BattleUnit=b.units[4];var hammer: BattleUnit=b.units[5]
+	verify(is_equal_approx(ItemEffects.outgoing(a,foe,{},basic),1),"no bonus with no condition")
+	foe.set_state("poisonStacks",5);verify(is_equal_approx(ItemEffects.outgoing(a,foe,{},basic),1.2),"독니 목걸이: +20% vs 5 poison")
+	foe.set_state("poisonStacks",0);foe.set_state("frostbiteTime",2);verify(is_equal_approx(ItemEffects.outgoing(a,foe,{},basic),1.3),"서리 구슬: +30% vs frostbite")
+	foe.set_state("frostbiteTime",0);hammer.shield_hp=10;hammer.shield_remaining=3;verify(is_equal_approx(ItemEffects.outgoing(hammer,foe,{},basic),1.2),"방패 대장장이의 망치: +20% while shielded")
+	verify(is_equal_approx(BuildItems.erosion_time(c),4) and is_equal_approx(BuildItems.erosion_time(a),2),"그림자 손톱: erosion lasts 4 s")
+	fan.set_state("windStacks",8);wings.set_state("windStacks",8);foe.set_state("windStacks",8)
+	var o:=_out(5);var wind: Dictionary=_spec(&"basic",&"physical",[&"melee"])
+	for t in [fan,wings,foe]:ElementEffects.on_hit(a,t,o,wind,{})
+	verify(fan.state_value("windStacks")==4 and wings.state_value("windStacks")==8 and foe.state_value("windStacks")==0,"순풍의 부채 keeps half the gusts, 폭풍의 날개 all")
+	verify(is_equal_approx(BuildItems.move_speed(wings),1.16),"폭풍의 날개: +2% move speed per gust")
+	foe.set_state("burnStacks",1);foe.set_state("burnTick",0.01);foe.set_state("burnSource",c.actor_id());var hp: float=foe.current_hp
+	ElementEffects.advance(b,.05);var lit: float=hp-foe.current_hp
+	foe.set_state("burnStacks",1);foe.set_state("burnTick",0.01);foe.set_state("burnSource",a.actor_id());hp=foe.current_hp
+	ElementEffects.advance(b,.05);verify(lit>hp-foe.current_hp,"불씨 부싯돌: its burns hurt more")
+	b.queue_free()
+	b=gear_duel(tree,[[0,0,Vector2(200,400),[&"lightningRod"]],[0,1,Vector2(300,100),[]],[0,1,Vector2(300,200),[]],[0,1,Vector2(300,300),[]],[0,1,Vector2(300,400),[]],[0,1,Vector2(300,500),[]],[0,1,Vector2(300,600),[]],[0,1,Vector2(300,700),[]],[0,1,Vector2(400,700),[]]])
+	for u in b.units.slice(1):u.combat_stats.max_hp=100000;u.current_hp=100000
+	var before: int=int(b.combat_event_counts.get(&"chain_shock",0));ElementEffects._chain(b.units[0],b.units[1],5000)
+	verify(int(b.combat_event_counts.get(&"chain_shock",0))-before==7,"피뢰침: the chain jumps 7 times")
+	b.queue_free()
+	# 수련용 목검 · 결투가의 망토 · 패왕의 건틀릿
+	b=gear_duel(tree,[[0,0,Vector2(200,400),[&"practiceSword",&"overlordGauntlet"]],[0,0,Vector2(200,560),[&"duelCape"]],[0,1,Vector2(260,400),[]],[0,1,Vector2(600,600),[]]])
+	var sword: BattleUnit=b.units[0];var cape: BattleUnit=b.units[1];var near: BattleUnit=b.units[2]
+	sword.current_hp=sword.max_hp*.5;var nh: float=near.current_hp;ItemEffects.on_defended(sword,true)
+	verify(is_equal_approx(sword.current_hp,sword.max_hp*.58) and near.current_hp<nh and near.knockback_velocity.length()>0,"수련용 목검 heals 8% on a parry; 패왕의 건틀릿 sends a shockwave")
+	verify(ParryController.success_chance(sword,1000)>ParryController.success_chance(near,1000),"패왕의 건틀릿: parries succeed more")
+	ItemEffects.on_defended(cape,false);ItemEffects.on_defended(cape,false)
+	verify(is_equal_approx(BuildItems.attack_speed(cape),1.2) and &"cape_dodge" in _keys(cape),"결투가의 망토: each dodge +10% attack speed")
+	var dodged: int=0
+	for i in range(400):
+		b.clock.elapsed+=2
+		if BuildItems.dodge(cape):dodged+=1
+	verify(dodged>20 and dodged<110,"결투가의 망토: about 15% dodge")
+	b.queue_free()
+	# 영웅
+	b=gear_duel(tree,[[1,0,Vector2(200,400),[&"twinCrossbow",&"giantSpear"]],[0,0,Vector2(200,560),[&"knightCrest",&"ultScore"]],[0,0,Vector2(160,640),[&"vengeanceMask"]],[0,1,Vector2(320,420),[]],[0,1,Vector2(340,560),[]],[0,1,Vector2(700,700),[]]])
+	var bow: BattleUnit=b.units[0];var crest: BattleUnit=b.units[1];var mask: BattleUnit=b.units[2];var f1: BattleUnit=b.units[3];var f2: BattleUnit=b.units[4]
+	var shots: int=b.projectiles.size();CharacterAbility.shoot(bow,0,10,{"dmg":&"basic"})
+	verify(b.projectiles.size()-shots==2 and is_equal_approx(b.projectiles[-1].damage,4),"쌍발 석궁: a second shot at 40%")
+	hp=f1.current_hp;ItemEffects.after_hit(bow,f1,_out(1),basic,{})
+	verify(hp-f1.current_hp>=floorf(f1.max_hp*.03)-1,"거인 사냥 창: +3% of the target's max HP")
+	BuildItems._taunt(crest);verify(f1.taunted_until>b.clock.elapsed and f1.taunted_member_id==crest.actor_id() and f1.target==crest and TargetSelector.new().select_target(f1,[f2,crest,bow])==crest,"수호 기사의 문장: the nearest enemies go for the bearer")
+	verify(&"crest_taunt" in _keys(f1),"기사의 도전 status")
+	bow.ultimate_gauge=0;BuildItems.after_ultimate(crest,crest.combat_stats);verify(is_equal_approx(bow.ultimate_gauge,15),"궁극의 악보: other allies +15 gauge")
+	bow.current_hp=0;bow.alive=false;ItemEffects.on_death(bow)
+	verify(is_equal_approx(BuildItems.attack_factor(mask),1.15) and is_equal_approx(BuildItems.attack_speed(mask),1.15),"복수의 가면: +15% attack and attack speed per fallen ally")
+	b.queue_free()
+	b=gear_duel(tree,[[0,0,Vector2(200,400),[&"chargeHorn",&"spiritLantern"]],[0,1,Vector2(500,400),[]],[0,1,Vector2(700,700),[]]])
+	var horn: BattleUnit=b.units[0];var far: BattleUnit=b.units[1];var start: float=horn.position.distance_to(far.position)
+	for i in range(10):BuildItems.advance(horn,horn.combat_stats,.05)
+	verify(horn.position.distance_to(far.position)<start-100,"돌격 나팔: dashes at the nearest enemy")
+	ItemEffects.after_hit(horn,far,_out(3),basic,{});verify(far.stun_remaining>=1.9,"돌격 나팔: the first hit stuns 2 s")
+	hp=far.current_hp;horn.position=far.position-Vector2(150,0);horn.set_state("spiritClock",.01);BuildItems.advance(horn,horn.combat_stats,.05)
+	verify(far.current_hp<hp,"정령 등불: the spirit shoots every 2 s")
+	b.queue_free()
+	# 전설
+	b=gear_duel(tree,[[0,0,Vector2(200,400),[&"volcanoHeart",&"plagueChalice"]],[0,0,Vector2(200,560),[&"permafrostScepter",&"legionBanner"]],[0,1,Vector2(300,400),[]],[0,1,Vector2(360,440),[]],[0,1,Vector2(700,700),[]]])
+	var vol: BattleUnit=b.units[0];var perm: BattleUnit=b.units[1];var p1: BattleUnit=b.units[2];var p2: BattleUnit=b.units[3]
+	ElementEffects.add_burn(vol,p1,30);verify(p1.state_value("burnStacks")==20,"화산의 심장: burn stacks up to 20")
+	ElementEffects.add_frost(perm,p2,6);verify(p2.state_value("frozenTime")>0 and is_equal_approx(BuildItems.incoming(p2),1.25),"영구 동토의 왕홀: frozen at 6, takes +25%")
+	p2.set_state("frozenTime",0.0);p1.set_state("poisonStacks",4);p1.set_state("poisonSource",vol.actor_id());p1.set_state("poisonTick",.99);hp=p1.current_hp
+	ElementEffects.advance(b,.02);verify(is_equal_approx(hp-p1.current_hp,8) or hp-p1.current_hp>=7,"역병 군주의 잔: poison deals double")
+	var p2hp: float=p2.current_hp;p1.current_hp=0;p1.alive=false;ItemEffects.on_death(p1)
+	verify(p2.state_value("poisonStacks")>=4 and p2.current_hp<p2hp,"역병 군주의 잔 · 화산의 심장: poison moves on, the burning enemy bursts")
+	verify(BuildItems.bannered(perm) and is_equal_approx(BuildItems.attack_factor(perm),1.2) and &"banner_aura" in _keys(perm),"군단장의 깃발: allies near the flag +20% attack")
+	perm.position+=Vector2(400,0);verify(not BuildItems.bannered(perm),"…only near the flag")
+	b.queue_free()
+	b=gear_duel(tree,[[0,0,Vector2(200,400),[&"thunderHammer",&"dawnSword"]],[0,0,Vector2(200,560),[&"abyssScythe"]],[0,1,Vector2(260,400),[]],[0,1,Vector2(300,450),[]]])
+	var th: BattleUnit=b.units[0];var hurt: BattleUnit=b.units[1];var q1: BattleUnit=b.units[2];var q2: BattleUnit=b.units[3]
+	hurt.current_hp=hurt.max_hp*.5;var hh: float=hurt.current_hp
+	for i in range(4):b.clock.elapsed+=.5;ItemEffects.after_hit(th,q1,_out(10),basic,{})
+	verify(q2.state_value("shockStacks")>=2,"뇌신의 망치: every 4th basic calls lightning (shock 2)")
+	verify(hurt.current_hp>hh,"여명의 성검: damage heals the ally lowest on HP")
+	q1.set_state("erosionTime",2);verify(ItemEffects.sure_crit(hurt,{},q1) and not ItemEffects.sure_crit(hurt,{},q2) and not ItemEffects.sure_crit(th,{},q1),"심연의 낫: eroded targets are struck critically")
+	b.queue_free()
+	# 고대
+	b=gear_duel(tree,[[0,0,Vector2(200,400),[&"thiefWatch"]],[0,0,Vector2(200,560),[&"soulLantern"]],[0,0,Vector2(160,640),[&"dragonEgg"]],[0,1,Vector2(300,400),[]],[0,1,Vector2(300,560),[]],[0,0,Vector2(100,300),[&"beastHide"]]])
+	var watch: BattleUnit=b.units[0];var lamp: BattleUnit=b.units[1];var drake: BattleUnit=b.units[2];var w1: BattleUnit=b.units[3];var beast: BattleUnit=b.units[5]
+	BuildItems._time_stop(watch);verify(w1.stun_remaining>=1.9 and &"time_stop" in _keys(w1),"시간 도둑의 회중시계: every enemy stops 2 s")
+	beast.current_hp=beast.max_hp*.4;BuildItems.was_struck(beast,beast.combat_stats)
+	verify(beast.state_value("beastTime")>=15 and is_equal_approx(BuildItems.attack_speed(beast),1.4) and &"beast_form" in _keys(beast),"야수의 가죽: below half HP, a beast for 15 s")
+	verify(&"dragon_stage" in _keys(drake),"새끼 용 단계 status")
+	var count: int=b.units.size();drake.current_hp=0;drake.alive=false;ItemEffects.on_death(drake);b._flush_spawns()
+	verify(b.units.size()==count+1 and b.units[-1].character_specific_state.has("spiritOf") and &"spirit" in _keys(b.units[-1]),"영혼의 등불: a fallen ally fights on as a spirit")
+	var ghost: BattleUnit=b.units[-1];ghost.invincible_remaining=0;_tick(b,10.1)
+	verify(not ghost.alive and lamp.alive,"…for 10 s")
+	b.queue_free()
+	b=gear_duel(tree,[[0,0,Vector2(200,400),[&"blackHoleOrb",&"mirrorShield"]],[0,1,Vector2(500,300),[]],[0,1,Vector2(560,330),[]],[0,1,Vector2(520,380),[]]])
+	var hole: BattleUnit=b.units[0];var gap: float=b.units[1].position.distance_to(b.units[3].position)
+	BuildItems._open_hole(hole);_tick(b,1.0)
+	verify(b.units[1].position.distance_to(b.units[3].position)<gap,"블랙홀 구슬: pulls the enemies together")
+	b.queue_free()
+	# 시스템 연계 (tower)
+	var t:=TowerController.new();t.new_run(19,73);var members: Array=t.guild.all_members();var m0: GuildMemberState=members[0];var m1: GuildMemberState=members[1]
+	var give:=func(kind: StringName,m: GuildMemberState) -> ItemInstance:
+		var inst: ItemInstance=t.content.inventory.give(kind);inst.equipped_to_member_id=m.member_id;return inst
+	var reserve: ItemInstance=give.call(&"reserveBadge",m0);var streak: ItemInstance=give.call(&"streakBelt",m1)
+	var result:=BattleResult.new();result.end_reason=BattleEndReason.Value.VICTORY;result.participating_member_ids.assign([m1.member_id]);result.surviving_member_ids.assign([m1.member_id])
+	var atk0: float=t.guild.member_stats(m1).attack
+	BuildItems.settle(t.guild,result);BuildItems.settle(t.guild,result)
+	verify(reserve.growth==2 and streak.growth==2 and is_equal_approx(t.guild.member_stats(m1).attack,atk0*1.08) and is_equal_approx(t.guild.member_stats(m0).attack,t.guild.member_stats(m0).attack),"예비대의 휘장 grows while resting, 연승의 띠 with each win")
+	result.end_reason=BattleEndReason.Value.RETREAT;BuildItems.settle(t.guild,result);verify(streak.growth==0,"연승의 띠: a retreat resets it")
+	var cup: ItemInstance=give.call(&"victoryCup",m1);var rookie: ItemInstance=give.call(&"rookieBadge",m1)
+	m1.current_hp=t.guild.member_max_hp(m1)*.5;var exp_before: int=m1.total_exp;var gold: int=t.guild.state.gold;result.end_reason=BattleEndReason.Value.VICTORY
+	BuildItems.settle(t.guild,result)
+	verify(is_equal_approx(m1.current_hp,t.guild.member_max_hp(m1)*.75) or m1.current_hp>t.guild.member_max_hp(m1)*.74,"승전의 술잔: a win heals 25%")
+	verify(m1.total_exp==exp_before+40,"신참의 배지: +40 EXP for a win survived")
+	var map: ItemInstance=give.call(&"pioneerMap",m0);gold=t.guild.state.gold;BuildItems.on_room_discovered(t.guild);verify(t.guild.state.gold==gold+30,"개척자의 지도: +30 G a new room")
+	var crown: ItemInstance=give.call(&"conquerorCrown",m0);var hp0: float=t.guild.member_max_hp(m0);BuildItems.on_floor_conquered(t.guild)
+	verify(crown.growth==1 and t.guild.member_max_hp(m0)>hp0*1.04,"정복자의 왕관: +5% all stats a conquered floor")
+	verify(BattleSettlement.new().death_loss(t.guild,m0)>0,"a death costs player HP")
+	give.call(&"guardianOath",m0);verify(BattleSettlement.new().death_loss(t.guild,m0)==0,"수호 서약: no player HP lost for its bearer")
+	give.call(&"huntLicense",m1)
+	for room in t.guild.state.tower.map.rooms.values():
+		if room.room_type==RoomType.BOSS:t.guild.state.tower.selected_room_id=room.room_id;break
+	verify(DeploymentRules.boss_locked(t.guild,m1) and not DeploymentRules.boss_locked(t.guild,m0),"사냥 허가증: its bearer cannot go into a boss room")
+	var entry:=DeploymentEntry.new();entry.member_id=m1.member_id;entry.position=Vector2(200,600)
+	verify(DeploymentRules.validate(t.guild,entry,[],[])==DeploymentRules.Code.BOSS_LOCKED,"…and the deployment refuses it")
+	var cleared:=BattleResult.new();cleared.end_reason=BattleEndReason.Value.VICTORY;cleared.participating_member_ids.assign([m0.member_id]);cleared.surviving_member_ids.assign([m0.member_id])
+	give.call(&"goldenGoose",m0);verify(int(BuildItems.settle(t.guild,cleared).choices)==1,"황금 거위: one more reward choice")
 ## 무한의 칼날: critical hits ignore 30% of the defense; the stat lines are on the item.
 func setup_edge_check() -> void:
 	var e:=CustomBattleSetup.new();e.add(0,0,Vector2(200,200));var plain: UnitCombatStats=e.stats_for(e.entries[0]);e.equip(int(e.entries[0].id),&"infinityEdge")

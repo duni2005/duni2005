@@ -227,3 +227,108 @@ const STAR_TARGETS: int = 3
 const STAR_RADIUS: float = 70
 ## 저주 인형: reflects this share of all damage taken to the attacker.
 const DOLL_REFLECT: float = .3
+
+# ---- 0.97 빌드 지원 아이템 (all numbers are a first draft) ----
+const BUILD_COMMON_PRICES = {&"brawlerBandage":150, &"apprenticeTome":150, &"hunterCap":150, &"assassinHood":150, &"guardianBadge":140, &"gladiatorBelt":150, &"archerBracer":150, &"sapperFlint":150, &"poisonerVial":150, &"mangoSlice":140}
+## 희귀 · 빌드
+const EMBER_BURN: float = 1.5            # 불씨 부싯돌: burn the bearer lit deals x1.5
+const FANG_POISON_STACKS: int = 5        # 독니 목걸이: vs poison >= 5 stacks
+const FANG_DEALT: float = .2
+const FROST_ORB_DEALT: float = .3        # 서리 구슬: vs frozen / frostbitten
+const ROD_HOPS: int = 2                  # 피뢰침: chain hops 5 -> 7
+const FAN_KEEP: float = .5               # 순풍의 부채: keeps half the gusts when hit
+const LAMP_LIGHT_HEAL: float = .2        # 광휘의 등잔: light cycle heal 10% -> 20%
+const CLAW_EROSION_TIME: float = 4       # 그림자 손톱: erosion 2 s -> 4 s
+const PRACTICE_PARRY_HEAL: float = .08   # 수련용 목검
+const WALL_STUN: float = 1.5             # 벽치기 장갑: stun after a slam into a wall or unit
+const WALL_STUN_GAP: float = 3           # (the same enemy at most once per this many seconds)
+const SHIELD_HAMMER_ATTACK: float = .2   # 방패 대장장이의 망치: attack while shielded
+## 희귀 · 시스템
+const CUP_HEAL: float = .25              # 승전의 술잔
+const PIONEER_GOLD: int = 30             # 개척자의 지도
+const RESERVE_STEP: float = .1           # 예비대의 휘장: per battle sat out
+const RESERVE_MAX: int = 3
+const ROOKIE_EXP: int = 40               # 신참의 배지
+## 영웅 · 빌드
+const TWIN_SHARE: float = .4             # 쌍발 석궁: the second shot's damage
+const KEG_RADIUS: float = 1.3            # 폭발 화약통: explosion radius, knockback
+const KEG_PUSH: float = 220
+const SPEAR_HP: float = .03              # 거인 사냥 창: target max HP per basic attack
+const SPEAR_ELITE_HP: float = .015
+const CAPE_DODGE: float = .15            # 결투가의 망토
+const CAPE_DODGE_GAP: float = 1.5
+const CAPE_ATTACK_SPEED: float = .1
+const CAPE_TIME: float = 5
+const CAPE_STACKS: int = 3
+const HORN_CHARGE_SPEED: float = 820     # 돌격 나팔
+const HORN_STUN: float = 2
+const CREST_EVERY: float = 6             # 수호 기사의 문장
+const CREST_TARGETS: int = 2
+const CREST_TIME: float = 3
+const SCORE_GAUGE: float = 15            # 궁극의 악보
+const SPIRIT_EVERY: float = 2            # 정령 등불
+const SPIRIT_RANGE: float = 380
+const VENGEANCE_STEP: float = .15        # 복수의 가면: attack and attack speed per fallen ally
+## 영웅 · 시스템
+const STREAK_STEP: float = .04           # 연승의 띠
+const STREAK_MAX: int = 10
+const QUILL_POWER: float = 1.5           # 전술가의 깃펜
+## 전설 · 빌드
+const VOLCANO_BURN_MAX: int = 20         # 화산의 심장
+const VOLCANO_RADIUS: float = 110
+const VOLCANO_STACKS: int = 4
+const PLAGUE_POISON: float = 2           # 역병 군주의 잔
+const PERMAFROST_STACKS: int = 6         # 영구 동토의 왕홀
+const PERMAFROST_TAKEN: float = 1.25
+const THUNDER_EVERY: int = 4             # 뇌신의 망치
+const THUNDER_RADIUS: float = 90
+const THUNDER_SHOCK: int = 2
+const WINGS_MOVE: float = .02            # 폭풍의 날개: move speed per gust stack
+const DAWN_HEAL: float = .2              # 여명의 성검
+const GAUNTLET_PARRY: float = .15        # 패왕의 건틀릿
+const GAUNTLET_RADIUS: float = 120
+const GAUNTLET_PUSH: float = 340
+const BANNER_RADIUS: float = 170         # 군단장의 깃발
+const BANNER_ATTACK: float = .2
+const BANNER_TAKEN: float = .9
+const GUNNER_EVERY: int = 5              # 포격수의 조준기
+const GUNNER_DEALT: float = 2.0
+const GUNNER_RADIUS: float = 105
+## 전설 · 시스템
+const GRAIL_HEAL: float = .15            # 승리의 성배
+const HERO_STATS: float = .3             # 용사의 휘장
+const HERO_ELITE_DEALT: float = .25
+const CONQUEROR_STEP: float = .05        # 정복자의 왕관
+const CONQUEROR_MAX: int = 15
+## 고대 · 빌드
+const RAINBOW_ORDER: Array[StringName] = [&"fire", &"ice", &"lightning", &"poison", &"wind", &"light", &"dark"]
+const DRAGON_EVERY: float = 2.5          # 새끼 용의 알: breath period, damage +DRAGON_GROW per stage
+const DRAGON_GROW: float = .15
+const DRAGON_STAGES: int = 10
+const DRAGON_RANGE: float = 260
+const GIANT_RING_SCALE: float = 1.5      # 거인의 반지
+const GIANT_RING_SPLASH: float = .5
+const GIANT_RING_RADIUS: float = 80
+const WATCH_EVERY: float = 12            # 시간 도둑의 회중시계
+const WATCH_STOP: float = 2
+const WATCH_BOSS_STOP: float = 1
+const SOUL_TIME: float = 10              # 영혼의 등불
+const SOUL_HP: float = .5
+const GOOSE_GOLD: int = 30               # 황금 거위
+const MIRROR_REFLECT: float = .5         # 거울 방패
+const BLACKHOLE_EVERY: float = 10        # 블랙홀 구슬
+const BLACKHOLE_TIME: float = 2
+const BLACKHOLE_RADIUS: float = 150
+const BLACKHOLE_PULL: float = 260
+const BEAST_HP: float = .5               # 야수의 가죽
+const BEAST_TIME: float = 15
+const BEAST_BOOST: float = .4
+const BEAST_LEECH: float = .2
+## 고대 · 시스템
+const LONELY_STEP: float = .2            # 고독한 왕의 검: per empty sortie place
+const PACT_GOLD: int = 20                # 계약의 인장 (all stats PACT_STATS while paid)
+const PACT_STATS: float = .4
+const ROSARY_STEP: float = .08           # 망고 신자의 염주: per mango faith
+const ROSARY_WINS: int = 5
+## Items whose cost is shown in red when won and when equipped.
+const COST_ITEMS: Array[StringName] = [&"huntLicense", &"lastStandSeal", &"pactSeal"]

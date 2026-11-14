@@ -309,10 +309,10 @@ func blacksmith_sell(item_id: int) -> Dictionary:
 	return success({"item_id":item_id,"gold":gold})
 ## 전투 보상: after a win the room offers ItemTuning.REWARD_CHOICES items, rolled once from the floor
 ## table cut to the room's lowest grade (전투 일반+, 미니보스 희귀+, 보스 영웅+); owned 전설 left out.
-func roll_battle_reward(node: RoomState,source: RandomNumberGenerator) -> void:
+func roll_battle_reward(node: RoomState,source: RandomNumberGenerator,extra: int=0) -> void:
 	if node==null or not node.item_choices.is_empty() or node.item_choice!=&"":return
 	var lowest: StringName=ItemTuning.REWARD_MIN_GRADE.get(node.room_type,&"common")
-	node.item_choices=ItemRewards.roll(source,ItemRewards.odds(node.floor_index,lowest),ItemTuning.REWARD_CHOICES,ItemRewards.owned_legendaries(guild.state))
+	node.item_choices=ItemRewards.roll(source,ItemRewards.odds(node.floor_index,lowest),ItemTuning.REWARD_CHOICES+extra,ItemRewards.owned_legendaries(guild.state))
 func pending_reward(node: RoomState) -> bool:return node!=null and not node.item_choices.is_empty() and node.item_choice==&""
 ## Takes one offered item, or &"skip" for ItemTuning.SKIP_GOLD gold. Once per room.
 func pick_reward(kind: StringName) -> Dictionary:
@@ -345,6 +345,8 @@ func mango(choice: StringName,member_id: String="") -> Dictionary:
 			if not &"bless" in e.choices or guild.state.mango_faith<=0:return failure(&"no_effect")
 			var gold: int=blessing_gold(guild.state.mango_faith);outcome["faith_spent"]=guild.state.mango_faith;outcome["gold"]=gold
 			guild.state.mango_faith=0;guild.state.gold+=gold
+			# 망고 신자의 염주 loses its faith bonus with the faith.
+			for m in guild.all_members():m.current_hp=minf(m.current_hp,guild.member_max_hp(m))
 	e.purchases[String(choice)]=used+1
 	return success(outcome)
 ## Gambler's room: plays &"roulette" or &"dice" once. The result is kept on the event so the room

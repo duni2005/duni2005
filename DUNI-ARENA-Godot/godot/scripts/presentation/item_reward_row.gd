@@ -14,6 +14,7 @@ const GAP: float = .22
 var cards: Array[ArenaCard] = []
 var take_button: Button
 var detail: Label
+var cost_line: Label
 var looking: StringName = &""
 var bursts: Array[Dictionary] = []
 var age: float = 0
@@ -26,7 +27,7 @@ func setup(kinds: Array, chosen: StringName) -> void:
 	for i in range(kinds.size()):
 		var kind: StringName = kinds[i];var data: ItemData = ItemCatalog.get_item(kind)
 		var card := ArenaCard.new();card.name = "reward_%d" % i;card.card_type = "product";card.slot_kind = "item";card.kind = String(kind);card.title = data.display_name
-		card.description = data.description;card.text = data.display_name;card.tag_text = "소모품" if data.consumable else ItemCatalog.grade_name(kind) + " 아이템";card.item_grade = data.grade if not data.consumable else &""
+		card.description = ItemCatalog.body_text(data);card.text = data.display_name;card.tag_text = "소모품" if data.consumable else ItemCatalog.grade_name(kind) + " 아이템";card.item_grade = data.grade if not data.consumable else &""
 		card.rarity = ItemCatalog.grade_color(kind) if not data.consumable else Color(0, 0, 0, 0);card.tooltip_text = data.description
 		card.custom_minimum_size = Vector2(0, 168);card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.toggle_mode = true;card.selected = chosen == kind;card.set_pressed_no_signal(card.selected)
@@ -36,6 +37,7 @@ func setup(kinds: Array, chosen: StringName) -> void:
 	# The tapped card's whole effect (cards cut long text short).
 	detail = Label.new();detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER;detail.add_theme_font_size_override("font_size", 12)
 	detail.add_theme_color_override("font_color", ArenaUI.MUTED);detail.text = "카드를 눌러 효과를 보고 아이템 받기를 누르세요." if chosen == &"" else "";detail.visible = chosen == &"";add_child(detail)
+	cost_line = ArenaUI.cost_label(self, &"", 12, true)
 	# 아이템 받기 (armed by tapping a card), and 통계 under it. No skip: one item is always taken.
 	take_button = Button.new();take_button.name = "Take";take_button.text = "아이템 받기";take_button.custom_minimum_size = Vector2(0, 48);take_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL;ArenaUI.primary(take_button)
 	take_button.disabled = true;take_button.visible = chosen == &"";ArenaUI.bind(take_button, func():if looking != &"":_pick(looking));add_child(take_button)
@@ -89,7 +91,7 @@ func _look(kind: StringName) -> void:
 	looking = kind
 	for card in cards:card.selected = card.kind == String(kind);card.set_pressed_no_signal(card.selected);card.queue_redraw()
 	var data: ItemData = ItemCatalog.get_item(kind)
-	detail.text = "[%s] %s\n%s" % [ItemCatalog.grade_name(kind), data.display_name, data.description];detail.add_theme_color_override("font_color", ItemCatalog.grade_color(kind).lightened(.35))
+	detail.text = "[%s] %s\n%s" % [ItemCatalog.grade_name(kind), data.display_name, ItemCatalog.body_text(data)];cost_line.text = ItemCatalog.cost_text(kind);cost_line.visible = cost_line.text != "";detail.add_theme_color_override("font_color", ItemCatalog.grade_color(kind).lightened(.35))
 	take_button.disabled = false;take_button.text = "아이템 받기 · " + data.display_name
 func _pick(kind: StringName) -> void:
 	picked.emit(kind)

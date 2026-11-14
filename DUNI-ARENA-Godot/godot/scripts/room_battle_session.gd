@@ -26,6 +26,11 @@ func start(plan: DeploymentPlan, manager: BattleManager, seed_value: int = -1) -
 		return false
 	battle = manager
 	battle.room_id = room.room_id
+	# 0.97 items read the room and the sortie: 용사의 휘장, 고독한 왕의 검, 계약의 인장.
+	battle.set_meta("room_type", room.room_type)
+	battle.set_meta("sortie_limit", GrowthRules.sortie_limit(guild.state))
+	var pact: Array = BuildItems.pact_bearers(guild, plan)
+	battle.set_meta("pact_off", pact.slice(floori(float(guild.state.gold) / ItemTuning.PACT_GOLD)) if not pact.is_empty() else [])
 	battle.unit_died.connect(_on_death)
 	battle.battle_finished.connect(_on_finished)
 	if not plan.launch(battle, enemies, seed_value):
@@ -34,6 +39,9 @@ func start(plan: DeploymentPlan, manager: BattleManager, seed_value: int = -1) -
 		battle.room_id = ""
 		battle = null
 		return false
+	# 계약의 인장: each bearer that goes out pays (a bearer the guild cannot pay for fights without it).
+	for id in pact:
+		if not id in Array(battle.get_meta("pact_off", [])):guild.state.gold -= ItemTuning.PACT_GOLD
 	room.battle_attempt_count += 1
 	room.active_result_id = battle.battle_result_id
 	# Web launchOpeningEquipment skips every retry of an already-started room.

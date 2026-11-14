@@ -57,12 +57,18 @@ func record_member_death(unit: BattleUnit, guild: GuildManager, room: RoomState)
 	var receipts: Dictionary = guild.state.death_losses_by_result_id.get(result_id, {})
 	if receipts.has(member.member_id) or guild.state.settled_battle_ids.has(result_id):
 		return 0.0
-	var loss: float = unit.data.base_gold_cost * DEATH_HP_RATE
+	var loss: float = death_loss(guild, member)
 	receipts[member.member_id] = loss
 	guild.state.death_losses_by_result_id[result_id] = receipts
 	var before: float = guild.state.player_hp
 	guild.state.player_hp = maxf(0, before - loss)
 	return before - guild.state.player_hp
+
+## Player HP a member's death costs (수호 서약: none).
+func death_loss(guild: GuildManager, member: GuildMemberState) -> float:
+	if guild.member_stats(member).has(&"guardianOath"):
+		return 0.0
+	return guild.definition(member.unit_type_id).base_gold_cost * DEATH_HP_RATE
 
 func apply_room(result: BattleResult, guild: GuildManager, room: RoomState) -> Status:
 	if result == null or guild == null or room == null or not result.completed or result.room_id != room.room_id:
@@ -78,7 +84,7 @@ func apply_room(result: BattleResult, guild: GuildManager, room: RoomState) -> S
 		return Status.INVALID_STATE
 	for member_id in result.dead_member_ids:
 		var member: GuildMemberState = guild.get_member(member_id)
-		if member == null or receipts.get(member_id) != guild.definition(member.unit_type_id).base_gold_cost * DEATH_HP_RATE:
+		if member == null or receipts.get(member_id) != death_loss(guild, member):
 			return Status.INVALID_STATE
 	# Reason consistency prevents clear/penalty changes via mismatched result flags.
 	match result.end_reason:

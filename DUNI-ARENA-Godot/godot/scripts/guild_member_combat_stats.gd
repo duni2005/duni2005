@@ -10,7 +10,10 @@ static func assemble(data: UnitData,member: GuildMemberState,inventory: Inventor
 		var item: ItemData=ItemCatalog.of(instance)
 		if item==null:continue
 		stats.apply_item(item)
+		if instance.growth>0 and item.effect!=&"":stats.growth[item.effect]=instance.growth
 	stats.finish_items()
+	# 0.97: 예비대의 휘장, 연승의 띠, 정복자의 왕관, 망고 신자의 염주 grow over the run.
+	BuildItems.run_stats(stats,inventory.run)
 	# 탐욕의 황금손: attack % from the gold the guild holds.
 	if stats.has(&"greedPouch"):stats.attack*=1+ItemEffects.greed_attack(inventory.run.gold)
 	stats.max_hp=floorf(stats.max_hp+.5)

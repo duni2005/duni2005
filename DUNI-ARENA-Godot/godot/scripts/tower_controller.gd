@@ -61,6 +61,7 @@ func select_room(id: String) -> TowerNavigationPolicy.Code:
 				roll-=1 if type in encountered else 4
 				if roll<0:room.event_type=type;break
 		guild.state.gold+=50;room.discovered=true
+		BuildItems.on_room_discovered(guild)
 	room.visited=true
 	var state: TowerRunState=guild.state.tower;state.visited_rooms[id]=true;state.selected_room_id=id;state.current_chapter=room.chapter_index
 	room.content_visits+=1
@@ -125,6 +126,8 @@ func _settled(result: BattleResult,status: BattleSettlement.Status) -> void:
 	state.processed_results[result.result_id]=true
 	guild.state.gold+=result.bounty_gold+result.greed_gold
 	var room: RoomState=current_room()
+	# 0.97 items: victory healing, EXP and gold, item growth (승전의 술잔, 신참의 배지, 황금 거위...).
+	var items: Dictionary=BuildItems.settle(guild,result)
 	# Settlement already performed healing and room clear before checking guild death.
 	if room.cleared:
 		state.cleared_rooms[room.room_id]=true
@@ -132,7 +135,7 @@ func _settled(result: BattleResult,status: BattleSettlement.Status) -> void:
 			guild.state.gold+=room.gold_reward
 			for id in result.surviving_member_ids:guild.state.gold+=int(result.member_victory_gold.get(id,0))
 			guild.state.tokens+=room.token_reward;room.reward_claimed=true
-			if content!=null:content.roll_battle_reward(room,generator.rng)
+			if content!=null:content.roll_battle_reward(room,generator.rng,int(items.choices))
 			if room.room_type==RoomType.MINIBOSS:
 				var keys: Array=StrategyCardCatalog.DEFINITIONS.keys();guild.state.give_strategy_card(keys[generator.rng.randi_range(0,keys.size()-1)])
 		room.consumed=true;refresh_progress(room.floor_index)
@@ -179,6 +182,7 @@ func refresh_progress(changed_depth: int) -> void:
 	if changed_depth%5==4 and changed_floor.room_ids.any(func(id):return state.map.get_room(id).room_type==RoomType.BOSS and state.map.get_room(id).cleared):state.chapter_progress[changed_floor.chapter_index]=true
 	if changed_floor.cleared_count==changed_floor.room_ids.size() and not changed_floor.conquered:
 		changed_floor.conquered=true;state.floor_conquest[changed_depth]=true
+		BuildItems.on_floor_conquered(guild)
 		# Actual web: restore PLAYER HP, do not increase guild maxHP.
 		guild.state.player_hp+=guild.state.player_max_hp*.1
 		var reward: FloorState=floor_reward(changed_depth)

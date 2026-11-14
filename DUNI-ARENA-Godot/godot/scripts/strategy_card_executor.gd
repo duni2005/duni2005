@@ -24,20 +24,23 @@ static func apply(manager: TurningPointManager, card_id: int, member_id: String,
 	if unit == null or manager.guild.get_member(member_id) == null or unit.team != 0:
 		return {"code": Code.INVALID_TARGET}
 	var data: StrategyCardData = StrategyCardCatalog.get_card(card.kind)
+	# 전술가의 깃펜: cards used on the bearer are QUILL_POWER times as strong.
+	var k: float = ItemTuning.QUILL_POWER if ItemEffects.has(unit, &"tacticianQuill") else 1.0
+	if k > 1: ItemEffects.proc(unit, &"tacticianQuill")
 	var command: StrategyCommand
 	match card.kind:
 		&"mango":
-			if StrategyEffects.heal(unit, unit.max_hp * data.amount) <= 0: return {"code": Code.NO_EFFECT}
+			if StrategyEffects.heal(unit, unit.max_hp * data.amount * k) <= 0: return {"code": Code.NO_EFFECT}
 		&"charge":
 			if unit.ultimate_gauge >= 100 or (manager.battle.common_combat_enabled and StatusController.skill_charge_blocked(unit)): return {"code": Code.NO_EFFECT}
 			if manager.battle.full_characters_enabled:
-				if unit.ultimate.gain(unit,data.amount)<=0:return {"code":Code.NO_EFFECT}
-			else:unit.ultimate_gauge = minf(100, unit.ultimate_gauge + data.amount)
+				if unit.ultimate.gain(unit,data.amount*k)<=0:return {"code":Code.NO_EFFECT}
+			else:unit.ultimate_gauge = minf(100, unit.ultimate_gauge + data.amount * k)
 		&"shield":
-			unit.shield_hp = data.amount
-			unit.shield_remaining = data.duration
+			unit.shield_hp = data.amount * k
+			unit.shield_remaining = data.duration * k
 		&"iron":
-			unit.iron_defense_remaining = data.duration
+			unit.iron_defense_remaining = data.duration * k
 			unit.parry_cooldown = 0
 			if unit.data.type_id == 0: unit.defense_cooldown = 0
 		&"evade", &"taunt":
@@ -49,7 +52,7 @@ static func apply(manager: TurningPointManager, card_id: int, member_id: String,
 			command.card_id = card_id
 			command.member_id = member_id
 			command.command_type = card.kind
-			command.duration = data.duration
+			command.duration = data.duration * k
 			if card.kind == &"taunt":
 				# Both currently implemented types are visible. Perception/stealth later.
 				var enemies: Array = manager.battle.units.filter(func(v): return v.alive and v.team == 1 and not v.source_enemy_id.is_empty() and (not manager.battle.common_combat_enabled or CombatPerception.can_perceive(v,unit)))
@@ -69,5 +72,5 @@ static func apply(manager: TurningPointManager, card_id: int, member_id: String,
 	manager.current.selected_member_id = member_id
 	run.strategy_use_receipts[request_id] = {"card_id": card_id, "member_id": member_id}
 	if card.kind == &"iron":
-		manager.parry_readiness_requested.emit(member_id, data.duration, data.amount)
+		manager.parry_readiness_requested.emit(member_id, data.duration * k, data.amount)
 	return {"code": Code.OK, "kind": card.kind, "pending": command != null}

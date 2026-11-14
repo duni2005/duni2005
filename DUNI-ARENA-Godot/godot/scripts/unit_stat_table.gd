@@ -228,7 +228,11 @@ const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]
 const ITEM = {&"dragon_heart":[&"item", &"magic", 15, 0.6, [&"fire", &"area"], "용의 심장"], &"chain_ring":[&"item", &"", 0, 0, [], "연쇄의 고리"],
 	&"bleed":[&"item", &"physical", 0, 0, [&"dot"], "출혈"], &"thorn_armor":[&"item", &"physical", 0, 0, [], "가시 갑옷"], &"echo_staff":[&"item", &"magic", 0, 0, [], "메아리 지팡이"],
 	&"element_stone":[&"item", &"magic", 10, 0.5, [&"explosion", &"area"], "원소 폭발석"], &"storm_crown":[&"item", &"magic", 15, 0.8, [&"lightning"], "폭풍의 왕관"], &"execution":[&"item", &"physical", 0, 0, [], "처형의 낫"],
-	&"cursed_doll":[&"item", &"", 0, 0, [], "저주 인형"], &"star_shard":[&"item", &"magic", 20, 0.6, [&"explosion", &"area"], "별의 파편"]}
+	&"cursed_doll":[&"item", &"", 0, 0, [], "저주 인형"], &"star_shard":[&"item", &"magic", 20, 0.6, [&"explosion", &"area"], "별의 파편"],
+	&"thunder_hammer":[&"item", &"", 12, 0.6, [&"lightning", &"area"], "뇌신의 망치"], &"gunner_shell":[&"item", &"", 0, 0, [&"projectile", &"explosion", &"area"], "포격수의 조준기"],
+	&"giant_spear":[&"item", &"physical", 0, 0, [], "거인 사냥 창"], &"giant_ring":[&"item", &"", 0, 0, [&"area"], "거인의 반지"], &"overlord_wave":[&"item", &"physical", 10, 0.6, [&"melee", &"area"], "패왕의 건틀릿"],
+	&"spirit_bolt":[&"item", &"magic", 6, 0.35, [&"projectile"], "정령 등불"], &"dragon_breath":[&"item", &"magic", 8, 0.35, [&"fire", &"area"], "새끼 용"],
+	&"volcano_burst":[&"item", &"magic", 10, 0.5, [&"fire", &"explosion", &"area"], "화산의 심장"], &"wall_slam":[&"item", &"physical", 8, 0.3, [&"melee"], "벽치기 장갑"]}
 ## Turning-point special strategies; the ratio grows with tower progress (see EnemyStrategyPlanner).
 const STRATEGY = {&"strategy_smash":[&"system", &"", 0, 2.0, [&"area"], "특수전략 · 강타"], &"strategy_cleave":[&"system", &"", 0, 1.5, [], "특수전략 · 가르기"], &"strategy_slash":[&"system", &"", 0, 1.3, [&"area"], "특수전략 · 참격"], &"strategy_sweep":[&"system", &"", 0, 2.4, [&"area"], "특수전략 · 휩쓸어 모으기"]}
 

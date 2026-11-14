@@ -83,12 +83,13 @@ func event(e: Dictionary) -> void:
 		var r: int = rank(item)
 		if r >= 1:host.add_effect("slime_ring", at, grade_color(item), 26 * GRADE_SCALE[r], .35)
 		return
-	var limited: bool = item in LIMITED
+	var limited: bool = item in LIMITED or item in BuildItemFx.LIMITED
 	if limited:
 		if host.real_age - float(recent.get(item, -9.0)) < LIMIT_GAP:return
 		recent[item] = host.real_age
 	var p = host.particles;var shader: bool = host.use_shader_fx;var g: float = gscale(item)
 	if not m.get("trail", false):_grade_burst(item, at, limited)
+	if BuildItemFx.event(self, item, m, at, targets, g):return
 	match item:
 		# ---- 희귀 ----
 		"sniperScope":_mark("crosshair", at, .5, {"size": g, "color": Color("ff5a5a")})
@@ -287,12 +288,13 @@ func draw_ground(c: CanvasItem) -> void:
 			c.draw_arc(Vector2.ZERO, rad * .82, a, a + .45, 6, Color(col.lightened(.3), .55), 2, true)
 		if best == 4:c.draw_arc(Vector2.ZERO, rad * 1.18, t * .5, t * .5 + TAU * .7, 32, Color(col, .3), 1.5, true)
 		c.draw_set_transform_matrix(host.parent_transform)
+	BuildItemFx.draw_ground(self, c)
 
 ## Looks that last while the item's condition holds, drawn with the unit (p: body centre, s: scale).
 func draw_unit(c: CanvasItem, u: BattleUnit, p: Vector2, s: float) -> void:
 	if not u.alive:return
 	var t: float = host.real_age;var stats: UnitCombatStats = u.combat_stats
-	if u.character_specific_state.has("mirrorOf"):
+	if u.character_specific_state.has("mirrorOf") and not u.character_specific_state.has("spiritOf"):
 		c.draw_arc(p, 32 * s, 0, TAU, 32, Color("e8eef8", .65 + .25 * sin(t * 3)), 3, true);VfxArt.glow(c, p, 40 * s, Color("dfe8ff"), .18)
 	# Team auras: 왕의 왕관 (gold crown light), 전쟁의 북 (beat rings), 약점 노출 (red reticle).
 	if ItemEffects.king_blessed(u):
@@ -303,6 +305,7 @@ func draw_unit(c: CanvasItem, u: BattleUnit, p: Vector2, s: float) -> void:
 		for k in range(2):
 			var a: float = t * 2 + k * PI;c.draw_arc(p, 26 * s, a, a + 1.2, 10, Color("ff3a4a", .9), 3, true)
 		c.draw_line(p + Vector2(0, -34) * s, p + Vector2(0, -20) * s, Color("ff3a4a", .8), 2, true)
+	BuildItemFx.draw_unit(self, c, u, p, s)
 	if stats == null or stats.effects.is_empty():return
 	var head: Vector2 = p + Vector2(0, -44 * s)
 	if stats.has(&"berserkerHelm") and ItemEffects.berserk(u):
@@ -378,6 +381,7 @@ func draw_over(c: CanvasItem) -> void:
 		if not pr.live or int(pr.metadata.get("pierced", 0)) <= 0:continue
 		var n: int = int(pr.metadata.pierced);var back: Vector2 = pr.position - pr.velocity.normalized() * (30 + 22 * n)
 		VfxArt.glow(c, pr.position, 14 + 6 * n, Color("bfe9ff"), .3 + .1 * n);c.draw_line(back, pr.position, Color("e8f8ff", .45 + .1 * n), 2 + n, true)
+	BuildItemFx.draw_over(self, c)
 	for m in marks:
 		var age: float = float(m.age) - float(m.get("delay", 0))
 		if age < 0:continue
@@ -546,6 +550,7 @@ func draw_over(c: CanvasItem) -> void:
 				else:
 					var b: float = (k - .5) * 2
 					c.draw_arc(at, float(m.radius) * (.4 + .6 * b), 0, TAU, 32, Color("ffd27a", 1 - b), 5, true);VfxArt.glow(c, at, float(m.radius) * 1.2, Color("ffb46a"), .6 * (1 - b))
+			_:BuildItemFx.draw_mark(c, m, at, k, fade, g, host.real_age)
 	# Rising icons over the bearers' heads: a halo in the grade colour, rays from 전설 up.
 	for pop in pops:
 		var u = host.battle.find_unit(int(pop.actor))

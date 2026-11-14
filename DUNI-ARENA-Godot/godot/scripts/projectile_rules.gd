@@ -10,6 +10,8 @@ static func explode(p) -> void:
 	p.metadata.detonated=true
 	var point: Vector2=p.position
 	var radius: float=p.metadata.get("blast_radius",120)
+	if p.source.battle.full_characters_enabled:radius=BuildItems.blast_radius(p.source,radius)
+	if p.kind=="gunnerShell":ItemEffects.fx(p.source,&"gunnerSight",point,{"blast":true,"radius":radius})
 	for enemy in p.source.enemies(false):
 		if enemy.unavailable() or point.distance_to(enemy.position)>radius+24*enemy.combat_scale():continue
 		var falloff: float=1-.35*clampf(point.distance_to(enemy.position)/radius,0,1) if p.kind=="tankShell" else 1
@@ -28,7 +30,7 @@ static func boundary(p) -> bool:
 	var ty: bool=(p.position.y<=20.00001 and p.velocity.y<0) or (p.position.y>=ArenaMap.side-20.00001 and p.velocity.y>0)
 	if not tx and not ty:return true
 	if p.kind=="frogBody":CharacterLifecycle.finish_body(p);return false
-	if p.kind=="tankShell":explode(p);return false
+	if p.kind=="tankShell" or p.kind=="gunnerShell":explode(p);return false
 	if p.kind=="bomb":p.position=p.position.clamp(Vector2(20.001,20.001),ArenaMap.hi(20.001));p.velocity=Vector2.ZERO;p.metadata.flight=0;return true
 	if p.bounces>0:
 		p.bounces-=1;p.bounce_count+=1
@@ -50,6 +52,9 @@ static func hit(p,target) -> DamageOutcome:
 		if not intercept.is_empty():return out
 		if target.parry.try_block(target,p.source,p.power,p.projectile_id):out.parried=true;return out
 		StatusController.stun(target,4*EquipmentCombatEffects.awl_strength(p.source));return out
+	# 포격수의 조준기: the shell bursts on the first enemy; 거울 방패 turns half the shots back.
+	if p.kind=="gunnerShell":explode(p);return out
+	if p.source.battle.full_characters_enabled and BuildItems.reflect(p,target):return out
 	if p.source.ability.projectile_hit(p.source,p,target):
 		if not p.live:p.attack_instance.life=0
 		return out

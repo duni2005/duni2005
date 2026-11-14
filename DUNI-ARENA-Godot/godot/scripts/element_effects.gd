@@ -122,7 +122,10 @@ static func on_hit(source, target, out: DamageOutcome, spec: Dictionary, options
 	var is_direct: bool = direct(spec, options)
 	var me: String = source.actor_id()
 	if is_direct:
-		if out.hp_damage > 0 and target.state_value("windStacks") > 0:target.set_state("windStacks", 0)
+		# 순풍의 부채 keeps half the gusts, 폭풍의 날개 all of them.
+		if out.hp_damage > 0 and target.state_value("windStacks") > 0:
+			target.set_state("windStacks", floorf(target.state_value("windStacks") * BuildItems.gust_keep(target)))
+			if target.state_value("windStacks") > 0:BuildItems._mark(target, &"stormWings" if ItemEffects.has(target, &"stormWings") else &"tailwindFan", target)
 		if str(target.character_specific_state.get("darkMark", "")) not in ["", me]:
 			target.character_specific_state.erase("darkMark")
 			battle.emit_combat_event(&"dark_pop", target.position, {"actor_id": target.battle_id, "to": [me]})
@@ -134,9 +137,10 @@ static func on_hit(source, target, out: DamageOutcome, spec: Dictionary, options
 		var healed: Array = []
 		for ally in battle.units:
 			if ally.alive and ally.team == source.team and not ally.unavailable() and ally.position.distance_to(source.position) <= LIGHT_RADIUS * source.combat_scale():
-				if CharacterAbility.restore_hp(ally, out.hp_damage * LIGHT_HEAL, source) > 0:healed.append(ally.actor_id())
+				if CharacterAbility.restore_hp(ally, out.hp_damage * (ItemTuning.LAMP_LIGHT_HEAL if ItemEffects.has(source, &"radiantLamp") else LIGHT_HEAL), source) > 0:healed.append(ally.actor_id())
 		# Presentation: orbs of light fly from the struck enemy to each healed ally.
 		if not healed.is_empty():battle.emit_combat_event(&"light_orbs", target.position, {"to": healed})
+		if not healed.is_empty() and ItemEffects.has(source, &"radiantLamp"):BuildItems._mark(source, &"radiantLamp", target)
 	if status != &"" and status != &"chain_shock":return
 	if target.alive:
 		var rng: RandomNumberGenerator = battle.rng
@@ -157,13 +161,17 @@ static func on_hit(source, target, out: DamageOutcome, spec: Dictionary, options
 			target.set_state("lightMark", me)
 		if tags.has(&"dark"):
 			if str(target.character_specific_state.get("darkMark", "")) != me:battle.emit_combat_event(&"dark_mark", target.position, {"actor_id": target.battle_id})
-			target.set_state("erosionTime", EROSION_TIME);target.set_state("erosionSource", me);target.set_state("darkMark", me)
+			target.set_state("erosionTime", BuildItems.erosion_time(source));target.set_state("erosionSource", me);target.set_state("darkMark", me)
+			if ItemEffects.has(source, &"shadowClaw"):BuildItems._mark(source, &"shadowClaw", target)
 	if status == &"" and tags.has(&"lightning") and not source.ability.own_element(&"chain", options):
 		_chain(source, target, out.hp_damage + out.shield_absorbed)
 
 static func add_burn(source, target, stacks: int) -> void:
 	if target.state_value("burnStacks") <= 0:target.set_state("burnTick", BURN_EVERY)
-	target.set_state("burnStacks", minf(BURN_MAX, target.state_value("burnStacks") + stacks));target.set_state("burnSource", source.actor_id())
+	# 화산의 심장: the bearer's burns stack up to VOLCANO_BURN_MAX.
+	var cap: float = ItemTuning.VOLCANO_BURN_MAX if ItemEffects.has(source, &"volcanoHeart") else BURN_MAX
+	if cap > BURN_MAX and target.state_value("burnStacks") + stacks > BURN_MAX:BuildItems._mark(source, &"volcanoHeart", target)
+	target.set_state("burnStacks", minf(maxf(cap, minf(target.state_value("burnStacks"), ItemTuning.VOLCANO_BURN_MAX)), target.state_value("burnStacks") + stacks));target.set_state("burnSource", source.actor_id())
 ## Frost stacks freeze at FREEZE_STACKS. None stack while frozen or frostbitten; frost landing on
 ## a frostbitten unit deals FROSTBITE_HIT instead (queued, dealt on the next tick).
 static func add_frost(source, target, stacks: int) -> void:
@@ -173,8 +181,11 @@ static func add_frost(source, target, stacks: int) -> void:
 		return
 	var total: float = target.state_value("frostStacks") + stacks
 	target.set_state("frostDecay", FROST_DECAY)
-	if total >= FREEZE_STACKS:
-		target.set_state("frostStacks", 0);target.set_state("frozenTime", FREEZE_TIME)
+	# 영구 동토의 왕홀: freezes at PERMAFROST_STACKS, and the frozen unit takes more damage.
+	var deep: bool = is_instance_valid(source) and ItemEffects.has(source, &"permafrostScepter")
+	if total >= (ItemTuning.PERMAFROST_STACKS if deep else FREEZE_STACKS):
+		target.set_state("frostStacks", 0);target.set_state("frozenTime", FREEZE_TIME);target.set_state("deepFreeze", 1.0 if deep else 0.0)
+		if deep:ItemEffects.proc(source, &"permafrostScepter");ItemEffects.fx(source, &"permafrostScepter", target.position)
 		StatusController.stun(target, FREEZE_TIME)
 	else:target.set_state("frostStacks", total)
 ## Freezes at once (빙하 골렘's blast), as if the frost stacks had filled.
@@ -195,7 +206,7 @@ static func add_shock(target, stacks: int = 1) -> void:
 static func _chain(source, first, dealt: float) -> void:
 	var battle = first.battle
 	var struck: Array = [first];var at: Vector2 = first.position;var value: float = dealt
-	for i in range(CHAIN_HOPS):
+	for i in range(CHAIN_HOPS + (ItemTuning.ROD_HOPS if ItemEffects.has(source, &"lightningRod") else 0)):
 		value *= CHAIN_SHARE
 		if value < 1:return
 		var next = null
@@ -203,6 +214,7 @@ static func _chain(source, first, dealt: float) -> void:
 			if e.alive and e.team != source.team and not e.unavailable() and e not in struck and e.position.distance_to(at) <= CHAIN_RANGE and (next == null or e.position.distance_to(at) < next.position.distance_to(at)):next = e
 		if next == null:return
 		battle.emit_combat_event(&"chain_shock", at, {"to": CharacterPersistence.point(next.position)})
+		if i >= CHAIN_HOPS:BuildItems._mark(source, &"lightningRod", next)
 		var out: DamageOutcome = _hit(source, next, &"chain_shock", value, {"plain": true})
 		struck.append(next);at = next.position;value = out.hp_damage + out.shield_absorbed
 
@@ -218,14 +230,15 @@ static func advance(battle, dt: float) -> void:
 				if fire != null:
 					for ally in battle.units.duplicate():
 						if ally != u and ally.alive and ally.team == u.team and not ally.unavailable() and ally.position.distance_to(u.position) <= BURN_RADIUS * u.combat_scale():_hit(fire, ally, &"burn_spread", BURN_SPREAD)
-					_hit(fire, u, &"burn", BURN_DAMAGE)
+					_hit(fire, u, &"burn", BURN_DAMAGE * (ItemTuning.EMBER_BURN if ItemEffects.has(fire, &"emberFlint") else 1.0))
+					if ItemEffects.has(fire, &"emberFlint"):BuildItems._mark(fire, &"emberFlint", u)
 		if not u.alive:continue
 		if u.state_value("poisonStacks") > 0:
 			u.set_state("poisonTick", u.state_value("poisonTick") + dt)
 			if u.state_value("poisonTick") >= POISON_EVERY:
 				u.set_state("poisonTick", u.state_value("poisonTick") - POISON_EVERY)
 				var venom = battle.find_actor(str(u.character_specific_state.get("poisonSource", "")))
-				if venom != null:_hit(venom, u, &"poison", POISON_DAMAGE * u.state_value("poisonStacks"))
+				if venom != null:_hit(venom, u, &"poison", POISON_DAMAGE * u.state_value("poisonStacks") * (ItemTuning.PLAGUE_POISON if ItemEffects.has(venom, &"plagueChalice") else 1.0))
 		if u.state_value("frozenTime") > 0:
 			u.set_state("frozenTime", maxf(0, u.state_value("frozenTime") - dt))
 			if u.state_value("frozenTime") <= 0:u.set_state("frostbiteTime", FROSTBITE_TIME)
