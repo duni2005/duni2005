@@ -2,7 +2,9 @@ class_name CardDetail
 extends Control
 ## The detail of a strategy card or an item: the card alone, enlarged over a dim backdrop, with
 ## one action button under it only when there is something to do (넣기 / 빼기, 장착, 구매).
-## No text besides the card; tapping anywhere off the card and the button closes it.
+## No text besides the card; tapping anywhere off the card and the button closes it. The whole
+## tap (press and release, touch and its emulated mouse events) is swallowed and the overlay
+## stays up a moment after the release, so nothing under it is pressed by the closing tap.
 signal action_pressed(id: int)
 var id: int = 0
 ## Strategy card: its kind. Item: item_kind / item_data / item_color.
@@ -15,10 +17,14 @@ var state: String = "ready"
 var wins: int = 0
 var action: Button
 var t: float = 0
+## Closing: a press outside the card started it; hidden CLOSE_DELAY s after the release.
+var closing: bool = false
+var close_in: float = -1
+const CLOSE_DELAY := .12
 
 func _ready() -> void:
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT);mouse_filter = Control.MOUSE_FILTER_STOP;z_index = 80;theme = ArenaUI.get_theme()
-	action = Button.new();action.name = "Action";action.custom_minimum_size = Vector2(0, 48);ArenaUI.bind(action, func(): action_pressed.emit(id);hide());add_child(action)
+	action = Button.new();action.name = "Action";action.custom_minimum_size = Vector2(0, 48);ArenaUI.bind(action, func(): action.disabled = true;action_pressed.emit(id);closing = true;close_in = CLOSE_DELAY);add_child(action)
 	resized.connect(_layout);hide()
 
 ## A strategy card. action_text: "" for no button; wins_left > 0: shown waiting on its cooldown.
@@ -32,7 +38,7 @@ func open_item(item_id: int, kind_name: StringName, data: ItemData, color: Color
 	_show(action_text, enabled, price)
 
 func _show(action_text: String, enabled: bool, price: int) -> void:
-	t = 0
+	t = 0;closing = false;close_in = -1;mouse_filter = Control.MOUSE_FILTER_STOP
 	var old: Node = action.get_node_or_null("PriceRow")
 	if old != null:action.remove_child(old);old.queue_free()
 	action.text = action_text;action.icon = null
@@ -52,10 +58,20 @@ func _layout() -> void:
 
 func _process(dt: float) -> void:
 	if visible and t < 1:t = minf(1, t + dt / Motion.REACT if GameSettings.motion else 1.0);queue_redraw()
+	if close_in >= 0:
+		close_in -= dt
+		if close_in < 0:closing = false;hide()
 
 func _gui_input(event: InputEvent) -> void:
-	var press: bool = (event is InputEventScreenTouch and event.pressed) or (event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT)
-	if press and not _card_rect().has_point(event.position):hide();accept_event()
+	var tap: bool = event is InputEventScreenTouch or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT)
+	if not tap:
+		if closing:accept_event()
+		return
+	# The action button's own taps (they pass up to here) never close the card.
+	if action.visible and action.get_rect().has_point(event.position) and not closing:return
+	if event.pressed and not _card_rect().has_point(event.position):closing = true
+	elif not event.pressed and closing and close_in < 0:close_in = CLOSE_DELAY
+	if closing:accept_event()
 
 func _draw() -> void:
 	var e: float = Motion.out_quint(t)

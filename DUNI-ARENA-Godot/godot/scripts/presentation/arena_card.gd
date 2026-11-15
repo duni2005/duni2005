@@ -353,6 +353,9 @@ func _draw() -> void:
 			write(Vector2(8,14),tag,8,rim.lightened(.45))
 		if waiting:
 			var clock:=Vector2(size.x-12,12);draw_arc(clock,6,0,TAU,20,rim.lightened(.3),1.5,true);draw_line(clock,clock+Vector2(0,-4),rim.lightened(.3),1.5);draw_line(clock,clock+Vector2(3,0),rim.lightened(.3),1.5)
+		# Worn by a unit: shaded so it reads apart from the free items (the wearer's face stays clear).
+		if slot_kind=="equipped":
+			var shade: StyleBoxFlat=ArenaUI.box(Color(0,0,0,.5),Color(0,0,0,0));shade.set_corner_radius_all(ArenaUI.RADIUS_CARD);draw_style_box(shade,Rect2(Vector2.ZERO,size))
 		if owner_type>=0:UnitIcon.draw(self,Rect2(size.x-21,3,18,18),owner_type)
 		return
 	if card_type=="mini_member":

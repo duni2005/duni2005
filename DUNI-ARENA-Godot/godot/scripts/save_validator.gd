@@ -187,7 +187,7 @@ static func validate_room(room: RoomState) -> String:
 	for id in room.kill_rewards:
 		if not room.enemy_state.has(id) or room.enemy_state[id].alive:return "kill_receipt"
 	# 전투 보상: offered items exist and the pick is one of them (or a skip).
-	if room.item_choices.size()>ItemTuning.REWARD_CHOICES or room.item_choices.any(func(k):return ItemCatalog.get_item(k)==null):return "item_choices"
+	if room.item_choices.size()>ItemTuning.REWARD_CHOICES+6 or room.item_choices.any(func(k):return not ClearRewards.valid(k)):return "item_choices"
 	if room.item_choice!=&"" and room.item_choice!=&"skip" and not room.item_choice in room.item_choices:return "item_choice"
 	if room.recruit!=null:
 		if room.room_type!=RoomType.RECRUIT or room.recruit.revision<0 or not room.recruit.offers.size() in [3,TowerContentService.RECRUIT_SLOTS]:return "recruit"

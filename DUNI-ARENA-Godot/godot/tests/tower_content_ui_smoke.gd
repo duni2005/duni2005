@@ -114,7 +114,7 @@ func flow(touch: bool) -> void:
 	verify(screen.map_scroll.stairs.visible,"real noncombat+combat completion opens the stairs")
 	await click(screen.room_buttons["0:2"],touch);gold=run_state.gold
 	await click(screen.content_screen.content_box.find_child("resources",true,false),touch)
-	verify(run_state.gold==gold+350 and t.guild.state.tower.map.get_room("0:2").consumed,"rest choice+consume via input")
+	verify(run_state.gold==gold+TowerContentService.REST_GOLD and t.guild.state.tower.map.get_room("0:2").consumed,"rest choice+consume via input")
 	var event_room: RoomState=run_state.tower.map.get_room("0:4");event_room.event_type=&"hotSpring"
 	await click(screen.room_buttons["0:4"],touch)
 	verify(screen.content_screen.map_button.disabled,"unfinished event blocks map")

@@ -6,7 +6,13 @@ const REROLL_COST = 200
 const RECRUIT_SLOTS = 4
 const HOT_SPRING_COST = 200
 ## Guild rest: how many dead members one revive brings back (at 20% HP).
-const REST_REVIVE_LIMIT = 3
+## 길드 휴식소: one of player HP, resources, living members' HP or reviving dead members (20% HP).
+const REST_PLAYER_HP = 20
+const REST_GOLD = 400
+const REST_TOKENS = 2
+const REST_HEAL = .4
+const REST_REVIVE_LIMIT = 4
+const REST_REVIVE_HP = .2
 ## Token shop event offers: token price and how many times each can be bought in one visit
 ## (0 = no limit). revive: one chosen dead member at 20% HP; heal: every living member +5% HP;
 ## item: a random item from the floor table; card: a random strategy card; restore: one chosen
@@ -238,10 +244,10 @@ func rest(choice: StringName,members: Array=[]) -> Dictionary:
 	var out: Dictionary={"choice":choice}
 	match choice:
 		&"player":
-			var before: float=guild.state.player_hp;guild.state.player_hp+=15;out["player_hp_gained"]=guild.state.player_hp-before
-		&"resources":guild.state.gold+=350;guild.state.tokens+=1;out["gold"]=350;out["tokens"]=1
+			var before: float=guild.state.player_hp;guild.state.player_hp+=REST_PLAYER_HP;out["player_hp_gained"]=guild.state.player_hp-before
+		&"resources":guild.state.gold+=REST_GOLD;guild.state.tokens+=REST_TOKENS;out["gold"]=REST_GOLD;out["tokens"]=REST_TOKENS
 		&"guild":
-			for member in guild.living_members():GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*.35)
+			for member in guild.living_members():GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*REST_HEAL)
 		&"revive":
 			if members.size()<1 or members.size()>REST_REVIVE_LIMIT:return failure(&"invalid_selection")
 			var seen: Dictionary={}
@@ -250,7 +256,7 @@ func rest(choice: StringName,members: Array=[]) -> Dictionary:
 				if member==null or member.is_alive() or seen.has(id):return failure(&"invalid_selection")
 				seen[id]=true
 			for id in members:
-				var member: GuildMemberState=guild.get_member(id);GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*.2,true);GuildMemberCombatStats.reset_bomber(member)
+				var member: GuildMemberState=guild.get_member(id);GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*REST_REVIVE_HP,true);GuildMemberCombatStats.reset_bomber(member)
 			out["revived"]=members.duplicate()
 		_:return failure(&"invalid_choice")
 	return completion(choice,out)
@@ -276,7 +282,7 @@ func token_shop(choice: StringName,member_id: String="") -> Dictionary:
 	var outcome: Dictionary={"choice":choice,"tokens_spent":int(offer.tokens)}
 	match choice:
 		&"revive":
-			GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*.2,true);GuildMemberCombatStats.reset_bomber(member);outcome["revived"]=[member.member_id]
+			GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*REST_REVIVE_HP,true);GuildMemberCombatStats.reset_bomber(member);outcome["revived"]=[member.member_id]
 		&"restore":
 			outcome["hp_gained"]=GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp);outcome["member_id"]=member.member_id
 		&"heal":
@@ -307,14 +313,15 @@ func blacksmith_sell(item_id: int) -> Dictionary:
 	if instance==null or instance.consumed or not instance.equipped_to_member_id.is_empty() or ItemCatalog.sell_price(instance.kind)<=0:return failure(&"invalid_target")
 	var gold: int=ItemCatalog.sell_price(instance.kind);instance.consumed=true;guild.state.gold+=gold
 	return success({"item_id":item_id,"gold":gold})
-## 전투 보상: after a win the room offers ItemTuning.REWARD_CHOICES items, rolled once from the floor
-## table cut to the room's lowest grade (전투 일반+, 미니보스 희귀+, 보스 영웅+); owned 전설 left out.
+## 클리어 보상: after a win the room offers ItemTuning.REWARD_CHOICES rewards (ClearRewards), rolled
+## once: each a kind, then a grade from the floor table cut to the room's lowest grade (전투 일반+,
+## 미니보스 희귀+, 보스 영웅+); owned 전설 left out.
 func roll_battle_reward(node: RoomState,source: RandomNumberGenerator,extra: int=0) -> void:
 	if node==null or not node.item_choices.is_empty() or node.item_choice!=&"":return
 	var lowest: StringName=ItemTuning.REWARD_MIN_GRADE.get(node.room_type,&"common")
-	node.item_choices=ItemRewards.roll(source,ItemRewards.odds(node.floor_index,lowest),ItemTuning.REWARD_CHOICES+extra,ItemRewards.owned_legendaries(guild.state))
+	node.item_choices=ClearRewards.roll(source,guild.state,ItemRewards.odds(node.floor_index,lowest),ItemTuning.REWARD_CHOICES+extra)
 func pending_reward(node: RoomState) -> bool:return node!=null and not node.item_choices.is_empty() and node.item_choice==&""
-## Takes one offered item, or &"skip" for ItemTuning.SKIP_GOLD gold. Once per room.
+## Takes one offered reward (ClearRewards entry), or &"skip" for ItemTuning.SKIP_GOLD gold. Once per room.
 func pick_reward(kind: StringName) -> Dictionary:
 	var node: RoomState=room()
 	if not pending_reward(node) or guild.state.tower.phase!=&"result":return failure(&"no_reward")
@@ -322,9 +329,9 @@ func pick_reward(kind: StringName) -> Dictionary:
 		guild.state.gold+=ItemTuning.SKIP_GOLD;node.item_choice=&"skip";return success({"gold":ItemTuning.SKIP_GOLD,"skipped":true})
 	if not kind in node.item_choices:return failure(&"invalid_choice")
 	if not inventory.valid():return failure(&"invalid_inventory")
-	var item: ItemInstance=inventory.give(kind,"reward:"+node.room_id)
-	if item==null:return failure(&"invalid_item")
-	node.item_choice=kind;return success({"item_id":item.item_id,"kind":kind})
+	var out: Dictionary=ClearRewards.apply(kind,guild,inventory,"reward:"+node.room_id)
+	if out.is_empty():return failure(&"invalid_item")
+	node.item_choice=kind;return success(out)
 ## Mango sapling: one of revive (member_id), offer or bless.
 func mango(choice: StringName,member_id: String="") -> Dictionary:
 	if not live() or room()==null or guild.state.tower.phase!=&"event_active" or room().event==null or room().event.event_type!=&"mangoSapling" or room().event.resolved:return failure(&"wrong_event")
@@ -336,7 +343,7 @@ func mango(choice: StringName,member_id: String="") -> Dictionary:
 		&"revive":
 			var member: GuildMemberState=guild.get_member(member_id)
 			if member==null or member.is_alive():return failure(&"invalid_target")
-			GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*.2,true);GuildMemberCombatStats.reset_bomber(member);outcome["revived"]=[member_id]
+			GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*REST_REVIVE_HP,true);GuildMemberCombatStats.reset_bomber(member);outcome["revived"]=[member_id]
 		&"offer":
 			var receipt: String="%s:mango:offer"%room().room_id
 			if not ResourceTransaction.can_spend(guild.state,MANGO_OFFERING,0,receipt):return failure(&"funds")

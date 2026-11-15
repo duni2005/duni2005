@@ -1,9 +1,10 @@
 class_name ItemRewardRow
 extends VBoxContainer
-## 전투 보상: the offered items as cards (grade frame, name, effect, grade), 아이템 받기 and 통계. The cards
+## 클리어 보상: the offered rewards (ClearRewards entries: items, strategy cards, gold, tokens, player
+## HP, members' HP) as cards with their grade, 보상 받기 and 통계. The cards
 ## flip in one after another; 영웅 and above burst in their grade colour as they turn, 전설 adds a
 ## short gold flourish. A tap chooses a card (arms 받기); tapping the chosen card again opens it
-## enlarged (CardDetail). 받기 takes it. `picked` carries the item kind.
+## enlarged (items and strategy cards; CardDetail). 받기 takes it. `picked` carries the entry.
 signal picked(kind: StringName)
 signal stats_requested
 ## Shows the 통계 button under 아이템 받기 (the battle result page has one).
@@ -15,29 +16,27 @@ var cards: Array[ArenaCard] = []
 var take_button: Button
 var detail: CardDetail
 var looking: StringName = &""
+var looking_index: int = -1
 var bursts: Array[Dictionary] = []
 var age: float = 0
 
 func setup(kinds: Array, chosen: StringName) -> void:
 	add_theme_constant_override("separation", 8)
-	var title := Label.new();title.text = "보상 아이템 · 1개 선택" if chosen == &"" else "보상 아이템";title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var title := Label.new();title.text = "보상 · 1개 선택" if chosen == &"" else "보상";title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_override("font", ArenaUI.heading_font());title.add_theme_font_size_override("font_size", 15);title.add_theme_color_override("font_color", ArenaUI.GOLD);add_child(title)
 	var row := HBoxContainer.new();row.add_theme_constant_override("separation", 6);row.alignment = BoxContainer.ALIGNMENT_CENTER;add_child(row)
 	for i in range(kinds.size()):
-		var kind: StringName = kinds[i];var data: ItemData = ItemCatalog.get_item(kind)
-		var card := ArenaCard.new();card.name = "reward_%d" % i;card.card_type = "product";card.slot_kind = "item";card.kind = String(kind);card.title = data.display_name
-		card.description = ItemCatalog.body_text(data);card.text = data.display_name;card.tag_text = "소모품" if data.consumable else ItemCatalog.grade_name(kind) + " 아이템";card.item_grade = data.grade if not data.consumable else &""
-		card.rarity = ItemCatalog.grade_color(kind) if not data.consumable else Color(0, 0, 0, 0);card.tooltip_text = data.description
+		var kind: StringName = kinds[i];var card := _reward_card(kind);card.name = "reward_%d" % i
 		card.custom_minimum_size = Vector2(0, 168);card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card.toggle_mode = true;card.selected = chosen == kind;card.set_pressed_no_signal(card.selected)
 		# After the pick the cards stay readable: the others just fade and stop taking taps.
 		if chosen != &"":card.mouse_filter = Control.MOUSE_FILTER_IGNORE;card.modulate.a = 1.0 if chosen == kind else .45
-		ArenaUI.bind(card, _look.bind(kind));row.add_child(card);cards.append(card)
+		ArenaUI.bind(card, _look.bind(i));row.add_child(card);cards.append(card)
 	# The chosen card enlarged (second tap).
 	var layer := CanvasLayer.new();layer.layer = 70;add_child(layer)
 	detail = CardDetail.new();layer.add_child(detail)
-	# 아이템 받기 (armed by tapping a card), and 통계 under it. No skip: one item is always taken.
-	take_button = Button.new();take_button.name = "Take";take_button.text = "아이템 받기";take_button.custom_minimum_size = Vector2(0, 48);take_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL;ArenaUI.primary(take_button)
+	# 보상 받기 (armed by tapping a card), and 통계 under it. No skip: one reward is always taken.
+	take_button = Button.new();take_button.name = "Take";take_button.text = "보상 받기";take_button.custom_minimum_size = Vector2(0, 48);take_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL;ArenaUI.primary(take_button)
 	take_button.disabled = true;take_button.visible = chosen == &"";ArenaUI.bind(take_button, func():if looking != &"":_pick(looking));add_child(take_button)
 	stats_button = Button.new();stats_button.name = "Stats";stats_button.text = "통계";stats_button.custom_minimum_size = Vector2(0, 42);stats_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL;ArenaUI.quiet(stats_button)
 	stats_button.visible = with_stats;ArenaUI.bind(stats_button, func():stats_requested.emit());add_child(stats_button)
@@ -84,12 +83,31 @@ func _draw_burst(b: Dictionary) -> void:
 			for k in range(8):
 				var s: float = fposmod(k * .37 + t, 1.0);overlay.draw_circle(at + Vector2((k - 3.5) * size.x / 8, size.y * (.4 - s)), 2.5 * fade + 1, Color(1, .9, .5, fade))
 
+## One reward as a card: an item (grade frame, effect), a strategy card (the card itself) or an
+## amount (its icon, "골드 +350", the grade).
+static func _reward_card(entry: StringName) -> ArenaCard:
+	var card := ArenaCard.new();card.card_type = "product";card.set_meta("reward", entry)
+	var r: Dictionary = ClearRewards.parse(entry);var grade: StringName = ClearRewards.grade(entry)
+	card.title = ClearRewards.title(entry);card.text = card.title;card.kind = ClearRewards.icon(entry)
+	match r.type:
+		&"item":
+			var data: ItemData = ItemCatalog.get_item(r.value)
+			card.slot_kind = "item";card.description = ItemCatalog.body_text(data);card.tag_text = "소모품" if data.consumable else ItemCatalog.grade_name(r.value) + " 아이템"
+			card.item_grade = data.grade if not data.consumable else &"";card.rarity = ItemCatalog.grade_color(r.value) if not data.consumable else Color(0, 0, 0, 0)
+		&"card":card.slot_kind = "card"
+		_:
+			card.slot_kind = "item";card.tag_text = ItemTuning.GRADE_NAMES.get(grade, "");card.item_grade = grade;card.rarity = ItemTuning.GRADE_COLORS.get(grade, Color(0, 0, 0, 0))
+	return card
+
 ## First tap: choose the card and arm 받기; a second tap on it: the card enlarged.
-func _look(kind: StringName) -> void:
-	var data: ItemData = ItemCatalog.get_item(kind)
-	if looking == kind:detail.open_item(0, kind, data)
-	looking = kind
-	for card in cards:card.selected = card.kind == String(kind);card.set_pressed_no_signal(card.selected);card.queue_redraw()
-	take_button.disabled = false;take_button.text = "아이템 받기 · " + data.display_name
+func _look(index: int) -> void:
+	var kind: StringName = cards[index].get_meta("reward")
+	if looking_index == index:
+		var r: Dictionary = ClearRewards.parse(kind)
+		if r.type == &"item":detail.open_item(0, r.value, ItemCatalog.get_item(r.value))
+		elif r.type == &"card":detail.open(0, r.value)
+	looking = kind;looking_index = index
+	for i in range(cards.size()):cards[i].selected = i == index;cards[i].set_pressed_no_signal(cards[i].selected);cards[i].queue_redraw()
+	take_button.disabled = false;take_button.text = "보상 받기 · " + ClearRewards.title(kind)
 func _pick(kind: StringName) -> void:
 	picked.emit(kind)

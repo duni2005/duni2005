@@ -1467,23 +1467,42 @@ func items_0940(tree: SceneTree) -> void:
 	verify(foe.character_specific_state.has("diceUp") and foe.state_value("diceRoll")>=.6 and foe.state_value("diceRoll")<=1.2,"행운의 주사위: one stat +60~120%, nothing lowered")
 	b.queue_free()
 	var t:=TowerController.new();t.new_run(19,73);var m: GuildMemberState=t.guild.all_members()[0]
-	# 전투 보상: three different items, room minimum grade, pick once or skip for 50 G; the map waits.
+	# 클리어 보상: three rewards (kind first, then grade), room minimum grade, pick once or skip for 50 G.
 	t=TowerController.new();t.new_run(19,73)
 	var node: RoomState=t.guild.state.tower.map.rooms.values().filter(func(r):return r.room_type==RoomType.BATTLE)[0]
 	t.guild.state.tower.selected_room_id=node.room_id;t.guild.state.tower.phase=&"result";node.cleared=true
 	var r:=RandomNumberGenerator.new();r.seed=3;t.content.roll_battle_reward(node,r)
-	verify(node.item_choices.size()==3 and t.content.pending_reward(node) and not t.return_map(),"three items offered; the map waits for the pick")
-	var items: int=t.guild.state.inventory.size()
-	verify(not t.content_action(&"pick_reward",{"kind":&"twoFacedMask"}).ok,"only an offered item")
-	verify(t.content_action(&"pick_reward",{"kind":node.item_choices[1]}).ok and t.guild.state.inventory.size()==items+1 and t.guild.state.inventory.back().kind==node.item_choices[1],"the picked item joins the inventory")
-	verify(not t.content_action(&"pick_reward",{"kind":node.item_choices[0]}).ok and t.return_map(),"one pick per room, then back to the map")
+	verify(node.item_choices.size()==3 and node.item_choices.all(ClearRewards.valid) and t.content.pending_reward(node) and not t.return_map(),"three rewards offered; the map waits for the pick")
+	verify(not t.content_action(&"pick_reward",{"kind":&"item:twoFacedMask"}).ok,"only an offered reward")
+	node.item_choices.assign([&"gold:rare",&"item:warmNecklace",&"card:rally"]);var gold0: int=t.guild.state.gold
+	verify(t.content_action(&"pick_reward",{"kind":&"gold:rare"}).ok and t.guild.state.gold==gold0+350,"골드 (희귀) +350")
+	verify(not t.content_action(&"pick_reward",{"kind":&"item:warmNecklace"}).ok and t.return_map(),"one pick per room, then back to the map")
+	var give_ok: bool=true
+	for e in [[&"item:warmNecklace","item"],[&"card:rally","card"],[&"tokens:legendary","tokens"],[&"heal:epic","heal"],[&"restore:common","restore"]]:
+		var tt:=TowerController.new();tt.new_run(5,5);tt.guild.state.player_hp=50;var mm: GuildMemberState=tt.guild.all_members()[0];mm.current_hp=10
+		var before: Array=[tt.guild.state.inventory.size(),tt.guild.state.strategy_cards.size(),tt.guild.state.tokens]
+		ClearRewards.apply(e[0],tt.guild,tt.content.inventory,"test")
+		match e[1]:
+			"item":give_ok=give_ok and tt.guild.state.inventory.size()==before[0]+1 and tt.guild.state.inventory.back().kind==&"warmNecklace"
+			"card":give_ok=give_ok and tt.guild.state.strategy_cards.size()==before[1]+1 and tt.guild.state.strategy_cards.back().kind==&"rally"
+			"tokens":give_ok=give_ok and tt.guild.state.tokens==before[2]+5
+			"heal":give_ok=give_ok and tt.guild.state.player_hp==65
+			"restore":give_ok=give_ok and is_equal_approx(mm.current_hp,minf(tt.guild.member_stats(mm).max_hp,10+tt.guild.member_stats(mm).max_hp*.07*tt.guild.member_stats(mm).healing_received))
+		if not give_ok:push_error("reward "+String(e[0]))
+	verify(give_ok,"each reward kind gives its amount (item, card, tokens 5, player HP 15, members 7%)")
+	verify(ClearRewards.valid(&"warmNecklace") and ClearRewards.item_kind(&"warmNecklace")==&"warmNecklace" and not ClearRewards.valid(&"gold:ancient"),"a bare item kind (older saves) is an item reward")
+	var counts: Dictionary={}
+	for n in range(400):
+		node.item_choices.clear();node.item_choice=&"";t.content.roll_battle_reward(node,r)
+		for k in node.item_choices:var ty: StringName=ClearRewards.parse(k).type;counts[ty]=int(counts.get(ty,0))+1
+	verify(counts.get(&"item",0)>counts.get(&"card",0) and counts.get(&"card",0)>counts.get(&"gold",0) and counts.get(&"gold",0)>counts.get(&"heal",0) and counts.get(&"heal",0)>0 and counts.get(&"restore",0)>0,"kinds follow 50 / 20 / 10 / 10 / 5 / 5")
 	node.item_choices.clear();node.item_choice=&"";t.guild.state.tower.phase=&"result";t.content.roll_battle_reward(node,r);var gold: int=t.guild.state.gold
 	verify(t.content_action(&"pick_reward",{"kind":&"skip"}).ok and t.guild.state.gold==gold+50 and node.item_choice==&"skip","건너뛰기 pays 50 G")
 	var low: bool=true
 	for kind in [RoomType.MINIBOSS,RoomType.BOSS]:
 		for n in range(30):
 			node.room_type=kind;node.item_choices.clear();node.item_choice=&"";t.content.roll_battle_reward(node,r)
-			if node.item_choices.any(func(k):return ItemCatalog.grade_rank(k)<(1 if kind==RoomType.MINIBOSS else 2)):low=false
+			if node.item_choices.any(func(k):return ClearRewards.grade(k)!=&"" and ItemTuning.GRADES.find(ClearRewards.grade(k))<(1 if kind==RoomType.MINIBOSS else 2)):low=false
 	verify(low,"미니보스 rewards are 희귀+, 보스 rewards 영웅+")
 	node.room_type=RoomType.BATTLE
 	# Legendary once per run: an owned 전설 is never offered again.

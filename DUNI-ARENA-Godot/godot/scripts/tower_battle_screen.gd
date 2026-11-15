@@ -192,8 +192,8 @@ func _format_result(result: BattleResult) -> void:
 		result_rewards.text="승리 보상\n골드 +%d\n토큰 +%d"%[room.gold_reward+equipment_gold,room.token_reward]
 	if result.bounty_gold>0:
 		result_rewards.text=(result_rewards.text+"\n" if result_rewards.visible else "")+"현상금 +%d G"%result.bounty_gold;result_rewards.visible=true
-	if room.cleared and room.item_choice!=&"" and room.item_choice!=&"skip" and ItemCatalog.get_item(room.item_choice)!=null:
-		result_rewards.text=(result_rewards.text+"\n" if result_rewards.visible else "")+"아이템 · "+ItemCatalog.get_item(room.item_choice).display_name;result_rewards.visible=true
+	if room.cleared and room.item_choice!=&"" and room.item_choice!=&"skip" and ClearRewards.valid(room.item_choice):
+		result_rewards.text=(result_rewards.text+"\n" if result_rewards.visible else "")+"보상 · "+ClearRewards.title(room.item_choice);result_rewards.visible=true
 	if result.greed_gold>0:
 		result_rewards.text=(result_rewards.text+"\n" if result_rewards.visible else "")+"탐욕 +%d G"%result.greed_gold;result_rewards.visible=true
 	# 망고 도시락 (passive card): the survivors' healing, with a heal effect over the result.
@@ -203,9 +203,9 @@ func _format_result(result: BattleResult) -> void:
 		if not result_rewards.has_node("LunchHeal"):var heal:=LunchHeal.new();heal.name="LunchHeal";result_rewards.add_child(heal)
 	result_label.hide();result_banner.hide()
 	_show_item_reward()
-## The item reward of a won room. While it waits for a pick the page shows the three cards with
-## 아이템 받기 and 통계 only (no skip, no map button); the taken item gets its 획득 show, then the
-## usual result (통계 · 탐험 지도로) comes back with the item listed.
+## The clear reward of a won room. While it waits for a pick the page shows the three cards with
+## 보상 받기 and 통계 only (no skip, no map button); a taken item gets its 획득 show, then the
+## usual result (통계 · 탐험 지도로) comes back with the reward listed.
 func _show_item_reward() -> void:
 	if is_instance_valid(reward_row):reward_row.queue_free();reward_row=null
 	var pending: bool=room.cleared and not room.item_choices.is_empty() and room.item_choice==&""
@@ -221,12 +221,14 @@ func _pick_item_reward(kind: StringName) -> void:
 	if not result.ok:return
 	if is_instance_valid(reward_row):reward_row.queue_free();reward_row=null
 	result_wallet.updates_suspended=false
-	var gain:=ItemGainShow.play(result_overlay,kind)
-	gain.finished.connect(func():
+	var done:=func():
 		if is_instance_valid(battle) and battle.result!=null:_format_result(battle.result)
 		else:_show_item_reward()
 		next_button.disabled=false
-		if result_column!=null:UiMotion.pop(result_column,0,.96,Motion.ENTER))
+		if result_column!=null:UiMotion.pop(result_column,0,.96,Motion.ENTER)
+	# An item gets its 획득 show; other rewards land at once (the wallet shows gold and tokens).
+	if ClearRewards.item_kind(kind)!=&"":ItemGainShow.play(result_overlay,ClearRewards.item_kind(kind)).finished.connect(done)
+	else:done.call()
 func _finish_retreat_presentation() -> void:
 	# The session and autosave already settled this retreat exactly once.
 	# Returning to the map only routes the existing result.

@@ -232,9 +232,9 @@ func rest_events() -> void:
 		var result: Dictionary=t.content_action(&"rest",{"choice":choice,"members":[reserve.member_id]})
 		verify(result.ok and t.current_room().cleared and t.current_room().consumed,"rest single completion "+String(choice))
 		match choice:
-			&"player":verify(t.guild.state.player_hp==65,"rest player15")
-			&"resources":verify(t.guild.state.gold==gold+50+350 and t.guild.state.tokens==tokens+1,"rest350/1")
-			&"guild":verify(is_equal_approx(m.current_hp,40+150*.35*1.1) and reserve.current_hp==0 and m.energy==1,"rest living35 incoming bonus, no energy")
+			&"player":verify(t.guild.state.player_hp==70,"rest player20")
+			&"resources":verify(t.guild.state.gold==gold+50+400 and t.guild.state.tokens==tokens+2,"rest400/2")
+			&"guild":verify(is_equal_approx(m.current_hp,minf(40+150*.4*1.1,t.guild.member_stats(m).max_hp)) and reserve.current_hp==0 and m.energy==1,"rest living40 incoming bonus, no energy")
 			&"revive":verify(reserve.current_hp==30 and reserve.energy==5,"rest dead20%, no energy change")
 		t.select_room("0:2");verify(t.guild.state.tower.phase==&"cleared" and not t.content_action(&"rest",{"choice":choice}).ok,"consumed rest view only")
 	var t:=tower();t.guild.all_members()[0].current_hp=0;t.guild.all_members()[1].current_hp=0;t.select_room("0:2")
@@ -278,8 +278,12 @@ func token_shop() -> void:
 	for m in dead:m.current_hp=0
 	t.select_room("0:2")
 	verify(t.content_action(&"rest",{"choice":&"revive","members":dead.map(func(m):return m.member_id)}).ok and dead.all(func(m):return m.is_alive()),"rest revives three")
-	t=tower();for m in t.guild.all_members():m.current_hp=0
-	t.select_room("0:2");verify(not t.content_action(&"rest",{"choice":&"revive","members":t.guild.all_members().map(func(m):return m.member_id)}).ok,"rest revive caps at three")
+	t=tower()
+	while t.guild.all_members().size()<6:t.guild.create_member(0)
+	var fallen: Array=t.guild.all_members().slice(0,5)
+	for m in fallen:m.current_hp=0
+	t.select_room("0:2");verify(not t.content_action(&"rest",{"choice":&"revive","members":fallen.map(func(m):return m.member_id)}).ok,"rest revive caps at four")
+	verify(t.content_action(&"rest",{"choice":&"revive","members":fallen.slice(0,4).map(func(m):return m.member_id)}).ok and fallen.slice(0,4).all(func(m):return m.is_alive()),"rest revives four")
 	t=tower();t.guild.state.tokens=30;var down: GuildMemberState=t.guild.all_members()[0];var hurt: GuildMemberState=t.guild.all_members()[1];down.current_hp=0;hurt.current_hp=10
 	verify(not t.content_action(&"token_shop",{"choice":&"heal"}).ok,"token shop needs its event")
 	enter_event(t,&"tokenShop");verify(not t.return_map(),"active token shop locks map")

@@ -107,7 +107,8 @@ func route_loaded() -> void:
 				row.picked.connect(func(kind):
 					if not controller.content_action(&"pick_reward",{"kind":kind}).ok:return
 					row.queue_free()
-					ItemGainShow.play(self,kind).finished.connect(func():if controller.return_map():show_map()))
+					if ClearRewards.item_kind(kind)!=&"":ItemGainShow.play(self,ClearRewards.item_kind(kind)).finished.connect(func():if controller.return_map():show_map())
+					elif controller.return_map():show_map())
 			else:make_button(body,"정산 완료 · 지도로 계속",func():if controller.return_map():show_map())
 	else:_show_selected_room()
 	_show_item_notice()

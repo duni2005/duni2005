@@ -302,10 +302,10 @@ func _choice(parent: Node,id: String,title: String,detail: String,icon: String,c
 	var c:=ArenaCard.new();c.name=id;c.text=title+" · "+detail;c.card_type="event_option";c.kind=icon;c.title=title;c.description=detail;c.price=price;c.size_flags_horizontal=Control.SIZE_EXPAND_FILL;c.custom_minimum_size=Vector2(0,146 if not price.is_empty() else 120);ArenaUI.bind(c,callback);parent.add_child(c);return c
 func render_rest() -> void:
 	var grid: GridContainer=_event_choices(4)
-	_choice(grid,"player","플레이어 회복","HP +15","heart",_action.bind(&"rest",{"choice":&"player"}))
-	_choice(grid,"resources","자원 획득","골드 +350 · 토큰 +1","gold",_action.bind(&"rest",{"choice":&"resources"}))
-	_choice(grid,"guild","생존 유닛 회복","HP +35%","rest",_action.bind(&"rest",{"choice":&"guild"}))
-	var revive:=_choice(grid,"Revival","사망 유닛 부활","최대 %d명 · HP 20%%"%TowerContentService.REST_REVIVE_LIMIT,"star",_show_revive.bind(&"rest"))
+	_choice(grid,"player","플레이어 회복","HP +%d"%TowerContentService.REST_PLAYER_HP,"heart",_action.bind(&"rest",{"choice":&"player"}))
+	_choice(grid,"resources","자원 획득","골드 +%d · 토큰 +%d"%[TowerContentService.REST_GOLD,TowerContentService.REST_TOKENS],"gold",_action.bind(&"rest",{"choice":&"resources"}))
+	_choice(grid,"guild","생존 유닛 회복","HP +%d%%"%roundi(TowerContentService.REST_HEAL*100),"rest",_action.bind(&"rest",{"choice":&"guild"}))
+	var revive:=_choice(grid,"Revival","사망 유닛 부활","최대 %d명 · HP %d%%"%[TowerContentService.REST_REVIVE_LIMIT,roundi(TowerContentService.REST_REVIVE_HP*100)],"star",_show_revive.bind(&"rest"))
 	revive.disabled=controller.guild.all_members().all(func(m):return m.is_alive())
 func _pick_limit() -> int:return TowerContentService.REST_REVIVE_LIMIT if pick_mode==&"rest" else 1
 func _show_revive(mode: StringName=&"rest") -> void:

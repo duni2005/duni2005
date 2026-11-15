@@ -149,3 +149,11 @@ class CardThumb extends Control:
 			draw_string(get_theme_default_font(), Vector2(0, size.y * .5 + 6), "" if locked else "+", HORIZONTAL_ALIGNMENT_CENTER, size.x, 18, Color(1, 1, 1, .35))
 			return
 		StrategyCardArt.draw(self, r, String(card_kind), "selected" if state == "chosen" else state, note, wins)
+		if state == "chosen":
+			# In a slot already: a gold rim, a shade and a check mark set it apart from the others.
+			draw_rect(r, Color(0, 0, 0, .35))
+			var rim: StyleBoxFlat = ArenaUI.box(Color(0, 0, 0, 0), ArenaUI.GOLD);rim.draw_center = false;rim.set_border_width_all(3);rim.set_corner_radius_all(6)
+			draw_style_box(rim, r.grow(1))
+			var at := Vector2(size.x * .5, size.y * .5);var cr: float = minf(size.x, size.y) * .2
+			draw_circle(at, cr, ArenaUI.GOLD)
+			draw_polyline(PackedVector2Array([at + Vector2(-cr * .45, 0), at + Vector2(-cr * .1, cr * .38), at + Vector2(cr * .5, -cr * .35)]), Color("1a1408"), maxf(2, cr * .22), true)
