@@ -16,8 +16,10 @@ extends RefCounted
 ## v10: strategy card rework: a card keeps its kind; a cooldown counted in floors becomes the wins
 ## still to go (capped at the card's new cooldown), floor-use records are dropped, and the run
 ## stores the card loadout and the last loadout.
-const CURRENT_VERSION=10
-const MIGRATION_LABEL="card-rework-v10"
+## v11: card kinds (active / passive) and five passive cards (0.99): owned cards, cooldowns and
+## loadouts are kept as they are.
+const CURRENT_VERSION=11
+const MIGRATION_LABEL="card-passive-v11"
 static func prepare(value: Variant) -> SaveLoadResult:
 	if not value is Dictionary or not SaveValueCodec.integer(value.get("schema_version")):
 		return SaveLoadResult.failure(SaveLoadResult.Code.VALIDATION_ERROR,"schema_required")
@@ -31,6 +33,7 @@ static func prepare(value: Variant) -> SaveLoadResult:
 	if int(document.schema_version)==7:document=v7_to_v8(document)
 	if int(document.schema_version)==8:document=v8_to_v9(document)
 	if int(document.schema_version)==9:document=v9_to_v10(document)
+	if int(document.schema_version)==10:document=v10_to_v11(document)
 	if int(document.schema_version)!=CURRENT_VERSION:return SaveLoadResult.failure(SaveLoadResult.Code.UNSUPPORTED_VERSION,"unsupported_schema")
 	var result:=SaveLoadResult.new();result.document=document;return result
 ## Levels become the experience that reaches them, runs start without sortie upgrades, and a
@@ -159,9 +162,12 @@ static func v9_to_v10(source: Dictionary) -> Dictionary:
 		if not card is Dictionary:continue
 		var data: StrategyCardData=StrategyCardCatalog.get_card(StringName(str(card.get("kind",""))))
 		var waiting: int=maxi(0,int(card.get("ready_floor",0))-unlocked) if SaveValueCodec.integer(card.get("ready_floor")) else 0
-		card["wins_left"]=mini(waiting,data.cooldown_wins) if data!=null and data.usage_rule==StrategyCardData.Usage.COOLDOWN else 0
+		card["wins_left"]=mini(waiting,data.cooldown_wins) if data!=null and data.cooldown_type==&"cooldown" else 0
 		for old in ["used_depth","used_floors","ready_floor"]:card.erase(old)
 	run["card_loadout"]=[];run["last_card_loadout"]=[]
+	return document
+static func v10_to_v11(source: Dictionary) -> Dictionary:
+	var document: Dictionary=source.duplicate(true);document.schema_version=11;document.migration_version=MIGRATION_LABEL
 	return document
 ## "아이템 개편으로 사라진 조합 아이템 2개를 회수하고 520 G를 돌려드렸습니다." (empty when nothing changed)
 static func refund_notice(kinds: Array,gold: int) -> String:

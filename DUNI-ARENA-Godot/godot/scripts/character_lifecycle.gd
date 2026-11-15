@@ -32,6 +32,7 @@ static func protected(u) -> bool:
 static func intercept_lethal(u,hp_damage: float,executed: bool=false) -> bool:
 	if not u.alive or u.unavailable() or (not executed and hp_damage<u.current_hp):return false
 	if ItemEffects.rewind_lethal(u):return true
+	if BattlePassives.indomitable(u):return true
 	if EquipmentCombatEffects.phoenix(u):return true
 	if u.data.type_id==35 and load("res://scripts/abilities/slime_ability.gd").split(u):return true
 	var heroes: Array=u.battle.units.filter(func(v):return v!=u and v.alive and v.team==u.team and v.data.type_id==17 and not v.hero_rescue_used)

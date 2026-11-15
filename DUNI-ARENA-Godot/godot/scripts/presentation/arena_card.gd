@@ -41,6 +41,8 @@ var item_grade: StringName=&""
 var copies: int=0
 var tag_text: String=""
 var rule_text: String=""
+## Strategy card slots: won battle rooms still to go on its cooldown (the hourglass badge).
+var card_wins: int=0
 const SLOT_COLORS={"equipment":["1b2440","5a7ad0","장비"],"consumable":["1a2e2a","5fb592","소모품"],"equipped":["1c3438","4fc6c0","장착"],"strategy":["2a2142","a07ad8","전략"],"cooldown":["1a1826","5a4f72","대기"]}
 var cached_style: StyleBoxFlat
 ## Entrance (UiMotion.enter): seconds since the card's mask started opening (negative while it
@@ -161,7 +163,7 @@ func _draw() -> void:
 	if card_type=="hand_card":
 		# Strategy card in the turning-point hand: drawn as a real card.
 		var state: String="selected" if button_pressed else ("waiting" if status_text!="사용함" else "used") if disabled else "ready"
-		StrategyCardArt.draw(self,Rect2(Vector2(3,3),size-Vector2(6,8)),kind,title,description,"",state,status_text)
+		StrategyCardArt.draw(self,Rect2(Vector2(3,3),size-Vector2(6,8)),kind,state,status_text,card_wins)
 		return
 	if card_type=="tp_member":
 		_draw_tp_member();return
@@ -330,6 +332,11 @@ func _draw() -> void:
 		else:write(Vector2(0,size.y-7),UnitRarity.label(type_id),9,UnitRarity.color(type_id).lightened(.2),size.x,true)
 		if kind in ["boss","miniboss"]:ArenaIcon.draw(self,Vector2(size.x-11,12),kind,15,Color.WHITE)
 		return
+	if card_type=="slot" and slot_kind in ["strategy","cooldown"]:
+		# Inventory strategy card: the card itself (small), dimmed with its hourglass while waiting.
+		var cw: float=minf(size.x-4,(size.y-4)*.78)
+		StrategyCardArt.draw(self,Rect2(Vector2((size.x-cw)*.5,2),Vector2(cw,size.y-4)),kind,"waiting" if slot_kind=="cooldown" else "ready","",card_wins,0)
+		return
 	if card_type=="slot":
 		var waiting: bool=slot_kind=="cooldown";var rim: Color=Color(SLOT_COLORS[slot_kind][1]) if SLOT_COLORS.has(slot_kind) else muted
 		if rarity.a>0:
@@ -412,17 +419,30 @@ func _draw() -> void:
 			draw_colored_polygon(points,gold)
 
 ## Shop shelf tag in the top-left corner: 아이템 or 전략카드.
-## Shop and reward cards: a tag row on top (nothing drawn over it), the item icon in its badge or
-## the strategy card's art window, the name (two lines), a short rule line, the effect text filling
-## the rest, and the price / grade chip at the bottom when there is one.
+## Shop and reward cards. A strategy card is drawn as the card itself (StrategyCardArt, large) with
+## the copies chip and price under it. An item: a tag row on top, the icon in its badge, the name
+## (two lines), a short rule line, the effect text filling the rest, and the price / grade chip.
 func _draw_product() -> void:
 	var is_card: bool=slot_kind=="card"
-	var theme: Array=StrategyCardArt.theme_for(kind) if is_card else []
-	var accent: Color=(theme[1] if is_card else rarity if rarity.a>0 else Color("8f9ab6"))
+	if is_card:
+		# Strategy card product (shop, rewards, codex): the card itself, large, price chip under it.
+		var bottom: float=44.0 if not price.is_empty() else 4.0
+		StrategyCardArt.draw(self,Rect2(Vector2(3,3),Vector2(size.x-6,size.y-3-bottom)),kind,"ready","",0,1)
+		if copies>1:
+			var cfont: Font=get_theme_default_font();var cw: float=cfont.get_string_size("×%d"%copies,HORIZONTAL_ALIGNMENT_LEFT,-1,11).x+12
+			var chip: StyleBoxFlat=ArenaUI.box(Color("3a2f18"),Color("c9a24a"));chip.set_corner_radius_all(6)
+			draw_style_box(chip,Rect2(5,size.y-bottom-22,cw,17));write(Vector2(11,size.y-bottom-9),"×%d"%copies,11,ArenaUI.GOLD)
+		if not price.is_empty():draw_price_chip(Rect2(7,size.y-38,size.x-14,30),"구매 완료")
+		if sold:
+			draw_rect(Rect2(Vector2.ZERO,size),Color(0,0,0,.45))
+			var band:=Rect2(Vector2(0,size.y*.4-12),Vector2(size.x,24));draw_rect(band,Color(0,0,0,.6))
+			write(Vector2(0,band.get_center().y+5),"구매 완료",13,Color("c9d0e6"),size.x,true)
+		return
+	var accent: Color=rarity if rarity.a>0 else Color("8f9ab6")
 	var dim: bool=sold
 	var w: float=size.x;var font: Font=get_theme_default_font()
 	# Tag row.
-	var tag: String=tag_text if not tag_text.is_empty() else "전략카드" if is_card else "아이템"
+	var tag: String=tag_text if not tag_text.is_empty() else "아이템"
 	var tw: float=font.get_string_size(tag,HORIZONTAL_ALIGNMENT_LEFT,-1,10).x+12
 	var pill: StyleBoxFlat=ArenaUI.box(Color(accent,.22),Color(accent,.8));pill.set_corner_radius_all(6)
 	draw_style_box(pill,Rect2(7,7,tw,17));write(Vector2(13,20),tag,10,accent.lightened(.45))
@@ -432,18 +452,9 @@ func _draw_product() -> void:
 		draw_style_box(chip,Rect2(w-cw-7,7,cw,17));write(Vector2(w-cw-1,20),"×%d"%copies,11,ArenaUI.GOLD)
 	# Art.
 	var art_h: float=clampf(size.y*.27,46,72);var art_c: Vector2=Vector2(w*.5,30+art_h*.5)
-	if is_card:
-		var win:=Rect2(Vector2(w*.5-art_h*.75,30),Vector2(art_h*1.5,art_h))
-		var box: StyleBoxFlat=ArenaUI.box(Color(theme[0],1),Color(accent,.7));box.set_corner_radius_all(8);draw_style_box(box,win)
-		VfxArt.glow(self,art_c,art_h*.7,accent,.25);ArenaIcon.draw(self,art_c,kind,art_h*.66,Color(1,1,1,.5 if dim else 1))
-		# Use icon (유닛 / 위치 / 즉시) on the art window's corner.
-		var card_data: StrategyCardData=StrategyCardCatalog.get_card(StringName(kind))
-		if card_data!=null:
-			var ic: Vector2=Vector2(win.end.x-9,win.position.y+9);draw_circle(ic,9,Color(0,0,0,.6));draw_arc(ic,9,0,TAU,16,Color(accent,.8),1.5,true);ArenaIcon.draw(self,ic,card_data.use_icon(),13,Color.WHITE)
-	else:
-		if rarity.a>0:VfxArt.glow(self,art_c,art_h*.75,rarity,.25)
-		draw_badge(art_c,art_h*.42,Color(accent,.9) if rarity.a>0 else ArenaUI.GOLD)
-		ArenaIcon.draw(self,art_c,kind,art_h*.52,Color(1,1,1,.5 if dim else 1))
+	if rarity.a>0:VfxArt.glow(self,art_c,art_h*.75,rarity,.25)
+	draw_badge(art_c,art_h*.42,Color(accent,.9) if rarity.a>0 else ArenaUI.GOLD)
+	ArenaIcon.draw(self,art_c,kind,art_h*.52,Color(1,1,1,.5 if dim else 1))
 	# Name (up to two lines) and the rule line.
 	var y: float=30+art_h+20
 	var name_color: Color=rarity.lightened(.3) if rarity.a>0 else Color("eef1fa")

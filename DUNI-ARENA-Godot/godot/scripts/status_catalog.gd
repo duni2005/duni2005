@@ -14,10 +14,17 @@ const KINDS = {
 	&"growth":["성장", Color("ffd36b")],
 	&"unique":["고유", Color("8fd0ff")],
 	&"item":["아이템", Color("7fe8e0")],
+	&"card":["전략카드", Color("e8c46a")],
 }
-const KIND_ORDER = [&"control", &"debuff", &"mark", &"buff", &"growth", &"unique", &"item"]
+const KIND_ORDER = [&"control", &"debuff", &"mark", &"buff", &"growth", &"unique", &"item", &"card"]
 ## key -> [name, kind, icon, description]
 const ENTRIES = {
+	# 패시브 전략카드 (on for the battle they are taken into).
+	&"card_rally":["전열 정비", &"card", "rally", "패시브 카드. 전투 시작 시 아군 전원이 최대 HP 10% 보호막을 10초 동안 받았다."],
+	&"card_resonance":["원소 공명", &"card", "resonance", "패시브 카드. 같은 속성 아군이 2명 이상 서 있는 동안 그 속성 아군의 피해 +20%."],
+	&"card_command_flag":["지휘 깃발", &"card", "command_flag", "패시브 카드. 이번 전투의 터닝포인트 간격이 30초에서 22초로 짧아진다(첫 터닝포인트는 12초)."],
+	&"card_indomitable":["불굴의 의지", &"card", "indomitable", "패시브 카드. 이번 전투에서 처음 쓰러질 아군 1명이 HP 30%로 버티고 2초 무적이 된다."],
+	&"card_lunchbox":["망고 도시락", &"card", "lunchbox", "패시브 카드. 이 전투에서 이기면 출정해 살아남은 아군이 HP 15%를 회복한다."],
 	&"stun":["기절", &"control", "star", "아무 행동도 할 수 없다. 감전 5스택, 송곳, 특수 전략 등으로 걸린다."],
 	&"frozen":["빙결", &"control", "ether", "얼음에 갇혀 움직일 수 없다(기절). 풀리면 동상이 남는다."],
 	&"tether":["말뚝 속박", &"control", "anvil", "말뚝 주변 작은 원 밖으로 나갈 수 없다."],
@@ -232,6 +239,16 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	if stats != null and stats.has(&"steelGreatsword") and u != null:add.call(&"smash_ready", "%d/%d" % [int(_num(s, "smashCount")) + 1, ItemTuning.GREATSWORD_EVERY])
 	if s.has("mirrorOf") and not s.has("spiritOf"):add.call(&"mirror_clone")
 	if _num(s, "rewindReady") > 0:add.call(&"rewind_ready")
+	# 전략카드 (패시브): on every deployed ally of a battle that has them.
+	if u != null and u.original_team == 0 and not u.source_member_id.is_empty():
+		for kind in BattlePassives.active(u.battle):
+			match kind:
+				&"resonance":
+					if CharacterCatalog.element(u.data.type_id) in BattlePassives.paired_elements(u.battle):add.call(&"card_resonance", "+20%")
+				&"indomitable":add.call(&"card_indomitable", "사용됨" if u.battle.get_meta("indomitable_used", false) else "준비")
+				&"command_flag":add.call(&"card_command_flag", "%d초" % roundi(u.battle.turning.interval) if u.battle.turning != null else "")
+				&"lunchbox":add.call(&"card_lunchbox", "승리 시")
+				&"rally":add.call(&"card_rally")
 	# 아이템
 	if stats != null:
 		if stats.vigor_totem_count > 0:add.call(&"vigor_totem", "×%d" % stats.vigor_totem_count)

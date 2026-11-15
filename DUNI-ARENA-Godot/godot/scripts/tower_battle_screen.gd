@@ -196,6 +196,11 @@ func _format_result(result: BattleResult) -> void:
 		result_rewards.text=(result_rewards.text+"\n" if result_rewards.visible else "")+"아이템 · "+ItemCatalog.get_item(room.item_choice).display_name;result_rewards.visible=true
 	if result.greed_gold>0:
 		result_rewards.text=(result_rewards.text+"\n" if result_rewards.visible else "")+"탐욕 +%d G"%result.greed_gold;result_rewards.visible=true
+	# 망고 도시락 (passive card): the survivors' healing, with a heal effect over the result.
+	var lunch: Dictionary=battle.get_meta("lunchbox_healed",{}) if is_instance_valid(battle) else {}
+	if not lunch.is_empty():
+		result_rewards.text=(result_rewards.text+"\n" if result_rewards.visible else "")+"망고 도시락 · %d명 HP +%d"%[lunch.size(),roundi(lunch.values().reduce(func(x,y):return x+float(y),0.0))];result_rewards.visible=true
+		if not result_rewards.has_node("LunchHeal"):var heal:=LunchHeal.new();heal.name="LunchHeal";result_rewards.add_child(heal)
 	result_label.hide();result_banner.hide()
 	_show_item_reward()
 ## The item reward of a won room. While it waits for a pick the page shows the three cards with
@@ -226,3 +231,22 @@ func _finish_retreat_presentation() -> void:
 	# The session and autosave already settled this retreat exactly once.
 	# Returning to the map only routes the existing result.
 	if tower_controller.return_map():map_requested.emit()
+
+## 망고 도시락's heal on the result: green light and rising plus signs over the rewards (1.6 s;
+## shown at once and still with UI animation off).
+class LunchHeal extends Control:
+	var age: float = 0
+	func _ready() -> void:
+		mouse_filter=Control.MOUSE_FILTER_IGNORE;set_anchors_preset(Control.PRESET_FULL_RECT)
+		if not GameSettings.motion:age=.8
+	func _process(dt: float) -> void:
+		if GameSettings.motion:age+=dt
+		if age>1.6:queue_free()
+		queue_redraw()
+	func _draw() -> void:
+		var k: float=clampf(age/1.6,0,1);var a: float=sin(k*PI)
+		VfxArt.glow(self,Vector2(size.x*.3,size.y-10),70,ArenaUI.HP,.35*a)
+		ArenaIcon.draw(self,Vector2(size.x-18,size.y-12),"lunchbox",22,Color(1,1,1,a))
+		for i in range(6):
+			var p:=Vector2(size.x*(.1+.15*i),size.y-4-(30+i*7)*k)
+			draw_line(p-Vector2(4,0),p+Vector2(4,0),Color(ArenaUI.HP,a),2);draw_line(p-Vector2(0,4),p+Vector2(0,4),Color(ArenaUI.HP,a),2)

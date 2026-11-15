@@ -28,6 +28,7 @@ var result_label: Label
 var result_icon: String="crown"
 var result_banner: BattleResultBanner
 var battle_cue: BattleCueOverlay
+var passive_strip: PassiveStrip
 var result_heading: Label
 var arena_home: Node
 var arena_index: int
@@ -126,6 +127,8 @@ func _build_ui() -> void:
 	column.add_child(turning_panel)
 	column.move_child(turning_panel, deployment_legend.get_index())
 	battle_cue=BattleCueOverlay.new();battle_cue.board=board;add_child(battle_cue)
+	# Passive strategy cards on in this battle: icons down the board's left edge.
+	passive_strip=PassiveStrip.new();passive_strip.name="PassiveStrip";passive_strip.position=Vector2(6,40);board.add_child(passive_strip)
 	var kill_feed:=KillFeed.new();kill_feed.board=board;kill_feed.status=status;add_child(kill_feed)
 	end_overlay=RetreatPresentation.new();add_child(end_overlay)
 	loadout_panel=CardLoadoutPanel.new();loadout_panel.name="CardLoadout";arena_home.add_child(loadout_panel);loadout_panel.hide()
@@ -271,6 +274,7 @@ func _process(delta: float) -> void:
 	status.battle=battle;status.combat_active=not board.editing;status.spectator_paused=watch_paused
 	_refresh_ai_debug()
 	if battle_cue!=null:battle_cue.observe(battle,delta)
+	if passive_strip!=null:passive_strip.battle=battle if is_instance_valid(battle) else null
 	super._process(delta)
 	if session != null and is_instance_valid(battle) and battle.started and not battle.finished:
 		retreat_button.disabled = session.retreat.check(battle, guild.state) != RetreatController.Code.OK

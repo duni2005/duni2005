@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StrategyCardData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/strategy_card_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"command_flag"
+display_name = "지휘 깃발"
+description = "이번 전투의 터닝포인트 간격 30초 → 22초 · 첫 터닝포인트는 12초 그대로"
+amount = 22
+duration = 0
+gold_price = 240
+card_kind = &"passive"
+usage = &"none"
+cooldown_type = &"cooldown"
+cooldown_wins = 2
+conditions = Array[StringName]([])
+disrupt = &""
+extra = 0
+image = ""

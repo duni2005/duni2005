@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StrategyCardData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/strategy_card_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"lunchbox"
+display_name = "망고 도시락"
+description = "이 전투에서 이기면 출정해 살아남은 아군 HP 15% 회복"
+amount = 0.15
+duration = 0
+gold_price = 120
+card_kind = &"passive"
+usage = &"none"
+cooldown_type = &"consume"
+cooldown_wins = 0
+conditions = Array[StringName]([])
+disrupt = &""
+extra = 0
+image = ""

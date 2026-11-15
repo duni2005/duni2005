@@ -11,6 +11,7 @@ var status: Label
 var upgrade_button: Button
 var item_dialog: ConfirmationDialog
 var pending_item_id: int = 0
+var card_detail: StrategyCardDetail
 var pending_member_id: String = ""
 var close_button: Button
 var active_tab: String="guild"
@@ -242,7 +243,7 @@ func render() -> void:
   var key: String="card_%d_%s"%[card.card_id,on_hold];var button: ArenaCard=pool.get(key);pool.erase(key)
   if button==null:button=ArenaCard.new();button.name=key;ArenaUI.bind(button,_inspect_card.bind(data,on_hold,card.wins_left))
   button.kind=String(card.kind);button.title=data.display_name;button.description=data.description;button.text="🃏 %s · 전략카드"%data.display_name;button.status_text="전략"
-  button.price="%d승 후"%card.wins_left if on_hold else data.kind_text()
+  button.price="%d승 후"%card.wins_left if on_hold else data.kind_text();button.card_wins=card.wins_left
   button.card_type="slot";button.slot_kind="cooldown" if on_hold else "strategy";button.custom_minimum_size=Vector2(60,64);button.size_flags_horizontal=Control.SIZE_EXPAND_FILL;button.tooltip_text=data.description
   button.queue_redraw();order.append(button)
  # Empty slots fill only the rows that fit, so the grid scrolls only when items need it.
@@ -356,11 +357,14 @@ func _inspect(id: int) -> void:
  item_note.add_theme_color_override("font_color",ArenaUI.DANGER if full else ArenaUI.MUTED)
  item_dialog.get_ok_button().text="사용" if data.consumable else "장착";item_dialog.get_ok_button().disabled=not controller.content.can_manage() or full or member==null
  _show_item_sheet(String(item.kind),data.display_name,"소모품" if data.consumable else "%s 장비"%ItemCatalog.grade_name(item.kind),data.description,Color(0,0,0,0) if data.consumable else ItemCatalog.instance_color(item))
+## A strategy card opens as the large card (the shared StrategyCardDetail), with how it is used.
 func _inspect_card(data: StrategyCardData,on_hold: bool=false,wins_left: int=0) -> void:
- pending_item_id=0;item_target.visible=false
- item_note.text="쿨타임 중 · 전투방을 %d번 더 이기면 다시 쓸 수 있습니다."%wins_left if on_hold else "전투방 배치 전에 가지고 들어갈 카드(최대 %d장)로 고르고, 터닝포인트에서 위로 밀어 올려 사용합니다."%StrategyCardTuning.LOADOUT_SIZE;item_note.add_theme_color_override("font_color",ArenaUI.MUTED)
- item_dialog.get_ok_button().text="터닝포인트에서 사용";item_dialog.get_ok_button().disabled=true
- _show_item_sheet(String(data.kind),data.display_name,"전략카드 · "+data.rule_line(),data.description)
+ pending_item_id=0
+ if card_detail==null:
+  var layer:=CanvasLayer.new();layer.layer=70;add_child(layer)
+  card_detail=StrategyCardDetail.new();layer.add_child(card_detail)
+ var how: String="패시브 · 전투 전 카드 선택에서 슬롯에 넣으면 그 전투 내내 적용" if data.passive() else "전투 전 카드 선택에서 고르고, 터닝포인트에서 위로 밀어 올려 사용"
+ card_detail.open(0,data.kind,"쿨타임 중 · 전투방을 %d번 더 이기면 다시 쓸 수 있습니다."%wins_left if on_hold else how)
 func _confirm_item() -> void:
  if pending_item_id==0:return
  var result: Dictionary=controller.content_action(&"equip",{"item_id":pending_item_id,"member_id":pending_member_id});status.text="장비 적용" if result.ok else "장비 적용 불가 · "+String(result.code)

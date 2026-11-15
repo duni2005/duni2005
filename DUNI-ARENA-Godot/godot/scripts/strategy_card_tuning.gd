@@ -23,7 +23,10 @@ const HAND_CARD := Vector2(66, 94)
 const HAND_FAN_DEG: float = 5.0
 const HAND_ARC: float = 2.5
 const HAND_LIFT: float = 18.0
-const HAND_GRAB_SCALE: float = 1.12
+## A pressed or lifted card grows into the large card (with its description).
+const HAND_GRAB_SCALE: float = 2.3
+## A lifted card past the use line (the field stays visible).
+const PAST_SCALE: float = 1.15
 ## A press becomes a lift once it moves this far up and mostly vertically.
 const LIFT_START: float = 14.0
 const LIFT_VERTICAL: float = 1.25

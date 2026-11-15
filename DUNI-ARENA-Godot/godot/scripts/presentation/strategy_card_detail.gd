@@ -1,7 +1,7 @@
 class_name StrategyCardDetail
 extends Control
-## Full-screen detail of a strategy card: the card large (kind, condition, use, effect), a line
-## of status (e.g. "2승 후 사용 가능"), an optional action button (넣기 / 빼기) and 닫기. Tapping
+## Full-screen detail of a strategy card: the large card (StrategyCardArt: type band, badge,
+## condition and effect), the rule line (종류 · 사용 방식 · 쿨타임 종류 · 조건), a line of status (e.g. "2승 후 사용 가능"), an optional action button (넣기 / 빼기) and 닫기. Tapping
 ## the dim backdrop closes it.
 signal action_pressed(card_id: int)
 var card_id: int = 0
@@ -54,4 +54,4 @@ func _draw() -> void:
 	if data == null:return
 	var r: Rect2 = _card_rect();var grow: float = (1 - e) * .15
 	r = r.grow_individual(-r.size.x * grow, -r.size.y * grow, -r.size.x * grow, -r.size.y * grow)
-	StrategyCardArt.draw(self, r, String(kind), data.display_name, "", "", "ready")
+	StrategyCardArt.draw(self, r, String(kind), "ready", "", 0, 1)

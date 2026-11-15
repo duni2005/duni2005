@@ -123,9 +123,14 @@ func show_tab(key: String) -> void:
 				var card: ArenaCard = _card(String(kind), "slot", String(kind), data.display_name, ItemCatalog.grade_name(kind), ItemCatalog.grade_color(kind), Vector2(66, 72));card.item_grade = data.grade
 		"card":
 			grid.columns = maxi(3, int(width / 112))
-			for kind in StrategyCardCatalog.DEFINITIONS:
+			# 액티브 then 패시브; within each, 소모 → 일반 → 쿨타임 (shorter first), then catalog order.
+			var kinds: Array = StrategyCardCatalog.DEFINITIONS.keys()
+			var rank := func(k): var d: StrategyCardData = StrategyCardCatalog.get_card(k);return (1000 if d.passive() else 0) + [&"consume", &"normal", &"cooldown"].find(d.cooldown_type) * 100 + d.cooldown_wins * 10
+			var order: Array = kinds.duplicate()
+			order.sort_custom(func(x, y): return rank.call(x) < rank.call(y) if rank.call(x) != rank.call(y) else kinds.find(x) < kinds.find(y))
+			for kind in order:
 				var data: StrategyCardData = StrategyCardCatalog.get_card(kind)
-				var c: ArenaCard = _card(String(kind), "product", String(kind), data.display_name, "%d G" % data.gold_price, Color(0, 0, 0, 0), Vector2(104, 168));c.slot_kind = "card";c.description = data.description;c.rule_text = data.rule_line()
+				var c: ArenaCard = _card(String(kind), "product", String(kind), data.display_name, "%d G" % data.gold_price, Color(0, 0, 0, 0), Vector2(104, 196));c.slot_kind = "card";c.description = data.description;c.rule_text = data.rule_line()
 		"event":
 			grid.columns = maxi(3, int(width / 96))
 			for row in EVENTS:_card(row[0], "slot", row[1], row[2], "", Color(0, 0, 0, 0), Vector2(86, 72))
@@ -192,7 +197,7 @@ func _select(node_name: String) -> void:
 		"card":
 			var data: StrategyCardData = StrategyCardCatalog.get_card(StringName(key));icon_kind = key
 			detail_title.text = data.display_name;detail_sub.text = data.rule_line() + " · %d G" % data.gold_price
-			detail_text.text = "%s\n소모는 쓰면 사라지고, 일반은 가지고 들어간 전투마다 1번, 쿨타임 N은 쓴 뒤 전투방을 N번 이기면 다시 쓸 수 있다. 전투방 배치 전에 최대 5장을 골라 들고 가고, 터닝포인트에서 패의 카드를 위로 밀어 올려 쓴다. 상점 · 보물상자 · 복권 · 토큰 상점에서 얻는다." % data.description
+			detail_text.text = "%s\n%s 소모는 쓰면 사라지고, 일반은 가지고 들어간 전투마다 1번, 쿨타임 N은 쓴 뒤 전투방을 N번 이기면 다시 쓸 수 있다. 상점 · 보물상자 · 복권 · 토큰 상점에서 얻는다." % [data.description, "패시브: 전투 전 카드 선택에서 슬롯에 넣으면 그 전투 내내 저절로 적용되고 직접 쓰지 않는다." if data.passive() else "액티브: 전투방 배치 전에 최대 5장을 골라 들고 가고, 터닝포인트에서 패의 카드를 위로 밀어 올려 쓴다."]
 		"event":
 			for row in EVENTS:
 				if row[0] == key:icon_kind = row[1];detail_title.text = row[2];detail_text.text = row[3]

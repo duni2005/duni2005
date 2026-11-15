@@ -64,6 +64,8 @@ func _on_death(unit: BattleUnit, _source) -> void:
 
 func _on_finished(result: BattleResult) -> void:
 	settlement_status = settlement.apply_room(result, guild, room)
+	# 망고 도시락 (passive card): a won battle heals the survivors after the room settles.
+	BattlePassives.settle(battle, guild, result.end_reason == BattleEndReason.Value.VICTORY and settlement_status == BattleSettlement.Status.APPLIED)
 	settled.emit(result, settlement_status)
 
 func request_retreat() -> bool:

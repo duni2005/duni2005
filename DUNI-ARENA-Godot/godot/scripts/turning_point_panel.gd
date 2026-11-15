@@ -41,7 +41,10 @@ func _ready() -> void:
 	heading.add_theme_font_override("font",ArenaUI.numbers_font());heading.add_theme_font_size_override("font_size",18);heading.add_theme_color_override("font_color",Color("8fe3ff"))
 	heading.size_flags_horizontal = Control.SIZE_EXPAND_FILL;heading.vertical_alignment=VERTICAL_ALIGNMENT_CENTER
 	row.add_child(heading)
-	heading.draw.connect(func():ArenaIcon.draw(heading,Vector2(10,heading.size.y*.5),"clock",18,Color("8fe3ff")))
+	heading.draw.connect(func():
+		ArenaIcon.draw(heading,Vector2(10,heading.size.y*.5),"clock",18,Color("8fe3ff"))
+		# 지휘 깃발 (passive card): a small flag beside the clock while it shortens the interval.
+		if manager!=null and BattlePassives.has(manager.battle,&"command_flag"):ArenaIcon.draw(heading,Vector2(26,heading.size.y*.5-4),"command_flag",16,Color.WHITE))
 	resume_button = Button.new()
 	resume_button.text = "전투 재개"
 	ArenaUI.with_icon(resume_button,"play",12,true)
@@ -146,13 +149,15 @@ func refresh(value: TurningPointManager) -> void:
 		var data: StrategyCardData = StrategyCardCatalog.get_card(card.kind)
 		var state: StringName = StrategyCardExecutor.hand_state(manager, card)
 		var note: String = {&"used":"사용함", &"cooldown":"%d승 후" % card.wins_left, &"blocked":"대상 없음"}.get(state, "")
-		hand_rows.append({"id": card.card_id, "kind": card.kind, "title": data.display_name, "state": "ready" if state == &"ready" else "used" if state == &"used" else "waiting", "note": note})
+		var look: String = {&"ready":"ready", &"used":"used", &"passive":"passive", &"passive_off":"passive_off"}.get(state, "waiting")
+		hand_rows.append({"id": card.card_id, "kind": card.kind, "title": data.display_name, "state": look, "note": note, "wins": card.wins_left})
 	var new_hand: String = str(hand_rows)
 	if new_hand != hand_signature:hand_signature = new_hand;hand.set_rows(hand_rows)
 	var pending: Array[String] = []
 	for command in manager.current.pending_commands:
 		if not command.executed:pending.append(StrategyCardCatalog.get_card(command.command_type).display_name)
 	var description: String = "카드를 위로 밀어 올려 사용 · 누르면 설명" if not hand_rows.is_empty() else "가지고 들어온 전략카드가 없습니다"
+	if not hand_rows.is_empty() and hand_rows.all(func(r): return str(r.state).begins_with("passive")):description = "패시브 카드는 이번 전투 내내 적용 중 · 누르면 설명"
 	if target != null:description = "선택: %s%s · %s" % ["아군 " if target.team == 0 else "적 ", target.data.display_name, description]
 	if not manager.current.last_card_result.is_empty() and manager.current.last_card_result.code == StrategyCardExecutor.Code.OK:description = "사용 완료 · " + description
 	if not pending.is_empty(): description += " · 대기: " + ",".join(pending)
@@ -209,7 +214,7 @@ func _card_tapped(id: int) -> void:
 	var card: StrategyCardInstance = _card(id)
 	if card == null:return
 	var state: StringName = StrategyCardExecutor.hand_state(manager, card)
-	var status: String = {&"used":"이번 전투에서 이미 사용함", &"cooldown":"%d승 후 사용 가능" % card.wins_left, &"blocked":"지금은 조건에 맞는 대상이 없음"}.get(state, "위로 밀어 올려 사용")
+	var status: String = {&"used":"이번 전투에서 이미 사용함", &"cooldown":"%d승 후 사용 가능" % card.wins_left, &"blocked":"지금은 조건에 맞는 대상이 없음", &"passive":"패시브 · 이번 전투 내내 적용 중", &"passive_off":"패시브 · 지금은 조건이 맞지 않아 꺼져 있음"}.get(state, "위로 밀어 올려 사용")
 	detail.open(id, card.kind, status)
 
 func _lift_started(id: int) -> void:
@@ -225,7 +230,7 @@ func _over_field(global_point: Vector2) -> bool:
 
 func _lift_moved(id: int, global_point: Vector2, _past: bool) -> void:
 	var data: StrategyCardData = _data(id)
-	if data == null or data.use_mode != &"position" or board == null:return
+	if data == null or data.usage != &"position" or board == null:return
 	hand.over_field = _over_field(global_point)
 	if not hand.over_field:hand.preview = {};return
 	var at: Vector2 = board.logical_from_screen(global_point);var px: float = board.pixels_per_unit()
@@ -250,7 +255,7 @@ func _clear_focus() -> void:
 func _play_requested(id: int, global_point: Vector2) -> void:
 	var data: StrategyCardData = _data(id)
 	if data == null or manager == null or not manager.is_paused():hand.refuse(id, "지금은 사용할 수 없습니다");return
-	match data.use_mode:
+	match data.usage:
 		&"position":
 			if not _over_field(global_point):hand.refuse(id, "필드 위에 놓으세요");return
 			var result: Dictionary = manager.play(id, "", board.logical_from_screen(global_point))

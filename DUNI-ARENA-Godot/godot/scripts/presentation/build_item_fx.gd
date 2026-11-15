@@ -158,6 +158,15 @@ static func event(fx, item: String, m: Dictionary, at: Vector2, targets: Array, 
 ## Short marks of these items; false when the kind is not one of them.
 static func draw_mark(c: CanvasItem, m: Dictionary, at: Vector2, k: float, fade: float, g: float, t: float) -> bool:
 	match m.kind:
+		"card_crack":
+			# 불굴의 의지 (passive card): a golden crack splits across the unit, then fades.
+			var col: Color = m.get("color", ArenaUI.GOLD);var grow: float = minf(1, k * 4)
+			VfxArt.glow(c, at, 70 * g, col, .45 * fade)
+			for side in [-1, 1]:
+				var pts := PackedVector2Array([at])
+				for j in range(1, 5):pts.append(at + Vector2(side * (6 + (j % 2) * 9), -side * j * 14) * g * grow)
+				c.draw_polyline(pts, Color(col.lightened(.3), fade), 4, true)
+				c.draw_polyline(pts, Color(1, 1, 1, .8 * fade), 1.5, true)
 		"ember":
 			for i in range(5):
 				var q: Vector2 = at + Vector2((i - 2) * 8, -10 - 26 * k * (1 + (i % 2) * .4)) * g * .8

@@ -2,16 +2,21 @@ class_name StrategyCardExecutor
 extends RefCounted
 ## Card rules and effects, committed synchronously; UI never mutates combat values.
 ## A card can be played when it is in the battle's hand (loadout), not consumed, not on cooldown,
-## not already used this battle (일반 / 쿨타임) and its condition has a target or holds.
-enum Code { OK, NOT_HOLD, INVALID_CARD, UNAVAILABLE, INVALID_TARGET, NO_EFFECT, DUPLICATE, NOT_IN_HAND, USED, COOLDOWN, CONDITION, NO_POSITION }
+## not already used this battle (일반 / 쿨타임) and its conditions have a target or hold. Passive cards
+## are never played: they apply for the battle they are taken into (BattlePassives).
+enum Code { OK, NOT_HOLD, INVALID_CARD, UNAVAILABLE, INVALID_TARGET, NO_EFFECT, DUPLICATE, NOT_IN_HAND, USED, COOLDOWN, CONDITION, NO_POSITION, PASSIVE }
 
 ## Owned and ready outside a battle: not consumed and no wins left on its cooldown.
 static func availability(card: StrategyCardInstance, _context = null) -> bool:
 	return card != null and not card.consumed and card.wins_left <= 0 and StrategyCardCatalog.get_card(card.kind) != null
 
 ## How a card in the hand stands: &"ready", &"used" (일반 / 쿨타임 used this battle),
-## &"cooldown", &"gone" (consumed) or &"blocked" (its condition has no target now).
+## &"cooldown", &"gone" (consumed), &"blocked" (its condition has no target now) or, for a
+## passive, &"passive" (적용 중) / &"passive_off" (its condition does not hold now).
 static func hand_state(manager: TurningPointManager, card: StrategyCardInstance) -> StringName:
+	var pdata: StrategyCardData = StrategyCardCatalog.get_card(card.kind) if card != null else null
+	if pdata != null and pdata.passive():
+		return &"passive" if manager.battle == null or BattlePassives.condition_holds(manager.battle, pdata) else &"passive_off"
 	if card == null or card.consumed:return &"gone"
 	if manager.used_cards.has(card.card_id):return &"used"
 	if card.wins_left > 0:return &"cooldown"
@@ -21,10 +26,15 @@ static func hand_state(manager: TurningPointManager, card: StrategyCardInstance)
 
 ## Its condition has at least one fitting unit (or the situation holds).
 static func condition_open(manager: TurningPointManager, data: StrategyCardData) -> bool:
-	if data.condition == &"":return true
-	if data.situation():return situation_ok(manager, data.condition)
+	if data.conditions.is_empty():return true
+	if data.situation():return situation_ok(manager, data)
 	return not targets(manager, data).is_empty()
-static func situation_ok(manager: TurningPointManager, condition: StringName) -> bool:
+## Every situation condition of the card holds now.
+static func situation_ok(manager: TurningPointManager, data: StrategyCardData) -> bool:
+	for c in data.conditions:
+		if c in StrategyCardData.SITUATION and not _situation(manager, c):return false
+	return true
+static func _situation(manager: TurningPointManager, condition: StringName) -> bool:
 	var battle: BattleManager = manager.battle
 	match condition:
 		&"outnumbered":
@@ -32,6 +42,7 @@ static func situation_ok(manager: TurningPointManager, condition: StringName) ->
 			var foes: int = battle.units.filter(func(u): return u.alive and u.team == 1 and not u.source_enemy_id.is_empty()).size()
 			return allies < foes
 		&"enemy_planning":return manager.current != null and manager.current.enemy_plans.any(func(p): return not p.executed)
+		&"element_pair":return not BattlePassives.paired_elements(battle).is_empty()
 	return true
 ## Units the card can be played on now (its side, alive, its condition).
 static func targets(manager: TurningPointManager, data: StrategyCardData) -> Array:
@@ -42,11 +53,23 @@ static func targets(manager: TurningPointManager, data: StrategyCardData) -> Arr
 	return out
 static func valid_target(manager: TurningPointManager, data: StrategyCardData, u) -> bool:
 	if u == null or not u.alive:return false
-	if data.use_mode == &"ally" and (u.team != 0 or u.source_member_id.is_empty() or manager.guild.get_member(u.source_member_id) == null):return false
-	if data.use_mode == &"enemy" and (u.team != 1 or u.source_enemy_id.is_empty()):return false
-	return data.situation() or target_condition(manager, data, u)
+	if not side_ok(manager, data, u):return false
+	return situation_ok(manager, data) and target_condition(manager, data, u)
+## The unit is on the card's side: a deployed guild member (아군), an enemy (적) or either (전체).
+static func side_ok(manager: TurningPointManager, data: StrategyCardData, u) -> bool:
+	var ally: bool = u.team == 0 and not u.source_member_id.is_empty() and manager.guild.get_member(u.source_member_id) != null
+	var enemy: bool = u.team == 1 and not u.source_enemy_id.is_empty()
+	match data.usage:
+		&"unit_ally":return ally
+		&"unit_enemy":return enemy
+	return ally or enemy
+## Every target condition of the card holds for the unit.
 static func target_condition(manager: TurningPointManager, data: StrategyCardData, u) -> bool:
-	match data.condition:
+	for c in data.conditions:
+		if not c in StrategyCardData.SITUATION and not _target(manager, data, c, u):return false
+	return true
+static func _target(manager: TurningPointManager, data: StrategyCardData, condition: StringName, u) -> bool:
+	match condition:
 		&"melee":return u.data.attack_range < StrategyCardTuning.MELEE_RANGE
 		&"rush":return u.stance == CombatStance.RUSH
 		&"low_hp":return u.current_hp <= u.max_hp * StrategyCardTuning.LOW_HP
@@ -57,13 +80,18 @@ static func target_condition(manager: TurningPointManager, data: StrategyCardDat
 static func tier_rank(tier: StringName) -> int:return StrategyCardTuning.TIER_ORDER.find(tier)
 ## Short hint when the selected unit does not fit, e.g. "근접형 아군을 선택하세요".
 static func target_hint(data: StrategyCardData) -> String:
-	var side: String = "아군" if data.use_mode == &"ally" else "적"
-	match data.condition:
+	var side: String = {&"unit_ally":"아군", &"unit_enemy":"적"}.get(data.usage, "유닛")
+	for c in data.conditions:
+		var h: String = _hint(data, c, side)
+		if not h.is_empty():return h
+	return "%s을 선택하세요" % side
+static func _hint(data: StrategyCardData, condition: StringName, side: String) -> String:
+	match condition:
 		&"melee":return "근접형 아군을 선택하세요"
 		&"rush":return "저돌적 성향의 %s을 선택하세요" % side
 		&"low_hp":return "HP 30%% 이하인 %s을 선택하세요" % side
 		&"planning":return "특수전략(%s)을 준비 중인 적을 선택하세요" % StrategyCardData.DISRUPT_NAMES.get(data.disrupt, "")
-	return "%s을 선택하세요" % ("아군" if data.use_mode == &"ally" else "적")
+	return ""
 
 ## Plays a card. target_id: a member id or actor id (unit cards); point: the field position
 ## (position cards). Records the use (consumed / used this battle / cooldown) on success.
@@ -75,24 +103,25 @@ static func apply(manager: TurningPointManager, card_id: int, target_id: String,
 	if run.strategy_use_receipts.has(request_id): return {"code": Code.DUPLICATE}
 	var card: StrategyCardInstance = run.get_strategy_card(card_id)
 	if card == null or StrategyCardCatalog.get_card(card.kind) == null: return {"code": Code.INVALID_CARD}
+	if StrategyCardCatalog.get_card(card.kind).passive(): return {"code": Code.PASSIVE}
 	if not card_id in manager.hand: return {"code": Code.NOT_IN_HAND}
 	if card.consumed: return {"code": Code.UNAVAILABLE}
 	if manager.used_cards.has(card_id): return {"code": Code.USED}
 	if card.wins_left > 0: return {"code": Code.COOLDOWN}
 	var data: StrategyCardData = StrategyCardCatalog.get_card(card.kind)
-	if data.situation() and not situation_ok(manager, data.condition): return {"code": Code.CONDITION}
+	if not situation_ok(manager, data): return {"code": Code.CONDITION}
 	var unit: BattleUnit = null
 	if data.unit_target():
-		unit = EnemyPlanExecutor.find_member(manager.battle, target_id) if data.use_mode == &"ally" else EnemyPlanExecutor.find_enemy(manager.battle, target_id)
+		unit = EnemyPlanExecutor.find_enemy(manager.battle, target_id) if data.usage == &"unit_enemy" else EnemyPlanExecutor.find_member(manager.battle, target_id)
 		if unit == null: unit = manager.battle.find_actor(target_id)
-		if unit == null or not unit.alive or (data.use_mode == &"ally" and (unit.team != 0 or unit.source_member_id.is_empty() or manager.guild.get_member(unit.source_member_id) == null)) or (data.use_mode == &"enemy" and (unit.team != 1 or unit.source_enemy_id.is_empty())):
+		if unit == null or not unit.alive or not side_ok(manager, data, unit):
 			return {"code": Code.INVALID_TARGET}
-		if not data.situation() and not target_condition(manager, data, unit): return {"code": Code.CONDITION, "hint": target_hint(data)}
-	if data.use_mode == &"position" and (not point.is_finite() or point.x < 20 or point.y < 20 or point.x > ArenaMap.side - 20 or point.y > ArenaMap.side - 20):
+		if not target_condition(manager, data, unit): return {"code": Code.CONDITION, "hint": target_hint(data)}
+	if data.usage == &"position" and (not point.is_finite() or point.x < 20 or point.y < 20 or point.x > ArenaMap.side - 20 or point.y > ArenaMap.side - 20):
 		return {"code": Code.NO_POSITION}
-	var member_id: String = unit.source_member_id if unit != null and data.use_mode == &"ally" else ""
+	var member_id: String = unit.source_member_id if unit != null and unit.team == 0 else ""
 	# 전술가의 깃펜: cards used on the bearer are QUILL_POWER times as strong.
-	var k: float = ItemTuning.QUILL_POWER if unit != null and data.use_mode == &"ally" and ItemEffects.has(unit, &"tacticianQuill") else 1.0
+	var k: float = ItemTuning.QUILL_POWER if unit != null and unit.team == 0 and ItemEffects.has(unit, &"tacticianQuill") else 1.0
 	if k > 1: ItemEffects.proc(unit, &"tacticianQuill")
 	var command: StrategyCommand
 	match card.kind:
@@ -143,14 +172,19 @@ static func apply(manager: TurningPointManager, card_id: int, target_id: String,
 				for enemy in enemies.slice(0, int(data.amount)): ids.append(enemy.source_enemy_id)
 				command.metadata = {"target_enemy_ids": ids}
 			manager.current.pending_commands.append(command)
-	if data.usage_rule == StrategyCardData.Usage.CONSUME:
-		card.consumed = true
-	else:
-		manager.used_cards[card_id] = true
-		if data.usage_rule == StrategyCardData.Usage.COOLDOWN: card.wins_left = maxi(1, data.cooldown_wins)
+	record_use(manager, card, data)
 	if member_id != "": manager.current.selected_member_id = member_id
 	run.strategy_use_receipts[request_id] = {"card_id": card_id, "member_id": member_id if member_id != "" else (unit.actor_id() if unit != null else "")}
 	if card.kind == &"iron":
 		manager.parry_readiness_requested.emit(member_id, data.duration * k, data.amount)
 	manager.card_played.emit(card_id, unit.actor_id() if unit != null else "", point)
 	return {"code": Code.OK, "kind": card.kind, "pending": command != null}
+
+## Marks a card used: 소모 → consumed; 일반 / 쿨타임 → used this battle, 쿨타임 also starts its
+## cooldown (won battle rooms). Passives are marked this way when the battle starts.
+static func record_use(manager: TurningPointManager, card: StrategyCardInstance, data: StrategyCardData) -> void:
+	if data.cooldown_type == &"consume":
+		card.consumed = true
+	else:
+		manager.used_cards[card.card_id] = true
+		if data.cooldown_type == &"cooldown": card.wins_left = maxi(1, data.cooldown_wins)

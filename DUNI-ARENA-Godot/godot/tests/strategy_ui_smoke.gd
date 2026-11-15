@@ -176,7 +176,7 @@ func run() -> void:
 	screen._process(0);await frames()
 	screen.start_battle();await frames()
 	verify(screen.room.battle_attempt_count == 2 and screen.battle.turning.current == null and screen.battle.turning.used_cards.is_empty(), "retry fresh TP, 일반 cards back")
-	verify(screen.guild.state.strategy_cards.size() == 12 and screen.guild.state.strategy_cards[0].consumed, "no retry copies/reset")
+	verify(screen.guild.state.strategy_cards.size() == StrategyCardCatalog.DEFINITIONS.size() + 1 and screen.guild.state.strategy_cards[0].consumed, "no retry copies/reset")
 	verify(screen.battle.units[1].shield_hp > 0 and screen.battle.units[1].ultimate_gauge == minf(100, charge_before + 50), "retry reinject card effects")
 	print("STRATEGY UI RESULT: ", checks, " checks; ", failures, " failures; display=", DisplayServer.get_name())
 	screen.free()

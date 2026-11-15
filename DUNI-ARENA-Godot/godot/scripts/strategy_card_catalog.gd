@@ -1,7 +1,7 @@
 class_name StrategyCardCatalog
 extends RefCounted
-## Card definitions are data (data/strategy/*.tres): kind, cooldown, condition, use, disruption
-## grade and effect numbers.
+## Card definitions are data (data/strategy/*.tres): card kind (active / passive), usage, cooldown
+## type, conditions, disruption grade and effect numbers.
 const DEFINITIONS = {
 	&"mango": preload("res://data/strategy/mango.tres"),
 	&"evade": preload("res://data/strategy/evade.tres"),
@@ -14,6 +14,11 @@ const DEFINITIONS = {
 	&"seal": preload("res://data/strategy/seal.tres"),
 	&"barrier": preload("res://data/strategy/barrier.tres"),
 	&"feast": preload("res://data/strategy/feast.tres"),
+	&"rally": preload("res://data/strategy/rally.tres"),
+	&"resonance": preload("res://data/strategy/resonance.tres"),
+	&"command_flag": preload("res://data/strategy/command_flag.tres"),
+	&"indomitable": preload("res://data/strategy/indomitable.tres"),
+	&"lunchbox": preload("res://data/strategy/lunchbox.tres"),
 }
 static func get_card(kind: StringName) -> StrategyCardData:
 	return DEFINITIONS.get(kind)

@@ -23,11 +23,16 @@ var hand: Array[int] = []
 ## 일반 / 쿨타임 cards already played this battle (card_id -> true): shown face down.
 var used_cards: Dictionary = {}
 var card_serial: int = 0
+## Passive cards of the hand (marked used at battle start; shown as 적용 중, never played).
+var passive_cards: Array[int] = []
+## Seconds between turning points this battle (지휘 깃발 shortens it; the first stays at FIRST).
+var interval: float = INTERVAL
 
 func _init(owner: BattleManager, manager: GuildManager) -> void:
 	battle = owner
 	guild = manager
 	hand.assign(guild.state.card_loadout.filter(func(id): return guild.state.get_strategy_card(id) != null))
+	BattlePassives.start(self)
 
 func can_trigger() -> bool:
 	if not enabled or not battle.started or battle.finished or battle.run_end_requested or guild.state.game_over or guild.state.player_hp <= 0 or battle.clock.state != BattleClock.State.NORMAL:
@@ -44,7 +49,7 @@ func advance(real_delta: float) -> void:
 		current = TurningPointState.new()
 		current.turning_point_id = battle.battle_result_id + "_tp_%03d" % serial
 		current.trigger_simulation_time = battle.clock.elapsed
-		next_at += INTERVAL # Web schedules at START: 12, 42, 72, not resume+30.
+		next_at += interval # Web schedules at START: 12, 42, 72, not resume+30.
 		battle.clock.begin_slowdown(BRAKE)
 	if battle.clock.state == BattleClock.State.TURNING_SLOWDOWN:
 		var extra: float = battle.clock.progress_slowdown(real_delta, BRAKE)
@@ -141,12 +146,12 @@ func permits_full_retreat() -> bool:
 	# canRetreatTower does NOT exclude strategyBattleActive/frozen.
 	return enabled and not battle.finished and battle.clock.state in [BattleClock.State.NORMAL, BattleClock.State.TURNING_SLOWDOWN, BattleClock.State.TURNING_PAUSED]
 
-## The hand as instances, in slot order (consumed copies dropped).
+## The hand as instances, in slot order (consumed copies dropped; passives stay: 적용 중).
 func hand_cards() -> Array[StrategyCardInstance]:
 	var out: Array[StrategyCardInstance] = []
 	for id in hand:
 		var card: StrategyCardInstance = guild.state.get_strategy_card(id)
-		if card != null and not card.consumed: out.append(card)
+		if card != null and (not card.consumed or id in passive_cards): out.append(card)
 	return out
 ## The plan an enemy prepared at this turning point (not yet carried out), or null.
 func plan_of(enemy) -> EnemyTurningPlan:
@@ -200,7 +205,7 @@ func use_selected_card() -> Dictionary:
 	if not is_paused() or current.selected_card_id == 0:
 		return {"code": StrategyCardExecutor.Code.NOT_HOLD}
 	var data: StrategyCardData = StrategyCardCatalog.get_card(guild.state.get_strategy_card(current.selected_card_id).kind)
-	var target: String = current.selected_actor_id if data.use_mode == &"enemy" or current.selected_member_id.is_empty() else current.selected_member_id
+	var target: String = current.selected_actor_id if data.usage == &"unit_enemy" or current.selected_member_id.is_empty() else current.selected_member_id
 	current.last_card_result = StrategyCardExecutor.apply(self, current.selected_card_id, target, current.selected_request_id)
 	if current.last_card_result.code == StrategyCardExecutor.Code.OK:
 		cancel_card_selection()

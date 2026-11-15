@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StrategyCardData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/strategy_card_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"indomitable"
+display_name = "불굴의 의지"
+description = "처음 쓰러질 아군 1명이 HP 30%로 버티고 2초 무적"
+amount = 0.3
+duration = 2
+gold_price = 260
+card_kind = &"passive"
+usage = &"none"
+cooldown_type = &"cooldown"
+cooldown_wins = 3
+conditions = Array[StringName]([])
+disrupt = &""
+extra = 0
+image = ""

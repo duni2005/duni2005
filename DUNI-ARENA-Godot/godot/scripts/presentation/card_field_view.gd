@@ -3,7 +3,9 @@ extends RefCounted
 ## Strategy cards on the field (drawn in arena space by CombatPresentation):
 ## - while a unit card is held, the units it can be played on glow and the others are dimmed;
 ## - 방벽 설치 walls (glowing barriers that flicker as they run out);
-## - an enemy strategy badge breaking when a disruption card removes it, and wall hits.
+## - an enemy strategy badge breaking when a disruption card removes it, and wall hits;
+## - passive cards: 전열 정비 shield light on the allies at the start, 원소 공명 solid lines in the
+##   element's colour between the allies that share it, 불굴의 의지 a golden crack and "불굴".
 
 static func draw_walls(c: CanvasItem, battle, time: float) -> void:
 	for w in battle.card_walls:
@@ -47,6 +49,27 @@ static func event(presentation, kind: StringName, point: Vector2, m: Dictionary)
 		&"card_wall":
 			presentation.particles.burst(point, Color("8fe3ff"), 22, 200, 0, "spark", true)
 			presentation.add_effect("slime_ring", point, Color("8fe3ff"), 70, .5)
+			return true
+		&"passive_rally":
+			presentation.add_effect("slime_ring", point, Color("9fe0ff"), 54, .7)
+			presentation.add_effect("shield_hit", point, Color("c8f0ff"), 40)
+			presentation.particles.burst(point, Color("c8f0ff"), 10, 120, 0, "spark", true)
+			return true
+		&"passive_resonance":
+			var col: Color = ItemFx.ELEMENT_COLORS.get(str(m.get("element", "")), Color("ffd36b"))
+			var points: Array = m.get("points", [])
+			for i in range(points.size()):
+				var p: Vector2 = points[i];var q: Vector2 = points[(i + 1) % points.size()]
+				if points.size() == 2 and i == 1:break
+				presentation.item_fx._mark("beam", p, 1.4, {"to": q, "color": col})
+				presentation.particles.burst(p, col, 8, 110, 0, "spark", true)
+			return true
+		&"passive_indomitable":
+			presentation.item_fx._mark("card_crack", point, 1.1, {"color": ArenaUI.GOLD})
+			presentation.item_fx._mark("text", point, 1.3, {"text": "불굴", "color": ArenaUI.GOLD})
+			presentation.add_effect("hero_shock", point, ArenaUI.GOLD, 80, .5)
+			presentation.particles.burst(point, Color("ffe08a"), 22, 240, 0, "shard", true)
+			presentation.camera.impact(4, point)
 			return true
 		&"wall_block":
 			presentation.particles.burst(point, Color("dff6ff"), 10, 180, float(m.get("angle", 0)) + PI, "spark", true)

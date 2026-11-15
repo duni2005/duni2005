@@ -94,6 +94,8 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 		if source!=null and not collision:
 			damage*=.7 if source.cosmic_marked else 1
 			damage*=ElementEffects.outgoing(source,target,spec,options)
+			# 원소 공명 (passive card): an ally sharing its element with another deployed ally.
+			damage*=BattlePassives.outgoing(source)
 			if not status and not recoil:damage*=ItemEffects.outgoing(source,target,options,spec)
 			if not options.get("mirror_shard",false):damage*=target.ability.incoming_factor(target,source,options)*ItemEffects.incoming(target,spec)
 			if not recoil and not options.get("mirror_raw",false) and not duel_result and source.state_value("paladinBlessingTime")>0:damage*=1.3

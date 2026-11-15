@@ -77,6 +77,7 @@ func run(tree: SceneTree) -> void:
 	items_0960(tree)
 	items_0970(tree)
 	cards_0980(tree)
+	cards_0990(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -1515,7 +1516,7 @@ func items_0940(tree: SceneTree) -> void:
 	var loaded: SaveLoadResult=SaveSnapshotLoader.restore(doc)
 	verify(loaded.ok() and loaded.run.gold==gold_before+260 and loaded.run.inventory.all(func(i):return String(i.kind)!="woodSword+staff"),"v6 save: removed combination refunded 260 G")
 	verify(loaded.ok() and loaded.run.item_notice.contains("마검") and loaded.run.item_notice.contains("260 G"),"one-time notice names the item and the gold")
-	verify(SaveMigrator.CURRENT_VERSION==10,"save version 10")
+	verify(SaveMigrator.CURRENT_VERSION==11,"save version 11")
 
 ## 0.95: fifty more items (ten per grade) and their twenty statuses.
 func _spec(skill: StringName,kind: StringName,tags: Array) -> Dictionary:return {"key":&"basic","skill":skill,"kind":kind,"base":0.0,"ratio":1.0,"tags":tags,"label":""}
@@ -1793,19 +1794,20 @@ func items_0970(tree: SceneTree) -> void:
 ## 0.98 전략카드 개편: kinds (소모 / 일반 / 쿨타임 N by won rooms), conditions, the loadout of
 ## five, unit / position / instant use, disruption by grade, 봉인의 낙인, 방벽, 망고 연회, save v10.
 func cards_0980(tree: SceneTree) -> void:
-	var expect: Dictionary={&"mango":["소모",&"ally",70],&"shield":["일반",&"ally",120],&"taunt":["일반",&"ally",160],&"charge":["쿨타임 1",&"ally",170],&"evade":["쿨타임 2",&"ally",140],&"iron":["일반",&"ally",220],&"disrupt":["일반",&"enemy",150],&"block":["쿨타임 2",&"enemy",220],&"seal":["소모",&"enemy",180],&"barrier":["쿨타임 1",&"position",200],&"feast":["소모",&"instant",240]}
-	var data_ok: bool=StrategyCardCatalog.DEFINITIONS.size()==11
+	var expect: Dictionary={&"mango":["소모",&"unit_ally",70],&"shield":["일반",&"unit_ally",120],&"taunt":["일반",&"unit_ally",160],&"charge":["쿨타임 1",&"unit_ally",170],&"evade":["쿨타임 2",&"unit_ally",140],&"iron":["일반",&"unit_ally",220],&"disrupt":["일반",&"unit_enemy",150],&"block":["쿨타임 2",&"unit_enemy",220],&"seal":["소모",&"unit_enemy",180],&"barrier":["쿨타임 1",&"position",200],&"feast":["소모",&"instant",240]}
+	var data_ok: bool=StrategyCardCatalog.DEFINITIONS.size()==16
 	for k in expect:
 		var d: StrategyCardData=StrategyCardCatalog.get_card(k)
-		if d==null or d.kind_text()!=expect[k][0] or d.use_mode!=expect[k][1] or d.gold_price!=expect[k][2]:data_ok=false;push_error("card data "+String(k))
-	verify(data_ok,"0.98: 11 cards with kind, use and price as planned")
+		if d==null or d.passive() or d.kind_text()!=expect[k][0] or d.usage!=expect[k][1] or d.gold_price!=expect[k][2]:data_ok=false;push_error("card data "+String(k))
+	verify(data_ok,"the 11 active cards keep kind, use and price")
 	verify(StrategyCardCatalog.get_card(&"iron").tags()==["일반","조건: 근접형"] and StrategyCardCatalog.get_card(&"block").tags()==["쿨타임 2","조건: 특수전략 준비 중인 적","방해: 위험 이하"],"tags: [kind] [조건] [방해]")
 	verify(StrategyCardCatalog.get_card(&"iron").description.contains("쿨타임 3초") and StrategyCardCatalog.get_card(&"mango").amount==.3,"old effects kept (철벽방어's 3 s is an effect number)")
 	verify(DEFINITIONS_ICONS(),"every card and use mode has an icon")
 	var helper:=Phase5Tests.new();helper.host=tree;var f: Dictionary=helper.fixture();helper.pause(f);f.tp.current.enemy_plans.clear()
 	var tp: TurningPointManager=f.tp;var st: RunState=f.guild.state;var b: BattleManager=f.battle
 	var ids: Dictionary={}
-	for k in StrategyCardCatalog.DEFINITIONS:ids[k]=st.give_strategy_card(k).card_id
+	for k in StrategyCardCatalog.DEFINITIONS:
+		if not StrategyCardCatalog.get_card(k).passive():ids[k]=st.give_strategy_card(k).card_id
 	var warrior: BattleUnit=b.units[0];var foe: BattleUnit=b.units[2]
 	verify(StrategyCardExecutor.apply(tp,ids.mango,warrior.source_member_id,"x0").code==StrategyCardExecutor.Code.NOT_IN_HAND,"only the cards taken in can be played")
 	for k in ids:tp.hand.append(ids[k])
@@ -1872,10 +1874,94 @@ func cards_0980(tree: SceneTree) -> void:
 	var charge_doc: Dictionary=doc.run.strategy_cards[1]
 	var back: SaveLoadResult=SaveSnapshotLoader.restore(doc)
 	var kind: StringName=StringName(charge_doc.kind);var cd: StrategyCardData=StrategyCardCatalog.get_card(kind)
-	var expected: int=mini(3,cd.cooldown_wins) if cd.usage_rule==StrategyCardData.Usage.COOLDOWN else 0
+	var expected: int=mini(3,cd.cooldown_wins) if cd.cooldown_type==&"cooldown" else 0
 	verify(back.ok() and back.run.strategy_cards.size()==rs.strategy_cards.size() and back.run.get_strategy_card(int(charge_doc.card_id)).wins_left==expected,"v9 save: cards kept, a floor cooldown becomes wins (capped), floor records dropped")
 	verify(back.ok() and back.run.card_loadout.is_empty(),"v9 save: no loadout yet")
 	rs.card_loadout.assign([999]);verify(not SaveSnapshotLoader.restore(JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(t,"bad",1).document))).ok(),"a loadout naming an unknown card is rejected")
+## 0.99: card kinds (액티브 / 패시브), use modes and cooldown types, the five passives.
+func cards_0990(tree: SceneTree) -> void:
+	var passives: Dictionary={&"rally":["일반",180],&"resonance":["일반",200],&"command_flag":["쿨타임 2",240],&"indomitable":["쿨타임 3",260],&"lunchbox":["소모",120]}
+	var ok: bool=true
+	for k in passives:
+		var d: StrategyCardData=StrategyCardCatalog.get_card(k)
+		if d==null or not d.passive() or d.usage!=&"none" or d.kind_text()!=passives[k][0] or d.gold_price!=passives[k][1] or d.type_text()!="패시브":ok=false;push_error("passive "+String(k))
+	verify(ok,"five passives: 패시브, no use mode, cooldown type and price as planned")
+	var all_ok: bool=true
+	for k in StrategyCardCatalog.DEFINITIONS:
+		var d: StrategyCardData=StrategyCardCatalog.get_card(k)
+		if not d.card_kind in [&"active",&"passive"] or not d.usage in [&"unit_ally",&"unit_enemy",&"unit_any",&"position",&"instant",&"none"] or not d.cooldown_type in [&"consume",&"normal",&"cooldown"] or (d.cooldown_type==&"cooldown")!=(d.cooldown_wins>0) or (d.usage==&"none")!=d.passive():all_ok=false;push_error("axes "+String(k))
+	verify(all_ok,"every card has kind, usage and cooldown type (cooldown wins only on 쿨타임)")
+	verify(StrategyCardCatalog.get_card(&"shield").type_text()=="액티브 · 유닛 지정(아군)" and StrategyCardCatalog.get_card(&"block").type_text()=="액티브 · 유닛 지정(적)" and StrategyCardCatalog.get_card(&"barrier").type_text()=="액티브 · 위치 지정" and StrategyCardCatalog.get_card(&"feast").type_text()=="액티브 · 즉시 시전","type band texts")
+	verify(StrategyCardCatalog.get_card(&"iron").conditions==[&"melee"] and StrategyCardCatalog.get_card(&"resonance").conditions==[&"element_pair"] and StrategyCardCatalog.get_card(&"resonance").tags().has("조건: 같은 속성 아군 2명 이상 출정"),"conditions are tags on any card")
+	verify(StrategyCardCatalog.DEFINITIONS.values().all(func(d):return d.image=="") and StatusCatalog.ENTRIES.has(&"card_rally") and StatusCatalog.ENTRIES.has(&"card_indomitable"),"placeholder art (image path empty) and passive statuses registered")
+	# A battle taken in with passives: 전열 정비 twice (applies once), 지휘 깃발, 불굴의 의지, 망고 도시락.
+	var guild := GuildManager.new()
+	for type in [1,1,0]:guild.create_member(type)
+	var st: RunState=guild.state
+	var ids: Array[int]=[]
+	for k in [&"rally",&"rally",&"command_flag",&"indomitable",&"lunchbox"]:ids.append(st.give_strategy_card(k).card_id)
+	st.card_loadout.assign(ids)
+	var room := RoomState.new();room.add_enemy("e1",BattleManager.WARRIOR,Vector2(640,220));room.add_enemy("e2",BattleManager.ARCHER,Vector2(710,620))
+	var b := BattleManager.new();b.common_combat_enabled=false;b.full_characters_enabled=false;b.auto_start=false;tree.root.add_child(b);b.set_physics_process(false)
+	var plan := DeploymentPlan.new(guild)
+	var members: Array=guild.all_members()
+	plan.place(members[0].member_id,Vector2(100,220));plan.place(members[1].member_id,Vector2(100,620))
+	var session := RoomBattleSession.new(guild,room)
+	verify(session.start(plan,b,31),"a room battle with passives starts")
+	var tp: TurningPointManager=b.turning
+	var allies: Array=BattlePassives.allies(b)
+	verify(BattlePassives.active(b)==[&"rally",&"command_flag",&"indomitable",&"lunchbox"],"passives on once per kind, in hand order")
+	verify(allies.size()==2 and allies.all(func(u):return is_equal_approx(u.shield_hp,u.max_hp*.1) and is_equal_approx(u.shield_remaining,10)),"전열 정비: every ally starts with a 10% shield for 10 s (twice taken, once applied)")
+	verify(st.get_strategy_card(ids[4]).consumed and st.get_strategy_card(ids[2]).wins_left==2 and tp.used_cards.has(ids[0]) and tp.used_cards.has(ids[1]),"used at battle start: 소모 consumed, 쿨타임 on cooldown, 일반 used")
+	verify(tp.hand_cards().size()==5 and tp.hand_cards().all(func(c):return StrategyCardExecutor.hand_state(tp,c)==&"passive"),"passives stay in the hand as 적용 중 (the consumed one too)")
+	verify(tp.interval==22 and tp.next_at==TurningPointManager.FIRST,"지휘 깃발: interval 22 s, first turning point still at 12 s")
+	b.clock.elapsed=12;b.simulate(1.0);b.simulate(1.0)
+	verify(tp.is_paused() and is_equal_approx(tp.next_at,34),"…the next one comes 22 s after the first")
+	verify(StrategyCardExecutor.apply(tp,ids[0],"","p1").code==StrategyCardExecutor.Code.PASSIVE,"a passive cannot be played")
+	verify(StatusCatalog.collect(allies[0]).any(func(r):return r.key==&"card_indomitable" and r.value=="준비") and StatusCatalog.collect(allies[0]).any(func(r):return r.key==&"card_command_flag"),"passive effects in the unit's status tab")
+	# 불굴의 의지: the first ally that would fall holds at 30% with 2 s invincibility; once.
+	var first: BattleUnit=allies[0];var second: BattleUnit=allies[1]
+	var got: bool=CharacterLifecycle.intercept_lethal(first,first.current_hp+999)
+	verify(got and is_equal_approx(first.current_hp,first.max_hp*.3) and is_equal_approx(first.invincible_remaining,2) and int(b.combat_event_counts.get(&"passive_indomitable",0))==1,"불굴의 의지: 30% HP and 2 s invincible, with its effect")
+	verify(not CharacterLifecycle.intercept_lethal(second,second.current_hp+999),"…only for the first ally")
+	verify(float(b.get_meta("passive_fired",{}).get(&"indomitable",-1.0))>=0,"its HUD icon flashes")
+	# 망고 도시락: a won battle heals the deployed survivors by 15%.
+	for m in [members[0],members[1]]:m.current_hp=guild.member_stats(m).max_hp*.5
+	var bench: float=members[2].current_hp
+	var healed: Dictionary=BattlePassives.settle(b,guild,true)
+	verify(healed.size()==2 and is_equal_approx(members[0].current_hp,guild.member_stats(members[0]).max_hp*.65) and members[2].current_hp==bench,"망고 도시락: the two deployed survivors heal 15% (the bench does not)")
+	verify(BattlePassives.settle(b,guild,false).is_empty(),"…nothing when the battle is not won")
+	b.finish_with_reason(BattleEndReason.Value.RETREAT,-1);b.free()
+	# Retry after a retreat: the consumed passive does not come back, the cooldown one stays waiting.
+	var panel:=CardLoadoutPanel.new();tree.root.add_child(panel)
+	if panel.owned==null:panel._ready() # The test tree is not running yet.
+	panel.open(guild)
+	verify(not panel.add(ids[4]) and not panel.add(ids[2]) and panel.add(ids[0]),"after a retreat: 망고 도시락 is gone, 지휘 깃발 still on cooldown, 전열 정비 ready")
+	# Selection order and tabs: 액티브 → 패시브.
+	st.give_strategy_card(&"shield");panel.render()
+	var order: Array=panel.owned.get_children().map(func(t):return StrategyCardCatalog.get_card(t.card_kind).passive())
+	verify(order.has(false) and order.has(true) and order.find(true)>order.rfind(false),"owned cards: active first, then passive")
+	panel.set_filter(&"passive");verify(panel.owned.get_child_count()>0 and panel.owned.get_children().all(func(t):return StrategyCardCatalog.get_card(t.card_kind).passive()),"패시브 tab shows passives only")
+	panel.set_filter(&"active");verify(panel.owned.get_children().all(func(t):return not StrategyCardCatalog.get_card(t.card_kind).passive()),"액티브 tab shows actives only")
+	panel.queue_free()
+	# 원소 공명: two allies of one element (archers: wind); off when one falls.
+	var g2 := GuildManager.new();g2.create_member(1);g2.create_member(1)
+	var rid: int=g2.state.give_strategy_card(&"resonance").card_id;g2.state.card_loadout.assign([rid])
+	var r2 := RoomState.new();r2.add_enemy("e1",BattleManager.WARRIOR,Vector2(640,220))
+	var b2 := BattleManager.new();b2.common_combat_enabled=false;b2.full_characters_enabled=false;b2.auto_start=false;tree.root.add_child(b2);b2.set_physics_process(false)
+	var p2 := DeploymentPlan.new(g2);p2.place(g2.all_members()[0].member_id,Vector2(100,220));p2.place(g2.all_members()[1].member_id,Vector2(100,620))
+	verify(RoomBattleSession.new(g2,r2).start(p2,b2,7),"a battle with 원소 공명 starts")
+	var archers: Array=BattlePassives.allies(b2)
+	verify(BattlePassives.paired_elements(b2)==[&"wind"] and is_equal_approx(BattlePassives.outgoing(archers[0]),1.2) and int(b2.combat_event_counts.get(&"passive_resonance",0))==1,"원소 공명: wind allies deal +20%, with the lines between them")
+	verify(BattlePassives.outgoing(b2.units.filter(func(u):return u.team==1)[0])==1.0,"…not the enemy")
+	archers[1].alive=false
+	verify(BattlePassives.outgoing(archers[0])==1.0 and StrategyCardExecutor.hand_state(b2.turning,g2.state.get_strategy_card(rid))==&"passive_off","…off while only one stands (shown dimmed)")
+	b2.finish_with_reason(BattleEndReason.Value.RETREAT,-1);b2.free()
+	# Save v10 → v11 keeps the cards.
+	var t:=TowerController.new();t.new_run(5,9);t.guild.state.give_strategy_card(&"lunchbox")
+	var doc: Dictionary=JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(t,"v10",1).document));doc.schema_version=10
+	var back: SaveLoadResult=SaveSnapshotLoader.restore(doc)
+	verify(SaveMigrator.CURRENT_VERSION==11 and back.ok() and back.run.strategy_cards.size()==t.guild.state.strategy_cards.size() and back.run.strategy_cards[-1].kind==&"lunchbox","v10 save loads as v11 with every card")
 func DEFINITIONS_ICONS() -> bool:
 	for k in StrategyCardCatalog.DEFINITIONS:
 		if ArenaIcon.texture(String(k))==null:return false

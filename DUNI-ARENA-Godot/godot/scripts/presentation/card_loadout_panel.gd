@@ -5,6 +5,8 @@ extends VBoxContainer
 ## "N승 후" and cannot be chosen. Tapping an owned card or a slot opens its details with 넣기 / 빼기.
 ## 이전 구성 refills the last confirmed choice (cards gone or on cooldown stay out); 확정 stores the
 ## choice in the run (card_loadout and last_card_loadout) and hands over to deployment.
+## Owned cards are sorted 액티브 → 패시브 (then ready first); the tabs 전체 / 액티브 / 패시브 filter
+## them. A passive takes a slot like any card and applies for the whole battle.
 signal confirmed
 var guild: GuildManager
 var chosen: Array[int] = []
@@ -16,6 +18,9 @@ var owned: HBoxContainer
 var owned_scroll: ScrollContainer
 var detail: StrategyCardDetail
 var detail_layer: CanvasLayer
+## Owned row filter: &"all", &"active" or &"passive".
+var filter: StringName = &"all"
+var tabs: Dictionary = {}
 const SLOT := Vector2(56, 80)
 const OWNED := Vector2(60, 86)
 
@@ -28,7 +33,11 @@ func _ready() -> void:
 	slots = HBoxContainer.new();slots.alignment = BoxContainer.ALIGNMENT_CENTER;slots.add_theme_constant_override("separation", 6);add_child(slots)
 	for i in range(StrategyCardTuning.LOADOUT_SIZE):
 		var s := CardThumb.new();s.custom_minimum_size = SLOT;s.slot_index = i;s.pressed.connect(_slot_pressed.bind(i));slots.add_child(s)
-	var hint := Label.new();hint.name = "Hint";hint.text = "보유 카드 · 누르면 설명과 넣기";hint.add_theme_font_size_override("font_size", 10);hint.add_theme_color_override("font_color", ArenaUI.MUTED);add_child(hint)
+	var tab_row := HBoxContainer.new();tab_row.add_theme_constant_override("separation", 4);add_child(tab_row)
+	var hint := Label.new();hint.name = "Hint";hint.text = "보유 카드 · 누르면 설명";hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL;hint.add_theme_font_size_override("font_size", 10);hint.add_theme_color_override("font_color", ArenaUI.MUTED);tab_row.add_child(hint)
+	for key in [&"all", &"active", &"passive"]:
+		var tab := Button.new();tab.text = {&"all":"전체", &"active":"액티브", &"passive":"패시브"}[key];tab.toggle_mode = true;tab.custom_minimum_size = Vector2(52, 28);tab.add_theme_font_size_override("font_size", 11)
+		ArenaUI.quiet(tab);ArenaUI.bind(tab, set_filter.bind(key));tab_row.add_child(tab);tabs[key] = tab
 	owned_scroll = ScrollContainer.new();owned_scroll.custom_minimum_size.y = OWNED.y + 4;owned_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED;owned_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER;add_child(owned_scroll)
 	owned = HBoxContainer.new();owned.add_theme_constant_override("separation", 6);owned_scroll.add_child(owned)
 	detail_layer = CanvasLayer.new();detail_layer.layer = 70;add_child(detail_layer)
@@ -56,15 +65,27 @@ func render() -> void:
 		var s: CardThumb = slots.get_child(i)
 		var id: int = chosen[i] if i < chosen.size() else 0
 		var card: StrategyCardInstance = guild.state.get_strategy_card(id) if id != 0 else null
-		s.card_kind = card.kind if card != null else &"";s.card_id = id;s.state = "ready";s.note = "";s.locked = i >= maxi(limit, chosen.size());s.queue_redraw()
+		s.card_kind = card.kind if card != null else &"";s.card_id = id;s.state = "ready";s.note = "";s.wins = 0;s.locked = i >= maxi(limit, chosen.size());s.queue_redraw()
 	for child in owned.get_children():owned.remove_child(child);child.queue_free()
+	for key in tabs:tabs[key].set_pressed_no_signal(key == filter)
 	var cards: Array[StrategyCardInstance] = _owned()
-	cards.sort_custom(func(a, b): return a.wins_left < b.wins_left if a.wins_left != b.wins_left else a.card_id < b.card_id)
+	cards.sort_custom(_before)
 	for card in cards:
-		var t := CardThumb.new();t.custom_minimum_size = OWNED;t.card_kind = card.kind;t.card_id = card.card_id
+		var passive: bool = StrategyCardCatalog.get_card(card.kind).passive()
+		if filter == &"active" and passive or filter == &"passive" and not passive:continue
+		var t := CardThumb.new();t.custom_minimum_size = OWNED;t.card_kind = card.kind;t.card_id = card.card_id;t.wins = card.wins_left
 		t.state = "waiting" if card.wins_left > 0 else "chosen" if card.card_id in chosen else "ready"
 		t.note = "%d승 후" % card.wins_left if card.wins_left > 0 else "선택됨" if card.card_id in chosen else ""
 		t.pressed.connect(_owned_pressed.bind(card.card_id));owned.add_child(t)
+
+## 액티브 before 패시브, then ready before waiting, then the order they were got.
+static func _before(a: StrategyCardInstance, b: StrategyCardInstance) -> bool:
+	var pa: bool = StrategyCardCatalog.get_card(a.kind).passive();var pb: bool = StrategyCardCatalog.get_card(b.kind).passive()
+	if pa != pb:return pb
+	if a.wins_left != b.wins_left:return a.wins_left < b.wins_left
+	return a.card_id < b.card_id
+func set_filter(key: StringName) -> void:
+	filter = key;render()
 
 ## The last confirmed loadout, cards still owned and ready, in its order.
 func _previous() -> Array[int]:
@@ -111,6 +132,7 @@ class CardThumb extends Control:
 	var state: String = "ready"
 	var note: String = ""
 	var locked: bool = false
+	var wins: int = 0
 	var slot_index: int = -1
 	var down: Vector2 = Vector2.INF
 	func _ready() -> void:mouse_filter = Control.MOUSE_FILTER_PASS
@@ -127,6 +149,5 @@ class CardThumb extends Control:
 			draw_style_box(box, r)
 			draw_string(get_theme_default_font(), Vector2(0, size.y * .5 + 6), "" if locked else "+", HORIZONTAL_ALIGNMENT_CENTER, size.x, 18, Color(1, 1, 1, .35))
 			return
-		var data: StrategyCardData = StrategyCardCatalog.get_card(card_kind)
-		StrategyCardArt.draw(self, r, String(card_kind), data.display_name, "", "", "selected" if state == "chosen" else state, note)
+		StrategyCardArt.draw(self, r, String(card_kind), "selected" if state == "chosen" else state, note, wins)
 		if state == "chosen":draw_string(get_theme_default_font(), Vector2(0, size.y - 4), "선택됨", HORIZONTAL_ALIGNMENT_CENTER, size.x, 9, ArenaUI.GOLD)

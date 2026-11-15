@@ -7,7 +7,9 @@ extends Control
 ## - Released past the line (or flicked up fast) the hand asks the owner (play_requested); the
 ##   owner answers with play() (a flight into the target, an effect at the spot, or light at the
 ##   centre) or refuse() (the card springs back with a short reason). Under the line it springs back.
-## - A plain tap asks for the card's details (card_tapped).
+## - A pressed card grows into the large card (with its description); a plain tap asks for the
+##   card's details (card_tapped). Passive cards (state "passive") are never lifted: they glow as
+##   적용 중 and a tap shows their details.
 ## Positions are in this control's space; the lifted card may leave its rect (drawn on top).
 ## With UI animation off (GameSettings.motion) everything happens at once.
 signal card_tapped(card_id: int)
@@ -17,7 +19,8 @@ signal lift_ended(card_id: int)
 signal play_requested(card_id: int, global_point: Vector2)
 
 
-## Rows: {id, kind, title, state ("ready" / "used" / "blocked" / "waiting"), note}.
+## Rows: {id, kind, title, state ("ready" / "used" / "blocked" / "waiting" / "passive" /
+## "passive_off"), note, wins (cooldown wins still to go)}.
 var rows: Array[Dictionary] = []
 ## Per card: {pos, vel, rot, scale, alpha} drawn state.
 var looks: Dictionary = {}
@@ -168,8 +171,13 @@ func _process(dt: float) -> void:
 			if lifting:
 				goal = finger + Vector2(0, -StrategyCardTuning.HAND_CARD.y * .3)
 				goal_rot = clampf(moved.x * StrategyCardTuning.TILT * 8, -StrategyCardTuning.TILT_MAX, StrategyCardTuning.TILT_MAX)
+				# Past the use line it shrinks back so the field (and the target) stays visible.
+				if past_line:goal_scale = StrategyCardTuning.PAST_SCALE
 				if over_field:goal_scale = StrategyCardTuning.FIELD_SCALE
-			else:goal = slot.pos + Vector2(0, -StrategyCardTuning.HAND_LIFT)
+			else:
+				# Pressed: the large card stands on the card's place, kept inside the hand's width.
+				var big: Vector2 = StrategyCardTuning.HAND_CARD * goal_scale
+				goal = Vector2(clampf(slot.pos.x, big.x * .5 + 4, maxf(big.x * .5 + 4, size.x - big.x * .5 - 4)), slot.pos.y + (StrategyCardTuning.HAND_CARD.y - big.y) * .5 - StrategyCardTuning.HAND_LIFT)
 		if not animate():
 			l.pos = goal;l.rot = goal_rot;l.scale = goal_scale;l.alpha = 1.0;continue
 		if id == held_id and lifting:
@@ -213,10 +221,11 @@ func _draw() -> void:
 		draw_style_box(ArenaUI.box(Color(.2, .05, .07, .9 * a), Color(1, .45, .5, a)), box)
 		draw_string(get_theme_default_font(), box.position + Vector2(0, 17), refusal, HORIZONTAL_ALIGNMENT_CENTER, w, 12, Color(1, .88, .9, a))
 
+## Drawn at its scaled size (not a scaled transform), so a grown card lays out as the large card.
 func _card(at: Vector2, rot: float, scale_k: float, alpha: float, r: Dictionary, state: String) -> void:
-	draw_set_transform(at, rot, Vector2.ONE * scale_k)
-	var rect := Rect2(-StrategyCardTuning.HAND_CARD * .5, StrategyCardTuning.HAND_CARD)
-	StrategyCardArt.draw(self, rect, str(r.kind), str(r.title), "", "", state, str(r.get("note", "")))
+	draw_set_transform(at, rot)
+	var sz: Vector2 = StrategyCardTuning.HAND_CARD * scale_k
+	StrategyCardArt.draw(self, Rect2(-sz * .5, sz), str(r.kind), state, str(r.get("note", "")), int(r.get("wins", 0)))
 	draw_set_transform(Vector2.ZERO)
 
 func _draw_preview() -> void:
