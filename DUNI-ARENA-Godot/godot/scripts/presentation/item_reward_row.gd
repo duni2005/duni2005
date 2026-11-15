@@ -2,8 +2,8 @@ class_name ItemRewardRow
 extends VBoxContainer
 ## 전투 보상: the offered items as cards (grade frame, name, effect, grade), 아이템 받기 and 통계. The cards
 ## flip in one after another; 영웅 and above burst in their grade colour as they turn, 전설 adds a
-## short gold flourish. A tap shows the card's full effect; 받기 takes it. `picked` carries the
-## item kind.
+## short gold flourish. A tap chooses a card (arms 받기); tapping the chosen card again opens it
+## enlarged (CardDetail). 받기 takes it. `picked` carries the item kind.
 signal picked(kind: StringName)
 signal stats_requested
 ## Shows the 통계 button under 아이템 받기 (the battle result page has one).
@@ -13,8 +13,7 @@ const FLIP: float = Motion.ENTER
 const GAP: float = .22
 var cards: Array[ArenaCard] = []
 var take_button: Button
-var detail: Label
-var cost_line: Label
+var detail: CardDetail
 var looking: StringName = &""
 var bursts: Array[Dictionary] = []
 var age: float = 0
@@ -34,10 +33,9 @@ func setup(kinds: Array, chosen: StringName) -> void:
 		# After the pick the cards stay readable: the others just fade and stop taking taps.
 		if chosen != &"":card.mouse_filter = Control.MOUSE_FILTER_IGNORE;card.modulate.a = 1.0 if chosen == kind else .45
 		ArenaUI.bind(card, _look.bind(kind));row.add_child(card);cards.append(card)
-	# The tapped card's whole effect (cards cut long text short).
-	detail = Label.new();detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER;detail.add_theme_font_size_override("font_size", 12)
-	detail.add_theme_color_override("font_color", ArenaUI.MUTED);detail.text = "카드를 눌러 효과를 보고 아이템 받기를 누르세요." if chosen == &"" else "";detail.visible = chosen == &"";add_child(detail)
-	cost_line = ArenaUI.cost_label(self, &"", 12, true)
+	# The chosen card enlarged (second tap).
+	var layer := CanvasLayer.new();layer.layer = 70;add_child(layer)
+	detail = CardDetail.new();layer.add_child(detail)
 	# 아이템 받기 (armed by tapping a card), and 통계 under it. No skip: one item is always taken.
 	take_button = Button.new();take_button.name = "Take";take_button.text = "아이템 받기";take_button.custom_minimum_size = Vector2(0, 48);take_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL;ArenaUI.primary(take_button)
 	take_button.disabled = true;take_button.visible = chosen == &"";ArenaUI.bind(take_button, func():if looking != &"":_pick(looking));add_child(take_button)
@@ -86,12 +84,12 @@ func _draw_burst(b: Dictionary) -> void:
 			for k in range(8):
 				var s: float = fposmod(k * .37 + t, 1.0);overlay.draw_circle(at + Vector2((k - 3.5) * size.x / 8, size.y * (.4 - s)), 2.5 * fade + 1, Color(1, .9, .5, fade))
 
-## First tap: show the whole effect and arm 받기.
+## First tap: choose the card and arm 받기; a second tap on it: the card enlarged.
 func _look(kind: StringName) -> void:
+	var data: ItemData = ItemCatalog.get_item(kind)
+	if looking == kind:detail.open_item(0, kind, data)
 	looking = kind
 	for card in cards:card.selected = card.kind == String(kind);card.set_pressed_no_signal(card.selected);card.queue_redraw()
-	var data: ItemData = ItemCatalog.get_item(kind)
-	detail.text = "[%s] %s\n%s" % [ItemCatalog.grade_name(kind), data.display_name, ItemCatalog.body_text(data)];cost_line.text = ItemCatalog.cost_text(kind);cost_line.visible = cost_line.text != "";detail.add_theme_color_override("font_color", ItemCatalog.grade_color(kind).lightened(.35))
 	take_button.disabled = false;take_button.text = "아이템 받기 · " + data.display_name
 func _pick(kind: StringName) -> void:
 	picked.emit(kind)

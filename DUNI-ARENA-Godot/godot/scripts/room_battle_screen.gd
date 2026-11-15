@@ -34,7 +34,6 @@ var arena_home: Node
 var arena_index: int
 var desktop_dock: bool=false
 var feedback: Label
-var deployment_hint: Label
 var speed_row: HBoxContainer
 var speed_buttons: Dictionary={}
 var battle_toolbar: HBoxContainer
@@ -65,7 +64,6 @@ func _build_ui() -> void:
 	arena_home=board.get_parent();arena_index=board.get_index()
 	actions_home=start_button.get_parent()
 	tools_row.reparent(arena_home)
-	deployment_hint=Label.new();deployment_hint.text="보유 길드원을 골라 배치하세요.";deployment_hint.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;deployment_hint.add_theme_font_size_override("font_size",11);deployment_hint.add_theme_color_override("font_color",ArenaUI.MUTED);actions_home.add_child(deployment_hint);actions_home.move_child(deployment_hint,0)
 	ai_debug_panel=PanelContainer.new();ai_debug_panel.z_index=10;ai_debug_panel.mouse_filter=Control.MOUSE_FILTER_IGNORE;board.add_child(ai_debug_panel)
 	ai_debug_label=Label.new();ai_debug_label.mouse_filter=Control.MOUSE_FILTER_IGNORE;ai_debug_label.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;ai_debug_label.add_theme_font_size_override("font_size",11);ai_debug_panel.add_child(ai_debug_label);ai_debug_panel.hide()
 	board.battle_unit_selected.connect(func(actor_id):ai_debug_actor=actor_id;_select_from_field(actor_id);_refresh_selected())
@@ -306,7 +304,6 @@ func _process(delta: float) -> void:
 	actions_home.visible = board.editing or (not paused and not finished)
 	room_hud.visible = true
 	status.visible = not paused and (not board.editing or debug_enabled)
-	deployment_hint.visible=board.editing
 	# Card choice first: the loadout replaces the deployment controls under the field.
 	var choosing: bool=board.editing and card_stage
 	loadout_panel.visible=choosing
@@ -336,7 +333,7 @@ func _process(delta: float) -> void:
 			if not losses.is_empty():feedback.text+=" · 플레이어 HP -"+ArenaUI.number(losses.values().reduce(func(a,b):return a+float(b),0.0))
 		feedback.visible=debug_enabled and not feedback.text.is_empty() and not paused and not finished
 	if paused:
-		status.text = "전투 정지 · 아군 성향을 선택하세요"
+		status.text = "전투 정지"
 	var transcending: bool=is_instance_valid(battle) and battle.transcendence!=null and not battle.transcendence.cast.is_empty()
 	trans_cutin.visible=transcending
 	if transcending:
@@ -467,7 +464,6 @@ func _layout_arena() -> void:
 		strip.size_flags_horizontal=Control.SIZE_FILL if board.editing else Control.SIZE_SHRINK_CENTER
 		strip.custom_minimum_size.x=0 if board.editing else (viewport.x-16 if strip==actions_home else minf(board.custom_minimum_size.y,square))
 	actions_home.alignment=FlowContainer.ALIGNMENT_END if board.editing else FlowContainer.ALIGNMENT_CENTER
-	deployment_hint.custom_minimum_size.x=maxf(80,viewport.x-164) if viewport.x<720 else maxf(100,viewport.x-360)
 	battle_toolbar.custom_minimum_size.x=viewport.x-16 if viewport.x<720 else minf(800,viewport.x-24)
 	start_button.custom_minimum_size.x=(128 if viewport.x<720 else 180) if board.editing else 0
 	if board.editing and start_button.get_index()!=actions_home.get_child_count()-1:actions_home.move_child(start_button,-1)

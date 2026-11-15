@@ -55,7 +55,7 @@ func flow(touch: bool) -> void:
 	await click(screen.content_screen.map_button,touch);await click(screen.guild_button,touch)
 	await click(screen.guild_panel.tabs["inventory"],touch)
 	await click(screen.guild_panel.inventory_grid.get_node("item_%d"%item.item_id),touch)
-	await click(screen.guild_panel.item_dialog.get_ok_button(),touch);await click(screen.guild_panel.tabs["upgrade"],touch);await click(screen.guild_panel.upgrade_button,touch)
+	await click(screen.guild_panel.card_detail.action,touch);await click(screen.guild_panel.tabs["upgrade"],touch);await click(screen.guild_panel.upgrade_button,touch)
 	var member: GuildMemberState=c.guild.all_members()[0]
 	verify(item.equipped_to_member_id==member.member_id and member.level==1,"equipment and growth input")
 	await click(screen.guild_panel.close_button,touch)

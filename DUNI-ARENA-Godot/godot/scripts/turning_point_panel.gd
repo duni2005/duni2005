@@ -14,7 +14,7 @@ var stances: BoxContainer
 var plans: Label
 var choices: Dictionary = {}
 var hand: StrategyHand
-var detail: StrategyCardDetail
+var detail: CardDetail
 var detail_layer: CanvasLayer
 var card_result: Label
 var hand_signature: String = ""
@@ -97,7 +97,7 @@ func _ready() -> void:
 	hand.card_tapped.connect(_card_tapped);hand.lift_started.connect(_lift_started);hand.lift_moved.connect(_lift_moved)
 	hand.lift_ended.connect(_lift_ended);hand.play_requested.connect(_play_requested)
 	detail_layer = CanvasLayer.new();detail_layer.layer = 70;add_child(detail_layer)
-	detail = StrategyCardDetail.new();detail_layer.add_child(detail)
+	detail = CardDetail.new();detail_layer.add_child(detail)
 	visible = false
 
 func refresh(value: TurningPointManager) -> void:
@@ -156,12 +156,11 @@ func refresh(value: TurningPointManager) -> void:
 	var pending: Array[String] = []
 	for command in manager.current.pending_commands:
 		if not command.executed:pending.append(StrategyCardCatalog.get_card(command.command_type).display_name)
-	var description: String = "카드를 위로 밀어 올려 사용 · 누르면 설명" if not hand_rows.is_empty() else "가지고 들어온 전략카드가 없습니다"
-	if not hand_rows.is_empty() and hand_rows.all(func(r): return str(r.state).begins_with("passive")):description = "패시브 카드는 이번 전투 내내 적용 중 · 누르면 설명"
-	if target != null:description = "선택: %s%s · %s" % ["아군 " if target.team == 0 else "적 ", target.data.display_name, description]
-	if not manager.current.last_card_result.is_empty() and manager.current.last_card_result.code == StrategyCardExecutor.Code.OK:description = "사용 완료 · " + description
-	if not pending.is_empty(): description += " · 대기: " + ",".join(pending)
-	card_result.text = description
+	# Only what the player needs: the chosen unit and commands waiting for the resume.
+	var parts: Array[String] = []
+	if target != null:parts.append("선택: %s%s" % ["아군 " if target.team == 0 else "적 ", target.data.display_name])
+	if not pending.is_empty():parts.append("대기: " + ",".join(pending))
+	card_result.text = " · ".join(parts)
 
 ## The strip: allies (with stance) then, after a gap, the enemies; tapping one chooses it as the
 ## target of unit cards (an ally also for the stance buttons).
@@ -213,9 +212,7 @@ func _data(id: int) -> StrategyCardData:
 func _card_tapped(id: int) -> void:
 	var card: StrategyCardInstance = _card(id)
 	if card == null:return
-	var state: StringName = StrategyCardExecutor.hand_state(manager, card)
-	var status: String = {&"used":"이번 전투에서 이미 사용함", &"cooldown":"%d승 후 사용 가능" % card.wins_left, &"blocked":"지금은 조건에 맞는 대상이 없음", &"passive":"패시브 · 이번 전투 내내 적용 중", &"passive_off":"패시브 · 지금은 조건이 맞지 않아 꺼져 있음"}.get(state, "위로 밀어 올려 사용")
-	detail.open(id, card.kind, status)
+	detail.open(id, card.kind, "", true, card.wins_left)
 
 func _lift_started(id: int) -> void:
 	held_card = id

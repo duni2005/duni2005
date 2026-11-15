@@ -49,7 +49,9 @@ var motion_tab: String=""
 var emblem: PanelEmblem
 var deal_cards: bool=false
 var content_tabs: HBoxContainer
-var offer_dialog: AcceptDialog
+## The product detail (the card enlarged with its 구매 button) and the offer it shows.
+var offer_detail: CardDetail
+var detail_offer: String=""
 var offers_grid: GridContainer
 var content_menu: AcceptDialog
 var storage_status: Label
@@ -194,7 +196,7 @@ func render() -> void:
 		if not motion_tab.is_empty():UiMotion.pop.call_deferred(content_box,0,.97,.24)
 		motion_tab=content_tab
 	if phase==&"cleared":
-		_result("star","완료한 방","이 방의 보상은 이미 받았습니다.\n지도에서 다음 방을 선택하세요.",ArenaUI.GOLD,[]);return
+		_result("star","완료한 방","보상 수령 완료",ArenaUI.GOLD,[]);return
 	if node.room_type in [RoomType.RECRUIT,RoomType.SHOP] and content_tab in ["inventory","upgrade"]:_guild_panel(content_tab)
 	elif node.room_type==RoomType.RECRUIT:render_recruit(node)
 	elif node.room_type==RoomType.SHOP:render_shop(node)
@@ -278,32 +280,15 @@ func _show_offer(offer_id: String) -> void:
 	for o in node.shop.offers:
 		if o.offer_id==offer_id:offer=o
 	if offer==null:return
-	if offer_dialog==null:
-		offer_dialog=AcceptDialog.new();offer_dialog.title="상품";offer_dialog.get_ok_button().text="닫기";add_child(offer_dialog);ArenaModalBackdrop.new().connect_window(offer_dialog,self)
-	for child in offer_dialog.get_children():
-		if child is VBoxContainer:offer_dialog.remove_child(child);child.queue_free()
-	var col:=VBoxContainer.new();col.add_theme_constant_override("separation",10);offer_dialog.add_child(col)
-	var item: ItemData=ItemCatalog.get_item(offer.kind) if offer.category==&"equipment" else null
-	var card: StrategyCardData=StrategyCardCatalog.get_card(offer.kind) if offer.category==&"card" else null
-	ArenaUI.dialog_header(offer_dialog,col,item.display_name if item!=null else card.display_name)
-	var head:=HBoxContainer.new();head.add_theme_constant_override("separation",12);col.add_child(head)
-	var art:=_offer_card(offer,0);art.custom_minimum_size=Vector2(104,150);art.mouse_filter=Control.MOUSE_FILTER_IGNORE;art.description="";head.add_child(art)
-	var facts:=VBoxContainer.new();facts.size_flags_horizontal=Control.SIZE_EXPAND_FILL;facts.add_theme_constant_override("separation",4);head.add_child(facts)
-	var kind_label:=Label.new();kind_label.add_theme_font_size_override("font_size",13)
-	if item!=null:
-		kind_label.text=("소모품" if item.consumable else ItemCatalog.grade_name(offer.kind)+" 아이템");kind_label.add_theme_color_override("font_color",ItemCatalog.grade_color(offer.kind).lightened(.3))
-	else:kind_label.text="전략카드 · "+_card_rule(card);kind_label.add_theme_color_override("font_color",Color("c9a2ff"))
-	facts.add_child(kind_label)
-	var price_label:=Label.new();price_label.text="%d G"%offer.gold_price;price_label.add_theme_font_override("font",ArenaUI.numbers_font());price_label.add_theme_font_size_override("font_size",20);price_label.add_theme_color_override("font_color",ArenaUI.GOLD);facts.add_child(price_label)
-	var owned:=Label.new();owned.text="보유 골드 %s G"%ArenaUI.grouped(controller.guild.state.gold);owned.add_theme_font_size_override("font_size",11);owned.add_theme_color_override("font_color",ArenaUI.MUTED);facts.add_child(owned)
-	var text:=Label.new();text.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;text.custom_minimum_size.x=minf(320,get_viewport_rect().size.x-70);text.text=ItemCatalog.body_text(item) if item!=null else card.description;col.add_child(text)
-	if item!=null:ArenaUI.cost_label(col,offer.kind,12).custom_minimum_size.x=text.custom_minimum_size.x
-	var buy:=Button.new();buy.name="DialogBuy";buy.custom_minimum_size.y=46;col.add_child(buy)
-	if offer.purchased:buy.text="구매 완료";buy.disabled=true
-	else:
-		ArenaUI.price_button(buy,"구매","gold",offer.gold_price);buy.disabled=controller.guild.state.gold<offer.gold_price
-		ArenaUI.bind(buy,func():offer_dialog.hide();_action(&"buy",{"offer_id":offer.offer_id}))
-	offer_dialog.popup_centered(Vector2i(mini(380,int(get_viewport_rect().size.x)-24),0))
+	if offer_detail==null:
+		var layer:=CanvasLayer.new();layer.layer=70;add_child(layer)
+		offer_detail=CardDetail.new();offer_detail.name="OfferDetail";layer.add_child(offer_detail)
+		offer_detail.action_pressed.connect(func(_id):_action(&"buy",{"offer_id":detail_offer}))
+	detail_offer=offer.offer_id
+	# The product enlarged as its card; the one button under it buys it (none once sold).
+	var text: String="" if offer.purchased else "구매";var can: bool=controller.guild.state.gold>=offer.gold_price
+	if offer.category==&"card":offer_detail.open(0,offer.kind,text,can,0,offer.gold_price)
+	else:offer_detail.open_item(0,offer.kind,ItemCatalog.get_item(offer.kind),Color(0,0,0,0),text,can,offer.gold_price)
 func _refresh_party() -> void:
 	clear(party_members)
 	for member in controller.guild.all_members():

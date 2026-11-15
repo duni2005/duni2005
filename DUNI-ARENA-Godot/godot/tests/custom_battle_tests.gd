@@ -1800,7 +1800,7 @@ func cards_0980(tree: SceneTree) -> void:
 		var d: StrategyCardData=StrategyCardCatalog.get_card(k)
 		if d==null or d.passive() or d.kind_text()!=expect[k][0] or d.usage!=expect[k][1] or d.gold_price!=expect[k][2]:data_ok=false;push_error("card data "+String(k))
 	verify(data_ok,"the 11 active cards keep kind, use and price")
-	verify(StrategyCardCatalog.get_card(&"iron").tags()==["일반","조건: 근접형"] and StrategyCardCatalog.get_card(&"block").tags()==["쿨타임 2","조건: 특수전략 준비 중인 적","방해: 위험 이하"],"tags: [kind] [조건] [방해]")
+	verify(StrategyCardCatalog.get_card(&"iron").tags()==["일반","조건: 근접형"] and StrategyCardCatalog.get_card(&"block").tags()==["쿨타임 2","조건: 특수전략 준비 중인 적"] and StrategyCardCatalog.get_card(&"block").description.begins_with("방해:"),"tags: [kind] [조건]; disruption written in the effect")
 	verify(StrategyCardCatalog.get_card(&"iron").description.contains("쿨타임 3초") and StrategyCardCatalog.get_card(&"mango").amount==.3,"old effects kept (철벽방어's 3 s is an effect number)")
 	verify(DEFINITIONS_ICONS(),"every card and use mode has an icon")
 	var helper:=Phase5Tests.new();helper.host=tree;var f: Dictionary=helper.fixture();helper.pause(f);f.tp.current.enemy_plans.clear()

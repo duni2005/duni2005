@@ -38,7 +38,6 @@ func _ready() -> void:
 	# Pick page: the situation, the team cards and reroll / start.
 	pick_page = VBoxContainer.new();pick_page.size_flags_vertical = Control.SIZE_EXPAND_FILL;pick_page.add_theme_constant_override("separation", 10);column.add_child(pick_page)
 	section = Label.new();section.add_theme_font_override("font", ArenaUI.heading_font());section.add_theme_font_size_override("font_size", 16);section.add_theme_color_override("font_color", Color("e8d6a6"));pick_page.add_child(section)
-	var hint := Label.new();hint.text = "이길 것 같은 팀을 고른 뒤 관전하세요.";hint.add_theme_font_size_override("font_size", 12);hint.add_theme_color_override("font_color", ArenaUI.MUTED);pick_page.add_child(hint)
 	teams_box = VBoxContainer.new();pick_page.add_child(teams_box)
 	var gap := Control.new();gap.size_flags_vertical = Control.SIZE_EXPAND_FILL;pick_page.add_child(gap)
 	var row := HBoxContainer.new();row.add_theme_constant_override("separation", 8);pick_page.add_child(row)

@@ -89,8 +89,8 @@ func flow(touch: bool) -> void:
 	var item: ItemInstance=t.content.inventory.available()[0]
 	await click(panel.tabs["inventory"],touch)
 	await click(panel.inventory_grid.get_node("item_%d"%item.item_id),touch)
-	verify(panel.item_dialog.visible and item.equipped_to_member_id.is_empty(),"item description precedes equip")
-	await click(panel.item_dialog.get_ok_button(),touch)
+	verify(panel.card_detail.visible and panel.card_detail.action.visible and item.equipped_to_member_id.is_empty(),"item card precedes equip")
+	await click(panel.card_detail.action,touch)
 	# The member's HP with the 0.75.0 balance layer: vital item ×1.2, then level 1 adds +12%.
 	var base_hp: float=t.guild.definition(member.unit_type_id).max_hp*UnitBalance.hp(t.guild.definition(member.unit_type_id))
 	verify(item.equipped_to_member_id==member.member_id and t.guild.member_max_hp(member)==floorf(base_hp*1.2+.5),"explicit equip input")

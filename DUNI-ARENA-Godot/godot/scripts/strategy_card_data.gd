@@ -35,7 +35,6 @@ const USAGE_ICONS = {&"unit_ally":"use_unit", &"unit_enemy":"use_unit", &"unit_a
 const CONDITION_NAMES = {&"melee":"근접형", &"rush":"저돌적", &"low_hp":"HP 30% 이하", &"planning":"특수전략 준비 중인 적", &"outnumbered":"아군 수 열세", &"enemy_planning":"적 특수전략 준비 중", &"element_pair":"같은 속성 아군 2명 이상 출정"}
 const SITUATION = [&"outnumbered", &"enemy_planning", &"element_pair"]
 const DISRUPT_NAMES = {&"normal":"일반 등급", &"danger":"위험 이하", &"high":"고위험 포함"}
-const DISRUPT_SHORT = {&"normal":"일반", &"danger":"위험↓", &"high":"고위험"}
 
 func passive() -> bool:return card_kind == &"passive"
 ## "소모", "일반" or "쿨타임 2".
@@ -48,11 +47,10 @@ func type_text(short: bool = false) -> String:
 func use_text() -> String:return USAGE_NAMES.get(usage, "")
 func use_icon() -> String:return USAGE_ICONS.get(usage, "card")
 func condition_text() -> String:return ", ".join(conditions.map(func(c): return CONDITION_NAMES.get(c, String(c))))
-## Tags as shown in lists: [쿨타임 2] [조건: 근접형] [방해: 위험 이하].
+## Tags as shown in lists: [쿨타임 2] [조건: 근접형]. (A disruption grade is in the effect text.)
 func tags() -> Array[String]:
 	var out: Array[String] = [kind_text()]
 	if not conditions.is_empty():out.append("조건: " + condition_text())
-	if disrupt != &"":out.append("방해: " + DISRUPT_NAMES.get(disrupt, ""))
 	return out
 func unit_target() -> bool:return usage in [&"unit_ally", &"unit_enemy", &"unit_any"]
 ## All of its conditions are situation conditions (no target to check).
