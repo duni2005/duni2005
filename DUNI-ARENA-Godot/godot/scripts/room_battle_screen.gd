@@ -55,6 +55,9 @@ var last_end_id: String=""
 ## 전투 전 카드 선택: shown before deployment while the guild owns cards; 확정 hands over to
 ## deployment, "카드 다시 고르기" comes back until the battle starts.
 var card_stage: bool=false
+## Which bottom set is on show while deploying: 1 card choice, 0 deployment, -1 neither. A change
+## plays the stage motion (rows rise in, cards turn over one after another).
+var stage_shown: int=-1
 var loadout_panel: CardLoadoutPanel
 var recards_button: Button
 
@@ -311,6 +314,11 @@ func _process(delta: float) -> void:
 	if choosing:
 		roster.get_parent().visible=false;tools_row.visible=false;actions_home.visible=false
 	elif board.editing:tools_row.visible=true
+	var stage: int=(1 if choosing else 0) if board.editing else -1
+	if stage!=stage_shown:
+		stage_shown=stage
+		if stage==1:_stage_motion([loadout_panel],loadout_panel.slots.get_children()+loadout_panel.owned.get_children())
+		elif stage==0:_stage_motion([roster.get_parent(),tools_row,actions_home],roster.get_children())
 	battle_toolbar.visible=not board.editing and not finished and not paused
 	for speed in speed_buttons:
 		speed_buttons[speed].disabled=watch_paused or not is_instance_valid(battle) or battle.clock.state!=BattleClock.State.NORMAL;speed_buttons[speed].set_pressed_no_signal(is_instance_valid(battle) and int(battle.clock.speed)==speed)
@@ -507,3 +515,10 @@ func _open_stats() -> void:
 	if not is_instance_valid(battle) or battle.result==null:return
 	if stats_dialog==null:stats_dialog=BattleStatsView.make_dialog(self)
 	BattleStatsView.open(stats_dialog,self,battle.result.stats)
+
+## Card choice <-> deployment: the rows that come in fade and scale up one after another and their
+## cards turn over in reading order (UiMotion; nothing with UI animation off).
+func _stage_motion(rows: Array,cards: Array) -> void:
+	for i in range(rows.size()):
+		if rows[i] is Control and rows[i].visible:UiMotion.pop(rows[i],i*Motion.STAGGER,.96)
+	UiMotion.deal(cards.filter(func(c):return c is Control and c.visible))

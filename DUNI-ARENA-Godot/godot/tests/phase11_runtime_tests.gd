@@ -125,7 +125,7 @@ func conquest() -> void:
 	for floor in run.tower.map.floors:
 		var ids: Array=floor.room_ids.slice(0,floor.required_clear_count)
 		for id in floor.room_ids:
-			if run.tower.map.get_room(id).room_type==RoomType.BOSS and not ids.has(id):ids.append(id)
+			if run.tower.map.get_room(id).room_type in [RoomType.BOSS,RoomType.MINIBOSS] and not ids.has(id):ids.append(id)
 		for id in ids:
 			var room: RoomState=run.tower.map.get_room(id);room.discovered=true;room.visited=true;room.cleared=true;room.consumed=room.room_type not in [RoomType.SHOP,RoomType.RECRUIT];run.tower.visited_rooms[id]=true
 			for enemy in room.enemy_state.values():enemy.current_hp=0

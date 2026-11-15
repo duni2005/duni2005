@@ -23,6 +23,9 @@ var hand: Array[int] = []
 ## 일반 / 쿨타임 cards already played this battle (card_id -> true): shown face down.
 var used_cards: Dictionary = {}
 var card_serial: int = 0
+## 쿨타임 cards taken into this battle: their cooldown starts when the battle does (taking one
+## in is enough), and they stay playable once in this battle.
+var cooldown_armed: Array[int] = []
 ## Passive cards of the hand (marked used at battle start; shown as 적용 중, never played).
 var passive_cards: Array[int] = []
 ## Seconds between turning points this battle (지휘 깃발 shortens it; the first stays at FIRST).
@@ -32,6 +35,10 @@ func _init(owner: BattleManager, manager: GuildManager) -> void:
 	battle = owner
 	guild = manager
 	hand.assign(guild.state.card_loadout.filter(func(id): return guild.state.get_strategy_card(id) != null))
+	for card in hand_cards():
+		var data: StrategyCardData = StrategyCardCatalog.get_card(card.kind)
+		if data != null and not data.passive() and data.cooldown_type == &"cooldown" and card.wins_left <= 0:
+			card.wins_left = maxi(1, data.cooldown_wins);cooldown_armed.append(card.card_id)
 	BattlePassives.start(self)
 
 func can_trigger() -> bool:

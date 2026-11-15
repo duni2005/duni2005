@@ -129,13 +129,17 @@ static func validate_run(run: RunState) -> SaveLoadResult:
 			if not reason.is_empty():return reject(reason)
 			count+=int(room.cleared)
 		if count!=floor.cleared_count or floor.conquered!=(count==floor.room_ids.size()) or floor.conquered!=bool(tower.floor_conquest.get(i,false)):return reject("floor_counts")
+	# The unlock never moves back: saves from before 0.99.3 (미니보스 not yet a gate) may have opened
+	# a floor past an uncleared 미니보스, so it may lie between the 0.99.3 rule and the old one.
 	var expected_unlock: int=0
-	while expected_unlock<14:
-		var floor: FloorState=tower.map.floors[expected_unlock]
+	while expected_unlock<14 and TowerController.floor_opens_next(tower.map,tower.map.floors[expected_unlock]):expected_unlock+=1
+	var old_unlock: int=0
+	while old_unlock<14:
+		var floor: FloorState=tower.map.floors[old_unlock]
 		var boss_cleared: bool=floor.room_ids.any(func(id):return tower.map.get_room(id).room_type==RoomType.BOSS and tower.map.get_room(id).cleared)
-		if floor.cleared_count<floor.required_clear_count or expected_unlock%5==4 and not boss_cleared:break
-		expected_unlock+=1
-	if tower.unlocked_floor!=expected_unlock:return reject("unlock_boundary")
+		if floor.cleared_count<floor.required_clear_count or old_unlock%5==4 and not boss_cleared:break
+		old_unlock+=1
+	if tower.unlocked_floor<expected_unlock or tower.unlocked_floor>maxi(expected_unlock,old_unlock):return reject("unlock_boundary")
 	if not tower.selected_room_id.is_empty() and tower.map.get_room(tower.selected_room_id)==null:return reject("selected_room")
 	if tower.phase not in [&"route",&"gameover"] and tower.selected_room_id.is_empty():return reject("route_room_required")
 	if not tower.selected_room_id.is_empty():

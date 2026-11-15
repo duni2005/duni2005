@@ -73,6 +73,19 @@ func select_room(id: String) -> TowerNavigationPolicy.Code:
 		content.ensure_event(room)
 	guild.state.strategy_progress.current_depth=room.floor_index
 	_autosave();changed.emit();return code
+## A floor opens the next one when enough of its rooms are cleared and its milestone room, if it
+## has one (미니보스 on a chapter's 3rd floor, 보스 on its 5th), is cleared too.
+static func floor_opens_next(map: TowerMapState,floor: FloorState) -> bool:
+	return floor.cleared_count>=floor.required_clear_count and milestone_cleared(map,floor)
+static func milestone_cleared(map: TowerMapState,floor: FloorState) -> bool:
+	return floor.room_ids.all(func(id):var r: RoomState=map.get_room(id);return not r.room_type in [RoomType.BOSS,RoomType.MINIBOSS] or r.cleared)
+## The milestone of a floor: "미니보스", "보스" or "".
+static func milestone_name(map: TowerMapState,floor: FloorState) -> String:
+	for id in floor.room_ids:
+		var r: RoomState=map.get_room(id)
+		if r.room_type==RoomType.BOSS:return "보스"
+		if r.room_type==RoomType.MINIBOSS:return "미니보스"
+	return ""
 ## The floor the party stands on (the map shows only this floor's rooms).
 func current_floor() -> int:return guild.state.strategy_progress.current_depth
 ## The stairs appear once this floor's clear requirement has unlocked the next floor.
@@ -174,9 +187,7 @@ func refresh_progress(changed_depth: int) -> void:
 		for id in floor.room_ids:
 			if state.map.get_room(id).cleared:floor.cleared_count+=1;state.cleared_rooms[id]=true
 	while state.unlocked_floor<14:
-		var floor: FloorState=state.map.floors[state.unlocked_floor]
-		var boss_dead: bool=floor.room_ids.any(func(id):return state.map.get_room(id).room_type==RoomType.BOSS and state.map.get_room(id).cleared)
-		if floor.cleared_count<floor.required_clear_count or floor.floor_index%5==4 and not boss_dead:break
+		if not floor_opens_next(state.map,state.map.floors[state.unlocked_floor]):break
 		state.unlocked_floor+=1
 	for floor in state.map.floors:floor.unlocked=floor.floor_index<=state.unlocked_floor
 	guild.state.strategy_progress.unlocked_floor=state.unlocked_floor

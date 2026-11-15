@@ -1976,6 +1976,31 @@ func cards_0990(tree: SceneTree) -> void:
 	archers[1].alive=false
 	verify(BattlePassives.outgoing(archers[0])==1.0 and StrategyCardExecutor.hand_state(b2.turning,g2.state.get_strategy_card(rid))==&"passive_off","…off while only one stands (shown dimmed)")
 	b2.finish_with_reason(BattleEndReason.Value.RETREAT,-1);b2.free()
+	# A 쿨타임 card starts its cooldown when it is taken into a battle, and stays playable in it.
+	var g3 := GuildManager.new();g3.create_member(0);g3.create_member(0)
+	var cid: int=g3.state.give_strategy_card(&"charge").card_id;var sid: int=g3.state.give_strategy_card(&"shield").card_id;g3.state.card_loadout.assign([cid,sid])
+	var r3 := RoomState.new();r3.add_enemy("e1",BattleManager.WARRIOR,Vector2(640,220))
+	var b3 := BattleManager.new();b3.common_combat_enabled=false;b3.full_characters_enabled=false;b3.auto_start=false;tree.root.add_child(b3);b3.set_physics_process(false)
+	var p3 := DeploymentPlan.new(g3);p3.place(g3.all_members()[0].member_id,Vector2(100,220))
+	RoomBattleSession.new(g3,r3).start(p3,b3,5)
+	var charge: StrategyCardInstance=g3.state.get_strategy_card(cid)
+	verify(charge.wins_left==1 and g3.state.get_strategy_card(sid).wins_left==0 and StrategyCardExecutor.hand_state(b3.turning,charge)==&"ready","쿨타임 1: on cooldown from the start of the battle, still ready in it")
+	b3.finish_with_reason(BattleEndReason.Value.RETREAT,-1);b3.free()
+	verify(not StrategyCardExecutor.availability(charge),"…and a retry after a retreat cannot take it again")
+	# 미니보스 floors open the next floor only once the 미니보스 is cleared.
+	var tc:=TowerController.new();tc.new_run(19,73)
+	var mfloor: FloorState=tc.guild.state.tower.map.floors[2]
+	var mini_room: RoomState=null
+	for id in mfloor.room_ids:
+		if tc.guild.state.tower.map.get_room(id).room_type==RoomType.MINIBOSS:mini_room=tc.guild.state.tower.map.get_room(id)
+	var cleared: int=0
+	for id in mfloor.room_ids:
+		var rr: RoomState=tc.guild.state.tower.map.get_room(id)
+		if rr!=mini_room and cleared<mfloor.room_ids.size()-1:rr.cleared=true;cleared+=1
+	mfloor.cleared_count=cleared
+	verify(mini_room!=null and cleared>=mfloor.required_clear_count and not TowerController.floor_opens_next(tc.guild.state.tower.map,mfloor),"3층: enough rooms cleared but not the 미니보스 → the next floor stays shut")
+	mini_room.cleared=true;mfloor.cleared_count+=1
+	verify(TowerController.floor_opens_next(tc.guild.state.tower.map,mfloor) and TowerController.milestone_name(tc.guild.state.tower.map,mfloor)=="미니보스","…clearing it opens the next floor")
 	# Save v10 → v11 keeps the cards.
 	var t:=TowerController.new();t.new_run(5,9);t.guild.state.give_strategy_card(&"lunchbox")
 	var doc: Dictionary=JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(t,"v10",1).document));doc.schema_version=10

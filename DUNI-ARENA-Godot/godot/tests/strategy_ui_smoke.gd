@@ -143,7 +143,7 @@ func run() -> void:
 	await swipe(&"shield", true)
 	verify(screen.battle.units[1].shield_hp == 100 and screen.battle.units[0].shield_hp == 0, "touch shield targets independent member")
 	var charge_before: float = screen.battle.units[1].ultimate_gauge
-	verify(card_of(&"charge").wins_left == 0, "charge ready")
+	verify(card_of(&"charge").wins_left == 1 and StrategyCardExecutor.hand_state(tp, card_of(&"charge")) == &"ready", "charge: cooldown started on entry, still ready")
 	await swipe(&"charge", true)
 	verify(screen.battle.units[1].ultimate_gauge == minf(100, charge_before + 50), "mobile charge")
 	await swipe(&"iron", true)

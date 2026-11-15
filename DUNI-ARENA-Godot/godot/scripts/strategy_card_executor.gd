@@ -4,6 +4,8 @@ extends RefCounted
 ## A card can be played when it is in the battle's hand (loadout), not consumed, not on cooldown,
 ## not already used this battle (일반 / 쿨타임) and its conditions have a target or hold. Passive cards
 ## are never played: they apply for the battle they are taken into (BattlePassives).
+## A 쿨타임 card starts its cooldown when it is taken into a battle (TurningPointManager.cooldown_armed)
+## and stays playable once in that battle.
 enum Code { OK, NOT_HOLD, INVALID_CARD, UNAVAILABLE, INVALID_TARGET, NO_EFFECT, DUPLICATE, NOT_IN_HAND, USED, COOLDOWN, CONDITION, NO_POSITION, PASSIVE }
 
 ## Owned and ready outside a battle: not consumed and no wins left on its cooldown.
@@ -19,7 +21,7 @@ static func hand_state(manager: TurningPointManager, card: StrategyCardInstance)
 		return &"passive" if manager.battle == null or BattlePassives.condition_holds(manager.battle, pdata) else &"passive_off"
 	if card == null or card.consumed:return &"gone"
 	if manager.used_cards.has(card.card_id):return &"used"
-	if card.wins_left > 0:return &"cooldown"
+	if card.wins_left > 0 and not card.card_id in manager.cooldown_armed:return &"cooldown"
 	var data: StrategyCardData = StrategyCardCatalog.get_card(card.kind)
 	if not condition_open(manager, data):return &"blocked"
 	return &"ready"
@@ -107,7 +109,7 @@ static func apply(manager: TurningPointManager, card_id: int, target_id: String,
 	if not card_id in manager.hand: return {"code": Code.NOT_IN_HAND}
 	if card.consumed: return {"code": Code.UNAVAILABLE}
 	if manager.used_cards.has(card_id): return {"code": Code.USED}
-	if card.wins_left > 0: return {"code": Code.COOLDOWN}
+	if card.wins_left > 0 and not card_id in manager.cooldown_armed: return {"code": Code.COOLDOWN}
 	var data: StrategyCardData = StrategyCardCatalog.get_card(card.kind)
 	if not situation_ok(manager, data): return {"code": Code.CONDITION}
 	var unit: BattleUnit = null

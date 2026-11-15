@@ -147,7 +147,8 @@ func progression() -> void:
 		var selected: int=0
 		for id in floor.room_ids:
 			var room: RoomState=state.map.get_room(id)
-			if room.room_type!=RoomType.BOSS and selected<floor.required_clear_count:room.cleared=true;selected+=1
+			# 미니보스 floors also need their 미니보스 (0.99.3).
+			if room.room_type==RoomType.MINIBOSS or room.room_type!=RoomType.BOSS and selected<floor.required_clear_count:room.cleared=true;selected+=1
 		t.refresh_progress(depth)
 	verify(state.unlocked_floor==4,"boss gate blocks next chapter despite half")
 	var boss: RoomState=state.map.rooms.values().filter(func(r):return r.floor_index==4 and r.room_type==RoomType.BOSS)[0]

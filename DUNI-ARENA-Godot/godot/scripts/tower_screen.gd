@@ -205,7 +205,8 @@ func _floor_progress(floor: FloorState,state: TowerRunState) -> String:
 	if controller.can_ascend():return text+"  ·  다음 층 계단이 열렸습니다"
 	if floor.floor_index<14:
 		text+="  ·  다음 층 %d / %d"%[mini(floor.cleared_count,floor.required_clear_count),floor.required_clear_count]
-		if floor.floor_index%5==4:text+=" + 보스"
+		var milestone: String=TowerController.milestone_name(state.map,floor)
+		if milestone!="":text+=" + "+milestone
 	return text
 ## Stairs: climb to the next floor. Crossing into a new chapter plays the chapter-clear cutscene.
 func _ascend() -> void:
@@ -257,7 +258,7 @@ func _show_selected_room() -> void:
 func show_reward(depth: int) -> void:
 	var floor: FloorState=controller.floor_reward(depth)
 	if floor==null:return
-	reward_title.text="%d층 정복 보상"%(depth+1);reward_panel.set_floor(floor)
+	reward_title.text="%d층 정복 보상"%(depth+1);reward_panel.set_floor(floor,controller.guild.state.tower.map)
 	reward_dialog.popup_centered(Vector2i(mini(390,int(get_viewport_rect().size.x)-28),390))
 
 func _refresh_wallet() -> void:
