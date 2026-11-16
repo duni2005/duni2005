@@ -4,6 +4,10 @@ extends RefCounted
 var read_attacks: Dictionary = {}
 var projectile_notices: Dictionary = {}
 var response: Dictionary = {}
+## A windup this far along (half of it, or COMMIT_TIME s for long windups) is not broken off to parry
+## or dodge: the attack goes out.
+const COMMIT_FRACTION: float = .5
+const COMMIT_TIME: float = .35
 var reaction: float = .2
 var side: float = 1
 var counts: Dictionary = {}
@@ -98,6 +102,9 @@ func advance(unit) -> void:
 	if mode==&"parry": response.merge(timing(unit,delay),true);response.advance=unit.mind.advance_while_parrying(unit,source)
 	if unit.battle.full_characters_enabled and mode==&"counter":unit.brain.begin(unit,source,1.5,"counter")
 	if unit.battle.full_characters_enabled and mode==&"hold" and now>=unit.brain.commit_until:unit.brain.mode="circle";unit.brain.hold=battle.rng.randf_range(.15,.4)
+	# Past half its windup (or COMMIT_TIME) a unit is committed: it finishes the attack instead of breaking off.
+	if mode in [&"parry",&"dodge"] and unit.combat_state==CombatController.State.WINDUP and unit.combat.phase_time>=minf(unit.combat.profile(unit).windup*COMMIT_FRACTION,COMMIT_TIME):
+		mode=&"hold";response.mode=mode
 	if mode in [&"parry",&"dodge"]:
 		if unit.battle.full_characters_enabled:unit.brain.commit_until=0;unit.brain.mode="retreat"
 		if unit.combat_state==CombatController.State.WINDUP: unit.combat.cancel(unit)

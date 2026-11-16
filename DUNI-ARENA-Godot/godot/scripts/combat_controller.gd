@@ -175,7 +175,11 @@ func collect_melee_hits(unit, candidates: Array, delta: float) -> Array[Dictiona
 		melee_live = false
 	return contacts
 
+## A windup cut before its release (a dodge, parry, stun, knockback...) gives most of the attack
+## back: the cooldown drops to CANCEL_COOLDOWN instead of the whole interval it had just started.
+const CANCEL_COOLDOWN: float = .3
 func cancel(unit) -> void:
+	if unit.combat_state == State.WINDUP and not fired:cooldown = minf(cooldown, CANCEL_COOLDOWN)
 	counter = false
 	active_profile=null
 	healing_target=null

@@ -78,6 +78,7 @@ func run(tree: SceneTree) -> void:
 	items_0970(tree)
 	cards_0980(tree)
 	cards_0990(tree)
+	attack_flow_0994(tree)
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -2006,6 +2007,18 @@ func cards_0990(tree: SceneTree) -> void:
 	var doc: Dictionary=JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(t,"v10",1).document));doc.schema_version=10
 	var back: SaveLoadResult=SaveSnapshotLoader.restore(doc)
 	verify(SaveMigrator.CURRENT_VERSION==11 and back.ok() and back.run.strategy_cards.size()==t.guild.state.strategy_cards.size() and back.run.strategy_cards[-1].kind==&"lunchbox","v10 save loads as v11 with every card")
+## 0.99.4: attacks are not lost to interruptions or a turret that never turns.
+func attack_flow_0994(tree: SceneTree) -> void:
+	var setup:=CustomBattleSetup.new();setup.add(18,0,Vector2(300,400));setup.add(0,1,Vector2(560,400))
+	var b:=BattleManager.new();b.auto_start=false;b.custom_mode=true;tree.root.add_child(b);b.start_battle(setup.placements(),5);b.set_physics_process(false)
+	var tank: BattleUnit=b.units[0];var foe: BattleUnit=b.units[1]
+	tank.target=foe;tank.facing=PI*.5
+	for i in range(240):tank.ability.modify_movement(tank,foe,1.0/60)
+	verify(absf(wrapf((foe.position-tank.position).angle()-tank.facing,-PI,PI))<.2,"탱크: the turret turns to its target while idle")
+	tank.combat.cooldown=0;tank.combat_state=CombatController.State.WINDUP;tank.combat.fired=false;tank.combat.cooldown=4.0
+	tank.combat.cancel(tank)
+	verify(tank.combat.cooldown<=CombatController.CANCEL_COOLDOWN+.001,"a windup cut before its release keeps only a short cooldown")
+	b.queue_free()
 func DEFINITIONS_ICONS() -> bool:
 	for k in StrategyCardCatalog.DEFINITIONS:
 		if ArenaIcon.texture(String(k))==null:return false

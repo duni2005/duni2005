@@ -50,6 +50,8 @@ var home_since: float = -1
 ## and it stops waiting for an opening and goes in.
 var last_action: float = 0
 const STALL: float = 3.2
+## In reach of its target with the attack ready: at most this long (times patience) before going in.
+const IN_REACH_STALL: float = 1.3
 ## Running away from a nearby enemy is slower (up to ×FLEE_SPEED straight away), so a chase ends.
 const FLEE_SPEED: float = .75
 func initialize(r: RandomNumberGenerator) -> void:
@@ -76,8 +78,12 @@ func begin(u, enemy, duration: float=2.2, reason: String="initiative") -> void:
 	var now: float=u.battle.clock.elapsed
 	var closing: float=maxf(0,u.position.distance_to(enemy.position)-u.data.attack_profile.reach*.8)/maxf(1,u.move_speed*u.ability.movement_rate(u)*.85)
 	duration=maxf(duration,minf(4.5,closing+1));hesitations=0
+	# A decision already taken against the same enemy keeps its moment: going in again (a counter,
+	# a punish, another read) never pushes the swing further away.
+	var at: float=now+intent_delay(u,reason)
+	if not attack_decision.is_empty() and attack_decision.get("actor","")==enemy.actor_id() and now<commit_until:at=minf(at,float(attack_decision.get("at",at)))
 	commit_until=now+duration;disengage_until=0;return_until=0;mode="approach";hold=duration;last_target=enemy.actor_id()
-	attack_decision={"actor":enemy.actor_id(),"at":now+intent_delay(u,reason),"reason":reason}
+	attack_decision={"actor":enemy.actor_id(),"at":at,"reason":reason}
 	next_initiative_at=commit_until+u.battle.rng.randf_range(.3,1.1)*tempo
 func intent_delay(u,reason: String) -> float:
 	if u.stance==CombatStance.RUSH:return u.battle.rng.randf_range(StanceRules.RUSH_INTENT_DELAY.x,StanceRules.RUSH_INTENT_DELAY.y)
@@ -118,6 +124,8 @@ func advance(u, enemy, _dt: float) -> void:
 	if not u.threat_response.response.is_empty() or u.combat.cooldown>0 or now<maxf(maxf(disengage_until,return_until),commit_until):return
 	# Nobody has swung for a while: stop circling and go in.
 	if now-last_action>STALL*patience and now>=punish_until:begin(u,enemy,r.randf_range(1.8,2.6),"pressure");return
+	# Already in reach with the attack ready: do not stand there for long.
+	if u.position.distance_to(enemy.position)<u.data.attack_profile.start_distance() and now-last_action>IN_REACH_STALL*patience/haste(u) and now>=punish_until:begin(u,enemy,r.randf_range(1.2,1.8),"pressure");return
 	if defensive(u):
 		if now<float(spacing.exit) or spacing.threatening or now<float(spacing.probe):return
 		# Cautious stance: let the enemy swing first and answer its recovery (up to a wait limit).

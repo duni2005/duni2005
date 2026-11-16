@@ -17,6 +17,8 @@ func modify_movement(u,t,dt: float) -> bool:
 	if t==null:
 		if u.position.distance_to(u.brain.goal)<55:u.brain.goal=Vector2(u.battle.rng.randf_range(90,ArenaMap.side-90),u.battle.rng.randf_range(90,ArenaMap.side-90))
 		return steer_override(u,(u.brain.goal-u.position).normalized(),dt,.6)
+	# The turret keeps turning toward the target while the hull moves (it may only fire on target).
+	u.brain.turn_face(u,t.position,dt)
 	var dir: Vector2=(t.position-u.position).normalized();var d: float=u.position.distance_to(t.position)
 	var desired: float=220 if u.stance==CombatStance.RUSH else 390 if u.battle.clock.elapsed<u.brain.disengage_until else 330
 	var move: Vector2=dir*clampf((d-desired)/110,-1,1)-dir.orthogonal()*u.brain.side*.4
