@@ -1194,7 +1194,7 @@ func balance_layer(_tree: SceneTree) -> void:
 	var all: Dictionary=CharacterCatalog.all()
 	var stats:=func(t: int) -> UnitCombatStats:return UnitCombatStats.from_table(all[t])
 	verify(is_equal_approx(stats.call(14).max_hp,all[14].max_hp) and is_equal_approx(stats.call(14).physical_damage,UnitStatTable.base_physical(14)),"2-token units keep their source stats")
-	verify(is_equal_approx(stats.call(12).max_hp,all[12].max_hp*UnitBalance.TIER[4]*400.0/(315.0*1.15)) and is_equal_approx(stats.call(3).max_hp,all[3].max_hp*UnitBalance.TIER[0]) and is_equal_approx(UnitBalance.TIER[0],.95*.95) and is_equal_approx(UnitBalance.TIER[2],1.05*1.05) and is_equal_approx(UnitBalance.TIER[3],1.1*1.15) and is_equal_approx(UnitBalance.TIER[4],1.15*1.2),"tier multiplier (0.99.5): 일반 -5%, 희귀 +5%, 영웅 +15%, 전설 +20%; 포식자 base HP 400")
+	verify(is_equal_approx(stats.call(12).max_hp,all[12].max_hp*UnitBalance.TIER[4]*400.0/(315.0*1.15)) and is_equal_approx(stats.call(3).max_hp,all[3].max_hp*UnitBalance.TIER[0]) and is_equal_approx(UnitBalance.TIER[0],.95*.95) and is_equal_approx(UnitBalance.TIER[2],1.05*1.05) and is_equal_approx(UnitBalance.TIER[3],1.1*1.15*1.1) and is_equal_approx(UnitBalance.TIER[4],1.15*1.2*1.4),"tier multiplier (0.99.5 + 0.99.6): 일반 -5%, 희귀 +5%, 영웅 +15% then +10%, 전설 +20% then +40%")
 	verify(UnitBalance.max_hp(all[27])==floorf(150*UnitBalance.TIER[4]*1.7+.5) and is_equal_approx(stats.call(27).physical_damage,UnitStatTable.base_physical(27)*UnitBalance.TIER[4]*1.25),"기관사: tier and its own correction stack")
 	verify(is_equal_approx(stats.call(0).max_hp,all[0].max_hp*UnitBalance.TIER[0]*.9) and is_equal_approx(stats.call(13).physical_damage,UnitStatTable.base_physical(13)*.88),"strong cheap units are toned down")
 	verify(is_equal_approx(stats.call(33).max_hp,all[33].max_hp*UnitBalance.TIER[3]*1.2) and is_equal_approx(stats.call(33).magic_damage,UnitStatTable.base_magic(33)*UnitBalance.TIER[3]*.8),"그리핀: more HP, less damage (0.76.0)")
@@ -2037,7 +2037,7 @@ func balance_0995() -> void:
 	print("ENEMY TIERS floor1 ",low.slice(1)," floor15 ",high.slice(1))
 	verify(low[1]+low[2]>low[3]+low[4]+low[5] and high[4]+high[5]>low[4]+low[5],"floor 1 mostly 일반-고급, higher floors more 영웅-전설")
 	verify(TowerMapGenerator.new().catalog.size()>0 and load("res://scripts/abilities/santa_ability.gd").CHARGE>1 and load("res://scripts/abilities/tank_ability.gd").ENHANCED_RADIUS>160,"산타 gauge faster, 탱크 bigger ultimate blast")
-	verify(UnitBalance.max_hp(CharacterCatalog.all()[12])==480,"포식자 HP 400, then the 전설 +20% (480)")
+	verify(UnitBalance.max_hp(CharacterCatalog.all()[12])==floorf(400*1.2*1.4+.5),"포식자 HP 400, then the 전설 +20% and +40% (672)")
 func DEFINITIONS_ICONS() -> bool:
 	for k in StrategyCardCatalog.DEFINITIONS:
 		if ArenaIcon.texture(String(k))==null:return false

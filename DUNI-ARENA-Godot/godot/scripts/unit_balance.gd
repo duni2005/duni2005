@@ -6,12 +6,12 @@ extends RefCounted
 ## multiplied here: first by recruit-token tier (higher tiers clearly stronger per sortie slot),
 ## then by a per-unit correction from the 0.75.0 balance simulations.
 ## Tier multiplier by tier 1..5 (일반 → 전설). 0.99.5 on top of the 0.75.0 values: 일반 -5%, 고급
-## unchanged, 희귀 +5%, 영웅 +15%, 전설 +20%.
-const TIER: Array[float] = [.95 * .95, 1.0, 1.05 * 1.05, 1.10 * 1.15, 1.15 * 1.2]
+## unchanged, 희귀 +5%, 영웅 +15%, 전설 +20%; 0.99.6 on top of that: 영웅 +10%, 전설 +40%.
+const TIER: Array[float] = [.95 * .95, 1.0, 1.05 * 1.05, 1.10 * 1.15 * 1.10, 1.15 * 1.2 * 1.4]
 ## Off only for the source-parity tests (formulas checked against the original web game).
 static var enabled: bool = true
 ## Per-unit HP correction (type_id → factor).
-## 0.99.5 포식자 (12): HP 400 as the 0.99.4 sheet showed it (×1.15 then), and the new 전설 tier on top (480).
+## 0.99.5 포식자 (12): HP 400 as the 0.99.4 sheet showed it (×1.15 then), and the newer 전설 tier on top.
 const HP: Dictionary = {0: .9, 5: 1.15, 12: 400.0 / (315.0 * 1.15), 16: 1.1, 18: .92, 19: 1.25, 20: 1.1, 24: .9, 25: 1.2, 27: 1.7, 33: 1.2, 43: .82}
 ## Per-unit physical/magic damage correction (type_id → factor).
 const DAMAGE: Dictionary = {0: .92, 2: .92, 3: .88, 5: 1.15, 13: .88, 15: .8, 16: 1.1, 18: 1.12, 19: 1.25, 20: 1.2, 24: .9, 25: 1.3, 27: 1.25, 31: 1.12, 33: .8, 34: .85, 35: .8}
