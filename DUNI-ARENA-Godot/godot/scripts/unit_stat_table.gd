@@ -134,8 +134,8 @@ const DAMAGE = {
 		&"ult":[&"ultimate", &"physical", 0, 3.0, [&"melee", &"lightning"], "강펀치"]},
 	"tank":{
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"fire", &"explosion", &"area"], "포탄"],
-		&"enhanced":[&"ultimate", &"physical", 0, 1.7, [&"fire", &"explosion", &"area"], "화염 포탄"],
-		&"fire_zone":[&"ultimate", &"magic", 3, 0.2, [&"fire", &"area", &"dot"], "화염 지대 (0.5초마다)"]},
+		&"enhanced":[&"ultimate", &"physical", 0, 2.2, [&"fire", &"explosion", &"area"], "화염 포탄"],
+		&"fire_zone":[&"ultimate", &"magic", 4, 0.26, [&"fire", &"area", &"dot"], "화염 지대 (0.5초마다)"]},
 	"fanatic":{
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"dark", &"melee"], "광신의 일격"]},
 	"lightning":{
@@ -160,7 +160,7 @@ const DAMAGE = {
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee"], "망치"],
 		&"ult":[&"ultimate", &"physical", 30, 1.25, [&"melee"], "도약 내려찍기"]},
 	"conductor":{
-		&"ult":[&"ultimate", &"physical", 40, 3.5, [&"area"], "기관차"]},
+		&"ult":[&"ultimate", &"physical", 55, 4.6, [&"area"], "기관차"]},
 	"refraction":{
 		&"basic":[&"basic", &"magic", 0, 1.0, [&"light", &"projectile"], "광선"]},
 	"courier":{},
@@ -209,8 +209,8 @@ const DAMAGE = {
 		&"burst":[&"ultimate", &"magic", 20, 1.8, [&"ice", &"area", &"explosion"], "눈덩이 폭발 (빙결 3스택)"]},
 	"santa":{
 		&"basic":[&"basic", &"physical", 0, 0.6, [&"melee"], "밀치기"],
-		&"gift_mid":[&"ultimate", &"magic", 10, 1.2, [&"ice"], "선물: 얼음 피해"],
-		&"gift_high":[&"ultimate", &"magic", 20, 2.4, [&"ice"], "선물: 큰 얼음 피해"]},
+		&"gift_mid":[&"ultimate", &"magic", 13, 1.6, [&"ice"], "선물: 얼음 피해"],
+		&"gift_high":[&"ultimate", &"magic", 26, 3.1, [&"ice"], "선물: 큰 얼음 피해"]},
 	"top":{
 		&"basic":[&"basic", &"physical", 0, 0.5, [&"melee", &"dot", &"wind"], "회전 돌진 (닿을 때마다)"],
 		&"ult":[&"ultimate", &"physical", 0, 0.8, [&"melee", &"dot", &"wind"], "폭주 회전 (5초, 닿을 때마다)"]},

@@ -44,13 +44,25 @@ func kinds(depth: int) -> Array:
 	shuffle(list)
 	if milestone!=&"":list.insert(floori(count/2.0),milestone)
 	return list
+## Enemy rarity odds (%) by tier 일반 · 고급 · 희귀 · 영웅 · 전설 on the first and the last floor; the
+## floors between move evenly from one to the other. Lower tiers always come more often.
+const TIER_ODDS_FIRST: Array[float] = [52.0, 33.0, 12.0, 3.0, 0.0]
+const TIER_ODDS_LAST: Array[float] = [26.0, 23.0, 20.0, 17.0, 14.0]
+static func tier_odds(depth: int) -> Array[float]:
+	var k: float=clampf(depth/float(DEPTH-1),0,1);var out: Array[float]=[]
+	for i in range(5):out.append(lerpf(TIER_ODDS_FIRST[i],TIER_ODDS_LAST[i],k))
+	return out
 func pick(pool: Array,chosen: Array[EnemySpawnEntry],depth: int) -> int:
 	var available: Array=pool.filter(func(t):return chosen.filter(func(e):return e.unit_type_id==t).size()<2)
 	var fresh: Array=available.filter(func(t):return not chosen.any(func(e):return e.unit_type_id==t))
 	var options: Array=fresh if not fresh.is_empty() and rng.randf()<.68 else available
+	# A tier by the floor's odds (TIER_ODDS), shared among the options of that tier.
+	var odds: Array[float]=tier_odds(depth);var per_tier: Dictionary={}
+	for type in options:per_tier[UnitRarity.tier(type)]=int(per_tier.get(UnitRarity.tier(type),0))+1
 	var weights: Array=[];var total: float=0
 	for type in options:
-		var weight: float=maxf(.35,180.0/catalog[type].base_gold_cost) if depth<3 else 1
+		var t: int=UnitRarity.tier(type)
+		var weight: float=maxf(.01,odds[t-1])/per_tier[t]
 		weights.append(weight);total+=weight
 	var roll: float=rng.randf()*total
 	for i in range(options.size()):

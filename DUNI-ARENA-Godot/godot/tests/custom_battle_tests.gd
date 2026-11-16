@@ -79,6 +79,7 @@ func run(tree: SceneTree) -> void:
 	cards_0980(tree)
 	cards_0990(tree)
 	attack_flow_0994(tree)
+	balance_0995()
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -1193,11 +1194,11 @@ func balance_layer(_tree: SceneTree) -> void:
 	var all: Dictionary=CharacterCatalog.all()
 	var stats:=func(t: int) -> UnitCombatStats:return UnitCombatStats.from_table(all[t])
 	verify(is_equal_approx(stats.call(14).max_hp,all[14].max_hp) and is_equal_approx(stats.call(14).physical_damage,UnitStatTable.base_physical(14)),"2-token units keep their source stats")
-	verify(is_equal_approx(stats.call(12).max_hp,all[12].max_hp*1.15) and is_equal_approx(stats.call(3).max_hp,all[3].max_hp*.95),"tier multiplier: 5 tokens ×1.15, 1 token ×0.95")
-	verify(UnitBalance.max_hp(all[27])==floorf(150*1.15*1.7+.5) and is_equal_approx(stats.call(27).physical_damage,UnitStatTable.base_physical(27)*1.15*1.25),"기관사: tier and its own correction stack")
-	verify(is_equal_approx(stats.call(0).max_hp,all[0].max_hp*.95*.9) and is_equal_approx(stats.call(13).physical_damage,UnitStatTable.base_physical(13)*.88),"strong cheap units are toned down")
-	verify(is_equal_approx(stats.call(33).max_hp,all[33].max_hp*1.1*1.2) and is_equal_approx(stats.call(33).magic_damage,UnitStatTable.base_magic(33)*1.1*.8),"그리핀: more HP, less damage (0.76.0)")
-	verify(is_equal_approx(stats.call(35).physical_damage,UnitStatTable.base_physical(35)*1.05*.8),"슬라임: base damage ×0.8 (0.77.0)")
+	verify(is_equal_approx(stats.call(12).max_hp,all[12].max_hp*UnitBalance.TIER[4]*400.0/(315.0*1.15)) and is_equal_approx(stats.call(3).max_hp,all[3].max_hp*UnitBalance.TIER[0]) and is_equal_approx(UnitBalance.TIER[0],.95*.95) and is_equal_approx(UnitBalance.TIER[2],1.05*1.05) and is_equal_approx(UnitBalance.TIER[3],1.1*1.15) and is_equal_approx(UnitBalance.TIER[4],1.15*1.2),"tier multiplier (0.99.5): 일반 -5%, 희귀 +5%, 영웅 +15%, 전설 +20%; 포식자 base HP 400")
+	verify(UnitBalance.max_hp(all[27])==floorf(150*UnitBalance.TIER[4]*1.7+.5) and is_equal_approx(stats.call(27).physical_damage,UnitStatTable.base_physical(27)*UnitBalance.TIER[4]*1.25),"기관사: tier and its own correction stack")
+	verify(is_equal_approx(stats.call(0).max_hp,all[0].max_hp*UnitBalance.TIER[0]*.9) and is_equal_approx(stats.call(13).physical_damage,UnitStatTable.base_physical(13)*.88),"strong cheap units are toned down")
+	verify(is_equal_approx(stats.call(33).max_hp,all[33].max_hp*UnitBalance.TIER[3]*1.2) and is_equal_approx(stats.call(33).magic_damage,UnitStatTable.base_magic(33)*UnitBalance.TIER[3]*.8),"그리핀: more HP, less damage (0.76.0)")
+	verify(is_equal_approx(stats.call(35).physical_damage,UnitStatTable.base_physical(35)*UnitBalance.TIER[2]*.8),"슬라임: base damage ×0.8 (0.77.0)")
 	verify(is_equal_approx(UnitStatTable.spec(17,&"ult").ratio,3.0) and is_equal_approx(UnitStatTable.spec(35,&"ult").ratio,.9),"히어로 · 슬라임 ultimates hit softer (0.76.0)")
 	var setup:=CustomBattleSetup.new();setup.add(27,0,Vector2(200,400))
 	verify(is_equal_approx(setup.placements()[0].combat_stats.max_hp,UnitBalance.max_hp(all[27])),"custom battles use the balanced stats")
@@ -2019,6 +2020,24 @@ func attack_flow_0994(tree: SceneTree) -> void:
 	tank.combat.cancel(tank)
 	verify(tank.combat.cooldown<=CombatController.CANCEL_COOLDOWN+.001,"a windup cut before its release keeps only a short cooldown")
 	b.queue_free()
+## 0.99.5: recruit prices, enemy rarity by floor, unit buffs.
+func balance_0995() -> void:
+	var prices_ok: bool=true
+	for type in CharacterCatalog.playable():prices_ok=prices_ok and UnitRarity.price(type)==[0,2,3,5,7,10][UnitRarity.tier(type)]
+	verify(prices_ok,"recruit prices: 일반 2 · 고급 3 · 희귀 5 · 영웅 7 · 전설 10 tokens")
+	var order_ok: bool=true
+	for depth in range(15):
+		var o: Array[float]=TowerMapGenerator.tier_odds(depth)
+		for i in range(4):order_ok=order_ok and o[i]>o[i+1]
+	verify(order_ok and TowerMapGenerator.tier_odds(0)[4]==0 and TowerMapGenerator.tier_odds(14)[4]>TowerMapGenerator.tier_odds(7)[4],"enemy rarity: lower tiers always likelier, 전설 grows by floor")
+	var g:=TowerMapGenerator.new();g.rng.seed=17;var low: Array=[0,0,0,0,0,0];var high: Array=[0,0,0,0,0,0]
+	for n in range(400):
+		low[UnitRarity.tier(g.pick(CharacterCatalog.playable(),[] as Array[EnemySpawnEntry],0))]+=1
+		high[UnitRarity.tier(g.pick(CharacterCatalog.playable(),[] as Array[EnemySpawnEntry],14))]+=1
+	print("ENEMY TIERS floor1 ",low.slice(1)," floor15 ",high.slice(1))
+	verify(low[1]+low[2]>low[3]+low[4]+low[5] and high[4]+high[5]>low[4]+low[5],"floor 1 mostly 일반-고급, higher floors more 영웅-전설")
+	verify(TowerMapGenerator.new().catalog.size()>0 and load("res://scripts/abilities/santa_ability.gd").CHARGE>1 and load("res://scripts/abilities/tank_ability.gd").ENHANCED_RADIUS>160,"산타 gauge faster, 탱크 bigger ultimate blast")
+	verify(UnitBalance.max_hp(CharacterCatalog.all()[12])==480,"포식자 HP 400, then the 전설 +20% (480)")
 func DEFINITIONS_ICONS() -> bool:
 	for k in StrategyCardCatalog.DEFINITIONS:
 		if ArenaIcon.texture(String(k))==null:return false

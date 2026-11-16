@@ -16,7 +16,7 @@ static func explode(p) -> void:
 		if enemy.unavailable() or point.distance_to(enemy.position)>radius+24*enemy.combat_scale():continue
 		var falloff: float=1-.35*clampf(point.distance_to(enemy.position)/radius,0,1) if p.kind=="tankShell" else 1
 		p.source.battle.damage_resolver.resolve(p.source,enemy,p.damage*falloff,{"dmg":p.metadata.get("dmg",&"basic"),"critical":true,"impulse":p.attack_instance.impulse,"angle":(enemy.position-point).angle(),"attack_origin":point,"visible_hazard":true,"hidden_launch":p.hidden_launch,"attack_token":p.projectile_id})
-	if p.kind=="tankShell" and p.metadata.get("enhanced",false):p.source.battle.zones.add(p.source,"tankFire",point,150*float(p.metadata.get("scale",1)),5,{"damage":UnitStatTable.raw(p.source,&"fire_zone")})
+	if p.kind=="tankShell" and p.metadata.get("enhanced",false):p.source.battle.zones.add(p.source,"tankFire",point,p.source.ability.fire_radius()*float(p.metadata.get("scale",1)),5,{"damage":UnitStatTable.raw(p.source,&"fire_zone")})
 	p.live=false;p.attack_instance.life=0
 static func prepare(p,dt: float) -> void:
 	if p.kind=="missile" and float(p.metadata.get("guide",0))>0:

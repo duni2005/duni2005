@@ -2,8 +2,8 @@ extends CharacterAbility
 ## 산타 (전설): a low-damage shove that pushes enemies away (physical · melee). Ultimate: vanishes
 ## for AWAY_TIME while a reindeer sleigh's shadow sweeps over the field and drops a gift on every
 ## unit. Each gift is one random effect — enemies: medium or heavy ice damage, a 6 s stun, an
-## emptied ultimate gauge, a 10 s root or 10 s of +50% damage taken; allies: 20% or 30% HP, a full
-## or half ultimate gauge, or 10 s of +50% attack.
+## emptied ultimate gauge, a 10 s root or 12 s of +50% damage taken; allies: 30% or 45% HP, a full
+## or half ultimate gauge, or 12 s of +50% attack. The gauge fills CHARGE times as fast.
 const AWAY_TIME: float = 3.2
 const DROP_FROM: float = .5
 const DROP_TO: float = 2.6
@@ -11,9 +11,12 @@ const ENEMY_GIFTS: Array[StringName] = [&"mid", &"high", &"stun", &"drain", &"ro
 const ALLY_GIFTS: Array[StringName] = [&"heal20", &"heal30", &"ult_full", &"ult_half", &"power"]
 const STUN_TIME: float = 6
 const ROOT_TIME: float = 10
-const WEAK_TIME: float = 10
-const POWER_TIME: float = 10
+const WEAK_TIME: float = 12
+const POWER_TIME: float = 12
+## The ultimate gauge fills this much faster (0.99.5: about 30% less charge needed).
+const CHARGE: float = 1.4
 
+func charge_rate(_u) -> float:return CHARGE
 func can_ultimate(_u,t) -> bool:return t!=null
 func release_ultimate(u,_a: Dictionary,_dt: float) -> bool:
 	var r: RandomNumberGenerator=u.battle.rng;var gifts: Array=[]
@@ -57,8 +60,8 @@ func give(u,v,kind: StringName) -> void:
 		&"drain":v.ultimate_gauge=0.0
 		&"root":v.set_state("rootedUntil",maxf(v.state_value("rootedUntil"),u.battle.clock.elapsed+ROOT_TIME))
 		&"weak":v.set_state("giftWeakTime",WEAK_TIME)
-		&"heal20":restore_hp(v,v.max_hp*.2,u)
-		&"heal30":restore_hp(v,v.max_hp*.3,u)
+		&"heal20":restore_hp(v,v.max_hp*.3,u)
+		&"heal30":restore_hp(v,v.max_hp*.45,u)
 		&"ult_full":v.ultimate.gain(v,100)
 		&"ult_half":v.ultimate.gain(v,50)
 		&"power":v.set_state("giftPowerTime",POWER_TIME)

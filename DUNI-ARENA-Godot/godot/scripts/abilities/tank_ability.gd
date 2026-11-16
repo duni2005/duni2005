@@ -1,4 +1,8 @@
 extends CharacterAbility
+## The enhanced (ultimate) shell's blast and its fire field (0.99.5: 160 / 150 → 200 / 190).
+const ENHANCED_RADIUS: float = 200
+const FIRE_RADIUS: float = 190
+func fire_radius() -> float:return FIRE_RADIUS
 func incoming_factor(u,source,options) -> float:
 	if options.get("duel_result",false) or options.get("parry_recoil",false) or options.get("clash_recoil",false) or options.get("mirror_shard",false):return 1
 	var origin: Vector2=options.get("attack_origin",source.position)
@@ -31,7 +35,7 @@ func modify_movement(u,t,dt: float) -> bool:
 	return steer_override(u,move,dt,movement_rate(u))
 func release_basic(u) -> void:
 	var enhanced: bool=u.character_specific_state.get("tankFlameReady",false);u.set_state("tankFlameReady",false)
-	shoot(u,u.facing,UnitStatTable.raw(u,&"enhanced" if enhanced else &"basic"),{"dmg":&"enhanced" if enhanced else &"basic","kind":"tankShell","speed":1250,"life":2,"radius":25,"offset":64,"blast_radius":(160 if enhanced else 130)*u.combat_scale(),"impulse":560 if enhanced else 440,"enhanced":enhanced})
+	shoot(u,u.facing,UnitStatTable.raw(u,&"enhanced" if enhanced else &"basic"),{"dmg":&"enhanced" if enhanced else &"basic","kind":"tankShell","speed":1250,"life":2,"radius":25,"offset":64,"blast_radius":(ENHANCED_RADIUS if enhanced else 130)*u.combat_scale(),"impulse":620 if enhanced else 440,"enhanced":enhanced})
 	KnockbackController.apply(u,-Vector2.from_angle(u.facing)*140,u);u.set_state("shotsFired",u.state_value("shotsFired")+1)
 func projectile_hit(u,p,_t) -> bool:
 	if p.kind!="tankShell":return false

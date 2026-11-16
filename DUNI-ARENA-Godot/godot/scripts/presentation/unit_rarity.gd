@@ -1,9 +1,11 @@
 class_name UnitRarity
 extends RefCounted
-## Character rarity = recruit price in tokens (1-5): 일반, 고급, 희귀, 영웅, 전설. Cards show it as a
+## Character rarity = the unit's tier (UnitData.recruit_tokens, 1-5): 일반, 고급, 희귀, 영웅, 전설.
+## Recruiting costs PRICES[tier] tokens (0.99.5: 2 / 3 / 5 / 7 / 10). Cards show the tier as a
 ## coloured top band, a border and a wash of the grade's colour from 고급 up, one ◆ per token and
 ## a light running round the border for 전설.
 const NAMES = ["", "일반", "고급", "희귀", "영웅", "전설"]
+const PRICES = [0, 2, 3, 5, 7, 10]
 const COLORS = [Color.WHITE, Color("aab4c8"), Color("6fd58a"), Color("5fb0ff"), Color("b884ff"), Color("ffc34a")]
 const BORDER_ALPHA = [0.0, 0.0, .45, .6, .8, .95]
 const WASH_ALPHA = [0.0, 0.0, .07, .1, .14, .16]
@@ -17,6 +19,8 @@ static func tier(type_id: int) -> int:
 	return _tiers[type_id]
 static func color(type_id: int) -> Color:return COLORS[tier(type_id)]
 static func label(type_id: int) -> String:return NAMES[tier(type_id)]
+## Recruit price in tokens.
+static func price(type_id: int) -> int:return PRICES[tier(type_id)]
 
 ## Wash, band and border over a card face (`rect` inside the card's own border).
 static func draw_frame(c: CanvasItem, rect: Rect2, type_id: int, radius: float, dim: bool = false, border: bool = true) -> void:

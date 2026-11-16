@@ -277,7 +277,7 @@ static func _struck(source,target,out: DamageOutcome,spec: Dictionary,options: D
 	# 처형의 낫: an attack on an enemy (not elite or boss) at SCYTHE_HP or less finishes it.
 	if direct and stats.has(&"executionScythe") and target.alive and not elite(target) and target.current_hp+out.hp_damage<=target.max_hp*ItemTuning.SCYTHE_HP:
 		fx(source,&"executionScythe",target.position);proc(source,&"executionScythe")
-		_hit(source,target,&"execution",&"item_execute",target.current_hp+target.shield_hp,{"fixed":true})
+		_hit(source,target,&"execution",&"item_execute",ceilf(target.current_hp+target.shield_hp),{"fixed":true}) # rounded up: fractional HP never survives
 	if not out.critical:return
 	if stats.has(&"infinityEdge"):fx(source,&"infinityEdge",target.position)
 	if stats.has(&"bleedBlade") and dealt>0 and target.alive:bleed(source,target,dealt);proc(source,&"bleedBlade");fx(source,&"bleedBlade",target.position)

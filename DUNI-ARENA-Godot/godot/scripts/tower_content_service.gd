@@ -63,7 +63,7 @@ func shuffle(values: Array) -> void:
 func create_offers(node: RoomState,revision: int) -> Array[RecruitOffer]:
 	var offers: Array[RecruitOffer]=[];var by_price: Dictionary={}
 	for type in CharacterCatalog.playable():
-		var price: int=guild.definition(type).recruit_tokens
+		var price: int=guild.definition(type).recruit_tokens # the tier (the odds table is by tier)
 		if not by_price.has(price):by_price[price]=[]
 		by_price[price].append(type)
 	for slot in range(RECRUIT_SLOTS):
@@ -78,7 +78,7 @@ func create_offers(node: RoomState,revision: int) -> Array[RecruitOffer]:
 			pick=price;roll-=float(odds[price])
 			if roll<0:break
 		var units: Array=by_price[pick];var type: int=units.pop_at(rng.randi_range(0,units.size()-1))
-		var offer:=RecruitOffer.new();offer.offer_id="%s:recruit:%d:%d"%[node.room_id,revision,slot];offer.unit_type_id=type;offer.token_price=guild.definition(type).recruit_tokens;offers.append(offer)
+		var offer:=RecruitOffer.new();offer.offer_id="%s:recruit:%d:%d"%[node.room_id,revision,slot];offer.unit_type_id=type;offer.token_price=UnitRarity.price(type);offers.append(offer)
 	return offers
 func ensure_recruit(node: RoomState) -> void:
 	if node.recruit!=null:return

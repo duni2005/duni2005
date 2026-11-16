@@ -72,7 +72,7 @@ func recruit_shop() -> void:
 	var odds_tower:=tower();odds_tower.select_room("0:0")
 	for level in [0,4]:
 		odds_tower.guild.state.odds_level=level;var seen: Dictionary={1:0,2:0,3:0,4:0,5:0};var table: Dictionary=GrowthRules.RECRUIT_ODDS[level]
-		for i in range(3000):seen[odds_tower.content.create_offers(odds_tower.current_room(),i)[0].token_price]+=1
+		for i in range(3000):seen[UnitRarity.tier(odds_tower.content.create_offers(odds_tower.current_room(),i)[0].unit_type_id)]+=1
 		verify(table.keys().all(func(p):return absf(seen[p]/30.0-table[p])<3.5),"recruit candidates follow the price odds, level %d"%level)
 	verify(GrowthRules.RECRUIT_ODDS.all(func(t):return t.values().reduce(func(a,b):return a+b,0)==100),"every odds level adds up to 100%")
 	var first: RecruitOffer=offers[0];t.guild.create_member(first.unit_type_id)
