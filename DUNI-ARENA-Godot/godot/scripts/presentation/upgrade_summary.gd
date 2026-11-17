@@ -8,6 +8,8 @@ var max_hp: float=1
 var exp_progress: int=0
 var exp_needed: int=1
 var total_exp: int=0
+## Item slots the next level adds (shown as its own chip on the right).
+var slot_gain: int=0
 ## Compact (inside a room's tab): name, HP and EXP only, without the per-level growth chips.
 var compact: bool=false
 func _ready() -> void:
@@ -30,10 +32,15 @@ func _draw() -> void:
 	draw_string(font,Vector2(bar_width+45,73),"%d / %d · 누적 %d"%[exp_progress,exp_needed,total_exp],HORIZONTAL_ALIGNMENT_LEFT,-1,12,ArenaUI.MUTED)
 	if compact:return
 	var labels: Array=["최대 HP","공격력","방어력","이동속도"];var values: Array=["+12%","+8%","+8%","+2%"]
-	var cell: float=(size.x-15)/4
+	# Four stat chips, then the item-slot chip on the right.
+	var gap: float=5;var slot_cell: float=minf(76,(size.x-gap*4)/5);var cell: float=(size.x-gap*4-slot_cell)/4
+	var slot_rect:=Rect2(size.x-slot_cell,86,slot_cell,32);var gained: bool=slot_gain>0
+	draw_style_box(ArenaUI.box(Color("1a2440") if gained else Color("161b28"),Color("8fc4ff",.7) if gained else Color.TRANSPARENT),slot_rect)
+	draw_string(font,slot_rect.position+Vector2(5,13),"장비칸",HORIZONTAL_ALIGNMENT_LEFT,slot_cell-10,9,ArenaUI.MUTED)
+	draw_string(bold,slot_rect.position+Vector2(5,28),"+%d"%slot_gain,HORIZONTAL_ALIGNMENT_LEFT,slot_cell-10,14,Color("8fc4ff") if gained else ArenaUI.MUTED)
 	for i in range(4):
 		# One slim chip per stat: name on the left, growth per level on the right.
-		var rect:=Rect2(i*(cell+5),86,cell,32)
+		var rect:=Rect2(i*(cell+gap),86,cell,32)
 		draw_style_box(ArenaUI.box(Color("15251b"),Color.TRANSPARENT),rect)
 		draw_string(font,rect.position+Vector2(5,13),labels[i],HORIZONTAL_ALIGNMENT_LEFT,cell-10,9,ArenaUI.MUTED)
 		draw_string(bold,rect.position+Vector2(5,28),values[i],HORIZONTAL_ALIGNMENT_LEFT,cell-10,14,Color("9fdaa2"))

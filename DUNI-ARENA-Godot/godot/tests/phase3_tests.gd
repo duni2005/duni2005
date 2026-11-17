@@ -93,9 +93,10 @@ func test_invariant_and_capacity() -> void:
 	verify(plan.place(guild.all_members()[3].member_id, spot.call(3)) == DeploymentRules.Code.SORTIE_FULL and plan.entries().size() == 3, "a fourth unit is refused at the default sortie limit")
 	verify(plan.move(guild.all_members()[0].member_id, Vector2(40, 40)) == DeploymentRules.Code.OK, "moving a placed unit is not limited")
 	guild.state.sortie_level = GrowthRules.SORTIE_COSTS.size()
-	for index in range(3, 8):
-		verify(plan.place(guild.all_members()[index].member_id, spot.call(index)) == DeploymentRules.Code.OK, "fully upgraded sortie reaches eight")
-	verify(plan.place(guild.all_members()[8].member_id, spot.call(8)) == DeploymentRules.Code.SORTIE_FULL and plan.entries().size() == 8, "never more than eight")
+	var most: int = GrowthRules.SORTIE_BASE + GrowthRules.SORTIE_COSTS.size()
+	for index in range(3, most):
+		verify(plan.place(guild.all_members()[index].member_id, spot.call(index)) == DeploymentRules.Code.OK, "fully upgraded sortie reaches fourteen")
+	verify(most == 14 and plan.place(guild.all_members()[most].member_id, spot.call(most)) == DeploymentRules.Code.SORTIE_FULL and plan.entries().size() == most, "never more than fourteen")
 	var copied: Array[DeploymentEntry] = plan.entries()
 	copied[0].position = Vector2(700, 700)
 	verify(plan.entries()[0].position == Vector2(40, 40), "returned entries are detached from draft")
@@ -107,7 +108,7 @@ func test_invariant_and_capacity() -> void:
 	plan.clear()
 	verify(member_snapshot(guild) == before, "placement/removal/clear preserves every member field including energy")
 	for iteration in range(5):
-		verify(plan.restore(formation) == 8, "repeated restoration remains valid")
+		verify(plan.restore(formation) == most, "repeated restoration remains valid")
 		verify(member_snapshot(guild) == before, "restoration does not mutate member state")
 		plan.clear()
 	formation.entries[0].position = Vector2(20, 900)

@@ -353,21 +353,21 @@ func render_token_shop(node: RoomState) -> void:
 		elif choice==&"restore":target=guild.living_members().any(func(m):return m.current_hp<guild.member_max_hp(m))
 		elif choice==&"heal":target=not guild.living_members().is_empty()
 		card.disabled=(limit>0 and bought>=limit) or tokens<int(offer.tokens) or not target
-## Mango sapling: a free revive, an offering for one faith stack and, when the party arrived with
-## faith, the blessing that turns all of it into gold. 지도로 ends the event.
+## Mango sapling: a free revive, and either an offering for one faith stack or (when the party
+## arrived with faith) the blessing that turns all of it into gold. 지도로 ends the event.
 func render_mango(node: RoomState) -> void:
 	var run: RunState=controller.guild.state;var faith: int=run.mango_faith
 	var left:=func(choice: StringName) -> int:return int(TowerContentService.MANGO_LIMITS[choice].limit)-int(node.event.purchases.get(String(choice),0))
+	var picked: bool=not TowerContentService.mango_open(node.event)
 	_section("망고 신앙 %d스택"%faith)
 	var grid: GridContainer=_event_choices(3 if &"bless" in node.event.choices else 2)
-	var revive: ArenaCard=_choice(grid,"MangoRevive","아군 부활","1명 · HP 20%%\n남은 %d / 1"%left.call(&"revive"),"star",_show_revive.bind(&"mango"))
+	var revive: ArenaCard=_choice(grid,"MangoRevive","아군 1명 부활","","star",_show_revive.bind(&"mango"))
 	revive.disabled=left.call(&"revive")<=0 or controller.guild.all_members().all(func(m):return m.is_alive())
-	var offer: ArenaCard=_choice(grid,"MangoOffer","재물 올리기","신앙 +1\n"+("사용 완료" if left.call(&"offer")<=0 else "%d → %d"%[faith,faith+1]),"mango",_action.bind(&"mango",{"choice":&"offer"}),"%d G"%TowerContentService.MANGO_OFFERING)
-	offer.disabled=left.call(&"offer")<=0 or run.gold<TowerContentService.MANGO_OFFERING
+	var offer: ArenaCard=_choice(grid,"MangoOffer","재물 올리기","신앙 +1","mango",_action.bind(&"mango",{"choice":&"offer"}),"%d G"%TowerContentService.MANGO_OFFERING)
+	offer.disabled=picked or run.gold<TowerContentService.MANGO_OFFERING
 	if &"bless" in node.event.choices:
-		var bless: ArenaCard=_choice(grid,"MangoBless","망고 나무의 축복","사용 완료" if left.call(&"bless")<=0 else "신앙 %d 소모\n+%s G"%[faith,ArenaUI.grouped(TowerContentService.blessing_gold(faith))],"gold",_action.bind(&"mango",{"choice":&"bless"}))
-		bless.disabled=left.call(&"bless")<=0 or faith<=0
-	_hint("축복 보상 (신앙 1 · 2 · 3 · 4 · 5)\n%s G\n신앙을 가진 채 들어오면 축복을 받을 수 있습니다."%" · ".join([1,2,3,4,5].map(func(n):return ArenaUI.grouped(TowerContentService.blessing_gold(n)))))
+		var bless: ArenaCard=_choice(grid,"MangoBless","축복 받기","신앙을 소모해\n+%s G"%ArenaUI.grouped(TowerContentService.blessing_gold(faith)),"gold",_action.bind(&"mango",{"choice":&"bless"}))
+		bless.disabled=picked or faith<=0
 ## Gambler's room: roulette and dice, GAMBLE_COST each, once per visit; results stay on show.
 func render_gambler(node: RoomState) -> void:
 	var run: RunState=controller.guild.state;var cost: int=TowerContentService.GAMBLE_COST
@@ -393,13 +393,13 @@ func render_event(node: RoomState) -> void:
 	if node.event_type==&"mangoSapling":render_mango(node);return
 	if node.event_type==&"gambler":render_gambler(node);return
 	if node.event.resolved:
-		if node.event.selected_choice==&"bathe":_result("hotSpring","온천욕 완료","따뜻한 온천에서 생존 유닛들이 회복했습니다.",Color("7fd8e8"),["HP +10%"])
+		if node.event.selected_choice==&"bathe":_result("hotSpring","온천욕 완료","따뜻한 온천에서 생존 유닛들이 회복했습니다.",Color("7fd8e8"),["HP +10%","궁극기 게이지 +10%"])
 		else:_result("gold","복권 당첨","온천 복권에서 보상을 얻었습니다.",ArenaUI.GOLD,[_event_reward_text(node.event.outcome)])
 		return
 	var grid: GridContainer=_event_choices(node.event.choices.size())
-	var options: Dictionary={&"bathe":["온천에 들어가기","생존 유닛 HP +10%","hotSpring"],&"lottery":["온천 복권 구매","무작위 보상","gold"],&"heal":["플레이어 회복","HP +10","heart"],&"guild":["생존 유닛 회복","HP +10%","rest"],&"gold":["자원 획득","골드 +300 · 토큰 +1","gold"],&"loot":["무작위 아이템" if node.event.treasure_kind==&"item" else "무작위 전략카드","아이템 1개" if node.event.treasure_kind==&"item" else "전략카드 1장","supply" if node.event.treasure_kind==&"item" else "prediction"]}
+	var options: Dictionary={&"bathe":["온천에 들어가기","생존 유닛 HP +10% · 궁극기 게이지 +10%","hotSpring"],&"lottery":["온천 복권 구매","무작위 보상","gold"],&"heal":["플레이어 회복","HP +10","heart"],&"guild":["생존 유닛 회복","HP +10%","rest"],&"gold":["자원 획득","골드 +300 · 토큰 +1","gold"],&"loot":["무작위 아이템" if node.event.treasure_kind==&"item" else "무작위 전략카드","아이템 1개" if node.event.treasure_kind==&"item" else "전략카드 1장","supply" if node.event.treasure_kind==&"item" else "prediction"]}
 	for choice in node.event.choices:
-		var data: Array=options[choice];var c:=_choice(grid,String(choice),data[0],data[1],data[2],_action.bind(&"event",{"choice":choice}),"200 G" if choice==&"lottery" else "")
+		var data: Array=options[choice];var c:=_choice(grid,String(choice),data[0],data[1],data[2],_action.bind(&"event",{"choice":choice}),"%d G"%TowerContentService.HOT_SPRING_COST if choice==&"lottery" else "")
 		if node.event_type==&"hotSpring":c.custom_minimum_size.y=146
 		c.disabled=choice==&"lottery" and controller.guild.state.gold<TowerContentService.HOT_SPRING_COST
 func _event_reward_text(outcome: Dictionary) -> String:

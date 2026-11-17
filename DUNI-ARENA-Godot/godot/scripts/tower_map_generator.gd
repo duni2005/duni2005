@@ -14,7 +14,9 @@ const BLACKSMITH_CHANCE: float = .5
 var rng := RandomNumberGenerator.new()
 var catalog: Dictionary = CharacterCatalog.all()
 static func room_count(depth: int) -> int: return 6 + floori(maxi(0,depth)/3.0)
-static func average_level(depth: int) -> int: return maxi(0,floori(depth*1.6+.5))
+## Enemy level per floor (web 1.6; 0.99.8 balance: LEVEL_PER_FLOOR, with fewer normal-room enemies).
+const LEVEL_PER_FLOOR: float = 2.0
+static func average_level(depth: int) -> int: return maxi(0,floori(depth*(LEVEL_PER_FLOOR if UnitBalance.enabled else 1.6)+.5))
 static func quotas(count: int) -> Dictionary:
 	var combat: int=mini(count,floori(count*.4+.5))
 	var rest: int=mini(count-combat,maxi(1,floori(count*.15+.5)))
@@ -75,7 +77,7 @@ func enemy_count(kind: StringName,depth: int) -> int:
 	var extra: int=mini(1,floori(rng.randf()*2)) # JS random is <1; Godot randf can include1.
 	# 0.99.7 (balance layer): one more enemy in 미니보스 and 보스 rooms.
 	var more: int=1 if UnitBalance.enabled and kind in [RoomType.BOSS,RoomType.MINIBOSS] else 0
-	return mini(7+more,4+floori(depth/5.0)+extra+more) if kind==RoomType.BOSS else mini(6+more,2+floori(depth/6.0)+extra+more) if kind==RoomType.MINIBOSS else mini(12,3+floori(depth*.7)+extra)
+	return mini(7+more,4+floori(depth/5.0)+extra+more) if kind==RoomType.BOSS else mini(6+more,2+floori(depth/6.0)+extra+more) if kind==RoomType.MINIBOSS else (mini(10,3+floori(depth*.5)+extra) if UnitBalance.enabled else mini(12,3+floori(depth*.7)+extra))
 func position_valid(point: Vector2,enemy: EnemySpawnEntry,placed: Array[EnemySpawnEntry]) -> bool:
 	var radius: float=27*enemy.body_scale
 	return point.x>=415+radius and point.x<=780-radius and point.y>=28+radius and point.y<=772-radius and placed.all(func(p):return p.initial_position.distance_to(point)>=radius+27*p.body_scale+18)

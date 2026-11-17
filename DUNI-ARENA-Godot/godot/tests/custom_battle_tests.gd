@@ -81,6 +81,7 @@ func run(tree: SceneTree) -> void:
 	attack_flow_0994(tree)
 	balance_0995()
 	enemy_items_0997()
+	balance_0998()
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -1490,9 +1491,9 @@ func items_0940(tree: SceneTree) -> void:
 			"card":give_ok=give_ok and tt.guild.state.strategy_cards.size()==before[1]+1 and tt.guild.state.strategy_cards.back().kind==&"rally"
 			"tokens":give_ok=give_ok and tt.guild.state.tokens==before[2]+5
 			"heal":give_ok=give_ok and tt.guild.state.player_hp==65
-			"restore":give_ok=give_ok and is_equal_approx(mm.current_hp,minf(tt.guild.member_stats(mm).max_hp,10+tt.guild.member_stats(mm).max_hp*.07*tt.guild.member_stats(mm).healing_received))
+			"restore":give_ok=give_ok and is_equal_approx(mm.current_hp,minf(tt.guild.member_stats(mm).max_hp,10+tt.guild.member_stats(mm).max_hp*float(ClearRewards.AMOUNTS.restore[&"common"])*tt.guild.member_stats(mm).healing_received))
 		if not give_ok:push_error("reward "+String(e[0]))
-	verify(give_ok,"each reward kind gives its amount (item, card, tokens 5, player HP 15, members 7%)")
+	verify(give_ok,"each reward kind gives its amount (item, card, tokens 5, player HP 15, members restore %)")
 	verify(ClearRewards.valid(&"warmNecklace") and ClearRewards.item_kind(&"warmNecklace")==&"warmNecklace" and not ClearRewards.valid(&"gold:ancient"),"a bare item kind (older saves) is an item reward")
 	var counts: Dictionary={}
 	for n in range(400):
@@ -1521,11 +1522,11 @@ func items_0940(tree: SceneTree) -> void:
 		var s:=TowerController.new();s.new_run(seed_value+3,seed_value+9)
 		var room: RoomState=s.guild.state.tower.map.rooms.values().filter(func(x):return x.room_type==RoomType.SHOP)[0]
 		s.content.ensure_shop(room)
-		var stock: Array=room.shop.offers.filter(func(o):return o.category==&"equipment")
+		var stock: Array=room.shop.offers.filter(func(o):return o.category==&"equipment" and o.kind!=&"reengrave")
 		var kinds: Dictionary={}
 		for o in stock:kinds[o.kind]=true
 		if stock.size()<3 or stock.size()>5 or kinds.size()!=stock.size() or stock.any(func(o):return o.gold_price!=ItemCatalog.price(o.kind) or ItemCatalog.grade_of(o.kind)==&"ancient"):shop_ok=false
-	verify(shop_ok,"shop: 3~5 different items at grade prices")
+	verify(shop_ok,"shop: 3~5 different items at grade prices (재각인 extra)")
 	# Save v6 -> v7: a removed combination worn by a member is taken back and refunded once.
 	t=TowerController.new();t.new_run(19,73);m=t.guild.all_members()[0]
 	var doc: Dictionary=JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(t,"save_v6",1).document))
@@ -2061,6 +2062,30 @@ func enemy_items_0997() -> void:
 	var t:=TowerController.new();t.new_run(19,73)
 	var bosses: Array=t.guild.state.tower.map.rooms.values().filter(func(rm):return rm.room_type==RoomType.BOSS)
 	verify(not bosses.is_empty() and bosses.all(func(rm):return rm.encounter.enemies.size()>=5),"보스 rooms bring one more enemy")
+## 0.99.8: conquest heals 5%, clear-reward restore smaller, enemy levels up / counts down,
+## 14 sorties, 재각인 apart from the shop stock, item slots at Lv.10 and Lv.20.
+func balance_0998() -> void:
+	verify(is_equal_approx(TowerController.CONQUEST_HEAL,.05) and float(ClearRewards.AMOUNTS.restore[&"legendary"])<.3 and float(ClearRewards.AMOUNTS.restore[&"common"])<.07,"conquest player HP +5%, clear-reward unit HP smaller")
+	verify(TowerMapGenerator.average_level(14)==28 and TowerMapGenerator.average_level(14)>floori(14*1.6+.5),"enemy level grows faster with the floor")
+	var g:=TowerMapGenerator.new();g.rng.seed=5;var most: int=0
+	for n in range(200):most=maxi(most,g.enemy_count(RoomType.BATTLE,14))
+	verify(most==10 and g.enemy_count(RoomType.BATTLE,0)<=4,"normal rooms: at most 10 enemies on floor 15")
+	verify(GrowthRules.SORTIE_BASE+GrowthRules.SORTIE_COSTS.size()==14,"sortie upgrades reach 14")
+	var t:=TowerController.new();t.new_run(19,73);var m: GuildMemberState=t.guild.all_members()[0];m.stars=0
+	var slots: Array=[]
+	for lv in [9,10,19,20,30]:m.level=lv;slots.append(GuildMemberCombatStats.equipment_limit(m))
+	verify(slots==[2,3,3,4,4] and GuildMemberCombatStats.level_slots(10)-GuildMemberCombatStats.level_slots(9)==1 and GuildMemberCombatStats.level_slots(9)-GuildMemberCombatStats.level_slots(8)==0,"item slots +1 at Lv.10 and Lv.20")
+	var with: int=0;var stocked: bool=false;var copies_ok: bool=true
+	for n in range(200):
+		var room:=RoomState.new();room.room_id="shop_%d"%n;room.floor_index=n%15;t.content.ensure_shop(room)
+		var eq: Array=room.shop.offers.filter(func(o):return o.category==&"equipment")
+		var re: int=eq.filter(func(o):return o.kind==&"reengrave").size()
+		if re>0:with+=1
+		copies_ok=copies_ok and re<=2 and eq.size()-re>=ItemTuning.SHOP_ITEMS.x
+		var ids: Array=room.shop.offers.map(func(o):return o.offer_id)
+		for id in ids:stocked=stocked or ids.count(id)>1
+	print("SHOP reengrave in %d/200 shops" % with)
+	verify(absf(with/200.0-.5)<.1 and copies_ok and not stocked,"재각인: 1-2 extra in about half the shops, never in the item stock; offer ids unique")
 func DEFINITIONS_ICONS() -> bool:
 	for k in StrategyCardCatalog.DEFINITIONS:
 		if ArenaIcon.texture(String(k))==null:return false

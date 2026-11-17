@@ -13,8 +13,8 @@ const PROMOTION_BONUS_EXP: int = 300
 const MAX_STARS: int = 2
 ## Units that may sortie into a tower battle, before any upgrade.
 const SORTIE_BASE: int = 3
-## Gold for each sortie upgrade, in order (+1 unit each).
-const SORTIE_COSTS: Array[int] = [500, 800, 1200, 1700, 2300]
+## Gold for each sortie upgrade, in order (+1 unit each; at most SORTIE_BASE + 11 = 14).
+const SORTIE_COSTS: Array[int] = [500, 800, 1200, 1700, 2300, 3000, 3800, 4700, 5700, 6800, 8000]
 ## Members the guild can hold (dead ones count), before any upgrade; each upgrade adds ROSTER_STEP.
 const ROSTER_BASE: int = 10
 const ROSTER_STEP: int = 2

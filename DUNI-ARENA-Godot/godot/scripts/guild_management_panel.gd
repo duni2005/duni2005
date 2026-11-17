@@ -185,7 +185,7 @@ func render() -> void:
  var owned_cards: Array=guild.state.strategy_cards.filter(func(c):return not c.consumed)
  inventory_count.text="장비 %d · 소모품 %d · 장착 %d · 전략카드 %d"%[controller.content.inventory.available().filter(func(i):return not ItemCatalog.get_item(i.kind).consumable).size(),controller.content.inventory.available().filter(func(i):return ItemCatalog.get_item(i.kind).consumable).size(),guild.state.inventory.filter(func(i):return not i.consumed and not i.equipped_to_member_id.is_empty()).size(),owned_cards.size()]
  upgrade_summary.member_name=guild.definition(selected.unit_type_id).display_name;upgrade_summary.level=selected.level;upgrade_summary.hp=selected.current_hp;upgrade_summary.max_hp=stats.max_hp
- upgrade_summary.exp_progress=GrowthRules.exp_progress(selected.total_exp);upgrade_summary.exp_needed=GrowthRules.exp_to_next(selected.level);upgrade_summary.total_exp=selected.total_exp;upgrade_summary.queue_redraw()
+ upgrade_summary.exp_progress=GrowthRules.exp_progress(selected.total_exp);upgrade_summary.exp_needed=GrowthRules.exp_to_next(selected.level);upgrade_summary.total_exp=selected.total_exp;upgrade_summary.slot_gain=GuildMemberCombatStats.level_slots(selected.level+1)-GuildMemberCombatStats.level_slots(selected.level);upgrade_summary.queue_redraw()
  var pack: int=GrowthRules.pack_cost();var level_cost: int=GrowthRules.packs_to_level(selected.total_exp)*pack
  upgrade_button.text="EXP +%d · %dG"%[GrowthRules.EXP_PACK,pack];upgrade_button.disabled=guild.state.gold<pack or not controller.content.can_manage()
  level_up_button.text="즉시 레벨업 · %dG"%level_cost;level_up_button.disabled=guild.state.gold<level_cost or not controller.content.can_manage()

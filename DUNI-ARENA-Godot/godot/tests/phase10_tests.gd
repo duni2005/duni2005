@@ -163,7 +163,10 @@ func growth_rules() -> void:
 		limits.append(result.outcome.sortie_limit if result.ok else -1);spent.append(gold-t.guild.state.gold)
 	verify(limits==[4,5,6,7,8] and spent==[500,800,1200,1700,2300],"five sortie upgrades: 500/800/1200/1700/2300 G, +1 each")
 	var gold: int=t.guild.state.gold
-	verify(not t.content_action(&"sortie_upgrade").ok and t.guild.state.gold==gold and GrowthRules.sortie_limit(t.guild.state)==8,"sortie tops out at eight")
+	t.guild.state.gold=100000
+	for i in range(6):t.content_action(&"sortie_upgrade")
+	gold=t.guild.state.gold
+	verify(not t.content_action(&"sortie_upgrade").ok and t.guild.state.gold==gold and GrowthRules.sortie_limit(t.guild.state)==14,"sortie tops out at fourteen")
 	t=tower();t.guild.state.gold=499;verify(not t.content_action(&"sortie_upgrade").ok and t.guild.state.sortie_level==0,"sortie upgrade needs the gold")
 	# Guild expansion: roster +2 per upgrade from 10, recruit odds up to level 5.
 	t=tower();t.guild.state.gold=10000;verify(GrowthRules.roster_limit(t.guild.state)==10,"ten members by default")
@@ -239,10 +242,10 @@ func rest_events() -> void:
 		t.select_room("0:2");verify(t.guild.state.tower.phase==&"cleared" and not t.content_action(&"rest",{"choice":choice}).ok,"consumed rest view only")
 	var t:=tower();t.guild.all_members()[0].current_hp=0;t.guild.all_members()[1].current_hp=0;t.select_room("0:2")
 	verify(not t.content_action(&"rest",{"choice":&"revive","members":[t.guild.all_members()[0].member_id,t.guild.all_members()[0].member_id]}).ok,"duplicate revive IDs reject")
-	var m: GuildMemberState=t.guild.all_members()[0];t.return_map();m.current_hp=40;m.energy=0;give(t,&"greenNecklace",m)
+	var m: GuildMemberState=t.guild.all_members()[0];t.return_map();m.current_hp=40;m.energy=0;m.ultimate_gauge=30;give(t,&"greenNecklace",m)
 	enter_event(t,&"hotSpring")
 	verify(not t.return_map() and not t.new_run(9,1),"active event locks map/newrun")
-	verify(t.content_action(&"event",{"choice":&"bathe"}).ok and is_equal_approx(m.current_hp,56.5) and m.energy==0,"hotSpring living10% with incoming healing, no energy")
+	verify(t.content_action(&"event",{"choice":&"bathe"}).ok and is_equal_approx(m.current_hp,56.5) and m.energy==0 and is_equal_approx(m.ultimate_gauge,40),"hotSpring living10% with incoming healing, gauge +10%, no energy")
 	verify(t.guild.all_members()[1].current_hp==0 and t.guild.all_members()[1].energy==5,"bathe dead unaffected")
 	verify(t.return_map(),"resolved event allows map")
 	var rewards: Dictionary={}
@@ -251,16 +254,16 @@ func rest_events() -> void:
 		var result: Dictionary=t.content_action(&"event",{"choice":&"lottery"})
 		verify(result.ok and t.current_room().event.resolved and t.current_room().consumed,"lottery one completion")
 		var reward: StringName=result.outcome.reward;rewards[reward]=true
-		if String(reward).begins_with("gold"):verify(t.guild.state.gold==before-200+int(String(reward).trim_prefix("gold")),"lottery gold exact")
-		elif reward==&"tokens":verify(t.guild.state.gold==before-200 and t.guild.state.tokens==8,"lottery3tokens")
+		if String(reward).begins_with("gold"):verify(t.guild.state.gold==before-150+int(String(reward).trim_prefix("gold")),"lottery gold exact (150 G)")
+		elif reward==&"tokens":verify(t.guild.state.gold==before-150 and t.guild.state.tokens==8,"lottery3tokens")
 		elif reward==&"unit":verify(t.guild.all_members().size()==5,"lottery recruits individual")
 		elif reward==&"strategy":verify(t.guild.state.strategy_cards.size()==6,"lottery card (5 starting cards + 1)")
 		else:verify(t.content.inventory.available().size()==(2 if reward==&"items" else 1),"lottery item copies")
 		before=t.guild.state.gold;var random_state: int=t.content_rng.state
 		verify(not t.content_action(&"event",{"choice":&"lottery"}).ok and t.guild.state.gold==before and t.content_rng.state==random_state,"repeat lottery unchanged")
 	verify(rewards.size()==9,"all nine actual lottery outcomes covered")
-	t=tower();enter_event(t,&"hotSpring");t.guild.state.gold=199;var random_state: int=t.content_rng.state
-	verify(not t.content_action(&"event",{"choice":&"lottery"}).ok and t.guild.state.gold==199 and t.content_rng.state==random_state and not t.current_room().cleared,"insufficient lottery no RNG/receipt")
+	t=tower();enter_event(t,&"hotSpring");t.guild.state.gold=149;var random_state: int=t.content_rng.state
+	verify(not t.content_action(&"event",{"choice":&"lottery"}).ok and t.guild.state.gold==149 and t.content_rng.state==random_state and not t.current_room().cleared,"insufficient lottery no RNG/receipt")
 	for choice in [&"heal",&"guild",&"gold",&"loot"]:
 		t=tower();t.guild.state.player_hp=40;m=t.guild.all_members()[0];m.current_hp=30;m.energy=0
 		enter_event(t,&"supply");var event: EventState=t.current_room().event;var kind: StringName=event.treasure_kind;var selected: StringName=event.treasure_reward
@@ -364,7 +367,9 @@ func mango_sapling() -> void:
 		verify(&"bless" in t.current_room().event.choices,"blessing offered with faith on entry")
 		var result: Dictionary=t.content_action(&"mango",{"choice":&"bless"})
 		verify(result.ok and t.guild.state.mango_faith==0 and t.guild.state.gold==gold+TowerContentService.blessing_gold(faith) and int(result.outcome.gold)==[0,0,0,1000,1400][faith],"blessing spends all faith for gold")
-		verify(not t.content_action(&"mango",{"choice":&"bless"}).ok and t.content_action(&"mango",{"choice":&"offer"}).ok and t.guild.state.mango_faith==1,"bless once, then a new offering starts over")
+		verify(not t.content_action(&"mango",{"choice":&"bless"}).ok and not t.content_action(&"mango",{"choice":&"offer"}).ok and t.guild.state.mango_faith==0,"bless once, and no offering after a blessing")
+	t=tower();t.guild.state.mango_faith=2;enter_event(t,&"mangoSapling")
+	verify(t.content_action(&"mango",{"choice":&"offer"}).ok and not t.content_action(&"mango",{"choice":&"bless"}).ok and t.guild.state.mango_faith==3,"offering or blessing, not both")
 	t=tower();t.guild.state.gold=150;enter_event(t,&"mangoSapling");t.guild.state.gold=150
 	verify(not t.content_action(&"mango",{"choice":&"offer"}).ok and t.guild.state.mango_faith==0 and t.guild.state.gold==150,"offering needs 200 G")
 func gambler() -> void:

@@ -15,6 +15,8 @@ var prediction_battle: BattleManager
 var session: RoomBattleSession
 var battle: BattleManager
 var save_manager: SaveManager # Optional for isolated domain/regression tests.
+## Player HP (share of max) a conquered floor restores (0.99.8).
+const CONQUEST_HEAL: float = .05
 var recovery_checkpoint: Dictionary = {} # Reserved attempt seed; no battle-frame data.
 var _defer_save: bool = false
 var battle_preparing: bool=false
@@ -199,8 +201,8 @@ func refresh_progress(changed_depth: int) -> void:
 	if changed_floor.cleared_count==changed_floor.room_ids.size() and not changed_floor.conquered:
 		changed_floor.conquered=true;state.floor_conquest[changed_depth]=true
 		BuildItems.on_floor_conquered(guild)
-		# Actual web: restore PLAYER HP, do not increase guild maxHP.
-		guild.state.player_hp+=guild.state.player_max_hp*.1
+		# Actual web: restore PLAYER HP, do not increase guild maxHP (0.99.8 balance: 5%, web 10%).
+		guild.state.player_hp+=guild.state.player_max_hp*(CONQUEST_HEAL if UnitBalance.enabled else .1)
 		var reward: FloorState=floor_reward(changed_depth)
 		if reward.bonus==&"tokens":guild.state.tokens+=2
 		elif reward.bonus==&"item":

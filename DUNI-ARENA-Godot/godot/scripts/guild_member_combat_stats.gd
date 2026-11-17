@@ -20,7 +20,11 @@ static func assemble(data: UnitData,member: GuildMemberState,inventory: Inventor
 	stats.equipment_attack_without_growth=stats.attack
 	stats.attack*=1+member.fang_kills*stats.fang_rate()
 	return stats
-static func equipment_limit(member: GuildMemberState) -> int:return 2+clampi(member.stars,0,GrowthRules.MAX_STARS)
+static func equipment_limit(member: GuildMemberState) -> int:return 2+clampi(member.stars,0,GrowthRules.MAX_STARS)+level_slots(member.level)
+## Item slots a level adds (0.99.8 balance layer): +1 at Lv.10 and +1 more at Lv.20.
+const SLOT_LEVELS: Array[int] = [10, 20]
+static func level_slots(level: int) -> int:
+	return SLOT_LEVELS.filter(func(l):return level>=l).size() if UnitBalance.enabled else 0
 static func heal(guild: GuildManager,member: GuildMemberState,base: float,revive: bool=false) -> float:
 	if member==null or base<=0 or not is_finite(base) or not member.is_alive() and not revive:return 0
 	var stats: UnitCombatStats=guild.member_stats(member)

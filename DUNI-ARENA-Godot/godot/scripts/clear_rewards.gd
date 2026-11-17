@@ -13,7 +13,7 @@ const AMOUNTS = {
 	&"tokens": {&"common": 1, &"rare": 2, &"epic": 3, &"legendary": 5},
 	&"gold": {&"common": 200, &"rare": 350, &"epic": 600, &"legendary": 900},
 	&"heal": {&"common": 5, &"rare": 10, &"epic": 15, &"legendary": 25},
-	&"restore": {&"common": .07, &"rare": .12, &"epic": .2, &"legendary": .3},
+	&"restore": {&"common": .04, &"rare": .07, &"epic": .12, &"legendary": .18},
 }
 const ICONS = {&"tokens": "gem", &"gold": "gold", &"heal": "heart", &"restore": "rest"}
 

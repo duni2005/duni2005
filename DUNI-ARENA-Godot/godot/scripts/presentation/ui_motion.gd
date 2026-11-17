@@ -9,7 +9,13 @@ static var enabled: bool = DisplayServer.get_name() != "headless"
 static func _tween(c: Control) -> Tween:
 	if c.has_meta("motion_tween"):
 		var old = c.get_meta("motion_tween")
-		if old is Tween and old.is_valid():old.kill()
+		if old is Tween and old.is_valid():
+			old.kill()
+			# A card flip cut short (scrolling or touching the row mid-deal) lands on its end state
+			# instead of freezing half turned or dimmed.
+			if c.has_meta("motion_flip"):
+				c.scale = Vector2.ONE;c.modulate.a = float(c.get_meta("motion_alpha", 1.0))
+				c.remove_meta("motion_flip");c.remove_meta("motion_alpha")
 	var t: Tween = c.create_tween();c.set_meta("motion_tween", t);return t
 
 ## Fade + scale-in with a soft overshoot for one control; keeps whatever alpha it was meant to have.
@@ -106,16 +112,18 @@ static func deal(cards: Array) -> void:
 	var tree: SceneTree = cards[0].get_tree()
 	if tree == null:return
 	for c in cards:
-		if c is Control:c.modulate.a = 0
+		if c is Control:c.modulate.a = 0;c.set_meta("motion_alpha", 1.0)
 	# Containers reset child scale when they lay out, so start the flip after that frame.
 	await tree.process_frame
 	for i in range(cards.size()):
 		var c = cards[i]
 		if not is_instance_valid(c):continue
-		c.pivot_offset = c.size * .5;c.scale = Vector2(0, 1);c.modulate.a = 1
 		var t: Tween = _tween(c).set_parallel(true)
+		c.pivot_offset = c.size * .5;c.scale = Vector2(0, 1);c.modulate.a = 1
+		c.set_meta("motion_alpha", 1.0);c.set_meta("motion_flip", true)
 		Motion.emphasize(t, c, ^"scale", Vector2(0, 1), Vector2.ONE, Motion.ENTER, i * Motion.STAGGER * 1.25)
 		Motion.enter_curve(t.tween_property(c, "modulate:a", 1.0, Motion.ENTER * .6).from(0.3).set_delay(i * Motion.STAGGER * 1.25))
+		t.chain().tween_callback(func():c.remove_meta("motion_flip");c.remove_meta("motion_alpha"))
 
 ## Selected cards and tabs give a small bounce.
 static func bump(c: Control) -> void:

@@ -4,7 +4,13 @@ extends RefCounted
 const REROLL_COST = 200
 ## Candidates per recruit room (rooms entered before 0.56.0 keep their three).
 const RECRUIT_SLOTS = 4
-const HOT_SPRING_COST = 200
+## Hot spring: the bath gives living members HOT_SPRING_HEAL of max HP and HOT_SPRING_GAUGE of the
+## ultimate gauge; the lottery costs HOT_SPRING_COST gold.
+const HOT_SPRING_COST = 150
+const HOT_SPRING_HEAL = .1
+const HOT_SPRING_GAUGE = .1
+## Shops that add 재각인 (1-2) apart from the item stock (0.99.8).
+const REENGRAVE_SHOP_CHANCE = .5
 ## Guild rest: how many dead members one revive brings back (at 20% HP).
 ## 길드 휴식소: one of player HP, resources, living members' HP or reviving dead members (20% HP).
 const REST_PLAYER_HP = 20
@@ -17,12 +23,14 @@ const REST_REVIVE_HP = .2
 ## (0 = no limit). revive: one chosen dead member at 20% HP; heal: every living member +5% HP;
 ## item: a random item from the floor table; card: a random strategy card; restore: one chosen
 ## living member to full.
-## Mango sapling: a free revive of one dead member, an offering of MANGO_OFFERING gold for one
-## faith stack, and (when faith is held on entry) a blessing that spends all faith for gold.
-## Each once per room.
+## Mango sapling: a free revive of one dead member, and one of an offering of MANGO_OFFERING gold
+## for one faith stack or (when faith is held on entry) a blessing that spends all faith for gold.
+## Each once per room; offering and blessing exclude each other (0.99.8).
 const MANGO_OFFERING = 200
 const MANGO_LIMITS = {&"revive":{"limit":1},&"offer":{"limit":1},&"bless":{"limit":1}}
 ## Blessing gold for `faith` stacks: 500, 700, 1000, 1400, 1900... (each step 100 more than the last).
+## The offering / blessing choice is still open (neither taken in this room).
+static func mango_open(e: EventState) -> bool:return int(e.purchases.get("offer",0))+int(e.purchases.get("bless",0))==0
 static func blessing_gold(faith: int) -> int:return 400+50*faith*(faith+1) if faith>0 else 0
 ## Gambler's room: each game once per room for GAMBLE_COST gold. The roulette lands on one of
 ## ROULETTE's equal slots; at dice, three dice against the gambler's three, the higher total
@@ -90,11 +98,17 @@ func ensure_shop(node: RoomState) -> void:
 	if node.shop!=null:return
 	node.shop=ShopState.new()
 	var count: int=rng.randi_range(ItemTuning.SHOP_ITEMS.x,ItemTuning.SHOP_ITEMS.y)
-	var items: Array=ItemRewards.roll(rng,ItemRewards.odds(node.floor_index),count,ItemRewards.owned_legendaries(guild.state))
+	# 0.99.8 (balance layer): 재각인 is not part of the item stock; half the shops add 1-2 of it.
+	var skip: Array=ItemRewards.owned_legendaries(guild.state)
+	if UnitBalance.enabled:skip.append(&"reengrave")
+	var items: Array=ItemRewards.roll(rng,ItemRewards.odds(node.floor_index),count,skip)
+	if UnitBalance.enabled and rng.randf()<REENGRAVE_SHOP_CHANCE:
+		for copy in range(rng.randi_range(1,2)):items.append(&"reengrave")
 	var cards: Array=StrategyCardCatalog.DEFINITIONS.keys()
 	count=rng.randi_range(2,3);shuffle(cards);cards=cards.slice(0,count)
 	for kind in items:
-		var offer:=ShopOffer.new();offer.category=&"equipment";offer.kind=kind;offer.offer_id="%s:stock:equipment:%s:0"%[node.room_id,kind]
+		var copy: int=node.shop.offers.filter(func(o):return o.kind==kind).size()
+		var offer:=ShopOffer.new();offer.category=&"equipment";offer.kind=kind;offer.offer_id="%s:stock:equipment:%s:%d"%[node.room_id,kind,copy]
 		offer.gold_price=ItemCatalog.price(kind);node.shop.offers.append(offer)
 	for kind in cards:
 		var quantity: int=2 if rng.randf()<.2 else 1
@@ -337,7 +351,7 @@ func mango(choice: StringName,member_id: String="") -> Dictionary:
 	if not live() or room()==null or guild.state.tower.phase!=&"event_active" or room().event==null or room().event.event_type!=&"mangoSapling" or room().event.resolved:return failure(&"wrong_event")
 	if not MANGO_LIMITS.has(choice):return failure(&"invalid_choice")
 	var e: EventState=room().event;var used: int=int(e.purchases.get(String(choice),0))
-	if used>=int(MANGO_LIMITS[choice].limit):return failure(&"sold_out")
+	if used>=int(MANGO_LIMITS[choice].limit) or choice in [&"offer",&"bless"] and not mango_open(e):return failure(&"sold_out")
 	var outcome: Dictionary={"choice":choice}
 	match choice:
 		&"revive":
@@ -395,14 +409,16 @@ func event(choice: StringName) -> Dictionary:
 	if not choice in e.choices:return failure(&"invalid_choice")
 	if e.event_type==&"hotSpring":
 		if choice==&"bathe":
-			for member in guild.living_members():GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*.1)
+			for member in guild.living_members():
+				GuildMemberCombatStats.heal(guild,member,guild.member_stats(member).max_hp*HOT_SPRING_HEAL)
+				member.ultimate_gauge+=GuildMemberState.MAX_GAUGE*HOT_SPRING_GAUGE
 		else:
 			if not inventory.valid():return failure(&"invalid_inventory")
 			var receipt: String=room().room_id+":lottery"
-			if not ResourceTransaction.can_spend(guild.state,200,0,receipt):return failure(&"funds")
+			if not ResourceTransaction.can_spend(guild.state,HOT_SPRING_COST,0,receipt):return failure(&"funds")
 			var rewards: Array=[&"item",&"items",&"gold250",&"tokens",&"gold500",&"strategy",&"unit",&"gold100",&"gold300"]
 			var reward: StringName=rewards[rng.randi_range(0,rewards.size()-1)]
-			ResourceTransaction.spend(guild.state,200,0,receipt);outcome["reward"]=reward
+			ResourceTransaction.spend(guild.state,HOT_SPRING_COST,0,receipt);outcome["reward"]=reward
 			match reward:
 				&"item",&"items":
 					var ids: Array=[]
