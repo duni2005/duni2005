@@ -7,7 +7,9 @@ extends Control
 ## unit; closes on the backdrop or ✕.
 ## With a `subject` (a unit on the field, a placed enemy, or a guild member waiting to be placed)
 ## the sheet has two tabs: 유닛 정보 and 상태 — current HP, ultimate and transcendence gauges and
-## every 상태이상 (StatusCatalog) the unit carries; a live battle unit refreshes as it changes.
+## every 상태이상 (StatusCatalog) the unit carries; a live battle unit refreshes as it changes. The
+## 상태 tab also shows the items it wears (tap one for its card). An enemy's sheet is red and shows
+## its level.
 var type_id: int
 var subject = null
 var info_body: VBoxContainer
@@ -22,6 +24,12 @@ var stats: UnitCombatStats
 var member: GuildMemberState
 var panel: PanelContainer
 var backdrop: ColorRect
+var item_detail: CardDetail
+## Enemy sheets: a dark red window.
+const ENEMY_BG := Color("2a1014")
+const ENEMY_RIM := Color("a8434d")
+func is_enemy() -> bool:
+	return subject is EnemyRoomState or subject is BattleUnit and subject.team != 0 or stats != null and stats.level >= 0
 
 ## Shows the sheet over `host`'s window. `stats`/`member` add the member's own numbers and
 ## level; without them the unit's base numbers are shown.
@@ -40,6 +48,7 @@ func _ready() -> void:
 	panel = PanelContainer.new()
 	# A bottom sheet: the window frame, open at the bottom edge.
 	var style: StyleBoxFlat = ArenaUI.window_style();style.corner_radius_bottom_left = 0;style.corner_radius_bottom_right = 0;style.border_width_bottom = 0
+	if is_enemy():style.bg_color = ENEMY_BG;style.border_color = ENEMY_RIM
 	for side in ["left", "right", "top", "bottom"]:style.set("content_margin_" + side, 8 if side in ["left", "right"] else 5)
 	panel.add_theme_stylebox_override("panel", style);add_child(panel)
 	var margin := MarginContainer.new()
@@ -106,7 +115,9 @@ func _build(column: VBoxContainer) -> void:
 	name_label.add_theme_font_override("font", ArenaUI.heading_font());name_label.add_theme_font_size_override("font_size", 22);name_label.add_theme_color_override("font_color", ArenaUI.GOLD)
 	var title_row := HBoxContainer.new();title_row.add_theme_constant_override("separation", 8);title_row.add_child(name_label);title_row.add_child(_rarity_chip());names.add_child(title_row)
 	var line := Label.new();line.add_theme_font_size_override("font_size", 12);line.add_theme_color_override("font_color", ArenaUI.MUTED)
-	line.text = ("%s · Lv.%d" % [ArenaUI.member_label(member.member_id), member.level] if member != null else "기본 능력치") + "  ·  " + CharacterCatalog.damage_label(type_id) + " 피해"
+	var enemy_level: int = stats.level if stats != null else -1
+	line.text = ("%s · Lv.%d" % [ArenaUI.member_label(member.member_id), member.level] if member != null else "적 · Lv.%d" % enemy_level if enemy_level >= 0 else "적" if is_enemy() else "기본 능력치") + "  ·  " + CharacterCatalog.damage_label(type_id) + " 피해"
+	if is_enemy():line.add_theme_color_override("font_color", Color("ffb3b3"))
 	names.add_child(line)
 	var story := Label.new();story.text = "“%s”" % UnitLore.story(type_id);story.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART;story.add_theme_font_size_override("font_size", 13);story.add_theme_color_override("font_color", Color("c9d2ea"));names.add_child(story)
 	if subject != null:
@@ -163,11 +174,34 @@ func _render_status() -> void:
 	status_body.add_child(_gauge("heart", "HP", hp, hp_max, "%s / %s" % [ArenaUI.number(hp), ArenaUI.number(hp_max)], Color("7fe0a0")))
 	status_body.add_child(_gauge("charge", "궁극기", float(ult) if ult != null else 0.0, 100, "%d%%" % roundi(float(ult)) if ult != null else "없음", Color("ffe28a") if ult != null and float(ult) >= 100 else Color("c49dff")))
 	status_body.add_child(_gauge("star", "초월", float(trans) if trans != null else 0.0, 100, "%d%%" % roundi(float(trans)) if trans != null else "—", Color("ff9ec4")))
+	# Worn items: icons in a row, tap one for its card.
+	var worn: Array = stats.items if stats != null else []
+	status_body.add_child(_heading("장착 아이템  %d" % worn.size(), null))
+	if worn.is_empty():
+		var bare := Label.new();bare.text = "장착한 아이템이 없습니다.";bare.add_theme_font_size_override("font_size", 13);bare.add_theme_color_override("font_color", ArenaUI.MUTED);status_body.add_child(bare)
+	else:
+		var row := HBoxContainer.new();row.add_theme_constant_override("separation", 8);status_body.add_child(row)
+		for item in worn:row.add_child(_item_slot(item))
 	var rows: Array[Dictionary] = StatusCatalog.collect(subject, stats, type_id)
 	status_body.add_child(_heading("상태이상  %d" % rows.size(), null))
 	if rows.is_empty():
 		var none := Label.new();none.text = "걸려 있는 상태이상이 없습니다.";none.add_theme_font_size_override("font_size", 13);none.add_theme_color_override("font_color", ArenaUI.MUTED);status_body.add_child(none)
 	for row in rows:status_body.add_child(_status_row(row.key, row.value))
+
+## A worn item: its icon in a slot framed in its grade colour; a tap shows its card.
+func _item_slot(item: ItemData) -> Control:
+	var slot := Button.new();slot.custom_minimum_size = Vector2(52, 52);slot.flat = true;slot.focus_mode = Control.FOCUS_NONE;slot.tooltip_text = item.display_name
+	var grade: Color = ItemCatalog.grade_color(item.kind)
+	slot.draw.connect(func():
+		var box: StyleBoxFlat = ArenaUI.box(Color("0c1322"), grade);box.set_border_width_all(2);box.set_corner_radius_all(8)
+		slot.draw_style_box(box, Rect2(Vector2.ZERO, slot.size))
+		ArenaIcon.draw(slot, slot.size * .5, String(item.kind), 36, Color.WHITE))
+	slot.pressed.connect(func():
+		if item_detail == null:
+			var layer := CanvasLayer.new();layer.layer = 90;add_child(layer)
+			item_detail = CardDetail.new();layer.add_child(item_detail)
+		item_detail.open_item(0, item.kind, item))
+	return slot
 
 func _gauge(icon: String, caption: String, value: float, maximum: float, text: String, tint: Color) -> Control:
 	var bar := Control.new();bar.custom_minimum_size = Vector2(0, 30);bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL

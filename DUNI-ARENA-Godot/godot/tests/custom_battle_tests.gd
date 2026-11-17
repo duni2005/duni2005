@@ -80,6 +80,7 @@ func run(tree: SceneTree) -> void:
 	cards_0990(tree)
 	attack_flow_0994(tree)
 	balance_0995()
+	enemy_items_0997()
 	slime_unit(tree)
 	items(tree)
 	multikill(tree)
@@ -538,7 +539,7 @@ func stat_damage(tree: SceneTree) -> void:
 	verify(is_equal_approx(grown.magic_damage,UnitStatTable.base_magic(2)*1.4*mage_bal) and is_equal_approx(grown.defense,35*1.4) and grown.magic_defense==10 and grown.attack==1,"growth raises damage stats and defense, attack % stays 100%")
 	var entry:=EnemySpawnEntry.new();entry.level=0;entry.set_rank(&"elite")
 	var elite: UnitCombatStats=TowerEnemyStatsAssembler.assemble(CharacterCatalog.all()[2],entry)
-	verify(elite.attack==entry.damage_multiplier and elite.attack>1 and is_equal_approx(elite.magic_damage,UnitStatTable.base_magic(2)*.8*mage_bal),"elite damage multiplier becomes attack %")
+	verify(is_equal_approx(elite.attack,entry.damage_multiplier*TowerEnemyStatsAssembler.RANK_DAMAGE[&"elite"]) and elite.attack>1 and is_equal_approx(elite.magic_damage,UnitStatTable.base_magic(2)*.8*mage_bal),"elite damage multiplier becomes attack %")
 func tactical_mind(tree: SceneTree) -> void:
 	# Every unit has a base role, shown first among its traits.
 	var roles: bool=true
@@ -1537,7 +1538,7 @@ func items_0940(tree: SceneTree) -> void:
 	var loaded: SaveLoadResult=SaveSnapshotLoader.restore(doc)
 	verify(loaded.ok() and loaded.run.gold==gold_before+260 and loaded.run.inventory.all(func(i):return String(i.kind)!="woodSword+staff"),"v6 save: removed combination refunded 260 G")
 	verify(loaded.ok() and loaded.run.item_notice.contains("마검") and loaded.run.item_notice.contains("260 G"),"one-time notice names the item and the gold")
-	verify(SaveMigrator.CURRENT_VERSION==11,"save version 11")
+	verify(SaveMigrator.CURRENT_VERSION==12,"save version 12")
 
 ## 0.95: fifty more items (ten per grade) and their twenty statuses.
 func _spec(skill: StringName,kind: StringName,tags: Array) -> Dictionary:return {"key":&"basic","skill":skill,"kind":kind,"base":0.0,"ratio":1.0,"tags":tags,"label":""}
@@ -2007,7 +2008,7 @@ func cards_0990(tree: SceneTree) -> void:
 	var t:=TowerController.new();t.new_run(5,9);t.guild.state.give_strategy_card(&"lunchbox")
 	var doc: Dictionary=JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(t,"v10",1).document));doc.schema_version=10
 	var back: SaveLoadResult=SaveSnapshotLoader.restore(doc)
-	verify(SaveMigrator.CURRENT_VERSION==11 and back.ok() and back.run.strategy_cards.size()==t.guild.state.strategy_cards.size() and back.run.strategy_cards[-1].kind==&"lunchbox","v10 save loads as v11 with every card")
+	verify(SaveMigrator.CURRENT_VERSION>=11 and back.ok() and back.run.strategy_cards.size()==t.guild.state.strategy_cards.size() and back.run.strategy_cards[-1].kind==&"lunchbox","v10 save loads as v11 with every card")
 ## 0.99.4: attacks are not lost to interruptions or a turret that never turns.
 func attack_flow_0994(tree: SceneTree) -> void:
 	var setup:=CustomBattleSetup.new();setup.add(18,0,Vector2(300,400));setup.add(0,1,Vector2(560,400))
@@ -2038,6 +2039,28 @@ func balance_0995() -> void:
 	verify(low[1]+low[2]>low[3]+low[4]+low[5] and high[4]+high[5]>low[4]+low[5],"floor 1 mostly 일반-고급, higher floors more 영웅-전설")
 	verify(TowerMapGenerator.new().catalog.size()>0 and load("res://scripts/abilities/santa_ability.gd").CHARGE>1 and load("res://scripts/abilities/tank_ability.gd").ENHANCED_RADIUS>160,"산타 gauge faster, 탱크 bigger ultimate blast")
 	verify(UnitBalance.max_hp(CharacterCatalog.all()[12])==floorf(400*1.2*1.4+.5),"포식자 HP 400, then the 전설 +20% and +40% (672)")
+## 0.99.7: tower enemies wear items; 미니보스 / 보스 rooms are harder.
+func enemy_items_0997() -> void:
+	var r:=RandomNumberGenerator.new();r.seed=11
+	var first: Array=[];var last: Array=[];var boss: Array=[];var grades_low: float=0;var grades_high: float=0
+	for n in range(600):
+		var a: Array[StringName]=EnemyItems.roll(r,0,&"normal");first.append(a.size())
+		var b: Array[StringName]=EnemyItems.roll(r,14,&"normal");last.append(b.size())
+		var c: Array[StringName]=EnemyItems.roll(r,4,&"boss");boss.append(c.size())
+		for k in a:grades_low+=ItemCatalog.grade_rank(k)
+		for k in b:grades_high+=ItemCatalog.grade_rank(k)
+	var avg:=func(v: Array) -> float:return v.reduce(func(x,y):return x+y,0)/float(v.size())
+	var low_items: int=first.filter(func(x):return x>0).size()
+	print("ENEMY ITEMS floor1 avg %.2f (with items %d/600) floor15 avg %.2f boss@5 avg %.2f" % [avg.call(first),low_items,avg.call(last),avg.call(boss)])
+	verify(first.all(func(x):return x<=1) and absf(low_items/600.0-.1)<.04,"floor 1: a 10% chance of one item")
+	verify(avg.call(last)>avg.call(first)+1.5 and last.all(func(x):return x<=EnemyItems.MAX_ITEMS) and avg.call(boss)>avg.call(first)+1.5,"more items higher up and on bosses (at most 4)")
+	verify(not EnemyItems.excluded().has(&"woodSword") and EnemyItems.excluded().has(&"pactSeal"),"no 대가 or run-economy items on enemies")
+	var e:=EnemySpawnEntry.new();e.level=2;e.set_rank(&"boss");var plain: UnitCombatStats=TowerEnemyStatsAssembler.assemble(CharacterCatalog.all()[0],e)
+	e.items.assign([&"leatherArmor"]);var worn: UnitCombatStats=TowerEnemyStatsAssembler.assemble(CharacterCatalog.all()[0],e)
+	verify(worn.items.size()==1 and worn.level==2 and (worn.armor!=plain.armor or worn.physical_damage!=plain.physical_damage or worn.max_hp!=plain.max_hp or worn.physical_defense!=plain.physical_defense),"an enemy's items change its stats; its level is kept")
+	var t:=TowerController.new();t.new_run(19,73)
+	var bosses: Array=t.guild.state.tower.map.rooms.values().filter(func(rm):return rm.room_type==RoomType.BOSS)
+	verify(not bosses.is_empty() and bosses.all(func(rm):return rm.encounter.enemies.size()>=5),"보스 rooms bring one more enemy")
 func DEFINITIONS_ICONS() -> bool:
 	for k in StrategyCardCatalog.DEFINITIONS:
 		if ArenaIcon.texture(String(k))==null:return false

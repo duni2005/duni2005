@@ -18,8 +18,9 @@ extends RefCounted
 ## stores the card loadout and the last loadout.
 ## v11: card kinds (active / passive) and five passive cards (0.99): owned cards, cooldowns and
 ## loadouts are kept as they are.
-const CURRENT_VERSION=11
-const MIGRATION_LABEL="card-passive-v11"
+## v12: tower enemies wear items (0.99.7): enemies already generated wear none.
+const CURRENT_VERSION=12
+const MIGRATION_LABEL="enemy-items-v12"
 static func prepare(value: Variant) -> SaveLoadResult:
 	if not value is Dictionary or not SaveValueCodec.integer(value.get("schema_version")):
 		return SaveLoadResult.failure(SaveLoadResult.Code.VALIDATION_ERROR,"schema_required")
@@ -34,6 +35,7 @@ static func prepare(value: Variant) -> SaveLoadResult:
 	if int(document.schema_version)==8:document=v8_to_v9(document)
 	if int(document.schema_version)==9:document=v9_to_v10(document)
 	if int(document.schema_version)==10:document=v10_to_v11(document)
+	if int(document.schema_version)==11:document=v11_to_v12(document)
 	if int(document.schema_version)!=CURRENT_VERSION:return SaveLoadResult.failure(SaveLoadResult.Code.UNSUPPORTED_VERSION,"unsupported_schema")
 	var result:=SaveLoadResult.new();result.document=document;return result
 ## Levels become the experience that reaches them, runs start without sortie upgrades, and a
@@ -168,6 +170,14 @@ static func v9_to_v10(source: Dictionary) -> Dictionary:
 	return document
 static func v10_to_v11(source: Dictionary) -> Dictionary:
 	var document: Dictionary=source.duplicate(true);document.schema_version=11;document.migration_version=MIGRATION_LABEL
+	return document
+static func v11_to_v12(source: Dictionary) -> Dictionary:
+	var document: Dictionary=source.duplicate(true);document.schema_version=12;document.migration_version=MIGRATION_LABEL
+	var run=document.get("run");var tower=run.get("tower") if run is Dictionary else null;var map=tower.get("map") if tower is Dictionary else null
+	for room in map.get("rooms",[]) if map is Dictionary and map.get("rooms") is Array else []:
+		var encounter=room.get("encounter") if room is Dictionary else null
+		for spawn in encounter.get("enemies",[]) if encounter is Dictionary and encounter.get("enemies") is Array else []:
+			if spawn is Dictionary and not spawn.has("items"):spawn["items"]=[]
 	return document
 ## "아이템 개편으로 사라진 조합 아이템 2개를 회수하고 520 G를 돌려드렸습니다." (empty when nothing changed)
 static func refund_notice(kinds: Array,gold: int) -> String:

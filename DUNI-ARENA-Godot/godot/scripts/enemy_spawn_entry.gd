@@ -11,6 +11,8 @@ var hp_multiplier: float = 1
 var damage_multiplier: float = 1
 var defense_multiplier: float = 1
 var speed_multiplier: float = 1
+## Items it wears (kinds, at most EnemyItems.MAX_ITEMS; 0.99.7).
+var items: Array[StringName] = []
 func set_rank(value: StringName) -> void:
 	rank = value
 	if rank == &"boss":

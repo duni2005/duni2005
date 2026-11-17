@@ -181,6 +181,7 @@ static func validate_room(room: RoomState) -> String:
 	var seen: Dictionary={}
 	for spawn in room.encounter.enemies:
 		if not spawn.enemy_id.begins_with(room.room_id+"/enemy_") or seen.has(spawn.enemy_id) or CharacterCatalog.all().get(spawn.unit_type_id)==null or spawn.level<0 or spawn.rank not in [&"normal",&"elite",&"boss"] or not point_ok(spawn.initial_position):return "spawn"
+		if spawn.items.size()>EnemyItems.MAX_ITEMS or spawn.items.any(func(k):return ItemCatalog.get_item(k)==null):return "spawn_items"
 		for factor in [spawn.body_scale,spawn.hp_multiplier,spawn.damage_multiplier,spawn.defense_multiplier,spawn.speed_multiplier]:
 			if not is_finite(factor) or factor<=0:return "spawn_multiplier"
 		var enemy: EnemyRoomState=room.enemy_state.get(spawn.enemy_id)

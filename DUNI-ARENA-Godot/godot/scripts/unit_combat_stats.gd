@@ -62,6 +62,8 @@ var all_stats: float = 0
 var effects: Dictionary = {}
 var items: Array = []
 var rank: StringName = &"normal"
+## A tower enemy's level (-1: not an enemy).
+var level: int = -1
 ## 0.97: what an owned item has grown to (effect -> ItemInstance.growth: dragon stage, streak...).
 var growth: Dictionary = {}
 

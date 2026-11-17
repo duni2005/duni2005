@@ -287,23 +287,67 @@ func _draw() -> void:
 	VisualShapes.arena(self)
 	draw_rect(Rect2(40,40,340,720),Color(.35,.5,.95,.09))
 	draw_rect(Rect2(40,40,340,720),Color("7f9cd6"),false,2)
-	var font: Font = ThemeDB.fallback_font
+	var font: Font = ArenaUI.heading_font()
 	draw_string(font, Vector2(48, 25), "아군 배치 영역", HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Color("bcc6e0"))
 	for enemy in enemies:
-		_draw_token(enemy.position, enemy.data, "적", float(enemy.get("current_hp", enemy.data.max_hp)), Color("ff947d"), false, enemy.combat_stats.max_hp if enemy.get("combat_stats") != null else enemy.data.max_hp)
+		var room_enemy = enemy.get("enemy");var spawn: EnemySpawnEntry=room_enemy.spawn if room_enemy != null else null
+		var kinds: Array=spawn.items if spawn != null else []
+		_draw_token(enemy.position, enemy.data, enemy.data.display_name, float(enemy.get("current_hp", enemy.data.max_hp)), false, false, enemy.combat_stats.max_hp if enemy.get("combat_stats") != null else enemy.data.max_hp, kinds, spawn.rank if spawn != null else &"normal")
 	for entry in plan.entries():
 		var member: GuildMemberState = plan.guild.get_member(entry.member_id)
 		if member != null:
-			_draw_token(entry.position, plan.guild.definition(member.unit_type_id), ArenaUI.stance(member.stance)+" "+ArenaUI.member_label(entry.member_id), member.current_hp, Color("88b7ff"), entry.member_id == selected_id, plan.guild.member_max_hp(member))
+			var kinds: Array=plan.guild.state.inventory.filter(func(i):return not i.consumed and i.equipped_to_member_id==member.member_id).map(func(i):return i.kind)
+			_draw_token(entry.position, plan.guild.definition(member.unit_type_id), plan.guild.definition(member.unit_type_id).display_name, member.current_hp, true, entry.member_id == selected_id, plan.guild.member_max_hp(member), kinds)
 	draw_set_transform(Vector2.ZERO)
 
-func _draw_token(at: Vector2, data: UnitData, id: String, hp: float, color: Color, selected: bool, hp_limit: float = -1) -> void:
-	var font: Font = ThemeDB.fallback_font
+## A unit on the deployment field (0.99.7): the icon in a ring of its rarity colour (영웅 · 전설 with
+## a few sparks around it), the HP bar above, the items it wears in small slots above the bar,
+## the name under it (allies blue, enemies red). 미니보스 are larger, 보스 larger still with a crown
+## and rising embers.
+const TOKEN_ICON := 54.0
+const RANK_SIZE = {&"normal": 1.0, &"elite": 1.2, &"boss": 1.45}
+const ALLY_NAME := Color("8fc4ff")
+const ENEMY_NAME := Color("ff8a8a")
+func _draw_token(at: Vector2, data: UnitData, title: String, hp: float, ally: bool, selected: bool, hp_limit: float = -1, items: Array = [], rank: StringName = &"normal") -> void:
 	if hp_limit < 0: hp_limit = data.max_hp
-	var rect: Rect2=board_rect();var factor: float=rect.size.x/800
-	UnitIcon.draw(self,Rect2(at-Vector2.ONE*27,Vector2.ONE*54),data.type_id)
-	if selected:draw_arc(at,34,0,TAU,32,ArenaUI.GOLD,2)
-	draw_rect(Rect2(at + Vector2(-28, -40), Vector2(56, 5)), Color("202a44"))
-	draw_rect(Rect2(at + Vector2(-28, -40), Vector2(56 * clampf(hp / hp_limit, 0, 1), 5)), color)
-	if selected:draw_string(font, at + Vector2(-27, -45), "HP %d" % ceili(hp), HORIZONTAL_ALIGNMENT_LEFT, -1, 13, Color.WHITE)
-	if selected:draw_string(font, at + Vector2(-27, 43), id, HORIZONTAL_ALIGNMENT_LEFT, -1, 13, color)
+	# Logical units per screen pixel: text, bars and item slots keep a readable size on a phone.
+	var px: float = 1.0 / maxf(.2, edit_canvas().get_scale().x)
+	var k: float = float(RANK_SIZE.get(rank, 1.0));var r: float = maxf(TOKEN_ICON * .5, 14 * px) * k
+	var tier: int = UnitRarity.tier(data.type_id);var ring: Color = UnitRarity.color(data.type_id)
+	var t: float = Time.get_ticks_msec() * .001
+	if rank == &"boss":
+		VfxArt.glow(self, at, r * 2.6, Color("ff7a3a"), .22 + .06 * sin(t * 3))
+		for n in range(6):
+			var s: float = fposmod(t * .5 + n / 6.0, 1.0)
+			draw_circle(at + Vector2(sin(n * 2.1 + t) * r * .9, r * .6 - s * r * 2.4), 2.2 * (1 - s) + .6, Color(1, .62, .25, .8 * (1 - s)))
+	elif tier >= 4:
+		VfxArt.glow(self, at, r * 1.9, ring, .12)
+	if tier >= 4:
+		for n in range(4 if tier == 4 else 6):
+			var a: float = t * (1.1 if tier == 4 else 1.5) + n * TAU / (4 if tier == 4 else 6)
+			draw_circle(at + Vector2.from_angle(a) * (r + 6), 1.8, Color(ring.lightened(.4), .85))
+	draw_circle(at, r + 3, Color("0b1120"))
+	UnitIcon.draw(self, Rect2(at - Vector2.ONE * r, Vector2.ONE * r * 2), data.type_id)
+	draw_arc(at, r + 3, 0, TAU, 40, ring, 3.0 if tier >= 3 else 2.0, true)
+	if selected:draw_arc(at, r + 8, 0, TAU, 40, ArenaUI.GOLD, 2.5, true)
+	if rank == &"boss":ArenaIcon.draw(self, at + Vector2(0, -r - 8), "boss", 30 * k * .8, Color.WHITE)
+	elif rank == &"elite":ArenaIcon.draw(self, at + Vector2(r * .85, -r * .85), "miniboss", 20, Color.WHITE)
+	# HP bar above the icon, the item slots above the bar.
+	var bar_w: float = maxf(56, r * 2.1);var bar_h: float = maxf(6, 4 * px);var bar_y: float = at.y - r - (22 if rank == &"boss" else 8) - bar_h
+	draw_rect(Rect2(at.x - bar_w * .5, bar_y, bar_w, bar_h), Color("202a44"))
+	draw_rect(Rect2(at.x - bar_w * .5, bar_y, bar_w * clampf(hp / hp_limit, 0, 1), bar_h), Color("7fe0a0") if ally else Color("ff6b6b"))
+	draw_rect(Rect2(at.x - bar_w * .5, bar_y, bar_w, bar_h), Color(0, 0, 0, .6), false, 1)
+	if not items.is_empty():
+		var slot: float = maxf(15, 13 * px);var gap: float = maxf(2, 1.5 * px);var total: float = items.size() * slot + (items.size() - 1) * gap
+		for n in range(items.size()):
+			var box := Rect2(Vector2(at.x - total * .5 + n * (slot + gap), bar_y - slot - 3), Vector2(slot, slot))
+			var grade: Color = ItemCatalog.grade_color(StringName(items[n]))
+			draw_rect(box, Color("0e1424"));draw_rect(box, grade, false, 1.5)
+			ArenaIcon.draw(self, box.get_center(), String(items[n]), slot * .85, Color.WHITE)
+	# Name under the icon.
+	var font: Font = ArenaUI.heading_font();var size: int = int(maxf(15, 10.5 * px)) if rank == &"normal" else int(maxf(17, 12 * px))
+	var col: Color = ALLY_NAME if ally else ENEMY_NAME
+	var name_y: float = at.y + r + 4 + size
+	for o in [Vector2(-1, 0), Vector2(1, 0), Vector2(0, -1), Vector2(0, 1)]:
+		draw_string(font, Vector2(at.x - 100, name_y) + o * px * .8, title, HORIZONTAL_ALIGNMENT_CENTER, 200, size, Color(0, 0, 0, .85))
+	draw_string(font, Vector2(at.x - 100, name_y), title, HORIZONTAL_ALIGNMENT_CENTER, 200, size, col)

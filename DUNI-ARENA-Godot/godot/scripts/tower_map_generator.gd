@@ -73,7 +73,9 @@ func add_enemy(encounter: EncounterState,type: int,rank: StringName=&"normal") -
 	var e:=EnemySpawnEntry.new();e.unit_type_id=type;e.set_rank(rank);encounter.enemies.append(e)
 func enemy_count(kind: StringName,depth: int) -> int:
 	var extra: int=mini(1,floori(rng.randf()*2)) # JS random is <1; Godot randf can include1.
-	return mini(7,4+floori(depth/5.0)+extra) if kind==RoomType.BOSS else mini(6,2+floori(depth/6.0)+extra) if kind==RoomType.MINIBOSS else mini(12,3+floori(depth*.7)+extra)
+	# 0.99.7 (balance layer): one more enemy in 미니보스 and 보스 rooms.
+	var more: int=1 if UnitBalance.enabled and kind in [RoomType.BOSS,RoomType.MINIBOSS] else 0
+	return mini(7+more,4+floori(depth/5.0)+extra+more) if kind==RoomType.BOSS else mini(6+more,2+floori(depth/6.0)+extra+more) if kind==RoomType.MINIBOSS else mini(12,3+floori(depth*.7)+extra)
 func position_valid(point: Vector2,enemy: EnemySpawnEntry,placed: Array[EnemySpawnEntry]) -> bool:
 	var radius: float=27*enemy.body_scale
 	return point.x>=415+radius and point.x<=780-radius and point.y>=28+radius and point.y<=772-radius and placed.all(func(p):return p.initial_position.distance_to(point)>=radius+27*p.body_scale+18)
@@ -130,6 +132,11 @@ func encounter_for(room: RoomState) -> EncounterState:
 	var placed: Array[EnemySpawnEntry]=[]
 	for i in range(count):
 		var e: EnemySpawnEntry=encounter.enemies[i];e.level=levels[i];e.enemy_id="%s/enemy_%03d"%[room.room_id,i]
+		# Items from a generator of their own, so the rest of the map rolls as before (part of the
+		# balance layer: off for the source-parity tests).
+		if UnitBalance.enabled:
+			var item_rng:=RandomNumberGenerator.new();item_rng.seed=hash("%s:%d:items"%[e.enemy_id,rng.seed])
+			e.items=EnemyItems.roll(item_rng,room.floor_index,e.rank)
 		e.initial_position=enemy_position(e,i,count,encounter.formation,placed);placed.append(e)
 	return encounter
 func generate(seed_value: int,run_id: String) -> TowerMapState:
