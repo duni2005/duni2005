@@ -293,8 +293,8 @@ func _section(icon: String, title: String, text: String, tint: Color, instances:
 	for line in text.split("\n"):
 		var tint_line: Color = Color("eef1fa")
 		var plain: String = line
-		var colour := RegEx.create_from_string("^\\[color=(#[0-9a-fA-F]{6})\\](.*)\\[/color\\]$").search(plain)
-		if colour != null:tint_line = Color(colour.get_string(1));plain = colour.get_string(2)
+		var colour := RegEx.create_from_string("^\\[color=(#[0-9a-fA-F]{6})\\](.*?)\\[/color\\](.*)$").search(plain)
+		if colour != null:tint_line = Color(colour.get_string(1));plain = colour.get_string(2) + colour.get_string(3)
 		plain = plain.replace("[b]", "").replace("[/b]", " ·")
 		var bullet: bool = plain.begins_with("· ")
 		if plain == "없음":tint_line = ArenaUI.MUTED
