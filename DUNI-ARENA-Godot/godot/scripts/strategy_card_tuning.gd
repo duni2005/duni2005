@@ -7,7 +7,7 @@ extends RefCounted
 ## Cards taken into one battle (the loadout / hand).
 const LOADOUT_SIZE: int = 5
 ## Order of the enemy strategy grades a disruption card can reach (일반 < 위험 < 고위험).
-const TIER_ORDER: Array[StringName] = [&"normal", &"danger", &"high"]
+const TIER_ORDER: Array[StringName] = [&"normal", &"caution", &"danger", &"high"]
 ## Unit conditions.
 const LOW_HP: float = .3
 ## A unit counts as 근접형 when its attack reach is below this.

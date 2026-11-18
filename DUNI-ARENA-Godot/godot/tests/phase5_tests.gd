@@ -298,7 +298,7 @@ func test_special_strategies(legacy: bool) -> void:
 			used[side] += 1
 			kinds[plan.plan_type] = true
 			if side == 1 and plan.plan_type == EnemyTurningPlan.HEAL: verify(is_equal_approx(plan.metadata.amount, .3), "heal stronger on the top floor" + mode)
-	verify(used[0] > 25 and used[0] < 80 and used[1] > used[0] * 3, "few enemies act early, many later" + mode)
+	verify(used[0] > 10 and used[0] < 45 and used[1] > used[0] * 5, "few enemies act early, many later" + mode)
 	verify(kinds.has(EnemyTurningPlan.HEAL) and kinds.has(EnemyTurningPlan.SMASH) and not kinds.has(EnemyTurningPlan.MOVE), "hurt melee next to a foe heals or smashes, no walk-in" + mode)
 	# Heal and charge resolve at once.
 	var heal := make_plan(f, EnemyTurningPlan.HEAL); heal.metadata = {"amount": .2}
@@ -358,8 +358,9 @@ func test_strategy_grades(legacy: bool) -> void:
 	var mode: String = " (legacy)" if legacy else " (full)"
 	verify(EnemyStrategyPlanner.intensity(4, &"boss") > EnemyStrategyPlanner.intensity(4, &"miniboss") and EnemyStrategyPlanner.intensity(4, &"miniboss") > EnemyStrategyPlanner.intensity(4) and EnemyStrategyPlanner.intensity(10) > EnemyStrategyPlanner.intensity(4), "intensity grows with chapter and room weight")
 	verify(EnemyStrategyPlanner.act_chance(.5, 2) > EnemyStrategyPlanner.act_chance(.5, 10) and EnemyStrategyPlanner.act_chance(.5, 4, &"boss") > EnemyStrategyPlanner.act_chance(.5, 4), "fewer enemies or a boss act more often")
-	verify(EnemyStrategyPlanner.tier_weights(0)[EnemyTurningPlan.HIGH] == 0 and EnemyStrategyPlanner.tier_weights(1)[EnemyTurningPlan.HIGH] > EnemyStrategyPlanner.tier_weights(.5)[EnemyTurningPlan.HIGH] and EnemyStrategyPlanner.high_cap(0) == 0 and EnemyStrategyPlanner.high_cap(1.3, &"boss") == 3, "고위험 only later, more of it in boss rooms")
-	verify(EnemyTurningPlan.TIERS[EnemyTurningPlan.EVADE] == EnemyTurningPlan.NORMAL and EnemyTurningPlan.TIERS[EnemyTurningPlan.SLASH] == EnemyTurningPlan.NORMAL and EnemyTurningPlan.TIERS[EnemyTurningPlan.SWEEP] == EnemyTurningPlan.HIGH, "grades of the new strategies")
+	verify(EnemyStrategyPlanner.tier_weights(0, &"elite")[EnemyTurningPlan.HIGH] == 0 and EnemyStrategyPlanner.tier_weights(1, &"elite")[EnemyTurningPlan.HIGH] > EnemyStrategyPlanner.tier_weights(.5, &"elite")[EnemyTurningPlan.HIGH] and EnemyStrategyPlanner.high_cap(0) == 0 and EnemyStrategyPlanner.high_cap(1.3, &"boss") == 3, "고위험 only later, more of it in boss rooms")
+	verify(EnemyStrategyPlanner.tier_weights(1)[EnemyTurningPlan.HIGH] == 0 and EnemyStrategyPlanner.tier_weights(0, &"boss")[EnemyTurningPlan.NORMAL] == 0 and EnemyStrategyPlanner.tier_weights(0, &"boss")[EnemyTurningPlan.CAUTION] == 0, "고위험 for 보스급 only; 보스 only 위험 and 고위험")
+	verify(EnemyTurningPlan.TIERS[EnemyTurningPlan.EVADE] == EnemyTurningPlan.NORMAL and EnemyTurningPlan.TIERS[EnemyTurningPlan.SLASH] == EnemyTurningPlan.CAUTION and EnemyTurningPlan.TIERS[EnemyTurningPlan.SWEEP] == EnemyTurningPlan.HIGH, "grades of the new strategies")
 	var f: Dictionary = fixture(legacy)
 	pause(f)
 	var ally: BattleUnit = f.battle.units[0];var enemy: BattleUnit = f.battle.units[2]
@@ -368,7 +369,7 @@ func test_strategy_grades(legacy: bool) -> void:
 	for i in range(600):
 		rng.seed = i
 		for side in range(2):
-			var plan: EnemyTurningPlan = EnemyStrategyPlanner.plan(enemy, [0.0, 1.3][side], rng, 1)
+			var plan: EnemyTurningPlan = EnemyStrategyPlanner.plan(enemy, [0.0, 1.3][side], rng, 1, [&"normal", &"elite"][side])
 			if plan == null:continue
 			grades[side][plan.tier()] = int(grades[side].get(plan.tier(), 0)) + 1;kinds[plan.plan_type] = true
 			if plan.plan_type == EnemyTurningPlan.SWEEP:verify(plan.metadata.has("gather") and float(plan.metadata.windup) == EnemyTurningPlan.WINDUP_HIGH, "sweep has a gather point and a longer warning" + mode)
@@ -423,6 +424,7 @@ func run(tree: SceneTree) -> void:
 	test_overshoot_and_dead_sides()
 	for legacy in [true, false]: test_special_strategies(legacy)
 	for legacy in [true, false]: test_strategy_grades(legacy)
+	test_strategies_0910()
 	print("PHASE 5 RESULT: ", groups, " test groups; ", checks, " checks; ", failures, " failures")
 
 func legacy_manager() -> BattleManager:
@@ -430,3 +432,66 @@ func legacy_manager() -> BattleManager:
 	manager.common_combat_enabled = false
 	manager.full_characters_enabled = false
 	return manager
+
+## 0.99.10: grades by rank and floor, and 용암 붓기 · 치유 · 소리치기 · 단결 · 은신 · 미사일.
+func test_strategies_0910() -> void:
+	groups += 1
+	verify(EnemyStrategyPlanner.act_chance(0, 3) < .1 and EnemyStrategyPlanner.act_chance(1, 3) > .5, "few strategies low in the tower, many at the top")
+	var w0: Dictionary = EnemyStrategyPlanner.tier_weights(0);var w1: Dictionary = EnemyStrategyPlanner.tier_weights(1)
+	var avg := func(w: Dictionary) -> float:
+		var total: float = 0;var sum: float = 0
+		for g in w:total += w[g];sum += w[g] * StrategyCardTuning.TIER_ORDER.find(g)
+		return sum / total
+	verify(w0[EnemyTurningPlan.NORMAL] > 3 * (w0[EnemyTurningPlan.CAUTION] + w0[EnemyTurningPlan.DANGER]) and w0[EnemyTurningPlan.DANGER] > 0 and avg.call(w1) > avg.call(w0) + .8, "early mostly 일반 with a little 위험; the average grade rises")
+	verify(EnemyTurningPlan.usable(EnemyTurningPlan.LAVA, CharacterCatalog.NAMES.find("flamethrower")) and not EnemyTurningPlan.usable(EnemyTurningPlan.LAVA, 0) and EnemyTurningPlan.usable(EnemyTurningPlan.MEND, CharacterCatalog.NAMES.find("refraction")) and not EnemyTurningPlan.usable(EnemyTurningPlan.MEND, 0) and EnemyTurningPlan.usable(EnemyTurningPlan.UNITE, 0), "element-bound strategies need that damage")
+	verify(CharacterCatalog.all().keys().any(func(t):return EnemyTurningPlan.usable(EnemyTurningPlan.MISSILE, t)), "some units can fire a missile")
+	var f: Dictionary = fixture(false)
+	pause(f)
+	var b: BattleManager = f.battle;var ally: BattleUnit = b.units[0];var enemy: BattleUnit = b.units[2];var other: BattleUnit = b.units[3]
+	for u in [b.units[0], b.units[1]]:u.parry_cooldown = 999;u.defense_cooldown = 999
+	ally.position = enemy.position + Vector2(-100, 0)
+	var rng := RandomNumberGenerator.new();var boss_ok: bool = true;var normal_ok: bool = true
+	for i in range(300):
+		rng.seed = i
+		var p: EnemyTurningPlan = EnemyStrategyPlanner.plan(enemy, .4, rng, 1, &"boss")
+		if p != null and p.tier() not in [EnemyTurningPlan.DANGER, EnemyTurningPlan.HIGH]:boss_ok = false
+		var q: EnemyTurningPlan = EnemyStrategyPlanner.plan(enemy, 1.3, rng, 1, &"normal")
+		if q != null and q.tier() == EnemyTurningPlan.HIGH:normal_ok = false
+	verify(boss_ok and normal_ok, "보스: 위험 · 고위험 only; ordinary enemies never 고위험")
+	var run := func(kind: StringName, m: Dictionary) -> EnemyTurningPlan:
+		var plan := EnemyTurningPlan.new();plan.plan_id = "t_" + String(kind);plan.source_enemy_id = enemy.source_enemy_id;plan.plan_type = kind;plan.metadata = m
+		EnemyPlanExecutor.execute(plan, b);return plan
+	other.current_hp = other.max_hp * .4;var before: float = other.current_hp
+	run.call(EnemyTurningPlan.MEND, {"target": other.actor_id(), "amount": .2})
+	verify(other.current_hp > before + other.max_hp * .1, "치유: a nearby ally heals 20%")
+	run.call(EnemyTurningPlan.UNITE, {"shield": .3, "time": 10.0})
+	verify(is_equal_approx(enemy.shield_hp, enemy.max_hp * .3) and is_equal_approx(other.shield_hp, other.max_hp * .3) and enemy.shield_remaining >= 10 and ally.shield_hp == 0, "단결: every ally gets a 30% shield")
+	run.call(EnemyTurningPlan.STEALTH, {"time": 5.0})
+	verify(enemy.hidden_from_enemies and is_equal_approx(enemy.state_value("shadowTime"), 5), "은신: hidden for 5 seconds")
+	enemy.set_state("shadowTime", 0.0);StrategyEffects.advance(enemy, .1)
+	verify(not enemy.hidden_from_enemies, "은신 ends with its time")
+	f.battle.free()
+	# Attacks land through the real flow: the turning point ends, the warning runs, then the hit.
+	var cast := func(kind: StringName, m: Dictionary) -> Dictionary:
+		var g: Dictionary = fixture(false);pause(g)
+		var a: BattleUnit = g.battle.units[0];var e: BattleUnit = g.battle.units[2]
+		for u in [g.battle.units[0], g.battle.units[1]]:u.parry_cooldown = 999;u.defense_cooldown = 999
+		a.position = e.position + Vector2(-100, 0)
+		var plan := make_plan(g, kind);plan.metadata = m if not m.has("center") else m.merged({"center": CharacterPersistence.point(a.position)}, true)
+		g.tp.current.enemy_plans.assign([plan]);g.tp.resolve()
+		return {"f": g, "ally": a, "enemy": e, "hp": a.current_hp}
+	var shout: Dictionary = cast.call(EnemyTurningPlan.SHOUT, {"angle": PI, "range": 190.0, "damage": 10.0, "headwind": 5.0})
+	for frame in range(60):shout.f.battle.simulate(1.0 / 60)
+	verify(shout.ally.current_hp < shout.hp and shout.ally.state_value("headwindTime") > 3, "소리치기: damage and 역풍 for 5 seconds in the fan")
+	shout.f.battle.free()
+	var missile: Dictionary = cast.call(EnemyTurningPlan.MISSILE, {"center": {}, "radius": 170.0, "damage": 20.0, "windup": 1.4})
+	for frame in range(48):missile.f.battle.simulate(1.0 / 60)
+	var waited: bool = is_equal_approx(missile.ally.current_hp, missile.hp)
+	for frame in range(60):missile.f.battle.simulate(1.0 / 60)
+	verify(waited and missile.ally.current_hp < missile.hp, "미사일: lands after its longer warning")
+	missile.f.battle.free()
+	var lava: Dictionary = cast.call(EnemyTurningPlan.LAVA, {"center": {}, "radius": 85.0, "damage": 5.0, "time": 7.0})
+	for frame in range(90):lava.f.battle.simulate(1.0 / 60)
+	var pools: Array = lava.f.battle.zones.entries.filter(func(z):return z.kind == "lava")
+	verify(pools.size() == 1 and float(pools[0].life) > 5 and float(pools[0].life) < 7 and lava.ally.current_hp < lava.hp and lava.ally.state_value("burnStacks") >= 1, "용암 붓기: a 7-second pool that burns")
+	lava.f.battle.free()

@@ -2,6 +2,7 @@ class_name EnemyPlanExecutor
 extends RefCounted
 ## Effects use persistent actor IDs; nodes are looked up only while executing.
 const SMASH_ARC: float = deg_to_rad(55) # half-angle of the smash fan
+const SHOUT_ARC: float = deg_to_rad(50) # half-angle of the shout fan
 const CLEAVE_SPEED: float = 1100
 static func find_enemy(battle: BattleManager, id: String) -> BattleUnit:
 	for unit in battle.units:
@@ -34,7 +35,16 @@ static func execute(plan: EnemyTurningPlan, battle: BattleManager) -> Dictionary
 			StrategyCommandExecutor.cancel_intent(enemy)
 			var to: Vector2 = CharacterPersistence.vector(m.to, enemy.position)
 			enemy.strategy_dash = {"direction": (to - enemy.position).normalized(), "remaining": to.distance_to(enemy.position), "speed": 720.0}
-		EnemyTurningPlan.SMASH, EnemyTurningPlan.CLEAVE, EnemyTurningPlan.SLASH, EnemyTurningPlan.SWEEP:
+		EnemyTurningPlan.MEND:
+			var target: BattleUnit = battle.find_actor(String(m.get("target", "")))
+			if target != null and target.alive and target.team == enemy.team:StrategyEffects.heal(target, target.max_hp * float(m.amount))
+		EnemyTurningPlan.UNITE:
+			for ally in battle.units.filter(func(u): return u.alive and u.team == enemy.team):
+				ally.shield_hp = maxf(ally.shield_hp if ally.shield_remaining > 0 else 0.0, ally.max_hp * float(m.shield))
+				ally.shield_remaining = maxf(ally.shield_remaining, float(m.time))
+		EnemyTurningPlan.STEALTH:
+			enemy.set_state("shadowTime", maxf(enemy.state_value("shadowTime"), float(m.time)));enemy.set_state("strategyShadow", 1.0);enemy.hidden_from_enemies = true
+		EnemyTurningPlan.SMASH, EnemyTurningPlan.CLEAVE, EnemyTurningPlan.SLASH, EnemyTurningPlan.SWEEP, EnemyTurningPlan.SHOUT, EnemyTurningPlan.LAVA, EnemyTurningPlan.MISSILE:
 			StrategyCommandExecutor.cancel_intent(enemy)
 			m["kind"] = plan.plan_type
 			m["age"] = 0.0
@@ -85,18 +95,37 @@ static func advance(unit: BattleUnit, delta: float) -> bool:
 			if sweep and foe.alive:KnockbackController.apply(foe, ((gather - foe.position) * 4.6).limit_length(KnockbackController.MAX_SPEED), unit)
 		battle.emit_combat_event(&"ult_impact", center, {"actor": unit.actor_id(), "type": unit.data.type_id, "radius": reach})
 		return true
-	if cast.kind == EnemyTurningPlan.SMASH:
+	if cast.kind in [EnemyTurningPlan.LAVA, EnemyTurningPlan.MISSILE]:
+		var center: Vector2 = CharacterPersistence.vector(cast.center, unit.position)
+		if center.distance_to(unit.position) > 1:unit.facing = (center - unit.position).angle()
+		if cast.age < windup(cast):
+			return true
+		var m: Dictionary = cast.duplicate()
+		unit.strategy_cast = {}
+		if m.kind == EnemyTurningPlan.LAVA:
+			# The pool lives on as a zone (BattleZones.advance ticks it).
+			battle.zones.add(unit, "lava", center, float(m.radius), float(m.time), {"damage": float(m.damage)})
+		else:
+			for foe in battle.units.filter(func(u): return u.alive and u.team != unit.team):
+				if foe.position.distance_to(center) <= float(m.radius) + 20 * foe.combat_scale():
+					battle.damage_resolver.resolve(unit, foe, float(m.damage), {"impulse": 300, "visible_hazard": true, "attack_origin": center, "dmg": &"strategy_missile"})
+			battle.emit_combat_event(&"ult_impact", center, {"actor": unit.actor_id(), "type": unit.data.type_id, "radius": float(m.radius)})
+		return true
+	if cast.kind in [EnemyTurningPlan.SMASH, EnemyTurningPlan.SHOUT]:
 		unit.facing = float(cast.angle)
 		if cast.age < windup(cast):
 			return true
 		# Hits can interrupt the striker (a parry, say) and clear the cast, so read it first.
-		var forward := Vector2.from_angle(float(cast.angle));var reach: float = float(cast.range);var damage: float = float(cast.damage);var stun: float = float(cast.stun)
+		var shout: bool = cast.kind == EnemyTurningPlan.SHOUT
+		var forward := Vector2.from_angle(float(cast.angle));var reach: float = float(cast.range);var damage: float = float(cast.damage);var stun: float = float(cast.get("stun", 0));var headwind: float = float(cast.get("headwind", 0))
 		unit.strategy_cast = {}
 		for foe in battle.units.filter(func(u): return u.alive and u.team != unit.team):
 			var offset: Vector2 = foe.position - unit.position
-			if offset.length() <= reach + 20 * foe.combat_scale() and absf(forward.angle_to(offset)) <= SMASH_ARC:
-				battle.damage_resolver.resolve(unit, foe, damage, {"impulse": 260, "visible_hazard": true, "dmg": &"strategy_smash"})
-				if foe.alive:StatusController.stun(foe, stun)
+			if offset.length() <= reach + 20 * foe.combat_scale() and absf(forward.angle_to(offset)) <= (SHOUT_ARC if shout else SMASH_ARC):
+				battle.damage_resolver.resolve(unit, foe, damage, {"impulse": 160 if shout else 260, "visible_hazard": true, "dmg": &"strategy_shout" if shout else &"strategy_smash"})
+				if foe.alive and stun > 0:StatusController.stun(foe, stun)
+				# 역풍 (ElementEffects): slower moves and attacks.
+				if foe.alive and headwind > 0:foe.set_state("headwindTime", maxf(foe.state_value("headwindTime"), headwind))
 		battle.emit_combat_event(&"ult_impact", unit.position + forward * reach * .5, {"actor": unit.actor_id(), "type": unit.data.type_id, "radius": reach})
 		return true
 	var from: Vector2 = CharacterPersistence.vector(cast.from, unit.position);var to: Vector2 = CharacterPersistence.vector(cast.to, unit.position)

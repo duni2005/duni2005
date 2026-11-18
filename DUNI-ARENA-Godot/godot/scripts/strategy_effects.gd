@@ -14,6 +14,9 @@ static func advance(unit: BattleUnit, delta: float) -> void:
 	for field in ["shield_remaining", "iron_defense_remaining", "parry_cooldown", "parry_remaining", "defense_cooldown", "invincible_remaining", "evade_remaining"]:
 		unit.set(field, maxf(0, float(unit.get(field)) - delta))
 	if unit.shield_remaining <= 0: unit.shield_hp = 0
+	# 은신 (enemy special strategy): seen again when its time runs out.
+	if unit.state_value("strategyShadow") > 0 and unit.state_value("shadowTime") <= 0:
+		unit.set_state("strategyShadow", 0.0);unit.hidden_from_enemies = false
 static func absorb(unit: BattleUnit, amount: float) -> float:
 	var absorbed: float = minf(amount, unit.shield_hp) if unit.shield_remaining > 0 else 0.0
 	unit.shield_hp -= absorbed

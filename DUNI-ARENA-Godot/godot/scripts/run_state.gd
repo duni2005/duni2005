@@ -51,10 +51,11 @@ func give_strategy_card(kind: StringName) -> StrategyCardInstance:
 	card.kind = kind
 	strategy_cards.append(card)
 	return card
-## A battle room was won: every card on cooldown is one win closer.
-func count_card_win() -> void:
+## A battle room was won: every card on cooldown is one win closer, except the cards taken into
+## that battle (their cooldown counts the wins after it).
+func count_card_win(taken: Array = []) -> void:
 	for card in strategy_cards:
-		if card.wins_left > 0: card.wins_left -= 1
+		if card.wins_left > 0 and not card.card_id in taken: card.wins_left -= 1
 func get_strategy_card(id: int) -> StrategyCardInstance:
 	for card in strategy_cards:
 		if card.card_id == id: return card

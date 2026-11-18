@@ -13,7 +13,7 @@ func risk(u,point: Vector2) -> float:
 	var body: float=25*u.combat_scale()
 	for z in entries:
 		var source=u.battle.find_actor(z.source)
-		if source==null or source.team==u.team or z.kind not in ["blackhole","tankFire","ring","oilFire"]:continue
+		if source==null or source.team==u.team or z.kind not in ["blackhole","tankFire","ring","oilFire","lava"]:continue
 		var center: Vector2=CharacterPersistence.vector(z.point)
 		var radius: float=z.radius
 		if z.kind=="ring":
@@ -130,6 +130,10 @@ func advance(battle,dt: float) -> void:
 					battle.damage_resolver.resolve(u,actor,UnitStatTable.raw(u,&"ult"),{"dmg":&"ult","critical":false,"impulse":0,"attack_origin":point,"visible_hazard":true,"attack_token":z.source+z.kind})
 				elif z.kind=="oilFire" and actor.team!=u.team and burning(z,actor.position,24*actor.combat_scale()):
 					battle.damage_resolver.resolve(u,actor,float(z.damage),{"dmg":&"fire_zone","critical":false,"impulse":0,"attack_origin":actor.position,"visible_hazard":true,"attack_token":z.source+z.kind})
+				elif z.kind=="lava" and actor.team!=u.team and actor.invincible_remaining<=0:
+					# 용암 붓기 (enemy special strategy): damage over time and a burn stack per tick.
+					battle.damage_resolver.resolve(u,actor,float(z.damage),{"dmg":&"strategy_lava","critical":false,"impulse":0,"attack_origin":actor.position,"visible_hazard":true,"attack_token":"%s%s%d"%[z.source,z.kind,int(z.area_id)]})
+					if actor.alive:ElementEffects.add_burn(u,actor,1)
 				elif z.kind in ["blackhole","tankFire"] and actor.team!=u.team:
 					battle.damage_resolver.resolve(u,actor,UnitStatTable.raw(u,&"ult") if z.kind=="blackhole" else float(z.get("damage",0)),{"dmg":&"ult" if z.kind=="blackhole" else &"fire_zone","critical":false,"impulse":0,"attack_origin":point,"visible_hazard":true,"attack_token":z.source+z.kind})
 		if float(z.life)<=0:entries.erase(z)

@@ -1871,6 +1871,10 @@ func cards_0980(tree: SceneTree) -> void:
 	var fresh:=TurningPointManager.new(b,f.guild);verify(fresh.used_cards.is_empty(),"…and ready again in the next battle")
 	# Cooldowns count won rooms only.
 	st.count_card_win();verify(st.get_strategy_card(ids.block).wins_left==1 and st.get_strategy_card(ids.barrier).wins_left==0,"a won room counts down every cooldown")
+	# 0.99.10: the battle a card was taken into does not count toward its own cooldown.
+	st.get_strategy_card(ids.barrier).wins_left=1;st.count_card_win([ids.barrier])
+	verify(st.get_strategy_card(ids.barrier).wins_left==1 and st.get_strategy_card(ids.block).wins_left==0,"cooldown counts only the wins after the battle it was taken into")
+	st.count_card_win();verify(st.get_strategy_card(ids.barrier).wins_left==0,"the next won room makes a 쿨타임 1 card ready")
 	# Loadout: hand from the run's choice.
 	st.card_loadout.assign([ids.mango,ids.shield]);var t2:=TurningPointManager.new(b,f.guild)
 	verify(t2.hand==[ids.mango,ids.shield],"the hand is the loadout chosen before deployment")

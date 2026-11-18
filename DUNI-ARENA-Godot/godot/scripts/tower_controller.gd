@@ -146,7 +146,7 @@ func _settled(result: BattleResult,status: BattleSettlement.Status) -> void:
 	var items: Dictionary=BuildItems.settle(guild,result)
 	# Strategy cards: a won room brings every cooldown one win closer (retreats and defeats do not);
 	# the next entry chooses its cards again.
-	if result.end_reason==BattleEndReason.Value.VICTORY:guild.state.count_card_win()
+	if result.end_reason==BattleEndReason.Value.VICTORY:guild.state.count_card_win(battle.turning.hand if is_instance_valid(battle) and battle.turning!=null else [])
 	guild.state.card_loadout.clear()
 	# Settlement already performed healing and room clear before checking guild death.
 	if room.cleared:

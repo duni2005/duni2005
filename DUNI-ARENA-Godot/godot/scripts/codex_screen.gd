@@ -1,11 +1,13 @@
 class_name CodexScreen
 extends Control
-## 도감 from the main menu: every unit, item, strategy card, room event, damage tag, boss and
-## 상태이상 (StatusCatalog), as a
+## 도감 from the main menu: every unit, item, strategy card, room event, damage tag, boss,
+## 상태이상 (StatusCatalog) and enemy special strategy, as a
 ## card grid (the only part that scrolls) above a fixed detail panel (beside it on wide screens).
 ## Read-only: built from the same catalogues the game plays with.
 signal closed
-const TABS = [["unit","유닛"],["item","아이템"],["card","전략카드"],["event","이벤트"],["tag","피해태그"],["status","상태이상"],["boss","보스"]]
+const TABS = [["unit","유닛"],["item","아이템"],["card","전략카드"],["event","이벤트"],["tag","피해태그"],["status","상태이상"],["boss","보스"],["plan","특수전략"]]
+## 적 특수전략: how grades are used, shown under every strategy.
+const PLAN_RULES = "터닝포인트에서 적이 준비하고, 터닝포인트가 끝나면 쓴다. 탑을 오를수록 쓰는 확률과 평균 등급이 오른다(초반엔 일반 위주). 보스는 위험 · 고위험만, 고위험은 보스급(보스 · 미니보스)만 쓴다."
 ## Rooms and events: [key, icon, name, description].
 const EVENTS = [
 	["battle","battle","전투","적을 모두 쓰러뜨리면 골드와 토큰을 얻는다. 지면 플레이어 HP가 줄고, 남은 적의 상태 그대로 다시 도전할 수 있다."],
@@ -145,6 +147,11 @@ func show_tab(key: String) -> void:
 				for status in StatusCatalog.ENTRIES:
 					var e: Array = StatusCatalog.ENTRIES[status]
 					if e[1] == kind:_card(String(status), "slot", e[2], e[0], StatusCatalog.kind_label(status), StatusCatalog.kind_color(status), Vector2(86, 72))
+		"plan":
+			grid.columns = maxi(3, int(width / 96))
+			for grade in StrategyCardTuning.TIER_ORDER:
+				for kind in EnemyTurningPlan.NAMES:
+					if EnemyTurningPlan.TIERS[kind] == grade:_card(String(kind), "slot", EnemyTurningPlan.ICONS[kind], EnemyTurningPlan.NAMES[kind], EnemyTurningPlan.TIER_NAMES[grade], EnemyStrategyView.TIER_COLORS[grade], Vector2(86, 72))
 	scroll.scroll_vertical = 0
 	if grid.get_child_count() > 0:_select(String(grid.get_child(0).name))
 
@@ -215,5 +222,17 @@ func _select(node_name: String) -> void:
 			detail_title.text = e[0];detail_title.add_theme_color_override("font_color", StatusCatalog.kind_color(StringName(key)))
 			detail_sub.text = "%s · 상태이상" % StatusCatalog.kind_label(StringName(key))
 			detail_text.text = "%s\n전투 중 유닛이나 배치 화면의 적 · 아군 · 대기 유닛을 다시 눌러 연 설명창의 '상태' 탭에서 볼 수 있다." % e[3]
-	if tab not in ["item", "status"]:detail_title.remove_theme_color_override("font_color")
+		"plan":
+			var kind := StringName(key);var grade: StringName = EnemyTurningPlan.TIERS[kind];icon_kind = EnemyTurningPlan.ICONS[kind]
+			detail_title.text = EnemyTurningPlan.NAMES[kind];detail_title.add_theme_color_override("font_color", EnemyStrategyView.TIER_COLORS[grade])
+			var users: Array = CharacterCatalog.all().keys().filter(func(t):return EnemyTurningPlan.usable(kind, t))
+			var who: String = "보스급" if grade == EnemyTurningPlan.HIGH else "보스 외 적" if grade in [EnemyTurningPlan.NORMAL, EnemyTurningPlan.CAUTION] else "모든 적"
+			detail_sub.text = "%s 등급 · 사용: %s%s" % [EnemyTurningPlan.TIER_NAMES[grade], who, " · %s 피해 유닛 %d종" % [UnitStatTable.TAG_NAMES.get(EnemyTurningPlan.NEEDS[kind], ""), users.size()] if EnemyTurningPlan.NEEDS.has(kind) else ""]
+			var info: Array = EnemyTurningPlan.INFO[kind]
+			detail_text.text = "%s\n조건: %s\n%s" % [info[0], info[1], PLAN_RULES]
+			if EnemyTurningPlan.NEEDS.has(kind):
+				for type in users.slice(0, 24):
+					var face := Control.new();face.custom_minimum_size = Vector2(26, 26);var t: int = type
+					face.draw.connect(func():UnitIcon.draw(face, Rect2(Vector2.ZERO, Vector2(26, 26)), t));detail_units.add_child(face)
+	if tab not in ["item", "status", "plan"]:detail_title.remove_theme_color_override("font_color")
 	detail_icon.queue_redraw()
