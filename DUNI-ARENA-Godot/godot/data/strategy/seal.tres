@@ -3,8 +3,8 @@
 [resource]
 script = ExtResource("1")
 kind = &"seal"
-display_name = "봉인의 낙인"
-description = "방해: 적 1명의 특수전략을 제거(고위험 포함) · 그 적은 다음 터닝포인트에 특수전략을 준비하지 못함"
+display_name = "해제 마법서"
+description = "적의 특수 전략을 제거한다."
 amount = 0
 duration = 0
 gold_price = 180
@@ -12,7 +12,7 @@ card_kind = &"active"
 usage = &"unit_enemy"
 cooldown_type = &"consume"
 cooldown_wins = 0
-conditions = Array[StringName]([&"planning"])
+conditions = Array[StringName]([])
 disrupt = &"high"
-extra = 1
+extra = 0
 image = ""

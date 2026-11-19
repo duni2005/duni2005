@@ -19,6 +19,8 @@ const DEFINITIONS = {
 	&"command_flag": preload("res://data/strategy/command_flag.tres"),
 	&"indomitable": preload("res://data/strategy/indomitable.tres"),
 	&"lunchbox": preload("res://data/strategy/lunchbox.tres"),
+	&"heal_zone": preload("res://data/strategy/heal_zone.tres"),
+	&"pressure": preload("res://data/strategy/pressure.tres"),
 }
 static func get_card(kind: StringName) -> StrategyCardData:
 	return DEFINITIONS.get(kind)

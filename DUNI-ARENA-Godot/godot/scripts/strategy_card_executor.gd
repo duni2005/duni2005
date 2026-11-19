@@ -28,6 +28,7 @@ static func hand_state(manager: TurningPointManager, card: StrategyCardInstance)
 
 ## Its condition has at least one fitting unit (or the situation holds).
 static func condition_open(manager: TurningPointManager, data: StrategyCardData) -> bool:
+	if data.disrupt != &"":return not targets(manager, data).is_empty()
 	if data.conditions.is_empty():return true
 	if data.situation():return situation_ok(manager, data)
 	return not targets(manager, data).is_empty()
@@ -67,6 +68,8 @@ static func side_ok(manager: TurningPointManager, data: StrategyCardData, u) -> 
 	return ally or enemy
 ## Every target condition of the card holds for the unit.
 static func target_condition(manager: TurningPointManager, data: StrategyCardData, u) -> bool:
+	# A disruption card needs an enemy preparing a strategy it can remove (not shown as a condition).
+	if data.disrupt != &"" and not _target(manager, data, &"planning", u):return false
 	for c in data.conditions:
 		if not c in StrategyCardData.SITUATION and not _target(manager, data, c, u):return false
 	return true
@@ -83,6 +86,7 @@ static func tier_rank(tier: StringName) -> int:return StrategyCardTuning.TIER_OR
 ## Short hint when the selected unit does not fit, e.g. "근접형 아군을 선택하세요".
 static func target_hint(data: StrategyCardData) -> String:
 	var side: String = {&"unit_ally":"아군", &"unit_enemy":"적"}.get(data.usage, "유닛")
+	if data.disrupt != &"":return _hint(data, &"planning", side)
 	for c in data.conditions:
 		var h: String = _hint(data, c, side)
 		if not h.is_empty():return h
@@ -92,7 +96,7 @@ static func _hint(data: StrategyCardData, condition: StringName, side: String) -
 		&"melee":return "근접형 아군을 선택하세요"
 		&"rush":return "저돌적 성향의 %s을 선택하세요" % side
 		&"low_hp":return "HP 30%% 이하인 %s을 선택하세요" % side
-		&"planning":return "특수전략(%s)을 준비 중인 적을 선택하세요" % StrategyCardData.DISRUPT_NAMES.get(data.disrupt, "")
+		&"planning":return "특수전략(%s)을 준비 중인 적을 선택하세요" % StrategyCardData.DISRUPT_NAMES.get(data.disrupt, "") if data.disrupt != &"high" else "특수전략을 준비 중인 적을 선택하세요"
 	return ""
 
 ## Plays a card. target_id: a member id or actor id (unit cards); point: the field position
@@ -129,9 +133,14 @@ static func apply(manager: TurningPointManager, card_id: int, target_id: String,
 	match card.kind:
 		&"disrupt", &"block", &"seal":
 			if manager.remove_plan(unit) == null: return {"code": Code.NO_EFFECT}
-			if card.kind == &"seal": unit.set_state("planSealedThrough", float(manager.serial + int(data.extra)))
+			if card.kind == &"seal" and data.extra > 0: unit.set_state("planSealedThrough", float(manager.serial + int(data.extra)))
 		&"barrier":
 			manager.add_wall(point, data.amount, data.duration)
+		&"heal_zone":
+			manager.add_heal_zone(point, data.extra, data.amount, data.duration)
+		&"pressure":
+			if unit.ultimate_gauge <= 0: return {"code": Code.NO_EFFECT}
+			unit.ultimate_gauge = 0
 		&"feast":
 			var any: bool = false
 			for ally in manager.battle.units:

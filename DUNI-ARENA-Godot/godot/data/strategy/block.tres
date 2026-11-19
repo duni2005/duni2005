@@ -4,7 +4,7 @@
 script = ExtResource("1")
 kind = &"block"
 display_name = "차단"
-description = "방해: 적 1명의 위험 등급 이하 특수전략을 제거"
+description = "적 1명이 준비 중인 위험 등급 이하(일반 · 주의 · 위험) 특수전략을 제거한다."
 amount = 0
 duration = 0
 gold_price = 220
@@ -12,7 +12,7 @@ card_kind = &"active"
 usage = &"unit_enemy"
 cooldown_type = &"cooldown"
 cooldown_wins = 2
-conditions = Array[StringName]([&"planning"])
+conditions = Array[StringName]([])
 disrupt = &"danger"
 extra = 0
 image = ""

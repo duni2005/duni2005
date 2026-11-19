@@ -4,7 +4,7 @@
 script = ExtResource("1")
 kind = &"feast"
 display_name = "망고 연회"
-description = "아군 전원 HP 20% 회복 · 궁극기 +30"
+description = "아군 전원의 HP를 20% 회복하고 궁극기 게이지를 30% 채운다."
 amount = 0.2
 duration = 0
 gold_price = 240

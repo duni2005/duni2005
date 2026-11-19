@@ -148,7 +148,7 @@ func pending_and_order() -> void:
 	verify(f.tp.resolve(), "manual shared resolve")
 	verify(p.executed and enemy.strategy_dash.is_empty(), "enemy move first overridden by later ally taunt")
 	verify(enemy.taunted_member_id == u.source_member_id and enemy.taunted_until == time+8, "taunt8sec")
-	verify(u.command_retreat_until == time+6 and not u.strategy_dash.is_empty(), "evade dash six seconds")
+	verify(u.command_retreat_until == time+2 and u.invincible_remaining >= 1.9 and not u.strategy_dash.is_empty(), "전투 회피: two invincible seconds dashing away")
 	for command in f.tp.current.pending_commands:
 		verify(command.executed and UnitStateCodec.is_pure_data(command.metadata), "commands pure metadata and executed once")
 	verify(f.tp.current.pending_commands[0].metadata.target_enemy_ids.size() == 2, "nearest max2 no distance cutoff")
@@ -157,7 +157,7 @@ func pending_and_order() -> void:
 	f.battle.clock.elapsed = time
 	f.battle.simulate(.1)
 	verify(u.position.distance_to(where) > 0 and not f.battle.finished, "evade real movement not full retreat")
-	verify(card(f, &"evade").wins_left == 2, "쿨타임 2: two won rooms to go")
+	verify(card(f, &"evade").wins_left == 0 and f.tp.used_cards.has(card(f, &"evade").card_id), "일반: used for this battle only")
 	f.battle.clock.elapsed = time+8
 	f.battle.simulate(.01)
 	verify(u.command_retreat_until < f.battle.clock.elapsed, "flee expires simulation time")
@@ -217,11 +217,9 @@ func persistence_retry() -> void:
 	verify(next.turning.current == null and next.turning.next_at == 12, "fresh TurningPointState")
 	verify(run.strategy_cards.size() == counts and not card(f, &"shield").consumed, "no retry grant/reset")
 	verify(StrategyCardExecutor.availability(card(f, &"shield")) and next.turning.used_cards.is_empty(), "일반 card ready again in the retried battle")
-	verify(not StrategyCardExecutor.availability(card(f, &"evade")) and not StrategyCardExecutor.availability(card(f, &"charge")), "cooldown persists retry (retreats count no wins)")
+	verify(StrategyCardExecutor.availability(card(f, &"evade")) and not StrategyCardExecutor.availability(card(f, &"charge")), "cooldown persists retry (retreats count no wins); 일반 ready")
 	run.count_card_win()
-	verify(StrategyCardExecutor.availability(card(f, &"charge")) and not StrategyCardExecutor.availability(card(f, &"evade")), "one win: 쿨타임 1 ready, 쿨타임 2 not")
-	run.count_card_win()
-	verify(StrategyCardExecutor.availability(card(f, &"evade")), "two wins: 쿨타임 2 ready")
+	verify(StrategyCardExecutor.availability(card(f, &"charge")), "one win: 쿨타임 1 ready")
 	next.free()
 	clear(f)
 	f = fixture()

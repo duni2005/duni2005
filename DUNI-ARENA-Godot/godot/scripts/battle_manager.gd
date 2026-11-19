@@ -43,6 +43,8 @@ var collision_pairs: Dictionary = {}
 var combat_events: Array[Dictionary] = []
 ## 방벽 설치 walls (CardWalls).
 var card_walls: Array[Dictionary] = []
+## 치유 장판 areas placed by strategy cards (CardWalls.advance_zones).
+var card_zones: Array[Dictionary] = []
 var combat_event_counts: Dictionary = {}
 var stats := BattleStats.new() # per-unit totals for the result screen's 통계 page
 var zones := BattleZones.new()
@@ -422,6 +424,7 @@ func simulate_common(delta: float) -> void:
 		StrategyEffects.advance(unit,delta)
 	if full_characters_enabled:zones.advance(self,delta)
 	if not card_walls.is_empty():CardWalls.advance(self,delta)
+	if not card_zones.is_empty():CardWalls.advance_zones(self,delta)
 	for unit in units:
 		if not unit.alive: continue
 		if unit.stun_remaining > 0:

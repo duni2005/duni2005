@@ -406,7 +406,7 @@ func all_character_cards_and_plans() -> void:
 		if kind==7:verify(e.state_value("ammo")==2 and e.state_value("reloadRemaining")==0 and e.strategy_special_until==20,"shotgun special exact8")
 		else:verify(e.ultimate_gauge==before and e.character_specific_state.get("strategyUltimateReady",false),"special stun blocks gain but readiness kept %d"%kind)
 		verify(b.turning.resolve(),"resolve cards/plans full %d"%kind)
-		verify(u.command_retreat_until==18 and not u.strategy_dash.is_empty(),"pending escape real six seconds %d"%kind)
+		verify(u.command_retreat_until==14 and u.invincible_remaining>=1.9 and not u.strategy_dash.is_empty(),"pending escape: two invincible seconds %d"%kind)
 		verify(e.taunted_member_id==member.member_id and e.taunted_until==20,"pending taunt8 seconds %d"%kind)
 		b.free()
 func projectile_stress() -> void:

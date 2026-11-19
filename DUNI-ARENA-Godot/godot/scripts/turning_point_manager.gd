@@ -65,6 +65,7 @@ func advance(real_delta: float) -> void:
 			ItemEffects.on_turning_point(battle)
 			current.remaining_real_time = maxf(0, DURATION - extra)
 			current.enemy_plans = build_plans()
+			BattlePassives.on_turning_point(self)
 			current.selected_actor_id = ""
 			ItemEffects.cancel_plans(battle, current.enemy_plans)
 			for unit in battle.units:
@@ -185,6 +186,10 @@ func add_wall(point: Vector2, length: float, life: float) -> void:
 		if center.distance_to(point) > 1: toward = (center - point).normalized()
 	battle.card_walls.append(CardWalls.make(point, toward.orthogonal(), length, life, 0))
 	battle.emit_combat_event(&"card_wall", point, {"angle": toward.orthogonal().angle(), "length": length})
+## 치유 장판: a healing area at `point` for `life` s; allies inside heal `rate` of max HP a second.
+func add_heal_zone(point: Vector2, radius: float, rate: float, life: float) -> void:
+	battle.card_zones.append({"center": point, "radius": radius, "rate": rate, "life": life, "max_life": life, "tick": 0.0})
+	battle.emit_combat_event(&"card_heal_zone", point, {"radius": radius})
 ## Plays a hand card from the UI: on a unit (actor id) or at a field point.
 func play(card_id: int, target_actor_id: String = "", point: Vector2 = Vector2.INF) -> Dictionary:
 	if not is_paused(): return {"code": StrategyCardExecutor.Code.NOT_HOLD}

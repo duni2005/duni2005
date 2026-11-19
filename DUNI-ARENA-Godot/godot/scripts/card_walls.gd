@@ -12,6 +12,17 @@ static func advance(battle, dt: float) -> void:
 		w.life = float(w.life) - dt
 		if float(w.life) <= 0: battle.card_walls.erase(w)
 
+## 치유 장판: every half second each living ally inside heals half its per-second share.
+static func advance_zones(battle, dt: float) -> void:
+	for z in battle.card_zones.duplicate():
+		z.life = float(z.life) - dt;z.tick = float(z.tick) + dt
+		while float(z.tick) >= .5:
+			z.tick = float(z.tick) - .5
+			for u in battle.units:
+				if u.alive and u.team == 0 and u.position.distance_to(Vector2(z.center)) <= float(z.radius) + 20 * u.combat_scale():
+					StrategyEffects.heal(u, u.max_hp * float(z.rate) * .5)
+		if float(z.life) <= 0: battle.card_zones.erase(z)
+
 ## A projectile that moved from `from` to `to` through a wall of the other team stops on it.
 static func blocks(p) -> bool:
 	var battle = p.source.battle

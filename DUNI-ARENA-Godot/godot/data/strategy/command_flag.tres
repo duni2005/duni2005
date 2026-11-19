@@ -4,8 +4,8 @@
 script = ExtResource("1")
 kind = &"command_flag"
 display_name = "지휘 깃발"
-description = "이번 전투의 터닝포인트 간격 30초 → 22초 · 첫 터닝포인트는 12초 그대로"
-amount = 22
+description = "터닝포인트에 들어갈 때마다 아군 전원의 HP를 10% 회복한다."
+amount = 0.1
 duration = 0
 gold_price = 240
 card_kind = &"passive"

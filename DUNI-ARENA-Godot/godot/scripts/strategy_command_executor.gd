@@ -11,6 +11,7 @@ static func cancel_intent(unit: BattleUnit) -> void:
 	unit.strategy_cast.clear()
 	unit.strategy_heading = Vector2.ZERO
 	unit.velocity = Vector2.ZERO
+const EVADE_SPEED: float = 900
 static func execute_all(manager: TurningPointManager) -> void:
 	# Web: enemy forecasts first, then allied UNIT order, evade BEFORE taunt.
 	for unit in manager.battle.units:
@@ -21,8 +22,13 @@ static func execute_all(manager: TurningPointManager) -> void:
 				if command.executed or command.member_id != unit.source_member_id or command.command_type != kind: continue
 				command.executed = true
 				if kind == &"evade":
+					# 전투 회피: invincible for its duration while it dashes to the spot farthest from the enemies.
 					cancel_intent(unit)
-					StrategyMovementController.begin_retreat(unit, manager.battle.rng, command.duration)
+					var to: Vector2 = StrategyMovementController.safest_position(unit, manager.battle.rng)
+					unit.command_retreat_until = manager.battle.clock.elapsed + command.duration
+					unit.retreat_point = to
+					unit.invincible_remaining = maxf(unit.invincible_remaining, command.duration)
+					unit.strategy_dash = {"direction": (to - unit.position).normalized(), "remaining": to.distance_to(unit.position), "speed": EVADE_SPEED}
 					if manager.battle.full_characters_enabled:unit.brain.disengage_until=0
 				else:
 					for id in command.metadata.get("target_enemy_ids", []):

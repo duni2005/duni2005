@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StrategyCardData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/strategy_card_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"heal_zone"
+display_name = "치유 장판"
+description = "해당 위치에 5초간 유지되는 치유 영역을 배치한다. 치유 영역에 있는 아군은 매초 6%의 HP를 회복한다."
+amount = 0.06
+duration = 5
+gold_price = 200
+card_kind = &"active"
+usage = &"position"
+cooldown_type = &"cooldown"
+cooldown_wins = 2
+conditions = Array[StringName]([])
+disrupt = &""
+extra = 110
+image = ""

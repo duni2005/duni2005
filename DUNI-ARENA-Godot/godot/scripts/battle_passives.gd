@@ -28,13 +28,11 @@ static func start(manager: TurningPointManager) -> void:
 					u.shield_hp = maxf(u.shield_hp, u.max_hp * data.amount);u.shield_remaining = maxf(u.shield_remaining, data.duration)
 					battle.emit_combat_event(&"passive_rally", u.position, {"actor_id": u.battle_id})
 				fire(battle, kind)
-			&"command_flag":
-				manager.interval = data.amount;fire(battle, kind)
 			&"resonance":
-				for e in paired_elements(battle):
+				for e in element_counts(battle):
 					var points: Array = allies(battle).filter(func(u): return CharacterCatalog.element(u.data.type_id) == e).map(func(u): return u.position)
 					battle.emit_combat_event(&"passive_resonance", points[0], {"element": String(e), "points": points})
-				if condition_holds(battle, data):fire(battle, kind)
+				if not element_counts(battle).is_empty():fire(battle, kind)
 
 static func active(battle) -> Array:
 	return battle.get_meta("passives", []) if battle != null else []
@@ -42,7 +40,21 @@ static func has(battle, kind: StringName) -> bool:return kind in active(battle)
 ## The deployed guild members still standing.
 static func allies(battle) -> Array:
 	return battle.units.filter(func(u): return u.alive and u.original_team == 0 and not u.source_member_id.is_empty())
-## Elements two or more living deployed allies share (원소 공명).
+## 지휘 깃발: every turning point heals the deployed allies by its share of their max HP.
+static func on_turning_point(manager: TurningPointManager) -> void:
+	var battle: BattleManager = manager.battle
+	if not has(battle, &"command_flag"):return
+	var data: StrategyCardData = StrategyCardCatalog.get_card(&"command_flag")
+	for u in allies(battle):StrategyEffects.heal(u, u.max_hp * data.amount)
+	fire(battle, &"command_flag")
+## Living deployed allies per element (원소 공명): element -> count.
+static func element_counts(battle) -> Dictionary:
+	var count: Dictionary = {}
+	for u in allies(battle):
+		var e: StringName = CharacterCatalog.element(u.data.type_id)
+		if e != &"":count[e] = int(count.get(e, 0)) + 1
+	return count
+## Elements two or more living deployed allies share.
 static func paired_elements(battle) -> Array:
 	var count: Dictionary = {}
 	for u in allies(battle):
@@ -58,14 +70,17 @@ static func fire(battle, kind: StringName) -> void:
 	var fired: Dictionary = battle.get_meta("passive_fired", {})
 	fired[kind] = battle.clock.elapsed;battle.set_meta("passive_fired", fired)
 
-## 원소 공명: damage factor for a hit by an ally of a shared element.
+## 원소 공명: an ally's damage grows by its share for every living deployed ally of its element
+## (itself included).
 static func outgoing(source) -> float:
 	if source == null or source.battle == null or source.team != 0 or source.source_member_id.is_empty() or not has(source.battle, &"resonance"):return 1.0
 	var e: StringName = CharacterCatalog.element(source.data.type_id)
-	if e == &"" or not e in paired_elements(source.battle):return 1.0
+	if e == &"":return 1.0
 	var battle = source.battle
+	var n: int = int(element_counts(battle).get(e, 0))
+	if n <= 0:return 1.0
 	if battle.clock.elapsed - float(battle.get_meta("passive_fired", {}).get(&"resonance", -9.0)) > 1.5:fire(battle, &"resonance")
-	return 1.0 + StrategyCardCatalog.get_card(&"resonance").amount
+	return 1.0 + StrategyCardCatalog.get_card(&"resonance").amount * n
 
 ## 불굴의 의지: the first ally that would fall stays at 30% HP with 2 s invincibility (once).
 static func indomitable(u) -> bool:

@@ -4,7 +4,7 @@
 script = ExtResource("1")
 kind = &"barrier"
 display_name = "방벽 설치"
-description = "놓은 자리에 투사체를 막는 벽 · 길이 160 · 8초"
+description = "지정한 위치에 8초간 적의 투사체를 막는 벽(길이 160)을 세운다."
 amount = 160
 duration = 8
 gold_price = 200

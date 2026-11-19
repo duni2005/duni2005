@@ -21,8 +21,8 @@ const KIND_ORDER = [&"control", &"debuff", &"mark", &"buff", &"growth", &"unique
 const ENTRIES = {
 	# 패시브 전략카드 (on for the battle they are taken into).
 	&"card_rally":["전열 정비", &"card", "rally", "패시브 카드. 전투 시작 시 아군 전원이 최대 HP 10% 보호막을 10초 동안 받았다."],
-	&"card_resonance":["원소 공명", &"card", "resonance", "패시브 카드. 같은 속성 아군이 2명 이상 서 있는 동안 그 속성 아군의 피해 +20%."],
-	&"card_command_flag":["지휘 깃발", &"card", "command_flag", "패시브 카드. 이번 전투의 터닝포인트 간격이 30초에서 22초로 짧아진다(첫 터닝포인트는 12초)."],
+	&"card_resonance":["원소 공명", &"card", "resonance", "패시브 카드. 같은 속성 아군이 많을수록 그 속성 아군의 피해가 1명당 10%씩 증가한다."],
+	&"card_command_flag":["지휘 깃발", &"card", "command_flag", "패시브 카드. 터닝포인트에 들어갈 때마다 아군 전원의 HP를 10% 회복한다."],
 	&"card_indomitable":["불굴의 의지", &"card", "indomitable", "패시브 카드. 이번 전투에서 처음 쓰러질 아군 1명이 HP 30%로 버티고 2초 무적이 된다."],
 	&"card_lunchbox":["망고 도시락", &"card", "lunchbox", "패시브 카드. 이 전투에서 이기면 출정해 살아남은 아군이 HP 15%를 회복한다."],
 	&"stun":["기절", &"control", "star", "아무 행동도 할 수 없다. 감전 5스택, 송곳, 특수 전략 등으로 걸린다."],
@@ -244,9 +244,10 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 		for kind in BattlePassives.active(u.battle):
 			match kind:
 				&"resonance":
-					if CharacterCatalog.element(u.data.type_id) in BattlePassives.paired_elements(u.battle):add.call(&"card_resonance", "+20%")
+					var same: int = int(BattlePassives.element_counts(u.battle).get(CharacterCatalog.element(u.data.type_id), 0))
+					if same > 0:add.call(&"card_resonance", "+%d%%" % roundi(same * StrategyCardCatalog.get_card(&"resonance").amount * 100))
 				&"indomitable":add.call(&"card_indomitable", "사용됨" if u.battle.get_meta("indomitable_used", false) else "준비")
-				&"command_flag":add.call(&"card_command_flag", "%d초" % roundi(u.battle.turning.interval) if u.battle.turning != null else "")
+				&"command_flag":add.call(&"card_command_flag", "HP +%d%%" % roundi(StrategyCardCatalog.get_card(&"command_flag").amount * 100))
 				&"lunchbox":add.call(&"card_lunchbox", "승리 시")
 				&"rally":add.call(&"card_rally")
 	# 아이템

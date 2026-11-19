@@ -32,6 +32,7 @@ const THEMES := {
 	"feast": [Color("5a3a12"), Color("ffd36b")], "rally": [Color("1f3a5c"), Color("9fe0ff")],
 	"resonance": [Color("5a2a12"), Color("ffb36b")], "command_flag": [Color("4a1f22"), Color("ff8a7a")],
 	"indomitable": [Color("5a4512"), Color("ffe08a")], "lunchbox": [Color("4a3416"), Color("ffc36b")],
+	"heal_zone": [Color("1f4a2e"), Color("7fe0a0")], "pressure": [Color("3a1f4a"), Color("c99bff")],
 }
 
 static func theme_for(kind: String) -> Array:

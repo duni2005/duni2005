@@ -24,7 +24,8 @@ extends Resource
 ## &"outnumbered", &"enemy_planning", &"element_pair" (passive: two allies of one element).
 @export var conditions: Array[StringName] = []
 @export var disrupt: StringName = &""
-## A second number of the effect (봉인의 낙인: turning points sealed; 망고 연회: gauge).
+## A second number of the effect (해제 마법서: turning points sealed, 0 = none; 망고 연회: gauge;
+## 치유 장판: radius).
 @export var extra: float = 0
 @export var image: String = ""
 

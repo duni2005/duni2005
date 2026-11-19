@@ -4,7 +4,7 @@
 script = ExtResource("1")
 kind = &"indomitable"
 display_name = "불굴의 의지"
-description = "처음 쓰러질 아군 1명이 HP 30%로 버티고 2초 무적"
+description = "이번 전투에서 처음 쓰러질 아군 1명이 HP 30%로 버티고 2초간 무적이 된다."
 amount = 0.3
 duration = 2
 gold_price = 260

@@ -4,7 +4,7 @@
 script = ExtResource("1")
 kind = &"iron"
 display_name = "철벽방어"
-description = "패링 준비 · 15초 쿨타임 3초"
+description = "근접 아군 1명이 즉시 패링을 준비하고, 15초간 패링 쿨타임이 3초로 줄어든다."
 amount = 3
 duration = 15
 gold_price = 220

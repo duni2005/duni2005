@@ -168,7 +168,7 @@ func run() -> void:
 	# Back in after a retreat: the cards are chosen again; 이전 구성 leaves out the used 소모 card.
 	verify(screen.card_stage and screen.guild.state.card_loadout.is_empty(), "retry chooses cards again")
 	screen.loadout_panel.fill_previous()
-	verify(screen.loadout_panel.chosen.size() == 2 and not screen.guild.state.strategy_cards[0].card_id in screen.loadout_panel.chosen, "이전 구성 without the consumed and cooling cards")
+	verify(screen.loadout_panel.chosen.size() == 3 and not screen.guild.state.strategy_cards[0].card_id in screen.loadout_panel.chosen, "이전 구성 without the consumed and cooling cards (전투 회피 is 일반 now)")
 	screen._process(0);await frames();await frames()
 	# (The confirm click itself is covered at the start; after the retreat cinematic the headless
 	# harness routes touches to the closing overlay, so confirm directly.)

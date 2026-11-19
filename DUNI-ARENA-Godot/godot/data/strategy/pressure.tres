@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="StrategyCardData" load_steps=2 format=3]
+[ext_resource type="Script" path="res://scripts/strategy_card_data.gd" id="1"]
+[resource]
+script = ExtResource("1")
+kind = &"pressure"
+display_name = "압박"
+description = "적의 궁극기 게이지를 초기화한다."
+amount = 0
+duration = 0
+gold_price = 180
+card_kind = &"active"
+usage = &"unit_enemy"
+cooldown_type = &"cooldown"
+cooldown_wins = 2
+conditions = Array[StringName]([])
+disrupt = &""
+extra = 0
+image = ""

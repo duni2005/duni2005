@@ -4,7 +4,7 @@
 script = ExtResource("1")
 kind = &"disrupt"
 display_name = "교란"
-description = "방해: 적 1명의 일반 등급 특수전략을 제거"
+description = "적 1명이 준비 중인 일반 등급 특수전략을 제거한다."
 amount = 0
 duration = 0
 gold_price = 150
@@ -12,7 +12,7 @@ card_kind = &"active"
 usage = &"unit_enemy"
 cooldown_type = &"normal"
 cooldown_wins = 0
-conditions = Array[StringName]([&"planning"])
+conditions = Array[StringName]([])
 disrupt = &"normal"
 extra = 0
 image = ""

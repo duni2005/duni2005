@@ -8,6 +8,16 @@ extends RefCounted
 ##   element's colour between the allies that share it, 불굴의 의지 a golden crack and "불굴".
 
 static func draw_walls(c: CanvasItem, battle, time: float) -> void:
+	# 치유 장판: a green circle with rising crosses, fading out in its last second.
+	for z in battle.card_zones:
+		var center: Vector2 = z.center;var r: float = float(z.radius);var fade: float = clampf(float(z.life), 0, 1)
+		var col: Color = Color("7fe0a0")
+		c.draw_circle(center, r, Color(col, .16 * fade));c.draw_arc(center, r, 0, TAU, 48, Color(col, .8 * fade), 2.5, true)
+		c.draw_arc(center, r * (.4 + .6 * fposmod(time * .6, 1)), 0, TAU, 40, Color(col.lightened(.3), .45 * fade * (1 - fposmod(time * .6, 1))), 2, true)
+		for k in range(5):
+			var rise: float = fposmod(time * .7 + k * .2, 1);var at: Vector2 = center + Vector2.from_angle(k * 1.3) * r * .55 * fposmod(k * .37 + .2, 1) - Vector2(0, 26 * rise)
+			var a: float = (1 - rise) * .9 * fade
+			c.draw_line(at - Vector2(5, 0), at + Vector2(5, 0), Color(col.lightened(.4), a), 2.5, true);c.draw_line(at - Vector2(0, 5), at + Vector2(0, 5), Color(col.lightened(.4), a), 2.5, true)
 	for w in battle.card_walls:
 		var a: Vector2 = w.a;var b: Vector2 = w.b;var left: float = float(w.life) / maxf(.01, float(w.max_life))
 		var flick: float = 1.0 if left > .25 else .55 + .45 * sin(time * 30)
@@ -45,6 +55,10 @@ static func event(presentation, kind: StringName, point: Vector2, m: Dictionary)
 			presentation.add_effect("slime_ring", at, col, 46, .5)
 			presentation.add_effect("hero_shock", point, col, 70, .45)
 			presentation.camera.impact(4, point)
+			return true
+		&"card_heal_zone":
+			presentation.particles.burst(point, Color("b8f5c8"), 22, 180, 0, "spark", true)
+			presentation.add_effect("slime_ring", point, Color("7fe0a0"), float(m.get("radius", 110)), .6)
 			return true
 		&"card_wall":
 			presentation.particles.burst(point, Color("8fe3ff"), 22, 200, 0, "spark", true)

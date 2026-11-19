@@ -3,15 +3,15 @@
 [resource]
 script = ExtResource("1")
 kind = &"evade"
-display_name = "전투회피"
-description = "재개 시 대시 · 6초 도주"
+display_name = "전투 회피"
+description = "아군 1명이 2초간 무적이 되며 적이 없는 위치로 빠르게 이동한다."
 amount = 0
-duration = 6
+duration = 2
 gold_price = 140
 card_kind = &"active"
 usage = &"unit_ally"
-cooldown_type = &"cooldown"
-cooldown_wins = 2
+cooldown_type = &"normal"
+cooldown_wins = 0
 conditions = Array[StringName]([])
 disrupt = &""
 extra = 0

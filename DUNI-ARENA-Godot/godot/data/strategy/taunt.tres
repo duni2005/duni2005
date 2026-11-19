@@ -4,7 +4,7 @@
 script = ExtResource("1")
 kind = &"taunt"
 display_name = "도발"
-description = "가까운 적 2명 · 8초 도발"
+description = "아군 1명이 가장 가까운 적 2명을 8초간 도발해 자신을 공격하게 만든다."
 amount = 2
 duration = 8
 gold_price = 160

@@ -1817,14 +1817,14 @@ func items_0970(tree: SceneTree) -> void:
 ## 0.98 전략카드 개편: kinds (소모 / 일반 / 쿨타임 N by won rooms), conditions, the loadout of
 ## five, unit / position / instant use, disruption by grade, 봉인의 낙인, 방벽, 망고 연회, save v10.
 func cards_0980(tree: SceneTree) -> void:
-	var expect: Dictionary={&"mango":["소모",&"unit_ally",70],&"shield":["일반",&"unit_ally",120],&"taunt":["일반",&"unit_ally",160],&"charge":["쿨타임 1",&"unit_ally",170],&"evade":["쿨타임 2",&"unit_ally",140],&"iron":["일반",&"unit_ally",220],&"disrupt":["일반",&"unit_enemy",150],&"block":["쿨타임 2",&"unit_enemy",220],&"seal":["소모",&"unit_enemy",180],&"barrier":["쿨타임 1",&"position",200],&"feast":["소모",&"instant",240]}
-	var data_ok: bool=StrategyCardCatalog.DEFINITIONS.size()==16
+	var expect: Dictionary={&"mango":["소모",&"unit_ally",70],&"shield":["일반",&"unit_ally",120],&"taunt":["일반",&"unit_ally",160],&"charge":["쿨타임 1",&"unit_ally",170],&"evade":["일반",&"unit_ally",140],&"iron":["일반",&"unit_ally",220],&"disrupt":["일반",&"unit_enemy",150],&"block":["쿨타임 2",&"unit_enemy",220],&"seal":["소모",&"unit_enemy",180],&"barrier":["쿨타임 1",&"position",200],&"feast":["소모",&"instant",240]}
+	var data_ok: bool=StrategyCardCatalog.DEFINITIONS.size()==18
 	for k in expect:
 		var d: StrategyCardData=StrategyCardCatalog.get_card(k)
 		if d==null or d.passive() or d.kind_text()!=expect[k][0] or d.usage!=expect[k][1] or d.gold_price!=expect[k][2]:data_ok=false;push_error("card data "+String(k))
 	verify(data_ok,"the 11 active cards keep kind, use and price")
-	verify(StrategyCardCatalog.get_card(&"iron").tags()==["일반","조건: 근접형"] and StrategyCardCatalog.get_card(&"block").tags()==["쿨타임 2","조건: 특수전략 준비 중인 적"] and StrategyCardCatalog.get_card(&"block").description.begins_with("방해:"),"tags: [kind] [조건]; disruption written in the effect")
-	verify(StrategyCardCatalog.get_card(&"iron").description.contains("쿨타임 3초") and StrategyCardCatalog.get_card(&"mango").amount==.3,"old effects kept (철벽방어's 3 s is an effect number)")
+	verify(StrategyCardCatalog.get_card(&"iron").tags()==["일반","조건: 근접형"] and StrategyCardCatalog.get_card(&"block").tags()==["쿨타임 2"] and StrategyCardCatalog.get_card(&"block").description.contains("위험 등급 이하"),"tags: [kind] [조건]; disruption written in the effect")
+	verify(StrategyCardCatalog.get_card(&"iron").description.contains("3초") and StrategyCardCatalog.get_card(&"mango").amount==.3,"old effects kept (철벽방어's 3 s is an effect number)")
 	verify(DEFINITIONS_ICONS(),"every card and use mode has an icon")
 	var helper:=Phase5Tests.new();helper.host=tree;var f: Dictionary=helper.fixture();helper.pause(f);f.tp.current.enemy_plans.clear()
 	var tp: TurningPointManager=f.tp;var st: RunState=f.guild.state;var b: BattleManager=f.battle
@@ -1849,8 +1849,8 @@ func cards_0980(tree: SceneTree) -> void:
 	verify(tp.play(ids.block,foe.actor_id()).code==StrategyCardExecutor.Code.OK and not plan in tp.current.enemy_plans and int(b.combat_event_counts.get(&"plan_broken",0))==events+1,"차단 removes the strategy (its badge breaks)")
 	verify(st.get_strategy_card(ids.block).wins_left==2 and StrategyCardExecutor.hand_state(tp,st.get_strategy_card(ids.block))==&"used","차단: used face down, 2 wins of cooldown")
 	plan=helper.make_plan(f,EnemyTurningPlan.SWEEP);tp.current.enemy_plans.append(plan)
-	verify(tp.play(ids.seal,foe.actor_id()).code==StrategyCardExecutor.Code.OK and st.get_strategy_card(ids.seal).consumed and tp.plan_of(foe)==null,"봉인의 낙인 removes even 고위험 and is consumed")
-	verify(foe.state_value("planSealedThrough")==tp.serial+1,"…and seals the next turning point")
+	verify(tp.play(ids.seal,foe.actor_id()).code==StrategyCardExecutor.Code.OK and st.get_strategy_card(ids.seal).consumed and tp.plan_of(foe)==null,"해제 마법서 removes even 고위험 and is consumed")
+	verify(foe.state_value("planSealedThrough")==0 and StrategyCardCatalog.get_card(&"seal").display_name=="해제 마법서","…without sealing the next turning point")
 	# Position: 방벽 설치.
 	verify(tp.play(ids.barrier,"",Vector2(-50,300)).code==StrategyCardExecutor.Code.NO_POSITION,"방벽 outside the field is refused")
 	verify(tp.play(ids.barrier,"",Vector2(400,400)).code==StrategyCardExecutor.Code.OK and b.card_walls.size()==1 and is_equal_approx(Vector2(b.card_walls[0].a).distance_to(Vector2(b.card_walls[0].b)),160),"방벽 설치: a 160-long wall")
@@ -1875,6 +1875,16 @@ func cards_0980(tree: SceneTree) -> void:
 	st.get_strategy_card(ids.barrier).wins_left=1;st.count_card_win([ids.barrier])
 	verify(st.get_strategy_card(ids.barrier).wins_left==1 and st.get_strategy_card(ids.block).wins_left==0,"cooldown counts only the wins after the battle it was taken into")
 	st.count_card_win();verify(st.get_strategy_card(ids.barrier).wins_left==0,"the next won room makes a 쿨타임 1 card ready")
+	# 0.99.11: 치유 장판 (5 s area, 6% of max HP a second) and 압박 (enemy ultimate gauge to 0).
+	for u in b.units:
+		if u.team==0:u.current_hp=u.max_hp*.5
+	verify(tp.play(ids.heal_zone,"",warrior.position).code==StrategyCardExecutor.Code.OK and b.card_zones.size()==1 and st.get_strategy_card(ids.heal_zone).wins_left==2,"치유 장판: a healing area at the point, 쿨타임 2")
+	var hp0: float=warrior.current_hp
+	CardWalls.advance_zones(b,1.0)
+	verify(warrior.current_hp>hp0+warrior.max_hp*.05 and warrior.current_hp<hp0+warrior.max_hp*.07,"…allies inside heal 6% a second")
+	CardWalls.advance_zones(b,4.1);verify(b.card_zones.is_empty(),"…for 5 seconds")
+	foe.ultimate_gauge=70
+	verify(tp.play(ids.pressure,foe.actor_id()).code==StrategyCardExecutor.Code.OK and foe.ultimate_gauge==0 and st.get_strategy_card(ids.pressure).wins_left==2,"압박: the enemy's ultimate gauge resets, 쿨타임 2")
 	# Loadout: hand from the run's choice.
 	st.card_loadout.assign([ids.mango,ids.shield]);var t2:=TurningPointManager.new(b,f.guild)
 	verify(t2.hand==[ids.mango,ids.shield],"the hand is the loadout chosen before deployment")
@@ -1919,7 +1929,7 @@ func cards_0990(tree: SceneTree) -> void:
 		if not d.card_kind in [&"active",&"passive"] or not d.usage in [&"unit_ally",&"unit_enemy",&"unit_any",&"position",&"instant",&"none"] or not d.cooldown_type in [&"consume",&"normal",&"cooldown"] or (d.cooldown_type==&"cooldown")!=(d.cooldown_wins>0) or (d.usage==&"none")!=d.passive():all_ok=false;push_error("axes "+String(k))
 	verify(all_ok,"every card has kind, usage and cooldown type (cooldown wins only on 쿨타임)")
 	verify(StrategyCardCatalog.get_card(&"shield").type_text()=="액티브 · 유닛 지정(아군)" and StrategyCardCatalog.get_card(&"block").type_text()=="액티브 · 유닛 지정(적)" and StrategyCardCatalog.get_card(&"barrier").type_text()=="액티브 · 위치 지정" and StrategyCardCatalog.get_card(&"feast").type_text()=="액티브 · 즉시 시전","type band texts")
-	verify(StrategyCardCatalog.get_card(&"iron").conditions==[&"melee"] and StrategyCardCatalog.get_card(&"resonance").conditions==[&"element_pair"] and StrategyCardCatalog.get_card(&"resonance").tags().has("조건: 같은 속성 아군 2명 이상 출정"),"conditions are tags on any card")
+	verify(StrategyCardCatalog.get_card(&"iron").conditions==[&"melee"] and StrategyCardCatalog.get_card(&"iron").tags().has("조건: 근접형") and StrategyCardCatalog.get_card(&"resonance").conditions.is_empty() and StrategyCardCatalog.get_card(&"block").conditions.is_empty(),"only real restrictions are conditions (차단 · 원소 공명 have none)")
 	verify(StrategyCardCatalog.DEFINITIONS.values().all(func(d):return d.image=="") and StatusCatalog.ENTRIES.has(&"card_rally") and StatusCatalog.ENTRIES.has(&"card_indomitable"),"placeholder art (image path empty) and passive statuses registered")
 	# A battle taken in with passives: 전열 정비 twice (applies once), 지휘 깃발, 불굴의 의지, 망고 도시락.
 	var guild := GuildManager.new()
@@ -1941,9 +1951,10 @@ func cards_0990(tree: SceneTree) -> void:
 	verify(allies.size()==2 and allies.all(func(u):return is_equal_approx(u.shield_hp,u.max_hp*.1) and is_equal_approx(u.shield_remaining,10)),"전열 정비: every ally starts with a 10% shield for 10 s (twice taken, once applied)")
 	verify(st.get_strategy_card(ids[4]).consumed and st.get_strategy_card(ids[2]).wins_left==2 and tp.used_cards.has(ids[0]) and tp.used_cards.has(ids[1]),"used at battle start: 소모 consumed, 쿨타임 on cooldown, 일반 used")
 	verify(tp.hand_cards().size()==5 and tp.hand_cards().all(func(c):return StrategyCardExecutor.hand_state(tp,c)==&"passive"),"passives stay in the hand as 적용 중 (the consumed one too)")
-	verify(tp.interval==22 and tp.next_at==TurningPointManager.FIRST,"지휘 깃발: interval 22 s, first turning point still at 12 s")
+	for u in allies:u.current_hp=u.max_hp*.5;u.shield_hp=0
+	verify(tp.interval==TurningPointManager.INTERVAL,"지휘 깃발 no longer changes the turning point interval")
 	b.clock.elapsed=12;b.simulate(1.0);b.simulate(1.0)
-	verify(tp.is_paused() and is_equal_approx(tp.next_at,34),"…the next one comes 22 s after the first")
+	verify(tp.is_paused() and allies.all(func(u):return u.current_hp>=u.max_hp*.59),"지휘 깃발: every turning point heals the allies 10%")
 	verify(StrategyCardExecutor.apply(tp,ids[0],"","p1").code==StrategyCardExecutor.Code.PASSIVE,"a passive cannot be played")
 	verify(StatusCatalog.collect(allies[0]).any(func(r):return r.key==&"card_indomitable" and r.value=="준비") and StatusCatalog.collect(allies[0]).any(func(r):return r.key==&"card_command_flag"),"passive effects in the unit's status tab")
 	# 불굴의 의지: the first ally that would fall holds at 30% with 2 s invincibility; once.
@@ -1982,7 +1993,7 @@ func cards_0990(tree: SceneTree) -> void:
 	verify(BattlePassives.paired_elements(b2)==[&"wind"] and is_equal_approx(BattlePassives.outgoing(archers[0]),1.2) and int(b2.combat_event_counts.get(&"passive_resonance",0))==1,"원소 공명: wind allies deal +20%, with the lines between them")
 	verify(BattlePassives.outgoing(b2.units.filter(func(u):return u.team==1)[0])==1.0,"…not the enemy")
 	archers[1].alive=false
-	verify(BattlePassives.outgoing(archers[0])==1.0 and StrategyCardExecutor.hand_state(b2.turning,g2.state.get_strategy_card(rid))==&"passive_off","…off while only one stands (shown dimmed)")
+	verify(is_equal_approx(BattlePassives.outgoing(archers[0]),1.1) and StrategyCardExecutor.hand_state(b2.turning,g2.state.get_strategy_card(rid))==&"passive","…+10% per ally of the element: one left, +10%")
 	b2.finish_with_reason(BattleEndReason.Value.RETREAT,-1);b2.free()
 	# A 쿨타임 card starts its cooldown when it is taken into a battle, and stays playable in it.
 	var g3 := GuildManager.new();g3.create_member(0);g3.create_member(0)
