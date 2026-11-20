@@ -19,7 +19,7 @@ func attack_tick(u,dt: float) -> bool:
 	return false
 func can_ultimate(u,_t) -> bool:return u.enemies().any(func(e):return e.duel.is_empty() and e.invincible_remaining<=0 and u.position.distance_to(e.position)<230)
 func release_ultimate(u,_a,_dt: float) -> bool:
-	var t=nearest(u,u.enemies())
+	var t=u.nearest_enemy()
 	if t!=null:u.combat.force_start(u,t);u.combat.attack_metadata.ultimate=true
 	return true
 func attack_cooldown(u,rng: RandomNumberGenerator) -> float:return 2.5

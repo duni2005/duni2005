@@ -1,8 +1,10 @@
 class_name VisualParticles
 extends RefCounted
 ## Bounded textured motes / physical shards / soft smoke. Private visual noise only.
-const LIMIT=640
-const AMBIENT_LIMIT=420
+## At most this many particles live (priority bursts may replace the oldest; others stop at
+## AMBIENT_LIMIT). Big fights stay readable and cheap to draw.
+const LIMIT=360
+const AMBIENT_LIMIT=220
 var entries: Array[Dictionary]=[]
 var serial: int=0
 var peak: int=0
@@ -52,15 +54,15 @@ func draw(canvas: CanvasItem,dim: float=1) -> void:
 			"heal","mote":
 				var size: float=e.size*(1+sin(t*PI))
 				VfxArt.star(canvas,point,size*2.4,e.color,fade,e.angle*.15)
-				canvas.draw_line(point+Vector2(0,5),point+Vector2(0,12),Color(e.color,fade*.3),1,true)
+				canvas.draw_line(point+Vector2(0,5),point+Vector2(0,12),Color(e.color,fade*.3),1,VfxArt.aa)
 			"shard":
 				var a:=Vector2.from_angle(e.angle);var n:=a.orthogonal();var size: float=e.size*(1-t*.4)
 				canvas.draw_colored_polygon(PackedVector2Array([point+a*size*2.2,point-a*size+n*size*.65,point-a*size*1.5-n*size*.5]),color)
-				canvas.draw_line(point-a*size,point+a*size*1.7,Color("fff4dd",fade*.9),1,true)
+				canvas.draw_line(point-a*size,point+a*size*1.7,Color("fff4dd",fade*.9),1,VfxArt.aa)
 			"ember":
 				VfxArt.glow(canvas,point,e.size*4,Color("ff922f"),fade*.45);VfxArt.star(canvas,point,e.size*1.7,Color("ffdfa1"),fade)
 			_:
 				var direction: Vector2=velocity.normalized();var n:=direction.orthogonal();var tail: float=clampf(velocity.length()*.075,3,30)*(1-t*.5)
 				canvas.draw_colored_polygon(PackedVector2Array([point+direction*2,point-direction*tail+n*e.size*.45,point-direction*tail*1.25,point-direction*tail-n*e.size*.45]),color)
-				canvas.draw_line(point-direction*tail*.6,point,Color("fff6de",fade),maxf(.8,e.size*.3),true)
+				canvas.draw_line(point-direction*tail*.6,point,Color("fff6de",fade),maxf(.8,e.size*.3),VfxArt.aa)
 func clear() -> void:entries.clear()

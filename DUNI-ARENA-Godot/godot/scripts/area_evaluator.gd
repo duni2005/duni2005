@@ -13,7 +13,28 @@ var in_support: bool = false
 var phase: float = 0
 var boldness: float = 1
 var patience: float = 1
+## Inside begin() / finish() (one unit's decision in one frame, nothing moves in between) the
+## parts of evaluate() that do not depend on the point are gathered once: who counts as
+## support or pressure, the attack ratios and the hazards. Results are the same.
+static var _owner = null
+static var _context: Dictionary = {}
+## Points scored in the current context; gathering only pays off from the third.
+static var _calls: int = 0
+## Returns the context it replaces, for finish() to restore (nested decisions stay correct).
+static func begin(unit) -> Array:
+	var outer: Array = [_owner, _context, _calls];_owner = unit;_context = {};_calls = 0;return outer
+static func finish(outer: Array = [null, {}, 0]) -> void:_owner = outer[0];_context = outer[1];_calls = outer[2]
+static func _gather(unit) -> Dictionary:
+	var friends: Array = [];var foes: Array = []
+	for other in unit.battle.units:
+		if other==unit or not other.alive: continue
+		if other.team==unit.team:friends.append(other.position)
+		elif CombatPerception.can_perceive(unit,other):foes.append([other.position,clampf(CombatRules.attack(other)/maxf(1,CombatRules.attack(unit)),.5,1.7)])
+	return {"friends":friends,"foes":foes,"hazards":unit.battle.zones.risk_hazards(unit) if unit.battle.full_characters_enabled else []}
 static func evaluate(unit, point: Vector2) -> Dictionary:
+	if _owner == unit and is_instance_valid(unit):
+		_calls += 1
+		if _calls > 2:return _evaluate_gathered(unit, point)
 	var nearby: int = 0
 	var pressure: float = 0
 	var support: int = 0
@@ -28,6 +49,23 @@ static func evaluate(unit, point: Vector2) -> Dictionary:
 	var crowd: float = maxf(0,pressure-support*.75-.65) if nearby>=3 else 0
 	var protection: float = .1 if unit.invincible_remaining>1 else .7 if unit.shield_remaining>0 and unit.shield_hp>unit.max_hp*.2 else 1.0
 	var hazard: float=unit.battle.zones.risk(unit,point) if unit.battle.full_characters_enabled else 0
+	if unit.battle.full_characters_enabled and unit.state_value("shadowTime")>0:crowd=0
+	return {"hazard":hazard*protection,"crowd":crowd*protection,"total":(crowd+hazard)*protection,"safe":[]}
+static func _evaluate_gathered(unit, point: Vector2) -> Dictionary:
+	if _context.is_empty():_context = _gather(unit)
+	var nearby: int = 0
+	var pressure: float = 0
+	var support: int = 0
+	for at in _context.friends:
+		if point.distance_to(at)<200: support+=1
+	for foe in _context.foes:
+		var distance: float = point.distance_to(foe[0])
+		if distance<210:
+			nearby+=1
+			pressure+=float(foe[1])*(1-distance/270)
+	var crowd: float = maxf(0,pressure-support*.75-.65) if nearby>=3 else 0
+	var protection: float = .1 if unit.invincible_remaining>1 else .7 if unit.shield_remaining>0 and unit.shield_hp>unit.max_hp*.2 else 1.0
+	var hazard: float=unit.battle.zones.risk(unit,point,_context.hazards) if unit.battle.full_characters_enabled else 0
 	if unit.battle.full_characters_enabled and unit.state_value("shadowTime")>0:crowd=0
 	return {"hazard":hazard*protection,"crowd":crowd*protection,"total":(crowd+hazard)*protection,"safe":[]}
 func initialize(rng: RandomNumberGenerator) -> void:
@@ -124,6 +162,11 @@ func reset_plan(u,wait: float=-1) -> void:
 	next_think=u.battle.clock.elapsed+(u.battle.rng.randf_range(.7,1.4) if wait<0 else wait)
 func advance(u,delta: float) -> bool:
 	if not u.battle.full_characters_enabled:return advance_minimal(u,delta)
+	var outer: Array=begin(u)
+	var moved: bool=_advance(u,delta)
+	finish(outer)
+	return moved
+func _advance(u,delta: float) -> bool:
 	var now: float=u.battle.clock.elapsed
 	if u.unavailable() or u.stun_remaining>0 or u.evade_remaining>0 or not u.dodge_state.is_empty() or not u.ultimate.cast.is_empty() or u.ability.locked(u) or u.character_specific_state.get("bomberRush",false) or u.command_retreat_until>now or u.taunted_until>now or not u.lost_sword.is_empty():return false
 	if u.combat_state!=CombatController.State.IDLE and (u.data.type_id in [6,18,9,11,8,14] or u.combat.counter):return false

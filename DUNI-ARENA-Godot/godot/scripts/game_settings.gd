@@ -18,7 +18,7 @@ static var vibration: bool = true
 static var motion: bool = true
 static var shake_level: int = 2
 static var damage_numbers: bool = true
-static var fps_limit: int = 0
+static var fps_limit: int = 60
 static var particles: int = 2
 ## 셰이더 이펙트: off draws battle shockwaves, fire and bolts as plain shapes.
 static var shader_effects: bool = true
@@ -38,8 +38,8 @@ static func load_settings() -> void:
 		# Older files kept shake as on/off.
 		shake_level = clampi(int(file.get_value("gameplay", "shake_level", 2 if bool(file.get_value("ui", "shake", true)) else 0)), 0, 3)
 		damage_numbers = bool(file.get_value("gameplay", "damage_numbers", true))
-		fps_limit = int(file.get_value("graphics", "fps_limit", 0))
-		if fps_limit not in FPS_CHOICES:fps_limit = 0
+		fps_limit = int(file.get_value("graphics", "fps_limit", 60))
+		if fps_limit not in FPS_CHOICES:fps_limit = 60
 		particles = clampi(int(file.get_value("graphics", "particles", 2)), 0, 2)
 		shader_effects = bool(file.get_value("graphics", "shader_effects", true))
 		master_volume = clampf(float(file.get_value("audio", "master", 1.0)), 0, 1)

@@ -8,7 +8,7 @@ func modify_movement(u,t,dt: float) -> bool:
 		u.velocity=Vector2.ZERO;u.frog_hop_wait-=dt
 		if u.frog_hop_wait>0:return true
 		var r: RandomNumberGenerator=u.battle.rng;var goal:=Vector2(r.randf_range(75,ArenaMap.side-75),r.randf_range(75,ArenaMap.side-75))
-		var near=nearest(u,u.enemies())
+		var near=u.nearest_enemy()
 		if near!=null and (u.position.distance_to(near.position)<130 or u.current_hp/u.max_hp<.35 and u.position.distance_to(near.position)<200):goal=u.position+Vector2.from_angle((u.position-near.position).angle()+r.randf_range(-.5,.5))*210
 		elif t!=null and (u.position.distance_to(t.position)>u.data.attack_range*.9 or u.stance==CombatStance.RUSH):goal=u.position+Vector2.from_angle((t.position-u.position).angle()+r.randf_range(-.45,.45))*200
 		var offset: Vector2=(goal-u.position).normalized()*minf(u.position.distance_to(goal),r.randf_range(85,155))

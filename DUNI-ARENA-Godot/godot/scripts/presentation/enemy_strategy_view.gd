@@ -48,8 +48,8 @@ static func _area(c: CanvasItem, kind: StringName, m: Dictionary, u: BattleUnit,
 				var inner := PackedVector2Array([u.position])
 				for i in range(17):inner.append(u.position + Vector2.from_angle(angle - arc + arc * 2 * i / 16.0) * r * charge)
 				c.draw_colored_polygon(inner, Color(color, .3))
-			c.draw_arc(u.position, r, angle - arc, angle + arc, 24, Color(color, .85), 3, true)
-			for side in [-1, 1]:c.draw_line(u.position, u.position + Vector2.from_angle(angle + arc * side) * r, Color(color, .6), 2, true)
+			c.draw_arc(u.position, r, angle - arc, angle + arc, 24, Color(color, .85), 3,VfxArt.aa)
+			for side in [-1, 1]:c.draw_line(u.position, u.position + Vector2.from_angle(angle + arc * side) * r, Color(color, .6), 2,VfxArt.aa)
 			for k in range(3):
 				var at: Vector2 = u.position + Vector2.from_angle(angle) * r * (.35 + .2 * k + .08 * fposmod(time * 1.6, 1))
 				c.draw_polyline(PackedVector2Array([at + Vector2.from_angle(angle + 2.4) * 12, at, at + Vector2.from_angle(angle - 2.4) * 12]), Color(color.lightened(.3), .7), 3, true)
@@ -59,33 +59,33 @@ static func _area(c: CanvasItem, kind: StringName, m: Dictionary, u: BattleUnit,
 			var side: Vector2 = Vector2.from_angle(direction + PI * .5) * half;var forward: Vector2 = Vector2.from_angle(direction)
 			c.draw_colored_polygon(PackedVector2Array([from + side, to + side, to - side, from - side]), Color(color, .12 + .06 * pulse + .2 * charge))
 			if charge > 0:c.draw_colored_polygon(PackedVector2Array([from + side, from + side + forward * length * charge, from - side + forward * length * charge, from - side]), Color(color, .28))
-			for k in [-1, 1]:c.draw_line(from + side * k, to + side * k, Color(color, .75), 2, true)
+			for k in [-1, 1]:c.draw_line(from + side * k, to + side * k, Color(color, .75), 2,VfxArt.aa)
 			var x: float = fmod(time * 220, 48)
 			while x < length - 10:
 				var at: Vector2 = from + forward * x
-				c.draw_polyline(PackedVector2Array([at + side * .55 - forward * 10, at, at - side * .55 - forward * 10]), Color(color.lightened(.3), .65), 3, true)
+				c.draw_polyline(PackedVector2Array([at + side * .55 - forward * 10, at, at - side * .55 - forward * 10]), Color(color.lightened(.3), .65), 3,VfxArt.aa)
 				x += 48
 		EnemyTurningPlan.SLASH, EnemyTurningPlan.SWEEP:
 			var center: Vector2 = CharacterPersistence.vector(m.center, u.position);var r: float = float(m.radius)
 			c.draw_circle(center, r, Color(color, .12 + .06 * pulse + .22 * charge))
 			if charge > 0:c.draw_circle(center, r * charge, Color(color, .28))
-			c.draw_arc(center, r, 0, TAU, 48, Color(color, .85), 3 if kind == EnemyTurningPlan.SWEEP else 2, true)
+			c.draw_arc(center, r, 0, TAU, 48, Color(color, .85), 3 if kind == EnemyTurningPlan.SWEEP else 2,VfxArt.aa)
 			# Crossed slash marks; the sweep turns them slowly around its centre.
 			for k in range(3 if kind == EnemyTurningPlan.SWEEP else 2):
 				var a: float = time * (.8 if kind == EnemyTurningPlan.SWEEP else 0) + k * PI / (3 if kind == EnemyTurningPlan.SWEEP else 2) + PI * .25
-				c.draw_line(center + Vector2.from_angle(a) * r * .55, center - Vector2.from_angle(a) * r * .55, Color(color.lightened(.3), .6), 3, true)
+				c.draw_line(center + Vector2.from_angle(a) * r * .55, center - Vector2.from_angle(a) * r * .55, Color(color.lightened(.3), .6), 3,VfxArt.aa)
 			if kind == EnemyTurningPlan.SWEEP:
 				# Arrows from the rim toward the point everyone will be dragged to.
 				var gather: Vector2 = CharacterPersistence.vector(m.get("gather", {}), center)
 				for k in range(8):
 					var rim: Vector2 = center + Vector2.from_angle(k * TAU / 8 + time * .3) * r * .92
 					var along: Vector2 = (gather - rim).normalized();var tip: Vector2 = rim + along * (r * .3 + 10 * fposmod(time * 1.4, 1))
-					c.draw_line(rim, tip, Color(color.lightened(.2), .75), 2, true)
+					c.draw_line(rim, tip, Color(color.lightened(.2), .75), 2,VfxArt.aa)
 					c.draw_colored_polygon(PackedVector2Array([tip + along * 8, tip + along.orthogonal() * 5, tip - along.orthogonal() * 5]), Color(color.lightened(.2), .85))
-				c.draw_circle(gather, 9, Color(color, .5 + .3 * pulse));c.draw_arc(gather, 15, 0, TAU, 24, Color(color.lightened(.4), .8), 2, true)
+				c.draw_circle(gather, 9, Color(color, .5 + .3 * pulse));c.draw_arc(gather, 15, 0, TAU, 24, Color(color.lightened(.4), .8), 2,VfxArt.aa)
 		EnemyTurningPlan.LAVA:
 			var center: Vector2 = CharacterPersistence.vector(m.center, u.position);var r: float = float(m.radius)
-			c.draw_circle(center, r, Color(color, .1 + .06 * pulse + .2 * charge));c.draw_arc(center, r, 0, TAU, 40, Color(color, .85), 2, true)
+			c.draw_circle(center, r, Color(color, .1 + .06 * pulse + .2 * charge));c.draw_arc(center, r, 0, TAU, 40, Color(color, .85), 2,VfxArt.aa)
 			# Drops falling toward the spot.
 			for k in range(5):
 				var a: float = k * TAU / 5 + time * .6;var at: Vector2 = center + Vector2.from_angle(a) * r * .45 - Vector2(0, 30 * (1 - fposmod(time * 1.3 + k * .2, 1)))
@@ -94,33 +94,33 @@ static func _area(c: CanvasItem, kind: StringName, m: Dictionary, u: BattleUnit,
 			var center: Vector2 = CharacterPersistence.vector(m.center, u.position);var r: float = float(m.radius)
 			c.draw_circle(center, r, Color(color, .1 + .08 * pulse + .25 * charge))
 			if charge > 0:c.draw_circle(center, r * charge, Color(color, .25))
-			c.draw_arc(center, r, 0, TAU, 56, Color(color, .9), 3, true);c.draw_arc(center, r * .5, 0, TAU, 40, Color(color, .6), 2, true)
+			c.draw_arc(center, r, 0, TAU, 56, Color(color, .9), 3,VfxArt.aa);c.draw_arc(center, r * .5, 0, TAU, 40, Color(color, .6), 2,VfxArt.aa)
 			for k in range(4):
 				var d: Vector2 = Vector2.from_angle(k * PI * .5 + time * .4)
-				c.draw_line(center + d * r * .15, center + d * r * 1.08, Color(color.lightened(.3), .75), 2, true)
-			c.draw_line(u.position, center, Color(color, .35), 2, true)
+				c.draw_line(center + d * r * .15, center + d * r * 1.08, Color(color.lightened(.3), .75), 2,VfxArt.aa)
+			c.draw_line(u.position, center, Color(color, .35), 2,VfxArt.aa)
 		EnemyTurningPlan.MEND:
 			var target: BattleUnit = u.battle.find_actor(String(m.get("target", "")))
 			if target == null:return
 			var x: float = fmod(time * 70, 20);var forward: Vector2 = (target.position - u.position).normalized();var length: float = u.position.distance_to(target.position)
 			while x < length - 8:
-				c.draw_line(u.position + forward * x, u.position + forward * minf(x + 10, length), Color(color, .75), 2, true)
+				c.draw_line(u.position + forward * x, u.position + forward * minf(x + 10, length), Color(color, .75), 2,VfxArt.aa)
 				x += 20
-			c.draw_arc(target.position, 26 * target.combat_scale(), 0, TAU, 32, Color(color, .6 + .3 * pulse), 2, true)
-			for side in [Vector2(1, 0), Vector2(0, 1)]:c.draw_line(target.position - side * 7 - Vector2(0, 34), target.position + side * 7 - Vector2(0, 34), Color(color, .95), 3, true)
+			c.draw_arc(target.position, 26 * target.combat_scale(), 0, TAU, 32, Color(color, .6 + .3 * pulse), 2,VfxArt.aa)
+			for side in [Vector2(1, 0), Vector2(0, 1)]:c.draw_line(target.position - side * 7 - Vector2(0, 34), target.position + side * 7 - Vector2(0, 34), Color(color, .95), 3,VfxArt.aa)
 		EnemyTurningPlan.UNITE:
 			for ally in u.battle.units:
-				if ally.alive and ally.team == u.team:c.draw_arc(ally.position, 30 * ally.combat_scale(), 0, TAU, 32, Color(color, .5 + .35 * pulse), 3, true)
+				if ally.alive and ally.team == u.team:c.draw_arc(ally.position, 30 * ally.combat_scale(), 0, TAU, 32, Color(color, .5 + .35 * pulse), 3,VfxArt.aa)
 		EnemyTurningPlan.STEALTH:
-			c.draw_arc(u.position, 30 * u.combat_scale(), time * 2, time * 2 + TAU * .75, 28, Color(color, .8), 2, true)
+			c.draw_arc(u.position, 30 * u.combat_scale(), time * 2, time * 2 + TAU * .75, 28, Color(color, .8), 2,VfxArt.aa)
 		EnemyTurningPlan.MOVE, EnemyTurningPlan.EVADE:
 			var from: Vector2 = CharacterPersistence.vector(m.from, u.position);var to: Vector2 = CharacterPersistence.vector(m.to, u.position)
 			var forward: Vector2 = (to - from).normalized();var length: float = from.distance_to(to);var x: float = fmod(time * 60, 22)
 			while x < length - 16:
-				c.draw_line(from + forward * x, from + forward * minf(x + 11, length - 16), Color(color, .8), 3, true)
+				c.draw_line(from + forward * x, from + forward * minf(x + 11, length - 16), Color(color, .8), 3,VfxArt.aa)
 				x += 22
 			c.draw_colored_polygon(PackedVector2Array([to, to - forward * 20 + forward.orthogonal() * 10, to - forward * 20 - forward.orthogonal() * 10]), Color(color, .9))
-			c.draw_arc(to, 22 * u.combat_scale(), 0, TAU, 32, Color(color, .5 + .3 * pulse), 2, true)
+			c.draw_arc(to, 22 * u.combat_scale(), 0, TAU, 32, Color(color, .5 + .3 * pulse), 2,VfxArt.aa)
 
 ## A lava pool on the ground; `fade` goes to 0 in its last second.
 static func _lava(c: CanvasItem, center: Vector2, r: float, time: float, fade: float) -> void:
@@ -129,7 +129,7 @@ static func _lava(c: CanvasItem, center: Vector2, r: float, time: float, fade: f
 		var a: float = k * 1.7 + floorf(time * 1.5 + k * .37);var at: Vector2 = center + Vector2.from_angle(a) * r * .55 * fposmod(k * .61, 1)
 		var grow: float = fposmod(time * 1.5 + k * .37, 1)
 		c.draw_circle(at, 3 + 5 * grow, Color(Color("ffd36b"), (1 - grow) * .8 * fade))
-	c.draw_arc(center, r, 0, TAU, 40, Color(Color("ff9a4a"), .7 * fade), 2, true)
+	c.draw_arc(center, r, 0, TAU, 40, Color(Color("ff9a4a"), .7 * fade), 2,VfxArt.aa)
 
 ## Badges over the enemies' heads, in the board's screen space: [plan, enemy, rect]. A badge
 ## that would cover another one stacks above it.
@@ -159,7 +159,7 @@ static func draw_badges(c: CanvasItem, battle: BattleManager, parent: Transform2
 		var picked: bool = selected == u.actor_id()
 		# A thin leader line ties a stacked badge to its enemy.
 		var head: Vector2 = parent * (u.position - Vector2(0, 25 * u.combat_scale() + 6))
-		c.draw_line(Vector2(rect.get_center().x, rect.end.y), head - Vector2(0, 14), Color(color, .55), 1.5, true)
+		c.draw_line(Vector2(rect.get_center().x, rect.end.y), head - Vector2(0, 14), Color(color, .55), 1.5,VfxArt.aa)
 		# 고위험 badges glow and pulse red; 위험 ones carry an orange edge.
 		if tier == EnemyTurningPlan.HIGH:c.draw_style_box(ArenaUI.box(Color(tier_color, .25 + .2 * sin(time * 7)), Color(0, 0, 0, 0)), rect.grow(4))
 		c.draw_style_box(ArenaUI.box(Color(.06, .07, .1, .92), color if picked else tier_color if tier != EnemyTurningPlan.NORMAL else Color(color, .7)), rect)

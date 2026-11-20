@@ -165,8 +165,8 @@ static func draw_mark(c: CanvasItem, m: Dictionary, at: Vector2, k: float, fade:
 			for side in [-1, 1]:
 				var pts := PackedVector2Array([at])
 				for j in range(1, 5):pts.append(at + Vector2(side * (6 + (j % 2) * 9), -side * j * 14) * g * grow)
-				c.draw_polyline(pts, Color(col.lightened(.3), fade), 4, true)
-				c.draw_polyline(pts, Color(1, 1, 1, .8 * fade), 1.5, true)
+				c.draw_polyline(pts, Color(col.lightened(.3), fade), 4,VfxArt.aa)
+				c.draw_polyline(pts, Color(1, 1, 1, .8 * fade), 1.5,VfxArt.aa)
 		"ember":
 			for i in range(5):
 				var q: Vector2 = at + Vector2((i - 2) * 8, -10 - 26 * k * (1 + (i % 2) * .4)) * g * .8
@@ -176,44 +176,44 @@ static func draw_mark(c: CanvasItem, m: Dictionary, at: Vector2, k: float, fade:
 			c.draw_circle(at + Vector2(0, -40 + 18 * k), 3.5, Color("8fe36b", fade));VfxArt.glow(c, at + Vector2(0, -56), 18, Color("8fe36b"), .45 * fade)
 		"frost_star":
 			for i in range(6):
-				var a: float = i * PI / 3 + k;c.draw_line(at, at + Vector2.from_angle(a) * 24 * g * (.6 + .4 * k), Color("e2f6ff", fade), 3, true)
+				var a: float = i * PI / 3 + k;c.draw_line(at, at + Vector2.from_angle(a) * 24 * g * (.6 + .4 * k), Color("e2f6ff", fade), 3,VfxArt.aa)
 			VfxArt.glow(c, at, 26 * g, Color("a8e4ff"), .4 * fade)
 		"gust":
 			for i in range(3):
-				var a: float = k * 7 + i * TAU / 3;c.draw_arc(at, (22 + i * 7) * g * .8, a, a + 1.9, 14, Color(m.color, .85 * fade), 3, true)
+				var a: float = k * 7 + i * TAU / 3;c.draw_arc(at, (22 + i * 7) * g * .8, a, a + 1.9, 14, Color(m.color, .85 * fade), 3,VfxArt.aa)
 		"claws":
 			var col: Color = m.get("color", Color("b48cff"))
 			for i in range(3):
 				var o: Vector2 = Vector2((i - 1) * 11, 0) * g * .8;var len: float = 46 * g * .8 * minf(1, k * 3)
-				c.draw_line(at + o + Vector2(-len * .5, -len * .5), at + o + Vector2(len * .5, len * .5), Color(col.lightened(.3), fade), 4, true)
+				c.draw_line(at + o + Vector2(-len * .5, -len * .5), at + o + Vector2(len * .5, len * .5), Color(col.lightened(.3), fade), 4,VfxArt.aa)
 		"cross":
 			var r: float = 26 * g * .8
-			c.draw_line(at + Vector2(-r, -r), at + Vector2(r, r), Color(m.color, fade), 5, true);c.draw_line(at + Vector2(r, -r), at + Vector2(-r, r), Color(m.color, fade), 5, true)
+			c.draw_line(at + Vector2(-r, -r), at + Vector2(r, r), Color(m.color, fade), 5,VfxArt.aa);c.draw_line(at + Vector2(r, -r), at + Vector2(-r, r), Color(m.color, fade), 5,VfxArt.aa)
 		"impact":
 			for i in range(8):
-				var a: float = i * TAU / 8;c.draw_line(at + Vector2.from_angle(a) * 12, at + Vector2.from_angle(a) * (20 + 26 * k) * g * .8, Color("ffe2a8", fade), 4, true)
+				var a: float = i * TAU / 8;c.draw_line(at + Vector2.from_angle(a) * 12, at + Vector2.from_angle(a) * (20 + 26 * k) * g * .8, Color("ffe2a8", fade), 4,VfxArt.aa)
 		"twin":
 			var dir: Vector2 = Vector2.from_angle(float(m.get("angle", 0)));var nrm: Vector2 = dir.orthogonal() * 7;var col: Color = m.get("color", Color("ffe9c0"))
-			for side in [-1, 1]:c.draw_line(at + nrm * side + dir * 20, at + nrm * side + dir * (50 + 40 * k), Color(col, fade), 3, true)
+			for side in [-1, 1]:c.draw_line(at + nrm * side + dir * 20, at + nrm * side + dir * (50 + 40 * k), Color(col, fade), 3,VfxArt.aa)
 		"dash":
 			var to: Vector2 = m.to;var head: Vector2 = at.lerp(to, Motion.out_quint(minf(1, k * 1.6)))
-			c.draw_line(at, head, Color("ffd08a", .7 * fade), 10 * fade + 2, true);c.draw_line(at, head, Color("fff6d8", fade), 3, true);VfxArt.glow(c, head, 24, Color("ffb36b"), .5 * fade)
+			c.draw_line(at, head, Color("ffd08a", .7 * fade), 10 * fade + 2,VfxArt.aa);c.draw_line(at, head, Color("fff6d8", fade), 3,VfxArt.aa);VfxArt.glow(c, head, 24, Color("ffb36b"), .5 * fade)
 		"note":
 			var to: Vector2 = m.to;var q: Vector2 = at.lerp(to, Motion.out_quint(k)) + Vector2(0, -60 * sin(k * PI) - 30)
-			c.draw_circle(q, 5, Color("ffe9a0", fade));c.draw_line(q + Vector2(4, 0), q + Vector2(4, -16), Color("ffe9a0", fade), 2, true);c.draw_line(q + Vector2(4, -16), q + Vector2(11, -12), Color("ffe9a0", fade), 2, true)
+			c.draw_circle(q, 5, Color("ffe9a0", fade));c.draw_line(q + Vector2(4, 0), q + Vector2(4, -16), Color("ffe9a0", fade), 2,VfxArt.aa);c.draw_line(q + Vector2(4, -16), q + Vector2(11, -12), Color("ffe9a0", fade), 2,VfxArt.aa)
 			VfxArt.glow(c, q, 12, Color("ffe9a0"), .4 * fade)
 		"ice_block":
 			var r: float = 30 * g * .8;var box: PackedVector2Array = PackedVector2Array()
 			for i in range(6):box.append(at + Vector2.from_angle(i * TAU / 6 + .3) * r)
-			c.draw_colored_polygon(box, Color("bfeaff", .3 * fade));box.append(box[0]);c.draw_polyline(box, Color("e2f6ff", fade), 3, true)
+			c.draw_colored_polygon(box, Color("bfeaff", .3 * fade));box.append(box[0]);c.draw_polyline(box, Color("e2f6ff", fade), 3,VfxArt.aa)
 		"abyss":
 			var a0: float = -2.6 + 2.8 * Motion.out_quint(k)
-			c.draw_arc(at + Vector2(0, -6), 52 * g * .75, a0 - 1.3, a0, 22, Color("7a4ad8", .9 * fade), 10, true);c.draw_arc(at + Vector2(0, -6), 52 * g * .75, a0 - 1.0, a0, 22, Color("e6d6ff", fade), 3, true)
+			c.draw_arc(at + Vector2(0, -6), 52 * g * .75, a0 - 1.3, a0, 22, Color("7a4ad8", .9 * fade), 10,VfxArt.aa);c.draw_arc(at + Vector2(0, -6), 52 * g * .75, a0 - 1.0, a0, 22, Color("e6d6ff", fade), 3,VfxArt.aa)
 			c.draw_string(ArenaUI.heading_font(), at + Vector2(-28, -62 - 10 * k), "확정 치명", HORIZONTAL_ALIGNMENT_LEFT, -1, 16, Color("efe2ff", fade))
 		"flag_drop":
 			var drop: float = Motion.out_quint(minf(1, k * 2.2));var base: Vector2 = at + Vector2(0, 18)
 			var top: Vector2 = base + Vector2(0, -70 - 120 * (1 - drop))
-			c.draw_line(base + Vector2(0, -120 * (1 - drop)), top, Color("e8d8b0", fade), 3, true)
+			c.draw_line(base + Vector2(0, -120 * (1 - drop)), top, Color("e8d8b0", fade), 3,VfxArt.aa)
 			c.draw_colored_polygon(PackedVector2Array([top, top + Vector2(34, 8), top + Vector2(0, 22)]), Color("ff5a5a", fade))
 		"muzzle":
 			var dir: Vector2 = Vector2.from_angle(float(m.get("angle", 0)));var q: Vector2 = at + dir * 30
@@ -230,20 +230,20 @@ static func draw_mark(c: CanvasItem, m: Dictionary, at: Vector2, k: float, fade:
 			if k > .3:VfxArt.glow(c, to, float(m.radius), Color("ff6a2a"), .55 * fade)
 		"clock":
 			var r: float = 60 + 360 * Motion.out_quint(k)
-			c.draw_arc(at, r, 0, TAU, 64, Color("c8d6ff", .7 * fade), 4, true)
+			c.draw_arc(at, r, 0, TAU, 64, Color("c8d6ff", .7 * fade), 4,VfxArt.aa)
 			for i in range(12):
-				var a: float = i * TAU / 12;c.draw_line(at + Vector2.from_angle(a) * (r - 14), at + Vector2.from_angle(a) * r, Color("e6ecff", .8 * fade), 3, true)
-			var hub: Vector2 = at + Vector2(0, -70);c.draw_arc(hub, 22, 0, TAU, 32, Color("e6ecff", fade), 3, true)
-			c.draw_line(hub, hub + Vector2.from_angle(-PI * .5 + k * 9) * 18, Color("ffffff", fade), 3, true);c.draw_line(hub, hub + Vector2.from_angle(-PI * .5 + k * 1.5) * 12, Color("ffffff", fade), 3, true)
+				var a: float = i * TAU / 12;c.draw_line(at + Vector2.from_angle(a) * (r - 14), at + Vector2.from_angle(a) * r, Color("e6ecff", .8 * fade), 3,VfxArt.aa)
+			var hub: Vector2 = at + Vector2(0, -70);c.draw_arc(hub, 22, 0, TAU, 32, Color("e6ecff", fade), 3,VfxArt.aa)
+			c.draw_line(hub, hub + Vector2.from_angle(-PI * .5 + k * 9) * 18, Color("ffffff", fade), 3,VfxArt.aa);c.draw_line(hub, hub + Vector2.from_angle(-PI * .5 + k * 1.5) * 12, Color("ffffff", fade), 3,VfxArt.aa)
 		"stopped":
-			c.draw_arc(at + Vector2(0, -46), 11, 0, TAU, 20, Color("c8d6ff", fade), 2.5, true);c.draw_line(at + Vector2(0, -46), at + Vector2(0, -54), Color.WHITE * Color(1, 1, 1, fade), 2, true)
+			c.draw_arc(at + Vector2(0, -46), 11, 0, TAU, 20, Color("c8d6ff", fade), 2.5,VfxArt.aa);c.draw_line(at + Vector2(0, -46), at + Vector2(0, -54), Color.WHITE * Color(1, 1, 1, fade), 2,VfxArt.aa)
 		"soul_rise":
 			for i in range(4):
 				var q: Vector2 = at + Vector2((i - 1.5) * 12 + sin(k * 6 + i) * 6, -20 - 70 * k * (1 + i * .15))
 				VfxArt.glow(c, q, 12, Color("a8fff0"), .6 * fade);c.draw_circle(q, 3, Color("e8fffa", fade))
 		"cancel":
 			var r: float = 18 * g * .8;var q: Vector2 = at + Vector2(0, -56)
-			c.draw_arc(q, r, 0, TAU, 24, Color("ff6b6b", fade), 3, true);c.draw_line(q + Vector2(-r, -r) * .7, q + Vector2(r, r) * .7, Color("ff6b6b", fade), 4, true)
+			c.draw_arc(q, r, 0, TAU, 24, Color("ff6b6b", fade), 3,VfxArt.aa);c.draw_line(q + Vector2(-r, -r) * .7, q + Vector2(r, r) * .7, Color("ff6b6b", fade), 4,VfxArt.aa)
 			c.draw_string(ArenaUI.heading_font(), q + Vector2(-30, -r - 8), "전략 취소", HORIZONTAL_ALIGNMENT_CENTER, 60, 13, Color("ffd0d0", fade))
 		_:return false
 	return true
@@ -256,10 +256,10 @@ static func draw_ground(fx, c: CanvasItem) -> void:
 		var at: Vector2 = Vector2(u.state_value("bannerX"), u.state_value("bannerY"));var rad: float = ItemTuning.BANNER_RADIUS
 		var squash := Transform2D(0, Vector2(1, .5), 0, at + Vector2(0, 16))
 		c.draw_set_transform_matrix(host.parent_transform * squash)
-		c.draw_circle(Vector2.ZERO, rad, Color("ff6a6a", .06));c.draw_arc(Vector2.ZERO, rad, 0, TAU, 64, Color("ff8a8a", .35 + .1 * sin(t * 2)), 2.5, true)
+		c.draw_circle(Vector2.ZERO, rad, Color("ff6a6a", .06));c.draw_arc(Vector2.ZERO, rad, 0, TAU, 64, Color("ff8a8a", .35 + .1 * sin(t * 2)), 2.5,VfxArt.aa)
 		c.draw_set_transform_matrix(host.parent_transform)
 		var top: Vector2 = at + Vector2(0, -56)
-		c.draw_line(at + Vector2(0, 16), top, Color("e8d8b0"), 3, true);c.draw_circle(top, 3, Color("ffd54a"))
+		c.draw_line(at + Vector2(0, 16), top, Color("e8d8b0"), 3,VfxArt.aa);c.draw_circle(top, 3, Color("ffd54a"))
 		var wave: PackedVector2Array = PackedVector2Array([top + Vector2(0, 2)])
 		for i in range(6):wave.append(top + Vector2(6 * (i + 1), 4 + sin(t * 4 + i * .8) * 3))
 		for i in range(6):wave.append(top + Vector2(36 - 6 * i, 22 + sin(t * 4 + (5 - i) * .8) * 3))
@@ -272,20 +272,20 @@ static func draw_unit(fx, c: CanvasItem, u, p: Vector2, s: float) -> void:
 	# 영혼: a pale ghost with rising wisps, fading as its time runs out.
 	if u.character_specific_state.has("spiritOf"):
 		var left: float = clampf(u.state_value("spiritTime") / ItemTuning.SOUL_TIME, 0, 1);var flick: float = .6 + .4 * sin(t * (6 if left > .3 else 18))
-		VfxArt.glow(c, p, 46 * s, Color("a8fff0"), .35 * flick);c.draw_arc(p, 30 * s, 0, TAU, 32, Color("c8fff4", .6 * flick), 2.5, true)
+		VfxArt.glow(c, p, 46 * s, Color("a8fff0"), .35 * flick);c.draw_arc(p, 30 * s, 0, TAU, 32, Color("c8fff4", .6 * flick), 2.5,VfxArt.aa)
 		for i in range(3):
 			var rise: float = fposmod(t * .8 + i * .33, 1.0);VfxArt.glow(c, p + Vector2((i - 1) * 12 * s, (10 - rise * 46) * s), 8 * s, Color("e8fffa"), .5 * (1 - rise))
-		c.draw_arc(p + Vector2(0, -40 * s), 9 * s, -PI * .5, -PI * .5 + TAU * left, 20, Color("a8fff0", .9), 2, true)
+		c.draw_arc(p + Vector2(0, -40 * s), 9 * s, -PI * .5, -PI * .5 + TAU * left, 20, Color("a8fff0", .9), 2,VfxArt.aa)
 	# 시간 정지: a stopped clock and a cold tint.
 	if u.state_value("timeStopTime") > 0:
 		VfxArt.glow(c, p, 40 * s, Color("8a9ac8"), .35);var q: Vector2 = p + Vector2(0, -48 * s)
-		c.draw_circle(q, 12 * s, Color(.1, .12, .2, .75));c.draw_arc(q, 12 * s, 0, TAU, 24, Color("c8d6ff"), 2, true)
-		c.draw_line(q, q + Vector2(0, -8) * s, Color.WHITE, 2, true);c.draw_line(q, q + Vector2(6, 0) * s, Color.WHITE, 2, true)
+		c.draw_circle(q, 12 * s, Color(.1, .12, .2, .75));c.draw_arc(q, 12 * s, 0, TAU, 24, Color("c8d6ff"), 2,VfxArt.aa)
+		c.draw_line(q, q + Vector2(0, -8) * s, Color.WHITE, 2,VfxArt.aa);c.draw_line(q, q + Vector2(6, 0) * s, Color.WHITE, 2,VfxArt.aa)
 	# 영구 동토: an ice block around a deep-frozen unit.
 	if u.state_value("frozenTime") > 0 and u.state_value("deepFreeze") > 0:
 		var box: PackedVector2Array = PackedVector2Array()
 		for i in range(6):box.append(p + Vector2.from_angle(i * TAU / 6 + .3) * 34 * s)
-		c.draw_colored_polygon(box, Color("bfeaff", .22));box.append(box[0]);c.draw_polyline(box, Color("e2f6ff", .9), 2.5, true)
+		c.draw_colored_polygon(box, Color("bfeaff", .22));box.append(box[0]);c.draw_polyline(box, Color("e2f6ff", .9), 2.5,VfxArt.aa)
 	# 수호 기사의 문장: the challenged enemy wears a red shield mark.
 	if u.state_value("crestTaunt") > 0 and u.taunted_until > host.battle.clock.elapsed:
 		var q: Vector2 = p + Vector2(18, -40) * s;VfxArt.glow(c, q, 10 * s, Color("ff6a5a"), .5)
@@ -295,17 +295,17 @@ static func draw_unit(fx, c: CanvasItem, u, p: Vector2, s: float) -> void:
 	# 야수 변신: a burning feral aura and turning claws.
 	if u.state_value("beastTime") > 0:
 		var pulse: float = .5 + .5 * sin(t * 9)
-		VfxArt.glow(c, p, 52 * s, Color("ff5a2a"), .3 + .15 * pulse);c.draw_arc(p, 36 * s, 0, TAU, 36, Color("ff7a3a", .6 + .3 * pulse), 3.5, true)
+		VfxArt.glow(c, p, 52 * s, Color("ff5a2a"), .3 + .15 * pulse);c.draw_arc(p, 36 * s, 0, TAU, 36, Color("ff7a3a", .6 + .3 * pulse), 3.5,VfxArt.aa)
 		for i in range(3):
 			var a: float = t * 2.4 + i * TAU / 3;var q: Vector2 = p + Vector2.from_angle(a) * 40 * s
-			c.draw_line(q, q + Vector2.from_angle(a + 1.2) * 12 * s, Color("ffd0a0", .85), 3, true)
+			c.draw_line(q, q + Vector2.from_angle(a + 1.2) * 12 * s, Color("ffd0a0", .85), 3,VfxArt.aa)
 		for side in [-1, 1]:VfxArt.glow(c, head + Vector2(side * 6, 6) * s, 5 * s, Color("ffe066"), .9)
 	# 정령 등불: a small spirit floats by the bearer in its element.
 	if stats.has(&"spiritLantern"):
 		var col: Color = EL.get(String(BuildItems._element(u)), Color("a8fff0"));var q: Vector2 = p + Vector2(-26, -34 + sin(t * 3) * 4) * s
 		VfxArt.glow(c, q, 14 * s, col, .55);c.draw_circle(q, 6 * s, col.lightened(.4))
 		for side in [-1, 1]:c.draw_circle(q + Vector2(side * 2, -1) * s, 1.2 * s, Color(.1, .1, .15))
-		c.draw_arc(q + Vector2(0, 8) * s, 4 * s, 0, PI, 8, Color(col, .6), 2, true)
+		c.draw_arc(q + Vector2(0, 8) * s, 4 * s, 0, PI, 8, Color(col, .6), 2,VfxArt.aa)
 	# 새끼 용: grows with its stage; wings beat.
 	if stats.has(&"dragonEgg"):
 		var stage: int = BuildItems.dragon_stage(stats);var z: float = (.75 + stage * .06) * s
@@ -317,8 +317,8 @@ static func draw_unit(fx, c: CanvasItem, u, p: Vector2, s: float) -> void:
 	# 시간 도둑의 회중시계: a pocket watch whose hand winds toward the next stop.
 	if stats.has(&"thiefWatch"):
 		var q: Vector2 = head + Vector2(-20, -8) * s;var k: float = 1 - clampf(u.state_value("watchClock") / ItemTuning.WATCH_EVERY, 0, 1)
-		c.draw_circle(q, 7 * s, Color("2a2238"));c.draw_arc(q, 7 * s, 0, TAU, 20, Color("ffd36b"), 2, true)
-		c.draw_line(q, q + Vector2.from_angle(-PI * .5 + k * TAU) * 6 * s, Color("fff3c8"), 1.5, true)
+		c.draw_circle(q, 7 * s, Color("2a2238"));c.draw_arc(q, 7 * s, 0, TAU, 20, Color("ffd36b"), 2,VfxArt.aa)
+		c.draw_line(q, q + Vector2.from_angle(-PI * .5 + k * TAU) * 6 * s, Color("fff3c8"), 1.5,VfxArt.aa)
 	# 블랙홀 구슬: a small dark orb circling.
 	if stats.has(&"blackHoleOrb"):
 		var q: Vector2 = p + Vector2.from_angle(t * 1.6) * 30 * s;VfxArt.glow(c, q, 10 * s, Color("6a3aa8"), .6);c.draw_circle(q, 4 * s, Color(.05, .02, .1))
@@ -330,7 +330,7 @@ static func draw_unit(fx, c: CanvasItem, u, p: Vector2, s: float) -> void:
 	# 돌격 나팔: speed lines while it charges.
 	if u.state_value("hornDash") > 0:
 		var back: Vector2 = -Vector2.from_angle(u.facing)
-		for i in range(4):c.draw_line(p + back * (20 + i * 6) * s + back.orthogonal() * (i - 1.5) * 9 * s, p + back * (48 + i * 10) * s + back.orthogonal() * (i - 1.5) * 9 * s, Color("ffd08a", .8), 3, true)
+		for i in range(4):c.draw_line(p + back * (20 + i * 6) * s + back.orthogonal() * (i - 1.5) * 9 * s, p + back * (48 + i * 10) * s + back.orthogonal() * (i - 1.5) * 9 * s, Color("ffd08a", .8), 3,VfxArt.aa)
 	# 방패 대장장이의 망치: the boost shows while the shield lasts.
 	if stats.has(&"shieldHammer") and u.shield_hp > 0 and u.shield_remaining > 0:VfxArt.glow(c, p + Vector2.from_angle(u.facing) * 28 * s, 10 * s, Color("ffe08a"), .5)
 
@@ -344,13 +344,13 @@ static func draw_over(fx, c: CanvasItem) -> void:
 		VfxArt.glow(c, at, rad * .9 * open, Color("4a1a8a"), .45 * open)
 		for i in range(6):
 			var r: float = rad * fposmod(1 - t * .9 - i / 6.0, 1.0)
-			c.draw_arc(at, r * open, t * 3 + i, t * 3 + i + 2.2, 20, Color("b48cff", .6 * open * (r / rad)), 2.5, true)
+			c.draw_arc(at, r * open, t * 3 + i, t * 3 + i + 2.2, 20, Color("b48cff", .6 * open * (r / rad)), 2.5,VfxArt.aa)
 		for i in range(10):
 			var a: float = i * TAU / 10 + t * 2;var r: float = rad * fposmod(1 - t * 1.3 - i * .1, 1.0)
 			c.draw_circle(at + Vector2.from_angle(a) * r * open, 2.5, Color("e6d6ff", .8 * open))
-		c.draw_circle(at, 26 * open, Color(.02, .0, .05, .95));c.draw_arc(at, 27 * open, 0, TAU, 32, Color("d9c2ff", .9 * open), 2.5, true)
+		c.draw_circle(at, 26 * open, Color(.02, .0, .05, .95));c.draw_arc(at, 27 * open, 0, TAU, 32, Color("d9c2ff", .9 * open), 2.5,VfxArt.aa)
 	for pr in host.battle.projectiles:
 		if not pr.live or pr.kind != "gunnerShell":continue
 		var back: Vector2 = pr.position - pr.velocity.normalized() * 46
-		c.draw_line(back, pr.position, Color("ffb46a", .7), 9, true);VfxArt.glow(c, pr.position, 26, Color("ff8a3d"), .6)
+		c.draw_line(back, pr.position, Color("ffb46a", .7), 9,VfxArt.aa);VfxArt.glow(c, pr.position, 26, Color("ff8a3d"), .6)
 		c.draw_circle(pr.position, 10, Color("3a3030"));c.draw_circle(pr.position + Vector2(-3, -3), 3.5, Color("ffd08a"))

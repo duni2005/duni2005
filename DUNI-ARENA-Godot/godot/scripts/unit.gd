@@ -4,10 +4,16 @@ extends Node2D
 
 signal died(unit, source)
 
-var battle_id: int
-var source_member_id: String = "" # Empty for Phase 1/test enemies; never a type ID.
-var source_enemy_id: String = "" # Separate room actor identity; never a member ID.
-var source_room_id: String = ""
+## The identity fields reset the cached actor_id() whenever they change.
+var battle_id: int:
+	set(v):battle_id=v;_actor_id=""
+var source_member_id: String = "": # Empty for Phase 1/test enemies; never a type ID.
+	set(v):source_member_id=v;_actor_id=""
+var source_enemy_id: String = "": # Separate room actor identity; never a member ID.
+	set(v):source_enemy_id=v;_actor_id=""
+var source_room_id: String = "":
+	set(v):source_room_id=v;_actor_id=""
+var _actor_id: String = ""
 var source_run_id: String = ""
 var ultimate_gauge: float = 0.0
 var transcendence_gauge: float = 0.0
@@ -210,15 +216,38 @@ func _draw() -> void:
 		draw_line(blade[0] - position, blade[1] - position, Color("fff4c0"), 5.0, true)
 
 func actor_id() -> String:
-	return "member:"+source_member_id if not source_member_id.is_empty() else "enemy:"+source_room_id+":"+source_enemy_id if not source_enemy_id.is_empty() else "battle:%d" % battle_id
+	if _actor_id.is_empty():_actor_id="member:"+source_member_id if not source_member_id.is_empty() else "enemy:"+source_room_id+":"+source_enemy_id if not source_enemy_id.is_empty() else "battle:%d" % battle_id
+	return _actor_id
 func state_value(key: String, fallback: float=0) -> float:
 	var v=character_specific_state.get(key,fallback)
 	return float(v) if v is int or v is float else fallback
 func set_state(key: String,value: Variant) -> void:character_specific_state[key]=value
+## Called many times per unit per frame: plain loops (same order and result as a filter).
 func friends() -> Array:
-	return battle.units.filter(func(u):return u!=self and u.alive and u.team==team and not u.unavailable())
+	var out: Array=[]
+	for u in battle.units:
+		if u!=self and u.alive and u.team==team and not u.unavailable():out.append(u)
+	return out
+## The nearest of enemies(perceived) (the first of equally near ones), without building the list:
+## units no nearer than the best so far are never perception-checked.
+func nearest_enemy(perceived: bool=true):
+	var best=null;var best_d: float=INF
+	for u in battle.units:
+		if not u.alive or u.team==team:continue
+		var d: float=position.distance_to(u.position)
+		if d>=best_d:continue
+		if perceived and not CombatPerception.can_perceive(self,u):continue
+		if u.character_specific_state.has("frenzyTeam") and int(u.character_specific_state.frenzyTeam)==team:continue
+		best_d=d;best=u
+	return best
 func enemies(perceived: bool=true) -> Array:
-	return battle.units.filter(func(u):return u.alive and u.team!=team and (not perceived or CombatPerception.can_perceive(self,u)) and not (u.character_specific_state.has("frenzyTeam") and int(u.character_specific_state.frenzyTeam)==team))
+	var out: Array=[]
+	for u in battle.units:
+		if not u.alive or u.team==team:continue
+		if perceived and not CombatPerception.can_perceive(self,u):continue
+		if u.character_specific_state.has("frenzyTeam") and int(u.character_specific_state.frenzyTeam)==team:continue
+		out.append(u)
+	return out
 ## 산타 is out of the fight while its sleigh flies (santaAway).
 func unavailable() -> bool:return not frog_carrier.is_empty() or frog_flight!=0 or state_value("santaAway")>0
 func is_dashing() -> bool:return not hero_rescue.is_empty() or ultimate.cast.get("dashing",false)

@@ -142,7 +142,7 @@ func _rps_hands(u: BattleUnit,p: Vector2,s: float) -> void:
 	if won:VfxArt.glow(self,at,30,Color("ffd65c"),.6)
 	_rps_hand(at,hand,pop,Color(1,1,1,1) if not lost else Color(.6,.6,.65,1))
 	if lost:
-		draw_line(at+Vector2(-12,-12),at+Vector2(12,12),Color("ff5a5a"),3.5,true);draw_line(at+Vector2(12,-12),at+Vector2(-12,12),Color("ff5a5a"),3.5,true)
+		draw_line(at+Vector2(-12,-12),at+Vector2(12,12),Color("ff5a5a"),3.5,VfxArt.aa);draw_line(at+Vector2(12,-12),at+Vector2(-12,12),Color("ff5a5a"),3.5,VfxArt.aa)
 ## A hand: 0 rock ✊, 1 paper 🖐, 2 scissors 👆 (emoji art, assets/ui/rps).
 const RPS_HANDS: Array = [preload("res://assets/ui/rps/rock.png"), preload("res://assets/ui/rps/paper.png"), preload("res://assets/ui/rps/scissors.png")]
 func _rps_hand(at: Vector2,kind: int,k: float,tint: Color) -> void:
@@ -161,13 +161,13 @@ func _draw_snowball(u: BattleUnit) -> void:
 	# The packed-snow track it leaves behind, widening as the ball grows.
 	var start: Vector2=Vector2(float(ball.get("sx",at.x)),float(ball.get("sy",at.y)))
 	if start.distance_to(at)>4:
-		draw_line(start,at,Color("eaf6ff",.28),r*1.5,true);draw_line(start,at,Color("ffffff",.3),r*.7,true)
+		draw_line(start,at,Color("eaf6ff",.28),r*1.5,VfxArt.aa);draw_line(start,at,Color("ffffff",.3),r*.7,VfxArt.aa)
 		var side: Vector2=dir.orthogonal()*r*.78
-		draw_line(start+side*.6,at+side,Color("cfe6f5",.5),2,true);draw_line(start-side*.6,at-side,Color("cfe6f5",.5),2,true)
+		draw_line(start+side*.6,at+side,Color("cfe6f5",.5),2,VfxArt.aa);draw_line(start-side*.6,at-side,Color("cfe6f5",.5),2,VfxArt.aa)
 	# Speed streaks and a snow spray at the back.
 	for k in range(7):
 		var off: Vector2=dir.orthogonal()*(k-3)*r*.28
-		draw_line(at-dir*r*(1.1+fmod(k*.37,.4))+off,at-dir*r*(1.9+fmod(k*.53,.6))+off,Color("ffffff",.45),2,true)
+		draw_line(at-dir*r*(1.1+fmod(k*.37,.4))+off,at-dir*r*(1.9+fmod(k*.53,.6))+off,Color("ffffff",.45),2,VfxArt.aa)
 	for k in range(6):draw_circle(at-dir*(r*.6+k*14),r*(.5-k*.06),Color("eaf6ff",.22-k*.03))
 	draw_set_transform_matrix(parent_transform*Transform2D(0,Vector2(1,.35),0,at+Vector2(0,r*.75)));draw_circle(Vector2.ZERO,r*1.05,Color(0,0,0,.22));draw_set_transform_matrix(parent_transform)
 	draw_circle(at,r,Color("eef7fd"))
@@ -181,8 +181,8 @@ func _draw_snowball(u: BattleUnit) -> void:
 		draw_circle(q,r*(.1+.05*fmod(k*.37,1.0)),Color("c4dcec") if k%3 else Color("9fd8f0"))
 	for k in range(4):
 		var a: float=spin+k*TAU/4
-		draw_arc(at,r*.62,a,a+.8,10,Color("b8d6ea",.8),3,true)
-	draw_arc(at,r,0,TAU,40,Color("9fc3dc"),3,true)
+		draw_arc(at,r*.62,a,a+.8,10,Color("b8d6ea",.8),3,VfxArt.aa)
+	draw_arc(at,r,0,TAU,40,Color("9fc3dc"),3,VfxArt.aa)
 	VfxArt.glow(self,at,r*1.5,Color("dff4ff"),.3)
 	# Anyone caught is packed into the front of the ball.
 	for id in ball.get("hit",[]):
@@ -320,7 +320,7 @@ func _draw_multi_kill(rect: Rect2) -> void:
 	var band:=PackedVector2Array([Vector2(center.x-half-tip,center.y),Vector2(center.x-half,top),Vector2(center.x+half,top),Vector2(center.x+half+tip,center.y),Vector2(center.x+half,bottom),Vector2(center.x-half,bottom)])
 	var dark:=Color(.06,.04,.09,.94*alpha);var lit:=Color(color.darkened(.62),.94*alpha)
 	draw_polygon(band,PackedColorArray([Color(lit,lit.a*.8),dark,dark,Color(lit,lit.a*.8),lit,lit]))
-	var outline:=band.duplicate();outline.append(band[0]);draw_polyline(outline,Color(color,.9*alpha),2,true)
+	var outline:=band.duplicate();outline.append(band[0]);draw_polyline(outline,Color(color,.9*alpha),2,VfxArt.aa)
 	draw_line(Vector2(center.x-half,top+3),Vector2(center.x+half,top+3),Color(1,1,1,.14*alpha),1)
 	if enter<1:return
 	# A shine sweeps across once the ribbon is open.
@@ -778,8 +778,23 @@ func advance(delta: float) -> void:
 		if is_instance_valid(shader_fx):
 			if use_shader_fx:shader_fx.advance(delta);shader_fx.sync(battle,at,real_age)
 			else:shader_fx.clear()
+## Antialiasing off above these counts (VfxArt.aa); small fights keep smooth lines.
+const AA_UNITS: int = 12
+const AA_PARTICLES: int = 160
+const AA_EFFECTS: int = 14
 func _draw() -> void:
 	if not is_instance_valid(battle) or board==null:return
+	VfxArt.aa=_smooth_lines()
+	_draw_battle()
+	VfxArt.aa=true
+## Smooth (antialiased) lines only while the field is light.
+func _smooth_lines() -> bool:
+	if particles.entries.size()>AA_PARTICLES or effects.size()>AA_EFFECTS:return false
+	var alive: int=0
+	for u in battle.units:
+		if u.alive:alive+=1
+	return alive<=AA_UNITS
+func _draw_battle() -> void:
 	map_side=ArenaMap.SIDES[battle.map];camera.side=map_side;camera.view=ArenaMap.VIEWS[battle.map]
 	var rect: Rect2=board.board_rect();var factor: float=rect.size.x/camera.view
 	# Screen-space fill covers the viewport beyond the arena at its edges.
@@ -854,7 +869,7 @@ func _draw() -> void:
 			draw_circle(e.point,e.radius*.18*(1-t),Color(1,1,1,.8*(1-t)))
 			for i in range(10):
 				var v:=Vector2.from_angle(i*TAU/10+.3);var reach: float=e.radius*.42*minf(1,t*5)
-				draw_line(e.point+v*18,e.point+v*reach+v.orthogonal()*sin(i*2.3)*10,Color("4a3b2e",.75*(1-t)),3*(1-t)+1,true)
+				draw_line(e.point+v*18,e.point+v*reach+v.orthogonal()*sin(i*2.3)*10,Color("4a3b2e",.75*(1-t)),3*(1-t)+1,VfxArt.aa)
 		elif e.kind=="plague_fog":
 			# Dark, eerie fog rolls out from the staff and swallows the map within 0.6 s, then churns.
 			var age: float=float(e.age);var spread: float=1-pow(1-clampf(age/.6,0,1),3)
@@ -877,10 +892,10 @@ func _draw() -> void:
 		elif e.kind=="plague_slam":
 			# The staff strikes: a dark rune ring and cracks.
 			var rr: float=e.radius*(1-pow(1-t,3))
-			draw_arc(e.point,rr,0,TAU,48,Color(e.color,.9*(1-t)),5*(1-t)+1.5,true)
-			draw_arc(e.point,rr*.62,0,TAU,40,Color("5f7a45",.7*(1-t)),3,true)
+			draw_arc(e.point,rr,0,TAU,48,Color(e.color,.9*(1-t)),5*(1-t)+1.5,VfxArt.aa)
+			draw_arc(e.point,rr*.62,0,TAU,40,Color("5f7a45",.7*(1-t)),3,VfxArt.aa)
 			for i in range(8):
-				var d:=Vector2.from_angle(i*TAU/8+.2);draw_line(e.point+d*rr*.2,e.point+d*rr*(.75+.15*sin(i*2.3)),Color("2a1a3d",.8*(1-t)),3,true)
+				var d:=Vector2.from_angle(i*TAU/8+.2);draw_line(e.point+d*rr*.2,e.point+d*rr*(.75+.15*sin(i*2.3)),Color("2a1a3d",.8*(1-t)),3,VfxArt.aa)
 		elif e.kind=="ice_spikes":
 			# Ice spikes burst up in a ring and sink back.
 			var grow: float=sin(clampf(t*1.6,0,1)*PI*.5)*(1-clampf((t-.6)/.4,0,1))
@@ -889,17 +904,17 @@ func _draw() -> void:
 				var base: Vector2=e.point+Vector2.from_angle(a)*e.radius*(.45+.5*fmod(i*.618,1.0))
 				var h: float=(18+14*fmod(i*.37,1.0))*grow;var w:=Vector2.from_angle(a).orthogonal()*6
 				draw_colored_polygon(PackedVector2Array([base-w,base+w,base+Vector2(0,-h)]),Color("cfeeff",.9))
-				draw_line(base,base+Vector2(0,-h),Color("ffffff",.8),1.2,true)
+				draw_line(base,base+Vector2(0,-h),Color("ffffff",.8),1.2,VfxArt.aa)
 		elif e.kind=="flame_arc":
 			# A burning crescent swept in front of the swordsman.
 			var a0: float=float(e.angle);var sweep: float=-1.1+2.2*clampf(t*1.6,0,1)
-			draw_arc(e.point,e.radius*.8,a0-1.1,a0+sweep,24,Color(e.color,(1-t)),14*(1-t)+2,true)
-			draw_arc(e.point,e.radius*.8,a0-.6,a0+sweep,18,Color("fff1c4",(1-t)*.9),5*(1-t)+1,true)
+			draw_arc(e.point,e.radius*.8,a0-1.1,a0+sweep,24,Color(e.color,(1-t)),14*(1-t)+2,VfxArt.aa)
+			draw_arc(e.point,e.radius*.8,a0-.6,a0+sweep,18,Color("fff1c4",(1-t)*.9),5*(1-t)+1,VfxArt.aa)
 		elif e.kind=="flame_windup":
 			# The blade held back and burning brighter.
 			var a: float=float(e.angle)+PI*.75;var tip: Vector2=e.point+Vector2.from_angle(a)*e.radius
 			VfxArt.glow(self,tip,20+26*t,Color("ff8a3d"),.4+.4*t)
-			draw_line(e.point+Vector2.from_angle(a)*12,tip,Color("ffe9c8"),3+2*t,true)
+			draw_line(e.point+Vector2.from_angle(a)*12,tip,Color("ffe9c8"),3+2*t,VfxArt.aa)
 			for k in range(4):
 				var q: Vector2=e.point+Vector2.from_angle(a)*e.radius*(.3+.2*k)+Vector2(0,-6-10*fmod(float(e.age)*3+k*.25,1.0))
 				draw_circle(q,3+2*t,Color("ffb347",.7))
@@ -908,27 +923,27 @@ func _draw() -> void:
 			# blade itself drawn along the leading edge, and the full circle lingers as it fades.
 			var head: float=float(e.angle)+(1-pow(1-t,2))*TAU*2
 			var r: float=e.radius*(.9+.12*t);var fade: float=1-pow(t,2.5)
-			if t>.35:draw_arc(e.point,r,0,TAU,72,Color(e.color,.35*fade),10*fade+2,true)
+			if t>.35:draw_arc(e.point,r,0,TAU,72,Color(e.color,.35*fade),10*fade+2,VfxArt.aa)
 			for k in range(14):
 				var a1: float=head-k*.2;var w: float=(22-k*1.3)*fade+2
-				draw_arc(e.point,r,a1-.22,a1,6,Color(e.color,(1-k/14.0)*fade),w,true)
-			draw_arc(e.point,r,head-1.1,head,16,Color("fff4d0",fade),6*fade+1,true)
-			draw_arc(e.point,r*.64,head-1.6,head,18,Color("ffcf6e",.55*fade),4,true)
+				draw_arc(e.point,r,a1-.22,a1,6,Color(e.color,(1-k/14.0)*fade),w,VfxArt.aa)
+			draw_arc(e.point,r,head-1.1,head,16,Color("fff4d0",fade),6*fade+1,VfxArt.aa)
+			draw_arc(e.point,r*.64,head-1.6,head,18,Color("ffcf6e",.55*fade),4,VfxArt.aa)
 			var dir:=Vector2.from_angle(head)
-			draw_line(e.point+dir*14,e.point+dir*r*.95,Color("fff1e0",fade),5,true)
-			draw_line(e.point+dir*14,e.point+dir*r*.95,Color("ff9a4a",.8*fade),2,true)
+			draw_line(e.point+dir*14,e.point+dir*r*.95,Color("fff1e0",fade),5,VfxArt.aa)
+			draw_line(e.point+dir*14,e.point+dir*r*.95,Color("ff9a4a",.8*fade),2,VfxArt.aa)
 			VfxArt.glow(self,e.point+dir*r,26,Color("ffb347"),.7*fade)
 		elif e.kind=="flame_gather":
 			# Flames spiral in while the swordsman gathers power.
 			for i in range(6):
 				var a: float=float(e.age)*6+i*TAU/6;var rr: float=e.radius*(1-t)
-				draw_arc(e.point,rr,a,a+.9,10,Color(e.color,.5+.5*t),3+4*t,true)
+				draw_arc(e.point,rr,a,a+.9,10,Color(e.color,.5+.5*t),3+4*t,VfxArt.aa)
 			VfxArt.glow(self,e.point,40+60*t,Color("ff8a3d"),.3+.4*t)
 		elif e.kind=="flame_ring":
 			# The circular cut: a full ring of fire racing outward with a bright edge.
 			var rr: float=e.radius*(1-pow(1-clampf(t*1.5,0,1),3))
-			draw_arc(e.point,rr,0,TAU,64,Color(e.color,(1-t)),22*(1-t)+2,true)
-			draw_arc(e.point,rr,0,TAU,64,Color("fff1c4",(1-t)*.9),6*(1-t)+1,true)
+			draw_arc(e.point,rr,0,TAU,64,Color(e.color,(1-t)),22*(1-t)+2,VfxArt.aa)
+			draw_arc(e.point,rr,0,TAU,64,Color("fff1c4",(1-t)*.9),6*(1-t)+1,VfxArt.aa)
 			for i in range(16):
 				var a: float=i*TAU/16+float(e.age)*2;var q: Vector2=e.point+Vector2.from_angle(a)*rr
 				VfxArt.glow(self,q,18*(1-t)+4,Color("ff9a4a"),.6*(1-t))
@@ -938,11 +953,11 @@ func _draw() -> void:
 			for i in range(26):
 				var a: float=spin*(1+fmod(i*.37,.6))+i*TAU/26;var rr: float=e.radius*(1.25-t)*(.55+.45*fmod(i*.618,1.0))
 				var q: Vector2=e.point+Vector2.from_angle(a)*rr
-				draw_line(q,q+Vector2.from_angle(a+1.9)*(6+10*t),Color("ffffff",.35+.5*t),2,true);draw_circle(q,2+1.5*t,Color("ffffff",.6+.4*t))
-			draw_arc(e.point,e.radius*(1-t*.55),spin*.3,spin*.3+TAU*.8,48,Color(e.color,.25+.5*t),2+4*t,true)
+				draw_line(q,q+Vector2.from_angle(a+1.9)*(6+10*t),Color("ffffff",.35+.5*t),2,VfxArt.aa);draw_circle(q,2+1.5*t,Color("ffffff",.6+.4*t))
+			draw_arc(e.point,e.radius*(1-t*.55),spin*.3,spin*.3+TAU*.8,48,Color(e.color,.25+.5*t),2+4*t,VfxArt.aa)
 			VfxArt.glow(self,e.point,40+60*t,Color("dff4ff"),.25+.45*t)
 			var front: Vector2=e.point+Vector2.from_angle(float(e.angle))*54;var br: float=8+26*t
-			draw_circle(front+Vector2(0,br*.5),br,Color(0,0,0,.15));draw_circle(front,br,Color("f4fbff"));draw_arc(front,br,0,TAU,24,Color("9fc3dc"),2,true)
+			draw_circle(front+Vector2(0,br*.5),br,Color(0,0,0,.15));draw_circle(front,br,Color("f4fbff"));draw_arc(front,br,0,TAU,24,Color("9fc3dc"),2,VfxArt.aa)
 			draw_circle(front+Vector2(-br*.3,-br*.3),br*.45,Color("ffffff"))
 		elif e.kind=="fireball":
 			# Billowing lobes of fire that swell fast, then cool to dark smoke as they rise.
@@ -977,7 +992,7 @@ func _draw() -> void:
 		elif e.kind=="bounty_tracer":
 			# A straight hot tracer from the hunter to its target.
 			var to: Vector2=e.get("to",e.point);var w: float=10*(1-t)+1.5
-			draw_line(e.point,to,Color("ffcf6e",.55*(1-t)),w*2,true);draw_line(e.point,to,Color("fff6dc",1-t),w*.6,true)
+			draw_line(e.point,to,Color("ffcf6e",.55*(1-t)),w*2,VfxArt.aa);draw_line(e.point,to,Color("fff6dc",1-t),w*.6,VfxArt.aa)
 			VfxArt.glow(self,to,26,Color("ffcf6e"),.6*(1-t))
 		elif e.kind=="muzzle_flash":
 			# A short star-shaped flash at the muzzle.
@@ -990,9 +1005,9 @@ func _draw() -> void:
 			draw_circle(e.point,e.radius,Color("dff4ff",.18*fade))
 			for i in range(10):
 				var d: Vector2=Vector2.from_angle(i*TAU/10+.4);var len: float=e.radius*(.55+.35*fmod(i*.618,1.0))
-				draw_line(e.point+d*e.radius*.15,e.point+d*len,Color("ffffff",.55*fade),2,true)
-				draw_line(e.point+d*len*.6,e.point+d*len*.6+d.rotated(.7)*len*.25,Color("cfeeff",.5*fade),1.5,true)
-			draw_arc(e.point,e.radius,0,TAU,48,Color("cfeeff",.4*fade),2,true)
+				draw_line(e.point+d*e.radius*.15,e.point+d*len,Color("ffffff",.55*fade),2,VfxArt.aa)
+				draw_line(e.point+d*len*.6,e.point+d*len*.6+d.rotated(.7)*len*.25,Color("cfeeff",.5*fade),1.5,VfxArt.aa)
+			draw_arc(e.point,e.radius,0,TAU,48,Color("cfeeff",.4*fade),2,VfxArt.aa)
 		elif e.kind=="snow_dome":
 			# A dome of snow thrown up by the burst: puffs that billow outward and settle.
 			var grow: float=1-pow(1-clampf(t*1.8,0,1),3)
@@ -1007,7 +1022,7 @@ func _draw() -> void:
 			for k in range(8):
 				var a1: float=a0-1+k*.25
 				if a1>a0+sweep:break
-				draw_arc(e.point-Vector2.from_angle(a0)*20,e.radius,a1,a1+.25,6,Color("e8525a") if k%2==0 else Color("ffffff"),10*(1-t)+2,true)
+				draw_arc(e.point-Vector2.from_angle(a0)*20,e.radius,a1,a1+.25,6,Color("e8525a") if k%2==0 else Color("ffffff"),10*(1-t)+2,VfxArt.aa)
 		elif e.kind=="star_burst":
 			# Gold five-point stars flung outward with a soft glow.
 			VfxArt.glow(self,e.point,e.radius*.6,Color("ffd65c"),.5*(1-t))
@@ -1042,18 +1057,18 @@ func _draw() -> void:
 				if k%4==0:_star(q+Vector2(0,wob-10),5*(1-k/28.0)+1,float(e.age)*5+k,Color("ffe68a",(1-k/28.0)*vis))
 			# Sleigh body with a curled runner, Santa and the sack.
 			draw_colored_polygon(PackedVector2Array([p+Vector2(-58,-8)*z,p+Vector2(-18,-8)*z,p+Vector2(-12,10)*z,p+Vector2(-62,10)*z]),shadow)
-			draw_line(p+Vector2(-70,15)*z,p+Vector2(-6,15)*z,shadow,5,true);draw_arc(p+Vector2(-4,9)*z,6*z,-PI*.5,PI*.5,10,shadow,5,true)
+			draw_line(p+Vector2(-70,15)*z,p+Vector2(-6,15)*z,shadow,5,VfxArt.aa);draw_arc(p+Vector2(-4,9)*z,6*z,-PI*.5,PI*.5,10,shadow,5,VfxArt.aa)
 			draw_circle(p+Vector2(-36,-14)*z,9*z,shadow);draw_circle(p+Vector2(-36,-27)*z,5*z,shadow)
 			draw_colored_polygon(PackedVector2Array([p+Vector2(-41,-30)*z,p+Vector2(-31,-30)*z,p+Vector2(-44,-42)*z]),shadow)
 			draw_circle(p+Vector2(-54,-13)*z,8*z,shadow)
-			draw_line(p+Vector2(-18,0)*z,p+Vector2(84,-6)*z,Color(shadow,shadow.a*.8),2,true)
+			draw_line(p+Vector2(-18,0)*z,p+Vector2(84,-6)*z,Color(shadow,shadow.a*.8),2,VfxArt.aa)
 			for k in range(4):
 				var d: Vector2=p+Vector2(22+(k/2)*34,-6+(k%2)*8)*z
 				draw_colored_polygon(PackedVector2Array([d+Vector2(-12,-4)*z,d+Vector2(12,-6)*z,d+Vector2(12,2)*z,d+Vector2(-12,3)*z]),shadow)
-				draw_line(d+Vector2(12,-5)*z,d+Vector2(18,-14)*z,shadow,3,true)
-				draw_line(d+Vector2(18,-14)*z,d+Vector2(14,-21)*z,shadow,2.5,true);draw_line(d+Vector2(18,-14)*z,d+Vector2(24,-20)*z,shadow,2.5,true)
+				draw_line(d+Vector2(12,-5)*z,d+Vector2(18,-14)*z,shadow,3,VfxArt.aa)
+				draw_line(d+Vector2(18,-14)*z,d+Vector2(14,-21)*z,shadow,2.5,VfxArt.aa);draw_line(d+Vector2(18,-14)*z,d+Vector2(24,-20)*z,shadow,2.5,VfxArt.aa)
 				var leg: float=sin(float(e.age)*16+k*1.7)*5
-				draw_line(d+Vector2(-8,2)*z,d+Vector2(-11+leg,11)*z,shadow,2.5,true);draw_line(d+Vector2(8,1)*z,d+Vector2(11-leg,10)*z,shadow,2.5,true)
+				draw_line(d+Vector2(-8,2)*z,d+Vector2(-11+leg,11)*z,shadow,2.5,VfxArt.aa);draw_line(d+Vector2(8,1)*z,d+Vector2(11-leg,10)*z,shadow,2.5,VfxArt.aa)
 			# The lead reindeer's glowing red nose.
 			var nose: Vector2=p+Vector2(74,-12)*z
 			VfxArt.glow(self,nose,16,Color("ff5a5a"),.7*vis);draw_circle(nose,3.5,Color("ff8a8a",vis))
@@ -1068,8 +1083,8 @@ func _draw() -> void:
 			if drop<=0:continue
 			var land: Vector2=target.position;var at: Vector2=land+Vector2(sin(clock*5+int(e.get("target",0)))*6*(1-drop),-300*(1-drop*drop))
 			draw_set_transform_matrix(parent_transform*Transform2D(0,Vector2(1,.4),0,land+Vector2(0,12)));draw_circle(Vector2.ZERO,8+14*drop,Color(0,0,0,.28*drop));draw_set_transform_matrix(parent_transform)
-			draw_arc(land,22*(1.2-drop*.4),0,TAU,32,Color(e.color.lightened(.3),.5*drop),2,true)
-			draw_line(at+Vector2(0,-14),at+Vector2(0,-60),Color("fff3c4",.35),5,true)
+			draw_arc(land,22*(1.2-drop*.4),0,TAU,32,Color(e.color.lightened(.3),.5*drop),2,VfxArt.aa)
+			draw_line(at+Vector2(0,-14),at+Vector2(0,-60),Color("fff3c4",.35),5,VfxArt.aa)
 			VfxArt.glow(self,at,24,e.color.lightened(.3),.45)
 			var tilt: float=sin(clock*7+int(e.get("target",0)))*.25*(1-drop)
 			draw_set_transform_matrix(parent_transform*Transform2D(tilt,Vector2.ONE,0,at))
@@ -1111,15 +1126,15 @@ func _draw() -> void:
 				"root":
 					for i in range(10):
 						var a: float=i*TAU/10+float(e.age);var q: Vector2=e.point+Vector2(cos(a)*24,sin(a)*10+6)
-						draw_set_transform_matrix(parent_transform*Transform2D(a,Vector2(1,.6),0,q));draw_arc(Vector2.ZERO,5,0,TAU,12,Color("b8c2d6",fade),2.5,true);draw_set_transform_matrix(parent_transform)
+						draw_set_transform_matrix(parent_transform*Transform2D(a,Vector2(1,.6),0,q));draw_arc(Vector2.ZERO,5,0,TAU,12,Color("b8c2d6",fade),2.5,VfxArt.aa);draw_set_transform_matrix(parent_transform)
 				"heal20","heal30":
 					var cross: Vector2=e.point+Vector2(0,-30-20*t)
 					draw_rect(Rect2(cross-Vector2(4,12),Vector2(8,24)),Color("86e3a4",fade));draw_rect(Rect2(cross-Vector2(12,4),Vector2(24,8)),Color("86e3a4",fade))
 				"ult_full","ult_half":
-					draw_arc(e.point,26,-PI*.5,-PI*.5+TAU*(1.0 if mark=="ult_full" else .5)*clampf(t*2.5,0,1),40,Color("9fd8ff",fade),4,true)
+					draw_arc(e.point,26,-PI*.5,-PI*.5+TAU*(1.0 if mark=="ult_full" else .5)*clampf(t*2.5,0,1),40,Color("9fd8ff",fade),4,VfxArt.aa)
 					VfxArt.glow(self,e.point,30,Color("9fd8ff"),.4*fade)
 				"drain":
-					draw_arc(e.point,26,-PI*.5,-PI*.5+TAU*(1-clampf(t*2.5,0,1)),40,Color("6b7ab0",fade),4,true)
+					draw_arc(e.point,26,-PI*.5,-PI*.5+TAU*(1-clampf(t*2.5,0,1)),40,Color("6b7ab0",fade),4,VfxArt.aa)
 		elif e.kind=="gift_text":
 			var label: String=String(e.get("text",""))
 			var pop: float=1+.35*maxf(0,1-t*6);var ty: Vector2=e.point+Vector2(-70,-58-t*24)
@@ -1128,7 +1143,7 @@ func _draw() -> void:
 		elif e.kind=="slime_ring":
 			# A squashy ring of slime splashing outward.
 			var rr: float=e.radius*(.35+.65*(1-pow(1-t,2)))
-			draw_arc(e.point,rr,0,TAU,40,Color(e.color,.8*(1-t)),7*(1-t)+1.5,true)
+			draw_arc(e.point,rr,0,TAU,40,Color(e.color,.8*(1-t)),7*(1-t)+1.5,VfxArt.aa)
 			for i in range(8):
 				var d:=Vector2.from_angle(i*TAU/8+.2);draw_circle(e.point+d*rr,(6-4*t),Color(e.color,.9*(1-t)))
 		elif e.kind=="griffin_gust":
@@ -1141,27 +1156,27 @@ func _draw() -> void:
 				var a: float=float(e.angle)+(i-3)*cone/3.5;var len: float=e.radius*(.3+.7*t)
 				draw_line(e.point+Vector2.from_angle(a)*len*.45,e.point+Vector2.from_angle(a)*len,Color(Color("c8f7e6"),.7*(1-t)),2.5,true)
 		elif e.kind=="targeted":
-			draw_arc(e.point,e.radius*(1.4-t*.6),0,TAU,32,Color(e.color,1-t),3,true)
+			draw_arc(e.point,e.radius*(1.4-t*.6),0,TAU,32,Color(e.color,1-t),3,VfxArt.aa)
 			for i in range(4):
-				var d:=Vector2.from_angle(i*PI/2);draw_line(e.point+d*e.radius*(1.6-t),e.point+d*e.radius*(.9-t*.3),Color(e.color,1-t),3,true)
+				var d:=Vector2.from_angle(i*PI/2);draw_line(e.point+d*e.radius*(1.6-t),e.point+d*e.radius*(.9-t*.3),Color(e.color,1-t),3,VfxArt.aa)
 		elif e.kind=="hero_punch":
 			var dir:=Vector2.from_angle(float(e.angle))
 			VfxArt.flare(self,e.point,float(e.angle),e.radius*(.5+t),Color("fff4dd"),1-t)
 			for k in range(0 if use_shader_fx else 3):
 				var tk: float=clampf((t-k*.1)/(1-k*.1),0,1);var r: float=e.radius*(1-pow(1-tk,3))*(1-k*.2)
-				if tk>0 and tk<1:draw_arc(e.point,r,float(e.angle)-.95,float(e.angle)+.95,40,Color(e.color,(1-tk)),14*(1-tk)+1.5,true)
+				if tk>0 and tk<1:draw_arc(e.point,r,float(e.angle)-.95,float(e.angle)+.95,40,Color(e.color,(1-tk)),14*(1-tk)+1.5,VfxArt.aa)
 			var ring: float=e.radius*.45*(1-pow(1-t,3))
-			draw_arc(e.point,ring,0,TAU,48,Color(1,1,1,.7*(1-t)),5*(1-t)+1,true)
+			draw_arc(e.point,ring,0,TAU,48,Color(1,1,1,.7*(1-t)),5*(1-t)+1,VfxArt.aa)
 			for i in range(7):
 				var a: float=float(e.angle)+(i-3)*.22;var v:=Vector2.from_angle(a);var len: float=e.radius*(.35+.5*t)
-				draw_line(e.point+v*len*.4,e.point+v*len,Color("ffe1a0",.8*(1-t)),3,true)
+				draw_line(e.point+v*len*.4,e.point+v*len,Color("ffe1a0",.8*(1-t)),3,VfxArt.aa)
 			VfxArt.glow(self,e.point+dir*30,e.radius*.4,e.color,.7*pow(1-t,2))
 		elif e.kind=="hero_call":
 			VfxArt.glow(self,e.point,e.radius*(.6+t*.6),e.color,.7*(1-t))
-			draw_arc(e.point,e.radius*(.3+t),0,TAU,40,Color(Color.WHITE,1-t),4*(1-t)+1,true)
+			draw_arc(e.point,e.radius*(.3+t),0,TAU,40,Color(Color.WHITE,1-t),4*(1-t)+1,VfxArt.aa)
 		elif e.kind=="hero_grab":
 			for i in range(4):
-				var v:=Vector2.from_angle(i*TAU/4+PI/4);draw_line(e.point+v*(14+t*20),e.point+v*(28+t*30),Color(e.color,1-t),4*(1-t)+1,true)
+				var v:=Vector2.from_angle(i*TAU/4+PI/4);draw_line(e.point+v*(14+t*20),e.point+v*(28+t*30),Color(e.color,1-t),4*(1-t)+1,VfxArt.aa)
 		elif e.kind=="chain_shock":
 			var to: Vector2=e.get("to",e.point)
 			if not use_shader_fx:
@@ -1173,7 +1188,7 @@ func _draw() -> void:
 			VfxArt.glow(self,e.point,e.radius*(.6+t),e.color,.5*(1-t))
 			for i in range(4):
 				var v:=Vector2.from_angle(i*TAU/4+PI/4+t*1.2)
-				draw_line(e.point+v*(10+t*30),e.point+v*(22+t*38),c,3*(1-t)+1,true)
+				draw_line(e.point+v*(10+t*30),e.point+v*(22+t*38),c,3*(1-t)+1,VfxArt.aa)
 		elif e.kind=="ult_flash":
 			draw_rect(Rect2(0,0,map_side,map_side),Color(e.color,.06*pow(1-t,2)))
 			draw_arc(e.point,40+t*520,0,TAU,72,Color(Color(e.color).lightened(.4),.3*(1-t)),3*(1-t)+1,true)
@@ -1316,7 +1331,7 @@ func _ability_state(u: BattleUnit,parent: Transform2D) -> void:
 		if u.combat.phase_time>=2:
 			var dir:=Vector2.from_angle(u.combat.aim_angle)
 			var tint:=Color("ffe6b3",.18+progress*.35) if progress>.9 else Color("b9835d",.18+progress*.35)
-			if progress>.9:draw_line(p+dir*48,p+dir*1200,tint,3,true)
+			if progress>.9:draw_line(p+dir*48,p+dir*1200,tint,3,VfxArt.aa)
 			else:draw_dashed_line(p+dir*48,p+dir*1200,tint,1,8)
 		for i in range(10):draw_rect(Rect2(p+Vector2(-25+i*5,-55),Vector2.ONE*4),Color("ffd69a") if i<progress*10 else Color("3d4038"))
 	if u.data.type_id==32:
@@ -1347,10 +1362,10 @@ func _ability_state(u: BattleUnit,parent: Transform2D) -> void:
 		# 광란: a pulsing red aura, an anger mark and wild red eyes over the head.
 		var pulse: float=.5+.5*sin(real_age*12)
 		VfxArt.glow(self,p,44*s,Color("ff3a3a"),.3+.15*pulse)
-		draw_arc(p,(32+3*pulse)*s,0,TAU,40,Color(Color("ff4a4a"),.8),2.5,true)
+		draw_arc(p,(32+3*pulse)*s,0,TAU,40,Color(Color("ff4a4a"),.8),2.5,VfxArt.aa)
 		var mark: Vector2=p+Vector2(18,-44)*s
 		for k in range(4):
-			var d: Vector2=Vector2.from_angle(k*PI*.5+PI*.25);draw_line(mark+d*3,mark+d*(9+2*pulse),Color("ff3a3a"),3,true)
+			var d: Vector2=Vector2.from_angle(k*PI*.5+PI*.25);draw_line(mark+d*3,mark+d*(9+2*pulse),Color("ff3a3a"),3,VfxArt.aa)
 	if u.state_value("suppressTime")>0 and u.alive:
 		var drip: float=fmod(real_age*1.5,1.0)
 		draw_circle(p+Vector2(-14,-30+drip*30)*s,3*(1-drip)+1.5,Color(Color("b07cff"),.8*(1-drip)))
@@ -1359,13 +1374,13 @@ func _ability_state(u: BattleUnit,parent: Transform2D) -> void:
 		var hot: bool=u.state_value("topBoost")>0;var spin: float=real_age*(26 if hot else 16)
 		if hot:VfxArt.glow(self,p,46*s,Color("ff8a4a"),.35+.1*sin(real_age*20))
 		for k in range(3):
-			var turn: float=spin+k*TAU/3;draw_arc(p,(30+k*5)*s,turn,turn+1.6,14,Color("ffb070" if hot else "e8fff6",.75-.2*k),3-k*.6,true)
+			var turn: float=spin+k*TAU/3;draw_arc(p,(30+k*5)*s,turn,turn+1.6,14,Color("ffb070" if hot else "e8fff6",.75-.2*k),3-k*.6,VfxArt.aa)
 	if u.character_specific_state.has("bountyBy") and u.alive:
 		# 현상금: a gold crosshair with a coin over the bountied unit.
 		var mark: Vector2=p+Vector2(0,-58)*s;var pulse: float=1+.08*sin(real_age*5)
-		draw_arc(mark,11*pulse,0,TAU,24,Color("ffcf6e"),2,true)
+		draw_arc(mark,11*pulse,0,TAU,24,Color("ffcf6e"),2,VfxArt.aa)
 		for k in range(4):
-			var arm: Vector2=Vector2.from_angle(k*PI*.5);draw_line(mark+arm*7,mark+arm*15*pulse,Color("ffcf6e"),2,true)
+			var arm: Vector2=Vector2.from_angle(k*PI*.5);draw_line(mark+arm*7,mark+arm*15*pulse,Color("ffcf6e"),2,VfxArt.aa)
 		draw_circle(mark,4.5,Color("ffd65c"));draw_string(ThemeDB.fallback_font,mark+Vector2(-3,4),"$",HORIZONTAL_ALIGNMENT_LEFT,-1,10,Color("6b4a10"))
 	if not u.lost_sword.is_empty():
 		var at: Vector2=CharacterPersistence.vector(u.lost_sword.get("point",CharacterPersistence.point(p)))
@@ -1386,8 +1401,8 @@ func _new_character_state(u: BattleUnit,p: Vector2,s: float) -> void:
 	# 말뚝 tether: rope to the stake and the allowed circle.
 	if u.state_value("tetherTime")>0:
 		var stake: Vector2=CharacterPersistence.vector(u.character_specific_state.get("tetherPoint",CharacterPersistence.point(p)))
-		draw_arc(stake,u.state_value("tetherRadius",BindingController.TETHER_RADIUS),0,TAU,40,Color("c9a06b",.35),2,true)
-		draw_line(stake,p,Color("d8b98a",.8),2,true)
+		draw_arc(stake,u.state_value("tetherRadius",BindingController.TETHER_RADIUS),0,TAU,40,Color("c9a06b",.35),2,VfxArt.aa)
+		draw_line(stake,p,Color("d8b98a",.8),2,VfxArt.aa)
 		draw_rect(Rect2(stake-Vector2(4,14),Vector2(8,18)),Color("8a6440"));draw_rect(Rect2(stake-Vector2(6,16),Vector2(12,4)),Color("e8c48f"))
 	# 자석 link: current between the pair, N/S marks over each head.
 	if u.state_value("magnetTime")>0:
@@ -1402,7 +1417,7 @@ func _new_character_state(u: BattleUnit,p: Vector2,s: float) -> void:
 	if u.state_value("refractFx")>0:
 		var from: Vector2=CharacterPersistence.vector(u.character_specific_state.get("refractFrom",CharacterPersistence.point(p)))
 		var a: float=u.state_value("refractFx")/.8
-		draw_line(from,p,Color("bdf0ff",.7*a),6*a+1,true);draw_circle(from,22*a,Color("9fe3ff",.35*a));draw_circle(p,26*a,Color("e6fbff",.4*a))
+		draw_line(from,p,Color("bdf0ff",.7*a),6*a+1,VfxArt.aa);draw_circle(from,22*a,Color("9fe3ff",.35*a));draw_circle(p,26*a,Color("e6fbff",.4*a))
 	# 배달부 parcel: on the ground, or carried overhead.
 	if u.data.type_id==29 and u.alive:
 		var parcel: Dictionary=u.character_specific_state.get("parcel",{})
@@ -1416,7 +1431,7 @@ func _new_character_state(u: BattleUnit,p: Vector2,s: float) -> void:
 	if frost>0:
 		for i in range(10):
 			var a: float=-PI*.8+i*PI*.6/9
-			draw_arc(p,34*s,a,a+.05,2,Color("bfeaff") if i<frost else Color("2a3a48"),4,true)
+			draw_arc(p,34*s,a,a+.05,2,Color("bfeaff") if i<frost else Color("2a3a48"),4,VfxArt.aa)
 	if u.state_value("frozenTime")>0:
 		var k: float=clampf(u.state_value("frozenTime")/4.0,0,1)
 		var block:=Rect2(p-Vector2(27,30)*s,Vector2(54,56)*s)
@@ -1448,7 +1463,7 @@ func _hero_state(u: BattleUnit,p: Vector2,s: float) -> void:
 		for i in range(4):draw_circle(p-dir*(22+i*22)*s,(22-i*4)*s,Color("ffd27a",.22-i*.05))
 		for i in range(7):
 			var off: float=(i-3)*9*s;var len: float=(50+VisualParticles.noise(i*7.1+floorf(real_age*30))*60)*s
-			draw_line(p-dir*28*s+side*off,p-dir*(28*s+len)+side*off,Color("fff4dd",.75),2,true)
+			draw_line(p-dir*28*s+side*off,p-dir*(28*s+len)+side*off,Color("fff4dd",.75),2,VfxArt.aa)
 		VfxArt.glow(self,p+dir*14*s,34*s,Color("ffd27a"),.28)
 	var cast: Dictionary=u.ultimate.cast
 	if cast.get("phase","")=="punch" and float(cast.get("punch_time",0))<FIST_CHARGE_END:
@@ -1459,15 +1474,15 @@ func _hero_state(u: BattleUnit,p: Vector2,s: float) -> void:
 		for i in range(8):
 			var a: float=i*TAU/8+real_age*3;var phase: float=fposmod(real_age*2.4+i*.125,1.0)
 			var from: Vector2=fist+Vector2.from_angle(a)*(72*(1-phase)+14)*s
-			draw_line(from,from.lerp(fist,.35),Color("ffe1a0",.85*k*(1-phase)),2,true)
-		draw_arc(fist+shake,(14+10*k)*s,0,TAU,24,Color("fff4dd",.4+.5*k),2+2*k,true)
+			draw_line(from,from.lerp(fist,.35),Color("ffe1a0",.85*k*(1-phase)),2,VfxArt.aa)
+		draw_arc(fist+shake,(14+10*k)*s,0,TAU,24,Color("fff4dd",.4+.5*k),2+2*k,VfxArt.aa)
 		draw_circle(fist+shake,13*s,Color("f2c27a"));draw_circle(fist+shake,13*s*.55,Color("ffe9c0"))
-		for i in range(3):draw_line(fist+shake+dir*6*s+dir.orthogonal()*(i-1)*4*s,fist+shake+dir*10*s+dir.orthogonal()*(i-1)*4*s,Color("8a5a2a"),2,true)
+		for i in range(3):draw_line(fist+shake+dir*6*s+dir.orthogonal()*(i-1)*4*s,fist+shake+dir*10*s+dir.orthogonal()*(i-1)*4*s,Color("8a5a2a"),2,VfxArt.aa)
 		var held=battle.find_actor(str(cast.get("target","")))
 		if held!=null and held.alive and k>0:
 			for i in range(2):
 				var g: Vector2=held.position+(u.position-held.position).normalized()*18*s+dir.orthogonal()*(i*2-1)*14*s
-				draw_arc(g,6*s,0,TAU,12,Color("ffd27a",.9),3,true)
+				draw_arc(g,6*s,0,TAU,12,Color("ffd27a",.9),3,VfxArt.aa)
 ## Rising flames and smoke while burning, dark-green and violet plumes while poisoned, violet smoke
 ## while eroded, frost glints while frostbitten. Emitters run on battle time.
 func _status_emitters(dt: float) -> void:
@@ -1554,7 +1569,7 @@ func _draw_orbs() -> void:
 		VfxArt.glow(self,at,r*4.5,tint,.85)
 		draw_circle(at,r,tint);draw_circle(at,r*.55,core)
 		if not o.dark:VfxArt.star(self,at,r*1.6,Color.WHITE,.9,real_age*4)
-		else:draw_arc(at,r*1.4,real_age*6,real_age*6+2.2,8,Color("e0ccff",.9),1.5,true)
+		else:draw_arc(at,r*1.4,real_age*6,real_age*6+2.2,8,Color("e0ccff",.9),1.5,VfxArt.aa)
 ## Element statuses (ElementEffects): an aura for burning / poison / erosion / frostbite / headwind,
 ## marks over the head, and a row of small counted badges under the unit.
 func _element_status(u: BattleUnit,p: Vector2,s: float) -> void:
@@ -1569,21 +1584,21 @@ func _element_status(u: BattleUnit,p: Vector2,s: float) -> void:
 	if u.state_value("frostbiteTime")>0:
 		for i in range(6):
 			var a: float=i*TAU/6+real_age*.6
-			draw_line(p+Vector2.from_angle(a)*27*s,p+Vector2.from_angle(a)*33*s,Color("d9f4ff",.8),2,true)
+			draw_line(p+Vector2.from_angle(a)*27*s,p+Vector2.from_angle(a)*33*s,Color("d9f4ff",.8),2,VfxArt.aa)
 	if u.state_value("headwindTime")>0:
 		for i in range(2):
 			var a: float=-real_age*5+i*PI
-			draw_arc(p,(31+i*4)*s,a,a+1.4,10,Color("e8f3f0",.55),2,true)
+			draw_arc(p,(31+i*4)*s,a,a+1.4,10,Color("e8f3f0",.55),2,VfxArt.aa)
 	if u.state_value("windStacks")>0:
 		var n: int=mini(int(u.state_value("windStacks")),5)
 		for i in range(n):
 			var a: float=real_age*4+i*TAU/n
-			draw_arc(p+Vector2.from_angle(a)*30*s,5*s,a,a+2.4,6,Color("9ff0d8",.85),2,true)
+			draw_arc(p+Vector2.from_angle(a)*30*s,5*s,a,a+2.4,6,Color("9ff0d8",.85),2,VfxArt.aa)
 	if u.state_value("erosionTime")>0:
 		VfxArt.glow(self,p,44*s,Color("4a2290"),.38+.12*flicker)
 		for i in range(3):
 			var a: float=-real_age*2.4+i*TAU/3
-			draw_arc(p,34*s,a,a+.9,10,Color("c9a6ff",.75),2.5,true)
+			draw_arc(p,34*s,a,a+.9,10,Color("c9a6ff",.75),2.5,VfxArt.aa)
 	# 둔화: a sluggish lavender ring at the feet.
 	if u.state_value("slowTime")>0:
 		VfxArt.ellipse(self,p+Vector2(0,22*s),26*s,.35,Color("c9b8ff",.8),2.5)
@@ -1601,7 +1616,7 @@ func _element_status(u: BattleUnit,p: Vector2,s: float) -> void:
 			VfxArt.glow(self,p,(40+60*charge)*s,Color("bfe9ff"),.25+.35*charge)
 			for i in range(6):
 				var a: float=real_age*3+i*TAU/6;var rr: float=(90-60*fmod(real_age*.8+i/6.0,1.0))*s
-				draw_arc(p,rr,a,a+.8,8,Color("e8f8ff",.7),2.5,true)
+				draw_arc(p,rr,a,a+.8,8,Color("e8f8ff",.7),2.5,VfxArt.aa)
 	# 매혹 (속삭이는 자): a pink heart bobbing over the head.
 	if u.state_value("charmTime")>0:
 		var hp_at: Vector2=p+Vector2(0,-60*s+sin(real_age*5)*3);var hs: float=9*s*(1+.12*sin(real_age*8))
@@ -1624,13 +1639,13 @@ func _element_status(u: BattleUnit,p: Vector2,s: float) -> void:
 	var whispers: int=int(u.state_value("whisperStacks"))
 	for i in range(whispers):
 		var a: float=-real_age*2+i*TAU/3
-		var q: Vector2=p+Vector2.from_angle(a)*26*s;draw_line(q,q+Vector2.from_angle(a+1.2)*8*s,Color("c9a6ff"),2,true)
+		var q: Vector2=p+Vector2.from_angle(a)*26*s;draw_line(q,q+Vector2.from_angle(a+1.2)*8*s,Color("c9a6ff"),2,VfxArt.aa)
 	# 목표 (석궁): a red reticle turning over the unit.
 	if u.state_value("targetedTime")>0:
 		var rr: float=31*s;var spin: float=real_age*1.5
-		draw_arc(p,rr,0,TAU,32,Color("ff6a5a",.75),2,true)
+		draw_arc(p,rr,0,TAU,32,Color("ff6a5a",.75),2,VfxArt.aa)
 		for i in range(4):
-			var d:=Vector2.from_angle(spin+i*PI/2);draw_line(p+d*(rr-6*s),p+d*(rr+7*s),Color("ff8a7a"),2.5,true)
+			var d:=Vector2.from_angle(spin+i*PI/2);draw_line(p+d*(rr-6*s),p+d*(rr+7*s),Color("ff8a7a"),2.5,VfxArt.aa)
 	# Marks: a turning golden sigil (광휘) / a violet sigil of inward fangs (암흑) over the head.
 	var light_mark: bool=not str(u.character_specific_state.get("lightMark","")).is_empty()
 	var dark_mark: bool=not str(u.character_specific_state.get("darkMark","")).is_empty()
@@ -1641,15 +1656,15 @@ func _element_status(u: BattleUnit,p: Vector2,s: float) -> void:
 		for i in range(4):
 			var v: Vector2=Vector2.from_angle(real_age*2+i*TAU/4)*12*s;var d: float=3.5*s
 			draw_colored_polygon(PackedVector2Array([at+v+Vector2(0,-d),at+v+Vector2(d*.7,0),at+v+Vector2(0,d),at+v+Vector2(-d*.7,0)]),Color("ffe59a",.95))
-		draw_arc(at,12*s,0,TAU,24,Color("ffe59a",.5),1.5,true)
+		draw_arc(at,12*s,0,TAU,24,Color("ffe59a",.5),1.5,VfxArt.aa)
 	if dark_mark:
 		var at: Vector2=p+Vector2(15 if light_mark else 0,-66)*s+Vector2(0,cos(real_age*3)*2)
 		VfxArt.glow(self,at,26*s,Color("6b3fb0"),.55+.15*flicker)
-		draw_circle(at,6*s,Color("1c0f30"));draw_arc(at,6*s,0,TAU,16,Color("c9a6ff"),1.5,true)
+		draw_circle(at,6*s,Color("1c0f30"));draw_arc(at,6*s,0,TAU,16,Color("c9a6ff"),1.5,VfxArt.aa)
 		for i in range(3):
 			var v: Vector2=Vector2.from_angle(-real_age*2.2+i*TAU/3)
 			draw_colored_polygon(PackedVector2Array([at+v*8*s,at+v*15*s+v.orthogonal()*4*s,at+v*15*s-v.orthogonal()*4*s]),Color("b48cff",.95))
-		draw_arc(at,15*s,0,TAU,24,Color("b48cff",.45),1.5,true)
+		draw_arc(at,15*s,0,TAU,24,Color("b48cff",.45),1.5,VfxArt.aa)
 	var badges: Array=[]
 	for row in [["burnStacks","phoenixFeather",Color("ff9a52")],["poisonStacks","verdantStone",Color("8fe36b")],["windStacks","hawkFeather",Color("9ff0d8")]]:
 		var n: int=int(u.state_value(row[0]))
@@ -1658,7 +1673,7 @@ func _element_status(u: BattleUnit,p: Vector2,s: float) -> void:
 	var w: float=30*s;var start: Vector2=p+Vector2(-(badges.size()-1)*w*.5,54*s)
 	for i in range(badges.size()):
 		var at: Vector2=start+Vector2(i*w,0)
-		draw_circle(at,12*s,Color("10141f",.88));draw_arc(at,12*s,0,TAU,20,Color(badges[i][1],.95),2,true)
+		draw_circle(at,12*s,Color("10141f",.88));draw_arc(at,12*s,0,TAU,20,Color(badges[i][1],.95),2,VfxArt.aa)
 		ArenaIcon.draw(self,at,badges[i][0],15*s,badges[i][1])
 		draw_string(ThemeDB.fallback_font,at+Vector2(7,12)*s,str(badges[i][2]),HORIZONTAL_ALIGNMENT_LEFT,-1,int(13*s)+1,Color.WHITE)
 ## Shared ultimate cues: gathering motes during the windup, one burst when the ultimate fires.
@@ -1686,7 +1701,7 @@ func _ultimate_charge(u: BattleUnit,at: Vector2,parent: Transform2D) -> void:
 	for i in range(5):
 		var f: float=fmod(real_age*1.5+i*.2,1.0);var a: float=i*2.399
 		VfxArt.star(self,at+Vector2.from_angle(a)*r*1.5*(1-f),2+3*f,ink.lightened(.35),f*.6,a)
-	draw_arc(at,r*.72,-PI/2,-PI/2+TAU*k,48,Color(1,1,1,.55),2,true)
+	draw_arc(at,r*.72,-PI/2,-PI/2+TAU*k,48,Color(1,1,1,.55),2,VfxArt.aa)
 
 ## 기관사: warning lane while the whistle blows, then the locomotive in track space (x along the rails).
 func _train_warning(u: BattleUnit,cast: Dictionary,parent: Transform2D) -> void:
@@ -1770,7 +1785,7 @@ func _ult_projectile(p: BattleProjectile) -> void:
 	var trail: Array=projectile_trails.get(p.projectile_id,[])
 	for i in range(1,trail.size()):
 		var k: float=float(i)/trail.size()
-		draw_line(trail[i-1],trail[i],Color(ink,.4*k),r*1.3*k,true)
+		draw_line(trail[i-1],trail[i],Color(ink,.4*k),r*1.3*k,VfxArt.aa)
 	VfxArt.glow(self,p.position,r*2.3,ink,.45);VfxArt.glow(self,p.position,r*.9,Color("fff6e6"),.35)
 	for i in range(3):
 		var a: float=real_age*6+i*TAU/3;VfxArt.star(self,p.position+Vector2.from_angle(a)*r*.9,5,ink.lightened(.4),.8,a)
@@ -1786,9 +1801,9 @@ func _ult_zone(z: Dictionary,point: Vector2,radius: float) -> void:
 	if source==null or z.kind=="ring":return
 	var ink: Color=AttackVisuals.ink(source.data.type_id);var pulse: float=.5+.5*sin(real_age*4)
 	VfxArt.glow(self,point,radius*1.05,ink,.06+.05*pulse)
-	draw_arc(point,radius,0,TAU,72,Color(ink,.35+.25*pulse),3,true)
-	draw_arc(point,radius*(.9-.04*pulse),real_age,real_age+PI*1.3,48,Color(ink.lightened(.4),.4),2,true)
-	draw_arc(point,radius*(.9-.04*pulse),real_age+PI,real_age+PI*2.3,48,Color(ink.lightened(.4),.4),2,true)
+	draw_arc(point,radius,0,TAU,72,Color(ink,.35+.25*pulse),3,VfxArt.aa)
+	draw_arc(point,radius*(.9-.04*pulse),real_age,real_age+PI*1.3,48,Color(ink.lightened(.4),.4),2,VfxArt.aa)
+	draw_arc(point,radius*(.9-.04*pulse),real_age+PI,real_age+PI*2.3,48,Color(ink.lightened(.4),.4),2,VfxArt.aa)
 func _ultimate_zone_motes(delta: float) -> void:
 	ult_timers["zones"]=float(ult_timers.get("zones",0))+delta
 	if float(ult_timers["zones"])<.1:return
@@ -1827,7 +1842,7 @@ func _frost_storm(u: BattleUnit) -> void:
 	draw_circle(at,r,Color("cfeeff",.08*fade))
 	for i in range(3):
 		var spin: float=real_age*(2.2+i*.8)*(1 if i%2==0 else -1)
-		draw_arc(at,r*(.45+i*.25),spin,spin+PI*1.2,40,Color("e6f8ff",(.55-i*.12)*fade),3-i*.6,true)
+		draw_arc(at,r*(.45+i*.25),spin,spin+PI*1.2,40,Color("e6f8ff",(.55-i*.12)*fade),3-i*.6,VfxArt.aa)
 	for i in range(26):
 		var a: float=real_age*(1.6+VisualParticles.noise(i)*1.5)+i*2.399;var d: float=r*(.2+VisualParticles.noise(i+7)*.8)
 		VfxArt.star(self,at+Vector2.from_angle(a)*d,3+VisualParticles.noise(i+3)*4,Color("f2fbff"),.85*fade,a)
@@ -1851,19 +1866,19 @@ func _oil_fire(z: Dictionary) -> void:
 			pool.append(at+d*r*wob*grow);inner.append(at+d*r*wob*grow*.62+Vector2(-r*.08,-r*.06))
 		draw_colored_polygon(pool,Color("241a10",.6*fade));draw_colored_polygon(inner,Color("3d2e1a",.45*fade))
 		if lit>=0:draw_colored_polygon(pool,Color("ff5a1f",(.28+.08*sin(real_age*9+i))*clampf(lit/.3,0,1)*fade))
-		else:draw_arc(at+Vector2(-r*.25,-r*.2)*grow,r*.3*grow,PI*1.1,PI*1.7,10,Color("c8b48a",.55*fade),2,true)
+		else:draw_arc(at+Vector2(-r*.25,-r*.2)*grow,r*.3*grow,PI*1.1,PI*1.7,10,Color("c8b48a",.55*fade),2,VfxArt.aa)
 		if since<.35:
 			# Shattering glass and splashing oil.
 			var q: float=since/.35
 			for j in range(8):
 				var d: Vector2=Vector2.from_angle(j*TAU/8+i);var p: Vector2=at+d*r*(.3+.9*Motion.out_quint(q))
-				draw_line(p,p+d*6,Color("cfe7d0",1-q),2,true);draw_circle(p-d*8,3*(1-q),Color("2a2016",1-q))
-			draw_arc(at,r*(.4+.8*q),0,TAU,24,Color("d8c7a0",.6*(1-q)),2,true)
+				draw_line(p,p+d*6,Color("cfe7d0",1-q),2,VfxArt.aa);draw_circle(p-d*8,3*(1-q),Color("2a2016",1-q))
+			draw_arc(at,r*(.4+.8*q),0,TAU,24,Color("d8c7a0",.6*(1-q)),2,VfxArt.aa)
 		if lit<0:continue
 		# The fire front races across the pool, then the oil keeps burning.
 		var spread: float=clampf(lit/.3,0,1)
 		VfxArt.glow(self,at,r*1.5,Color("ff6b25"),.45*fade*spread)
-		if spread<1:draw_arc(at,r*spread,0,TAU,28,Color("ffe08a",.9),4,true)
+		if spread<1:draw_arc(at,r*spread,0,TAU,28,Color("ffe08a",.9),4,VfxArt.aa)
 		for j in range(13):
 			var t: float=fposmod(real_age*1.2+j*.131+i*.31,1.0);var base: Vector2=at+Vector2.from_angle(j*2.399+i)*Vector2(1,.72)*r*.85*sqrt(VisualParticles.noise(i*11+j+1))*spread
 			var flame: Vector2=base+Vector2(sin(real_age*3+j)*5,-t*42);var alpha: float=sin(t*PI)*fade
@@ -1884,7 +1899,7 @@ func _oil_bottle(at: Vector2,spin: float,k: float) -> void:
 	draw_colored_polygon(PackedVector2Array([turn*Vector2(-5,-2),turn*Vector2(5,-2),turn*Vector2(5,8),turn*Vector2(-5,8)]),Color("2a2016"))
 	draw_colored_polygon(PackedVector2Array([turn*Vector2(-2.5,-13),turn*Vector2(2.5,-13),turn*Vector2(2.5,-7),turn*Vector2(-2.5,-7)]),Color("6c8f5c"))
 	draw_colored_polygon(PackedVector2Array([turn*Vector2(-3,-16),turn*Vector2(3,-16),turn*Vector2(3,-12),turn*Vector2(-3,-12)]),Color("b98a54"))
-	draw_line(turn*Vector2(-4,-5),turn*Vector2(-4,6),Color(1,1,1,.45),1.5,true)
+	draw_line(turn*Vector2(-4,-5),turn*Vector2(-4,6),Color(1,1,1,.45),1.5,VfxArt.aa)
 func _flame_stream(u: BattleUnit) -> void:
 	var scale: float=u.combat_scale();var dir: Vector2=Vector2.from_angle(u.combat.aim_angle);var side: Vector2=dir.orthogonal()
 	var origin: Vector2=u.position+dir*34*scale;var length: float=240*scale;var k: float=clampf(u.combat.phase_time/.12,0,1)

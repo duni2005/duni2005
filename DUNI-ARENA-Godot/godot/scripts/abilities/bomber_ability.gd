@@ -6,7 +6,7 @@ func tick(u,dt: float) -> void:
 	if u.current_hp<=u.max_hp*.2:u.set_state("bomberRush",true)
 	if not u.character_specific_state.get("bomberRush",false):return
 	u.combat.cancel(u);u.ultimate.cast.clear();u.dodge_state.clear();u.evade_remaining=0;u.set_state("bomberRushTime",u.state_value("bomberRushTime")+dt)
-	var t=nearest(u,u.enemies())
+	var t=u.nearest_enemy()
 	if u.character_specific_state.get("bomberFuse")==null:
 		if (t!=null and u.position.distance_to(t.position)<=78*u.combat_scale()) or u.state_value("bomberRushTime")>=3.5:u.set_state("bomberFuse",.6)
 		elif t!=null:u.brain.steer(u,(t.position-u.position).normalized(),dt,1.8)

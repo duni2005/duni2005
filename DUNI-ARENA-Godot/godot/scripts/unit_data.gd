@@ -15,6 +15,11 @@ extends Resource
 @export var attack_profile: AttackData
 
 @export var tags: PackedStringArray = []
+var _ambusher: int = -1
+## Tagged 기습형 (checked in every perception test, so the lookup is cached; tags do not change).
+func ambusher() -> bool:
+	if _ambusher < 0:_ambusher = int(tags.has("기습형"))
+	return _ambusher == 1
 @export var emoji: String = ""
 @export var body_scale: float = 1
 @export var ultimate_windup: float = -1

@@ -33,11 +33,14 @@ func select_target(unit, candidates: Array):
 			if is_valid_enemy(unit,reply):return reply
 		var punish=unit.battle.find_actor(unit.brain.punish_actor)
 		if unit.brain.punish_until>unit.battle.clock.elapsed and is_valid_enemy(unit,punish):return punish
-		var best=unit.ability.choose_target(unit,unit.enemies())
+		# One enemy list for the whole choice (nothing changes while choosing); choose_target gets
+		# its own copy because some characters sort it.
+		var foes: Array=unit.enemies()
+		var best=unit.ability.choose_target(unit,foes.duplicate())
 		# Character choices that aim at allies (healing, support) are kept as they are.
-		if best!=null and best.team==unit.team:return committed(unit,best)
-		best=cautious_target(unit) if unit.stance==CombatStance.CAUTIOUS else unit.mind.pick_target(unit,best)
-		return committed(unit,best)
+		if best!=null and best.team==unit.team:return committed(unit,best,foes)
+		best=cautious_target(unit,foes) if unit.stance==CombatStance.CAUTIOUS else unit.mind.pick_target(unit,best,foes)
+		return committed(unit,best,foes)
 	var nearest = null
 	var nearest_distance: float = INF
 	for candidate in candidates:
@@ -56,11 +59,12 @@ func rush_target(unit):
 	if own!=null and own.team==unit.team:return own
 	var current=unit.target
 	if is_valid_enemy(unit,current) and not current.unavailable() and unit.enemies().has(current):return current
-	return CharacterAbility.nearest(unit,unit.enemies())
+	return unit.nearest_enemy()
 ## Cautious stance: whoever is attacking this unit from close by, else the most isolated enemy
 ## (each other enemy near a candidate counts as extra distance).
-func cautious_target(unit):
-	var foes: Array=unit.enemies();var best=null;var best_score: float=INF
+func cautious_target(unit,foes=null):
+	if foes==null:foes=unit.enemies()
+	var best=null;var best_score: float=INF
 	for e in foes:
 		if e.combat.attack_target==unit and e.combat_state!=CombatController.State.IDLE and unit.position.distance_to(e.position)<unit.data.attack_range+160:return e
 	for e in foes:
@@ -74,19 +78,19 @@ func cautious_target(unit):
 ## After the hold, a better-priority choice or a clearly closer one takes over.
 const HOLD: float = 1.6
 var hold_until: float = 0
-func committed(unit, best):
+func committed(unit, best, foes=null):
 	var current = unit.target
 	if best == null or current == best:
 		if best != null and hold_until <= unit.battle.clock.elapsed:hold_until = unit.battle.clock.elapsed + HOLD
 		return best
-	if current == null or not is_valid_enemy(unit, current) or current.unavailable() or not unit.enemies().has(current):
+	if current == null or not is_valid_enemy(unit, current) or current.unavailable() or not (foes if foes != null else unit.enemies()).has(current):
 		return _switch(unit, best)
 	var now: float = unit.battle.clock.elapsed
 	var dc: float = unit.position.distance_to(current.position);var db: float = unit.position.distance_to(best.position)
 	var reach: float = unit.data.attack_range + 30 * unit.combat_scale()
 	if (db < reach and dc > reach * 1.4) or db < dc * .5:return _switch(unit, best)
 	if now < hold_until:return current
-	var seen: Array = unit.enemies()
+	var seen: Array = foes if foes != null else unit.enemies()
 	var pb: float = unit.ability.target_priority(unit, best, seen);var pc: float = unit.ability.target_priority(unit, current, seen)
 	if pb < pc or (is_equal_approx(pb, pc) and db < dc * .75):return _switch(unit, best)
 	hold_until = now + HOLD * .5

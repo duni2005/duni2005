@@ -8,6 +8,9 @@ const GLINT=preload("res://assets/vfx/glint.png")
 const SMOKE=preload("res://assets/vfx/smoke.png")
 const PRESSURE=preload("res://assets/vfx/pressure_wave.png")
 const DEATH_WAVE=preload("res://assets/vfx/death_wave.svg")
+## Antialiased battle lines and arcs. CombatPresentation turns it off while the field is crowded
+## (many units or effects): smooth edges cost far more geometry than the shapes themselves.
+static var aa: bool = true
 static func glow(c: CanvasItem,p: Vector2,r: float,color: Color,alpha: float=1,aspect: float=1) -> void:
 	if r<=0 or alpha<=0:return
 	c.draw_texture_rect(GLOW,Rect2(p-Vector2(r,r*aspect),Vector2(r*2,r*2*aspect)),false,Color(color,alpha*color.a))
@@ -33,24 +36,24 @@ static func ellipse(c: CanvasItem,p: Vector2,r: float,height: float,color: Color
 	var points:=PackedVector2Array()
 	for i in range(49):
 		var a: float=lerpf(start,end,float(i)/48);points.append(p+Vector2(cos(a)*r,sin(a)*r*height))
-	c.draw_polyline(points,color,width,true)
+	c.draw_polyline(points,color,width,VfxArt.aa)
 static func sigil(c: CanvasItem,p: Vector2,r: float,time: float,color: Color,alpha: float=.6) -> void:
 	for i in range(8):
 		var a: float=i*TAU/8+time*.14;var d:=Vector2.from_angle(a);var n:=d.orthogonal();var at: Vector2=p+d*r
-		c.draw_polyline(PackedVector2Array([at-n*3-d*5,at+d*3,at+n*3-d*5]),Color(color,alpha),1.3,true)
+		c.draw_polyline(PackedVector2Array([at-n*3-d*5,at+d*3,at+n*3-d*5]),Color(color,alpha),1.3,VfxArt.aa)
 		c.draw_line(at+d*7,at+d*11,Color(color,alpha*.65),1)
-	for i in range(3):c.draw_arc(p,r*.95,time*.2+i*TAU/3,time*.2+i*TAU/3+1.65,22,Color(color,alpha*.55),1.2,true)
+	for i in range(3):c.draw_arc(p,r*.95,time*.2+i*TAU/3,time*.2+i*TAU/3+1.65,22,Color(color,alpha*.55),1.2,VfxArt.aa)
 static func shield(c: CanvasItem,p: Vector2,r: float,color: Color,time: float) -> void:
 	glow(c,p,r*1.4,color,.16)
 	var points:=PackedVector2Array()
 	for i in range(7):points.append(p+Vector2.from_angle(PI/6+i*TAU/6)*r)
-	c.draw_colored_polygon(points,Color(color,.055));c.draw_polyline(points,Color(color,.6),1.5,true)
+	c.draw_colored_polygon(points,Color(color,.055));c.draw_polyline(points,Color(color,.6),1.5,VfxArt.aa)
 	for i in range(6):
 		var a: float=PI/6+i*TAU/6
 		var at: Vector2=p+Vector2.from_angle(a)*r*.63;var cell:=PackedVector2Array()
 		for j in range(7):cell.append(at+Vector2.from_angle(PI/6+j*TAU/6)*r*.25)
-		c.draw_polyline(cell,Color(color,.12+.1*sin(time*2+i)),.8,true)
-	c.draw_arc(p,r+2,time*.5,time*.5+PI*.7,24,Color("e6fcff",.75),2,true)
+		c.draw_polyline(cell,Color(color,.12+.1*sin(time*2+i)),.8,VfxArt.aa)
+	c.draw_arc(p,r+2,time*.5,time*.5+PI*.7,24,Color("e6fcff",.75),2,VfxArt.aa)
 static func effect(c: CanvasItem,e: Dictionary) -> bool:
 	var t: float=clampf(float(e.age)/maxf(.001,float(e.life)),0,1);var fade: float=pow(1-t,1.6)
 	var p: Vector2=e.point;var r: float=e.radius;var color: Color=e.color;var angle: float=e.get("angle",0)
@@ -61,7 +64,7 @@ static func effect(c: CanvasItem,e: Dictionary) -> bool:
 			flare(c,p,angle-1.1,size*1.3,color,fade*.8)
 			for i in range(9 if critical else 6):
 				var a: float=angle+(i-3)*.45;var d:=Vector2.from_angle(a);var at: Vector2=p+d*r*(.22+t*1.05)
-				c.draw_line(at-d*12*(1-t),at,Color(color,fade),2 if critical else 1,true)
+				c.draw_line(at-d*12*(1-t),at,Color(color,fade),2 if critical else 1,VfxArt.aa)
 			star(c,p,size*1.15,Color.WHITE,fade)
 			if t<.55:pressure(c,p,angle,r*(.2+t*1.4),color,fade*.65)
 			return true
@@ -85,7 +88,7 @@ static func effect(c: CanvasItem,e: Dictionary) -> bool:
 			flare(c,p,angle+.65,r*(1-t),Color("fff0c8"),fade);flare(c,p,angle-.85,r*.8*(1-t),Color("b5dfff"),fade)
 			for i in range(6):
 				var a: float=i*TAU/6+angle;var at: Vector2=p+Vector2.from_angle(a)*radius
-				c.draw_arc(p,radius,a+.06,a+.7,9,Color("ffd18c" if i%2==0 else "a9e9ff",fade),2,true)
+				c.draw_arc(p,radius,a+.06,a+.7,9,Color("ffd18c" if i%2==0 else "a9e9ff",fade),2,VfxArt.aa)
 				star(c,at,7,Color("fff1c9"),fade,a)
 			return true
 		"explosion":
@@ -96,7 +99,7 @@ static func effect(c: CanvasItem,e: Dictionary) -> bool:
 				var a: float=i*2.399;var at: Vector2=p+Vector2.from_angle(a)*r*(.1+expand*.38)+Vector2(0,-t*r*.2)
 				quad(c,SMOKE,at,Vector2.ONE*r*(.28+t*.2),a,Color("593d37",sin(t*PI)*.5))
 				ribbon(c,p,radius*(.65+i*.04),a,a+.9,16*(1-t),Color("ffb057"),fade*.65)
-			c.draw_arc(p,radius,0,TAU,64,Color("ffc783",fade*.8),maxf(1,6*(1-t)),true)
+			c.draw_arc(p,radius,0,TAU,64,Color("ffc783",fade*.8),maxf(1,6*(1-t)),VfxArt.aa)
 			ellipse(c,p+Vector2(0,12),radius,.38,Color("ffe4af",fade*.6),2)
 			if t<.4:flare(c,p,-.2,r*(1-t),Color("fff0cb"),fade)
 			return true
@@ -107,13 +110,13 @@ static func effect(c: CanvasItem,e: Dictionary) -> bool:
 				var a: float=i*TAU/6+PI/6;var d:=Vector2.from_angle(a);var at: Vector2=p+d*(radius+(t*r*.8 if shatter else 0))
 				var n:=d.orthogonal()
 				c.draw_colored_polygon(PackedVector2Array([at+d*9,at-d*5+n*8,at-d*8-n*5]),Color(color,fade*.6))
-				if not shatter:c.draw_line(at, p+Vector2.from_angle(a+TAU/6)*radius,Color("e8ffff",fade*.65),1.5,true)
+				if not shatter:c.draw_line(at, p+Vector2.from_angle(a+TAU/6)*radius,Color("e8ffff",fade*.65),1.5,VfxArt.aa)
 			star(c,p,r*.4,Color("e4ffff"),fade*.7)
 			return true
 		"dragon_heart":
 			# 용의 심장: a ring of fire rolling out to the burst radius.
 			glow(c,p,r*1.1,Color("ff8a4a"),fade*.35)
-			c.draw_arc(p,r*(.35+.65*t),0,TAU,48,Color("ffbf72",fade*.85),4,true);c.draw_arc(p,r*(.25+.6*t),0,TAU,48,Color("ff6a3a",fade*.5),2,true)
+			c.draw_arc(p,r*(.35+.65*t),0,TAU,48,Color("ffbf72",fade*.85),4,VfxArt.aa);c.draw_arc(p,r*(.25+.6*t),0,TAU,48,Color("ff6a3a",fade*.5),2,VfxArt.aa)
 			for i in range(10):
 				var a: float=i*TAU/10+t;var at: Vector2=p+Vector2.from_angle(a)*r*(.35+.65*t)
 				c.draw_colored_polygon(PackedVector2Array([at+Vector2(0,-12*fade),at+Vector2(5,0),at+Vector2(-5,0)]),Color("ffd27a",fade*.8))
@@ -130,7 +133,7 @@ static func effect(c: CanvasItem,e: Dictionary) -> bool:
 			for i in range(5):
 				var a: float=i*TAU/5+t*.8;var at: Vector2=p+Vector2.from_angle(a)*r*(.4+t*.8);var d:=Vector2.from_angle(a)
 				c.draw_colored_polygon(PackedVector2Array([at+d*15,at+d.orthogonal()*7,at-d*9,at-d.orthogonal()*7]),Color("c4f6ff",fade*.65))
-				c.draw_line(at-d*8,at+d*9,Color("ffffff",fade),1,true)
+				c.draw_line(at-d*8,at+d*9,Color("ffffff",fade),1,VfxArt.aa)
 			flare(c,p,angle,r,Color("e9cfff"),fade)
 			return true
 		"ultimate","transcendence","final_kill":
@@ -147,7 +150,7 @@ static func effect(c: CanvasItem,e: Dictionary) -> bool:
 			pressure(c,p,angle,r*(.3+t*1.1),color,fade*.8)
 			for i in range(8):
 				var a: float=angle+(i-3.5)*.35;var d:=Vector2.from_angle(a)
-				c.draw_line(p+d*r*(.2+t*.9),p+d*r*(.45+t*1.2),Color(color,fade),3,true)
+				c.draw_line(p+d*r*(.2+t*.9),p+d*r*(.45+t*1.2),Color(color,fade),3,VfxArt.aa)
 			star(c,p,r*.4*(1-t),Color.WHITE,fade)
 			return true
 		"ult_release":
@@ -166,7 +169,7 @@ static func effect(c: CanvasItem,e: Dictionary) -> bool:
 				var a: float=i*TAU/9+VisualParticles.noise(i+p.x)*.5;var length: float=r*(.55+VisualParticles.noise(i*3+p.y)*.6)*minf(1,t*6)
 				var points:=PackedVector2Array([p])
 				for j in range(1,5):points.append(p+Vector2.from_angle(a+(VisualParticles.noise(i*7+j+p.x)-.5)*.5)*length*j/4)
-				c.draw_polyline(points,Color("2a1e14",fade*.85),3,true);c.draw_polyline(points,Color(color,fade*.6),1,true)
+				c.draw_polyline(points,Color("2a1e14",fade*.85),3,VfxArt.aa);c.draw_polyline(points,Color(color,fade*.6),1,VfxArt.aa)
 			glow(c,p,r*(1.2-t*.6),color,fade*.7);glow(c,p,r*.4,Color("fff1d8"),fade)
 			for i in range(3):
 				var phase: float=clampf((t-i*.1)/.6,0,1)
@@ -220,7 +223,7 @@ static func field(c: CanvasItem,z: Dictionary,time: float,color: Color) -> void:
 	var p: Vector2=CharacterPersistence.vector(z.point);var r: float=z.radius;var kind: String=z.kind
 	var fade: float=clampf(float(z.life)*3,0,1)
 	# Boundary always denotes the actual gameplay radius; decoration stays inside it.
-	c.draw_circle(p,r,Color(color,.035*fade));c.draw_arc(p,r,0,TAU,64,Color(color,.45*fade),1.4,true)
+	c.draw_circle(p,r,Color(color,.035*fade));c.draw_arc(p,r,0,TAU,64,Color(color,.45*fade),1.4,VfxArt.aa)
 	if kind=="blackhole":
 		glow(c,p,r,Color("6f36cb"),.4*fade)
 		for arm in range(5):
@@ -240,7 +243,7 @@ static func field(c: CanvasItem,z: Dictionary,time: float,color: Color) -> void:
 		glow(c,p,r,color,.2*fade)
 		for i in range(6):
 			var a: float=-time*3.2+i*TAU/6
-			c.draw_arc(p,r*(.35+.1*(i%3)),a,a+1.9,18,Color(Color("e8fff6"),.55*fade),2.5,true)
+			c.draw_arc(p,r*(.35+.1*(i%3)),a,a+1.9,18,Color(Color("e8fff6"),.55*fade),2.5,VfxArt.aa)
 		for i in range(10):
 			var t: float=fposmod(time*1.4+i*.1,1.0);var a: float=i*2.39-time*4
 			var at: Vector2=p+Vector2.from_angle(a)*r*(.95-t*.6)
@@ -266,7 +269,7 @@ static func field(c: CanvasItem,z: Dictionary,time: float,color: Color) -> void:
 			for j in range(24):
 				var t: float=float(j)/23;var a: float=arm*TAU/4+time*.12+t*3
 				points.append(p+Vector2.from_angle(a)*r*(.15+t*.75))
-			c.draw_polyline(points,Color("a598ed",.12*fade),1.2,true)
+			c.draw_polyline(points,Color("a598ed",.12*fade),1.2,VfxArt.aa)
 		for i in range(28):
 			var a: float=i*2.399+time*.15;var at: Vector2=p+Vector2.from_angle(a)*r*sqrt(float(i)/29)*.94
 			star(c,at,4+VisualParticles.noise(i)*5,Color("d5d8ff"),(.3+.4*sin(time+i))*fade,i)

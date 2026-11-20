@@ -36,9 +36,9 @@ func draw(canvas: CanvasItem, u, bar: Rect2, px: float, age: float) -> void:
 			var h: float = size * .5
 			var shield := PackedVector2Array([left + Vector2(-h * .8, -h), left + Vector2(h * .8, -h), left + Vector2(h * .8, 0), left + Vector2(0, h), left + Vector2(-h * .8, 0)])
 			canvas.draw_colored_polygon(shield, Color(CAUTIOUS_COLOR, .3))
-			shield.append(shield[0]);canvas.draw_polyline(shield, CAUTIOUS_COLOR, maxf(1.2, 1.3 * px), true)
+			shield.append(shield[0]);canvas.draw_polyline(shield, CAUTIOUS_COLOR, maxf(1.2, 1.3 * px),VfxArt.aa)
 		CombatStance.COVER:
-			canvas.draw_arc(left, size * .42, 0, TAU, 16, COVER_COLOR, maxf(1.2, 1.3 * px), true)
+			canvas.draw_arc(left, size * .42, 0, TAU, 16, COVER_COLOR, maxf(1.2, 1.3 * px),VfxArt.aa)
 			canvas.draw_circle(left, size * .16, COVER_COLOR)
 	if StanceRules.counter_ready(u):
 		var right := Vector2(bar.end.x + size * .8, mid);var r: float = size * (.42 + .08 * sin(age * 9))

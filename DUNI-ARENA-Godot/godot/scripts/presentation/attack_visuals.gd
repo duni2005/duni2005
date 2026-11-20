@@ -17,7 +17,7 @@ static func tongue(canvas: CanvasItem,from: Vector2,to: Vector2,scale: float=1,r
 	VisualShapes.streak(canvas,middle,angle,length,7*scale,color,.95)
 	canvas.draw_circle(to,8*scale,Color("ad687d"));canvas.draw_circle(to,5*scale,color)
 	var dir: Vector2=(to-from).normalized()
-	canvas.draw_arc(to,10*scale,dir.angle()-.9,dir.angle()+.9,12,Color("ffe2df"),2*scale,true)
+	canvas.draw_arc(to,10*scale,dir.angle()-.9,dir.angle()+.9,12,Color("ffe2df"),2*scale,VfxArt.aa)
 static func frog_action(canvas: CanvasItem,u: BattleUnit) -> void:
 	if u.frog_action.is_empty():return
 	var a: Dictionary=u.frog_action;var victim: BattleUnit=u.battle.find_actor(String(a.target))
@@ -32,7 +32,7 @@ static func melee(canvas: CanvasItem,u: BattleUnit,a: AttackInstance) -> void:
 	var t: float=clampf(a.age/maxf(.001,a.duration),0,1);var scale: float=float(a.metadata.get("scale",u.combat_scale()));var c: Color=ink(u.data.type_id)
 	if a.shape==&"path":
 		var dir: Vector2=(a.end_position-a.start_position).normalized();var n:=dir.orthogonal()
-		for i in [-1,0,1]:canvas.draw_line(a.start_position+n*i*10*scale,a.end_position+n*i*10*scale,Color(c,.4 if i else .9),2 if i else 5,true)
+		for i in [-1,0,1]:canvas.draw_line(a.start_position+n*i*10*scale,a.end_position+n*i*10*scale,Color(c,.4 if i else .9),2 if i else 5,VfxArt.aa)
 		return
 	if a.metadata.get("shield_bash",false):
 		var p: Vector2=(blade[0]+blade[1])*.5-Vector2.from_angle(a.angle)*35
@@ -89,14 +89,14 @@ static func projectile(canvas: CanvasItem,p: BattleProjectile,trail: Array,time:
 	if kind in ["controlThread","sharpThread"]:
 		var start: Vector2=trail[0] if not trail.is_empty() else at-dir*30
 		var big: bool=kind=="controlThread"
-		canvas.draw_line(start,at,Color("db7698",.65),(4.5 if big else 2)*scale,true)
+		canvas.draw_line(start,at,Color("db7698",.65),(4.5 if big else 2)*scale,VfxArt.aa)
 		if big:
 			# The control thread: a thick glowing cord ending in a spinning cross-shaped spool.
 			VfxArt.glow(canvas,at,38*scale,Color("ff8fad"),.45)
 			VisualShapes.streak(canvas,at,a,56*scale,9*scale,Color("ff8fad"))
-			for k in range(2):canvas.draw_arc(at,(20+k*8)*scale,time*(6-k*2)+k,time*(6-k*2)+k+PI*1.5,22,Color("ffc2d4" if k==0 else "ff8fad"),3,true)
+			for k in range(2):canvas.draw_arc(at,(20+k*8)*scale,time*(6-k*2)+k,time*(6-k*2)+k+PI*1.5,22,Color("ffc2d4" if k==0 else "ff8fad"),3,VfxArt.aa)
 			var turn:=Vector2.from_angle(time*4)*12*scale
-			canvas.draw_line(at-turn,at+turn,Color("ffe6ee"),3,true);canvas.draw_line(at-turn.orthogonal(),at+turn.orthogonal(),Color("ffe6ee"),3,true)
+			canvas.draw_line(at-turn,at+turn,Color("ffe6ee"),3,VfxArt.aa);canvas.draw_line(at-turn.orthogonal(),at+turn.orthogonal(),Color("ffe6ee"),3,VfxArt.aa)
 		else:VisualShapes.streak(canvas,at,a,28*scale,4*scale,c)
 		return
 	if kind in ["magic","light","star","mirrorLight","mirrorReflection"]:
@@ -104,11 +104,11 @@ static func projectile(canvas: CanvasItem,p: BattleProjectile,trail: Array,time:
 		for i in range(0,trail.size(),2):VfxArt.star(canvas,trail[i],3.5*scale,c,float(i+1)/maxi(1,trail.size())*.65,time+i)
 	for i in range(1,trail.size()):
 		var fade: float=float(i)/trail.size()
-		canvas.draw_line(trail[i-1],trail[i],Color(c,fade*.38),maxf(1,(4 if kind in ["magic","light","mirrorLight","star"] else 2)*scale*fade),true)
+		canvas.draw_line(trail[i-1],trail[i],Color(c,fade*.38),maxf(1,(4 if kind in ["magic","light","mirrorLight","star"] else 2)*scale*fade),VfxArt.aa)
 	if kind in ["arrow","giantArrow"]:
 		if p.bounces>0 or p.bounce_count>0:c=Color("e5ff9c")
 		var length: float=80 if kind=="giantArrow" else 24
-		var n:=dir.orthogonal();canvas.draw_line(at-dir*length,at+dir*7,c,3 if kind=="giantArrow" else 1.8,true)
+		var n:=dir.orthogonal();canvas.draw_line(at-dir*length,at+dir*7,c,3 if kind=="giantArrow" else 1.8,VfxArt.aa)
 		canvas.draw_colored_polygon(PackedVector2Array([at+dir*14,at-dir*2+n*6,at-dir*2-n*6]),Color("fff4d1"))
 		for side in [-1,1]:canvas.draw_line(at-dir*length,at-dir*(length-10)+n*side*5,c,2)
 		if kind=="giantArrow":
@@ -149,18 +149,18 @@ static func projectile(canvas: CanvasItem,p: BattleProjectile,trail: Array,time:
 		canvas.draw_circle(at+Vector2(0,6*scale),size*.8,Color(0,0,0,.18))
 		VfxArt.glow(canvas,c2,size*2.2,tint,.45)
 		canvas.draw_circle(c2,size,Color(tint,.9));canvas.draw_circle(c2+Vector2(-size*.3,-size*.3),size*.35,Color(1,1,1,.7))
-		var neck:=Vector2.from_angle(spin)*size;canvas.draw_line(c2+neck*.8,c2+neck*1.5,Color("dfe6ee"),3*scale,true)
+		var neck:=Vector2.from_angle(spin)*size;canvas.draw_line(c2+neck*.8,c2+neck*1.5,Color("dfe6ee"),3*scale,VfxArt.aa)
 		if kind=="drugBomb":
 			for k in range(3):canvas.draw_circle(c2+Vector2.from_angle(spin*.5+k*2.1)*size*.55,2.5*scale,Color(1,1,1,.8))
 	elif kind=="deagle":
 		# A heavy .50 round: a hot white-gold tracer with a short smoky tail.
 		VisualShapes.streak(canvas,at-dir*14*scale,dir.angle(),46*scale,4*scale,Color("ffe6a8"),.75)
 		VfxArt.glow(canvas,at,12*scale,Color("ffcf6e"),.5)
-		canvas.draw_line(at-dir*7*scale,at+dir*5*scale,Color("fff6dc"),4,true)
+		canvas.draw_line(at-dir*7*scale,at+dir*5*scale,Color("fff6dc"),4,VfxArt.aa)
 	elif kind=="crossBolt":
 		# A short steel-tipped bolt with a pale wind streak behind it.
 		VisualShapes.streak(canvas,at-dir*10*scale,dir.angle(),26*scale,3*scale,Color("dff7ec"),.55)
-		canvas.draw_line(at-dir*11*scale,at+dir*9*scale,Color("8a5a36"),2.5,true)
+		canvas.draw_line(at-dir*11*scale,at+dir*9*scale,Color("8a5a36"),2.5,VfxArt.aa)
 		canvas.draw_colored_polygon(PackedVector2Array([at+dir*14*scale,at+dir*8*scale+dir.orthogonal()*3*scale,at+dir*8*scale-dir.orthogonal()*3*scale]),Color("e6ebf0"))
 	elif kind=="feather":
 		# A green-and-gold feather spinning gently, with a pale wind wisp.
@@ -168,11 +168,11 @@ static func projectile(canvas: CanvasItem,p: BattleProjectile,trail: Array,time:
 		var n:=dir.orthogonal()*4*scale;var spin: float=sin(p.lifetime*30)*.25
 		var d2: Vector2=dir.rotated(spin)
 		canvas.draw_colored_polygon(PackedVector2Array([at+d2*11*scale,at+n,at-d2*9*scale,at-n]),Color("6fcf6a"))
-		canvas.draw_line(at-d2*10*scale,at+d2*11*scale,Color("ffd65c"),1.5,true)
+		canvas.draw_line(at-d2*10*scale,at+d2*11*scale,Color("ffd65c"),1.5,VfxArt.aa)
 	elif kind=="needle":
 		# A thin dark needle with a violet glint.
 		VisualShapes.streak(canvas,at-dir*12*scale,dir.angle(),24*scale,2*scale,Color("b78cff"),.45)
-		canvas.draw_line(at-dir*10*scale,at+dir*10*scale,Color("2b1f3d"),2.2,true)
+		canvas.draw_line(at-dir*10*scale,at+dir*10*scale,Color("2b1f3d"),2.2,VfxArt.aa)
 		canvas.draw_circle(at+dir*10*scale,1.6*scale,Color("e8d8ff"))
 	elif kind=="heart":
 		# The charm heart: a pink heart pulsing inside a soft glow.
@@ -187,12 +187,12 @@ static func projectile(canvas: CanvasItem,p: BattleProjectile,trail: Array,time:
 			var t: float=TAU*i/28.0
 			var hx: float=16*pow(sin(t),3);var hy: float=-(13*cos(t)-5*cos(2*t)-2*cos(3*t)-cos(4*t))
 			pts.append(at+Vector2(hx,hy)/16.0*hs)
-		canvas.draw_colored_polygon(pts,Color("ff4f9a"));canvas.draw_polyline(pts+PackedVector2Array([pts[0]]),Color("ffd0e6"),1.5,true)
+		canvas.draw_colored_polygon(pts,Color("ff4f9a"));canvas.draw_polyline(pts+PackedVector2Array([pts[0]]),Color("ffd0e6"),1.5,VfxArt.aa)
 		canvas.draw_circle(at+Vector2(-hs*.35,-hs*.25),hs*.18,Color(1,1,1,.6))
 	elif kind=="markShell":
 		# The marking shell: a red-ringed round trailing sparks.
 		VfxArt.glow(canvas,at,22*scale,Color("ff6a5a"),.5)
-		canvas.draw_circle(at,8*scale,Color("2a2f38"));canvas.draw_arc(at,8*scale,0,TAU,16,Color("ff7a6a"),2.5,true)
+		canvas.draw_circle(at,8*scale,Color("2a2f38"));canvas.draw_arc(at,8*scale,0,TAU,16,Color("ff7a6a"),2.5,VfxArt.aa)
 		canvas.draw_circle(at,3*scale,Color("ffe0a8"))
 		VisualShapes.streak(canvas,at-dir*16*scale,dir.angle(),30*scale,4*scale,Color("ffd6c4"),.5)
 	elif kind=="iceShard":
@@ -200,7 +200,7 @@ static func projectile(canvas: CanvasItem,p: BattleProjectile,trail: Array,time:
 		VfxArt.glow(canvas,at,18*scale,Color("9fdcff"),.45)
 		var n:=dir.orthogonal()*5*scale
 		canvas.draw_colored_polygon(PackedVector2Array([at+dir*14*scale,at+n,at-dir*10*scale,at-n]),Color("d8f4ff"))
-		canvas.draw_line(at-dir*8*scale,at+dir*12*scale,Color("ffffff"),1.2,true)
+		canvas.draw_line(at-dir*8*scale,at+dir*12*scale,Color("ffffff"),1.2,VfxArt.aa)
 	elif kind=="star":
 		for i in range(4):VisualShapes.streak(canvas,at,time*2+i*PI/2,20*scale,4*scale,Color("f0e5ff"),.9)
 	else:

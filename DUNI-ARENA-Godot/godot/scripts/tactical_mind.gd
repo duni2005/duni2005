@@ -128,9 +128,9 @@ func charging(u) -> bool:return bias(u) > .45
 ## Target priority on top of the character's own choice: a guard goes for whoever is attacking
 ## a nearby ally, a cautious mind answers whoever is attacking it, a reckless one finishes off a
 ## badly hurt enemy within reach.
-func pick_target(u, best):
+func pick_target(u, best, foes = null):
 	if not active(u):return best
-	var foes: Array = u.enemies()
+	if foes == null:foes = u.enemies()
 	if guards(u.data):
 		var threat = null;var closest: float = INF
 		for e in foes:

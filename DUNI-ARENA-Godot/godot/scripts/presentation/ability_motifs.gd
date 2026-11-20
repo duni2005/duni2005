@@ -31,7 +31,7 @@ static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: f
 			# A fan of feathers sweeping back and forth.
 			for i in range(5):
 				var ang: float=-PI/2+(i-2)*.32+sin(time*2)*.12;var q: Vector2=p+Vector2.from_angle(ang)*r*.75
-				canvas.draw_line(q-Vector2.from_angle(ang)*r*.2,q+Vector2.from_angle(ang)*r*.2,Color(c,.85),2.5,true)
+				canvas.draw_line(q-Vector2.from_angle(ang)*r*.2,q+Vector2.from_angle(ang)*r*.2,Color(c,.85),2.5,VfxArt.aa)
 		"heart":
 			# A heart beating at the centre.
 			var hs: float=r*.45*(1+.1*sin(time*6));var pts:=PackedVector2Array()
@@ -52,12 +52,12 @@ static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: f
 		"flameblade":
 			# A burning blade arc sweeping around.
 			var sw: float=time*2.4
-			canvas.draw_arc(p,r*.7,sw,sw+2.2,24,Color(c,.85),r*.14,true)
-			canvas.draw_arc(p,r*.7,sw,sw+1.2,16,Color("fff1c4",.8),r*.06,true)
+			canvas.draw_arc(p,r*.7,sw,sw+2.2,24,Color(c,.85),r*.14,VfxArt.aa)
+			canvas.draw_arc(p,r*.7,sw,sw+1.2,16,Color("fff1c4",.8),r*.06,VfxArt.aa)
 		"snowball":
 			# A snowball rolling round with its tumbling streaks.
 			var q: Vector2=p+Vector2.from_angle(time*1.2)*r*.25
-			canvas.draw_circle(q,r*.42,Color(c,.9));canvas.draw_arc(q,r*.3,time*4,time*4+1.8,10,Color(1,1,1,.8),2,true)
+			canvas.draw_circle(q,r*.42,Color(c,.9));canvas.draw_arc(q,r*.3,time*4,time*4+1.8,10,Color(1,1,1,.8),2,VfxArt.aa)
 		"gift":
 			# A gift box bobbing with a ribbon.
 			var q: Vector2=p+Vector2(0,sin(time*2.5)*r*.12);var s2: float=r*.32
@@ -66,13 +66,13 @@ static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: f
 		"spin":
 			# A spinning top: a whirl of curved strokes round a bright core.
 			for k in range(3):
-				var turn: float=time*9+k*TAU/3;canvas.draw_arc(p,r*(.28+.08*k),turn,turn+2.2,14,Color(c,.85-.2*k),3,true)
+				var turn: float=time*9+k*TAU/3;canvas.draw_arc(p,r*(.28+.08*k),turn,turn+2.2,14,Color(c,.85-.2*k),3,VfxArt.aa)
 			canvas.draw_circle(p,r*.12,Color(1,1,1,.9))
 		"bounty":
 			# A wanted target: crosshair ring with a gold coin at its centre.
-			canvas.draw_arc(p,r*.36,0,TAU,32,Color(c,.9),2.5,true)
+			canvas.draw_arc(p,r*.36,0,TAU,32,Color(c,.9),2.5,VfxArt.aa)
 			for k in range(4):
-				var arm: Vector2=Vector2.from_angle(k*PI*.5+time*.6);canvas.draw_line(p+arm*r*.22,p+arm*r*.48,Color(c,.9),2.5,true)
+				var arm: Vector2=Vector2.from_angle(k*PI*.5+time*.6);canvas.draw_line(p+arm*r*.22,p+arm*r*.48,Color(c,.9),2.5,VfxArt.aa)
 			canvas.draw_circle(p,r*.13,Color(1,.84,.35))
 		"flask":
 			# A bubbling round flask with rising bubbles.
@@ -89,7 +89,7 @@ static func draw(canvas: CanvasItem,u: BattleUnit,p: Vector2,time: float,fade: f
 			# Curling gusts sweeping round the centre.
 			for i in range(5):
 				var turn: float=time*1.6+i*TAU/5
-				canvas.draw_arc(p,r*(.5+.12*i),turn,turn+1.6,16,Color(c,.8-i*.1),3,true)
+				canvas.draw_arc(p,r*(.5+.12*i),turn,turn+1.6,16,Color(c,.8-i*.1),3,VfxArt.aa)
 		"crosshair":
 			canvas.draw_arc(p,r*.8,0,TAU,40,c,2.5)
 			for i in range(4):

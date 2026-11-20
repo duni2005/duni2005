@@ -12,4 +12,4 @@ static func can_see_attack(unit, source, point: Vector2, hidden: bool = false) -
 
 static func concealed(unit) -> bool:
 	if not unit.alive:return false
-	return unit.state_value("shadowTime")>0 or (unit.data.tags.has("기습형") and unit.state_value("revealTime")<=0 and unit.combat_state==CombatController.State.IDLE) if unit.battle.full_characters_enabled else unit.hidden_from_enemies
+	return unit.state_value("shadowTime")>0 or (unit.data.ambusher() and unit.state_value("revealTime")<=0 and unit.combat_state==CombatController.State.IDLE) if unit.battle.full_characters_enabled else unit.hidden_from_enemies

@@ -12,22 +12,22 @@ static func draw_walls(c: CanvasItem, battle, time: float) -> void:
 	for z in battle.card_zones:
 		var center: Vector2 = z.center;var r: float = float(z.radius);var fade: float = clampf(float(z.life), 0, 1)
 		var col: Color = Color("7fe0a0")
-		c.draw_circle(center, r, Color(col, .16 * fade));c.draw_arc(center, r, 0, TAU, 48, Color(col, .8 * fade), 2.5, true)
+		c.draw_circle(center, r, Color(col, .16 * fade));c.draw_arc(center, r, 0, TAU, 48, Color(col, .8 * fade), 2.5,VfxArt.aa)
 		c.draw_arc(center, r * (.4 + .6 * fposmod(time * .6, 1)), 0, TAU, 40, Color(col.lightened(.3), .45 * fade * (1 - fposmod(time * .6, 1))), 2, true)
 		for k in range(5):
 			var rise: float = fposmod(time * .7 + k * .2, 1);var at: Vector2 = center + Vector2.from_angle(k * 1.3) * r * .55 * fposmod(k * .37 + .2, 1) - Vector2(0, 26 * rise)
 			var a: float = (1 - rise) * .9 * fade
-			c.draw_line(at - Vector2(5, 0), at + Vector2(5, 0), Color(col.lightened(.4), a), 2.5, true);c.draw_line(at - Vector2(0, 5), at + Vector2(0, 5), Color(col.lightened(.4), a), 2.5, true)
+			c.draw_line(at - Vector2(5, 0), at + Vector2(5, 0), Color(col.lightened(.4), a), 2.5,VfxArt.aa);c.draw_line(at - Vector2(0, 5), at + Vector2(0, 5), Color(col.lightened(.4), a), 2.5,VfxArt.aa)
 	for w in battle.card_walls:
 		var a: Vector2 = w.a;var b: Vector2 = w.b;var left: float = float(w.life) / maxf(.01, float(w.max_life))
 		var flick: float = 1.0 if left > .25 else .55 + .45 * sin(time * 30)
 		var col: Color = Color("8fe3ff")
 		var n: Vector2 = (b - a).normalized().orthogonal() * StrategyCardTuning.WALL_THICKNESS * .5
 		c.draw_colored_polygon(PackedVector2Array([a + n, b + n, b - n, a - n]), Color(col, .28 * flick))
-		c.draw_line(a, b, Color(col.lightened(.4), .9 * flick), 3, true)
+		c.draw_line(a, b, Color(col.lightened(.4), .9 * flick), 3,VfxArt.aa)
 		for k in range(1, 6):
 			var p: Vector2 = a.lerp(b, k / 6.0)
-			c.draw_line(p - n, p + n, Color(col, .5 * flick), 1.5, true)
+			c.draw_line(p - n, p + n, Color(col, .5 * flick), 1.5,VfxArt.aa)
 		VfxArt.glow(c, Vector2(w.center), Vector2(w.a).distance_to(Vector2(w.b)) * .6, col, .18 * flick)
 
 ## Held unit card: rings on the units it can be played on, a shade over the others.
@@ -39,7 +39,7 @@ static func draw_focus(c: CanvasItem, battle, board, time: float) -> void:
 		if u.actor_id() in board.card_focus_ids:
 			var pulse: float = .5 + .5 * sin(time * 6)
 			VfxArt.glow(c, u.position, r * 2.2, ArenaUI.GOLD, .3 + .15 * pulse)
-			c.draw_arc(u.position, r + 4 + 3 * pulse, 0, TAU, 32, Color(ArenaUI.GOLD, .95), 3, true)
+			c.draw_arc(u.position, r + 4 + 3 * pulse, 0, TAU, 32, Color(ArenaUI.GOLD, .95), 3,VfxArt.aa)
 		else:
 			c.draw_circle(u.position, r * 1.2, Color(0, 0, 0, .55))
 

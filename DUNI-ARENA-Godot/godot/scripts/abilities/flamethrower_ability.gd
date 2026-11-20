@@ -34,7 +34,7 @@ func release_basic(u) -> void:
 func attack_tick(u,dt: float) -> bool:
 	if u.combat_state==CombatController.State.IDLE:return false
 	var target=u.combat.attack_target
-	if target==null or not target.alive or not CombatPerception.can_perceive(u,target):target=nearest(u,u.enemies())
+	if target==null or not target.alive or not CombatPerception.can_perceive(u,target):target=u.nearest_enemy()
 	if target==null:u.combat.cancel(u);return true
 	u.combat.attack_target=target
 	u.combat.aim_angle+=clampf(wrapf(u.combat.aim_direction(u,target)-u.combat.aim_angle,-PI,PI),-2.5*dt,2.5*dt)

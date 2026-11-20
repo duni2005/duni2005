@@ -21,7 +21,7 @@ func release_basic(u) -> void:
 func attack_tick(u,_dt: float) -> bool:
 	if u.combat_state!=CombatController.State.IDLE:
 		var target=u.combat.attack_target
-		if target==null or not target.alive or not CombatPerception.can_perceive(u,target):target=nearest(u,u.enemies())
+		if target==null or not target.alive or not CombatPerception.can_perceive(u,target):target=u.nearest_enemy()
 		if target==null:u.combat.cancel(u);return true
 		u.combat.attack_target=target
 		u.combat.aim_angle+=clampf(wrapf(u.combat.aim_direction(u,target)-u.combat.aim_angle,-PI,PI),-4*_dt,4*_dt)
@@ -36,7 +36,7 @@ func modify_movement(u,t,dt: float) -> bool:
 	if t==null:return false
 	var d: float=u.position.distance_to(t.position);var dir: Vector2=(t.position-u.position).normalized()
 	var movement: Vector2=dir*clampf((d-(440 if u.state_value("reloadRemaining")>0 else 365))/85,-1.15,.9)-dir.orthogonal()*u.brain.side*(.05 if u.combat_state==CombatController.State.ACTIVE else .3)
-	var near=nearest(u,u.enemies());var gap: float=u.position.distance_to(near.position) if near!=null else INF
+	var near=u.nearest_enemy();var gap: float=u.position.distance_to(near.position) if near!=null else INF
 	if gap<220:movement+=(u.position-near.position).normalized()*(220-gap)/80
 	u.brain.steer(u,movement,dt,.35 if u.combat_state==CombatController.State.WINDUP else .55 if u.combat_state==CombatController.State.ACTIVE else 1);return true
 func can_ultimate(u,_t) -> bool:return u.state_value("ammo")<=0 and u.state_value("reloadRemaining")>.4

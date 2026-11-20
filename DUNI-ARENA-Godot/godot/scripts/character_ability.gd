@@ -6,10 +6,13 @@ func tick(_u,_dt: float) -> void:pass
 func on_damage(_u,_actual: float,_options: Dictionary) -> void:pass
 func on_kill(_u,_victim) -> void:pass
 func on_death(_u) -> void:pass
+## The enemy with the lowest target_priority, the nearest of those (one pass instead of a sort).
 func choose_target(u,enemies: Array):
-	var seen: Array=enemies.duplicate()
-	enemies.sort_custom(func(a,b):return target_priority(u,a,seen)<target_priority(u,b,seen) if target_priority(u,a,seen)!=target_priority(u,b,seen) else u.position.distance_to(a.position)<u.position.distance_to(b.position))
-	return enemies[0] if not enemies.is_empty() else null
+	var best=null;var best_p: float=0;var best_d: float=0
+	for e in enemies:
+		var p: float=target_priority(u,e,enemies);var d: float=u.position.distance_to(e.position)
+		if best==null or p<best_p or p==best_p and d<best_d:best=e;best_p=p;best_d=d
+	return best
 func target_priority(_u,_enemy,_seen: Array) -> float:return 0
 func support_anchor(u):
 	var friends: Array=u.friends()
@@ -27,7 +30,7 @@ func charge_rate(_u) -> float:return 1
 func attack_rate(_u) -> float:return 1
 func critical_bonus(_u,_target) -> float:return 0
 func can_ultimate(u,target) -> bool:return target!=null
-func ultimate_target(u):return u.target if is_instance_valid(u.target) and u.target.alive else nearest(u,u.enemies())
+func ultimate_target(u):return u.target if is_instance_valid(u.target) and u.target.alive else u.nearest_enemy()
 func release_basic(u) -> void:
 	var p: AttackData=u.combat.profile(u)
 	if p.kind==AttackData.Kind.MELEE:
@@ -42,7 +45,11 @@ func projectile_hit(_u,_p,_target) -> bool:return false
 func melee_hit(_u,_attack,_target,_outcome) -> void:pass
 func pre_damage(_u,_source,_damage: float,_options: Dictionary) -> Dictionary:return {}
 static func nearest(u,list: Array):
-	var sorted: Array=list.duplicate();sorted.sort_custom(func(a,b):return u.position.distance_to(a.position)<u.position.distance_to(b.position));return sorted[0] if not sorted.is_empty() else null
+	var best=null;var best_d: float=INF
+	for v in list:
+		var d: float=u.position.distance_to(v.position)
+		if d<best_d:best_d=d;best=v
+	return best
 static func restore_hp(target, base: float, source=null) -> float:
 	if target==null or not target.alive or base<=0:return 0
 	var want: float=base*(source.healing_power*ElementEffects.healing(source) if source!=null else 1)*target.healing_received*ElementEffects.healing(target)

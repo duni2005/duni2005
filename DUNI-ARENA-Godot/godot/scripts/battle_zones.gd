@@ -8,37 +8,51 @@ func add(u,kind: String,point: Vector2,radius: float,life: float,extra: Dictiona
 	var z: Dictionary={"area_id":area_serial,"source":u.actor_id(),"kind":kind,"point":CharacterPersistence.point(point),"radius":radius,"life":life,"tick":0.0,"contacts":{},"positions":{}}
 	if u.battle.ultimate_actor==u:z["ultimate"]=true
 	z.merge(extra,true);entries.append(z);return z
-func risk(u,point: Vector2) -> float:
+## Danger at `point` for `u`: enemy zones, bombs about to burst and enemy ultimates being cast.
+## `hazards` (from risk_hazards) lets a caller that scores many points for the same unit in one
+## frame gather them once; the result is the same either way.
+func risk(u,point: Vector2,hazards=null) -> float:
+	if hazards==null:hazards=risk_hazards(u)
 	var result: float=0
+	for h in hazards:
+		match int(h[0]):
+			RISK_RING:
+				var diff: Vector2=point-h[1];var edge: float=maxf(absf(diff.x),absf(diff.y))
+				result+=2.7 if absf(edge-float(h[2]))<float(h[3])+13 else .35 if edge<float(h[2]) else 0
+			RISK_CIRCLE:
+				var limit: float=h[2];var d: float=point.distance_to(h[1])
+				if d<limit:result+=float(h[3])*(.65+.35*(1-d/limit))
+			RISK_PATH:
+				if PhysicalAttackSystem.point_distance(point,h[1],h[2])<float(h[3]):result+=3
+	return result
+const RISK_RING: int = 0
+const RISK_CIRCLE: int = 1
+const RISK_PATH: int = 2
+## The hazards risk() weighs for `u`, in the order it adds them: [RISK_RING, center, radius, body],
+## [RISK_CIRCLE, center, limit, weight] or [RISK_PATH, from, to, limit].
+func risk_hazards(u) -> Array:
+	var out: Array=[]
 	var body: float=25*u.combat_scale()
 	for z in entries:
 		var source=u.battle.find_actor(z.source)
 		if source==null or source.team==u.team or z.kind not in ["blackhole","tankFire","ring","oilFire","lava"]:continue
 		var center: Vector2=CharacterPersistence.vector(z.point)
 		var radius: float=z.radius
-		if z.kind=="ring":
-			var diff: Vector2=point-center;var edge: float=maxf(absf(diff.x),absf(diff.y))
-			result+=2.7 if absf(edge-radius)<body+13 else .35 if edge<radius else 0
-		else:
-			var d: float=point.distance_to(center);var limit: float=radius+body
-			if d<limit:result+=(3.0 if z.kind=="blackhole" else 2.5)*(.65+.35*(1-d/limit))
+		if z.kind=="ring":out.append([RISK_RING,center,radius,body])
+		else:out.append([RISK_CIRCLE,center,radius+body,3.0 if z.kind=="blackhole" else 2.5])
 	for p in u.battle.projectiles:
 		if not p.live or p.kind!="bomb" or float(p.metadata.get("fuse",2))>1.3 or p.source.team==u.team or p.hidden_launch or not CombatPerception.in_attack_view(u,p.position) or (p.source.alive and not CombatPerception.can_perceive(u,p.source)):continue
 		var point_end: Vector2=p.position+p.velocity*float(p.metadata.get("flight",0))
-		var limit: float=float(p.metadata.blast_radius)+body;var d: float=point.distance_to(point_end)
-		if d<limit:result+=(1.3+maxf(0,1-float(p.metadata.fuse))*2)*(.65+.35*(1-d/limit))
+		out.append([RISK_CIRCLE,point_end,float(p.metadata.blast_radius)+body,1.3+maxf(0,1-float(p.metadata.fuse))*2])
 	for enemy in u.enemies():
 		if enemy.ultimate.cast.is_empty() or not CombatPerception.can_see_attack(u,enemy,enemy.position,false):continue
 		var cast: Dictionary=enemy.ultimate.cast
 		var remaining: float=maxf(.05,float(cast.duration)-float(cast.t));var weight: float=1.8+maxf(0,1-remaining)*1.3
 		var area: Dictionary=enemy.ability.cast_area(enemy,cast)
 		if area.is_empty():continue
-		if area.get("shape","")=="path":
-			if PhysicalAttackSystem.point_distance(point,CharacterPersistence.vector(area.from),CharacterPersistence.vector(area.to))<float(area.radius)+body:result+=3
-		else:
-			var limit: float=float(area.radius)+body;var d: float=point.distance_to(CharacterPersistence.vector(area.point))
-			if d<limit:result+=weight*(.65+.35*(1-d/limit))
-	return result
+		if area.get("shape","")=="path":out.append([RISK_PATH,CharacterPersistence.vector(area.from),CharacterPersistence.vector(area.to),float(area.radius)+body])
+		else:out.append([RISK_CIRCLE,CharacterPersistence.vector(area.point),float(area.radius)+body,weight])
+	return out
 ## 화염방사기 oil fire: whether `point` is on a puddle that has caught fire (one hit per tick
 ## however many puddles overlap there).
 static func burning(z: Dictionary,point: Vector2,margin: float=0) -> bool:

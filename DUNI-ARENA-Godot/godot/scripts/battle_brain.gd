@@ -166,11 +166,12 @@ func steer(u,direction: Vector2,dt: float,factor: float=1,style: String="archety
 	var separation_radius: float=58 if style=="general" else 55 if style=="strategy" else 56
 	var divisor: float=25 if style=="archetype" else 22
 	for other in u.battle.units:
-		if other==u or not other.alive or not CombatPerception.can_perceive(u,other):continue
+		if other==u:continue
+		# Distance first: perception (no side effects) only for units close enough to matter.
 		var d: float=u.position.distance_to(other.position)
-		if d<separation_radius:
-			var normal: Vector2=(u.position-other.position)/d if d>.01 else Vector2.RIGHT if u.battle_id<other.battle_id else Vector2.LEFT
-			direction+=normal*(separation_radius-d)/divisor
+		if d>=separation_radius or not other.alive or not CombatPerception.can_perceive(u,other):continue
+		var normal: Vector2=(u.position-other.position)/d if d>.01 else Vector2.RIGHT if u.battle_id<other.battle_id else Vector2.LEFT
+		direction+=normal*(separation_radius-d)/divisor
 	var p: Vector2=u.position;var wall: float=85 if style=="general" else 55
 	for axis in range(2):
 		if p[axis]<wall:direction[axis]+=(wall-p[axis])/(30 if style=="strategy" else wall)*(2 if style=="general" else 1)
@@ -182,7 +183,7 @@ func steer(u,direction: Vector2,dt: float,factor: float=1,style: String="archety
 ## Slower while heading straight away from an enemy that is close (bombs and charm excepted).
 func flee_rate(u) -> float:
 	if heading.length_squared()<.01 or movement_override in ["bomb_escape","charmed"]:return 1.0
-	var near=CharacterAbility.nearest(u,u.enemies())
+	var near=u.nearest_enemy()
 	if near==null or near.position.distance_to(u.position)>300:return 1.0
 	var away: float=heading.normalized().dot((u.position-near.position).normalized())
 	return lerpf(1.0,FLEE_SPEED,clampf((away-.3)/.6,0,1))
@@ -214,7 +215,7 @@ func move_defensive(u,enemy,dt: float) -> bool:
 	if cautious and not counter and spacing.get("mode","")!="withdraw":direction+=formation_pull(u,enemy)
 	# Cautious hit-and-run: right after its own attack it steps straight back.
 	if cautious and not counter and u.battle.clock.elapsed<disengage_until:direction-=f*StanceRules.CAUTIOUS_SHOT_STEP
-	var nearest=CharacterAbility.nearest(u,u.enemies());var near: float=u.position.distance_to(nearest.position) if nearest!=null else d
+	var nearest=u.nearest_enemy();var near: float=u.position.distance_to(nearest.position) if nearest!=null else d
 	if not counter and nearest!=null and nearest!=enemy and near<190:direction+=(u.position-nearest.position).normalized()*1.3
 	var incoming: Dictionary=u.threat_response.projectile_threat(u)
 	if not incoming.is_empty() and incoming.time<reaction*StanceRules.pick(u,1,StanceRules.CAUTIOUS_DEFENSIVE_SIDESTEP,1) and not counter:direction=direction*.45-incoming.arrow.velocity.normalized().orthogonal()*side
@@ -240,26 +241,30 @@ func rear_station(u,enemy) -> Dictionary:
 		for i in range(-4,5):options.append((enemy.position+Vector2.from_angle((u.position-enemy.position).angle()+i*.28)*preferred).clamp(Vector2(55,55),ArenaMap.hi(55)))
 	for i in range(8):options.append((u.position+Vector2.from_angle(i*PI/4)*100).clamp(Vector2(55,55),ArenaMap.hi(55)))
 	var best: Vector2=u.position;var best_score: float=-INF
+	# Nothing moves while the stations are scored: the unit lists and AreaEvaluator's context are
+	# gathered once.
+	var foes: Array=u.enemies();var mates: Array=u.friends();var outer: Array=AreaEvaluator.begin(u)
 	for point in options:
-		var near: float=400 if u.enemies().is_empty() else INF
-		for foe in u.enemies():near=minf(near,point.distance_to(foe.position))
+		var near: float=400 if foes.is_empty() else INF
+		for foe in foes:near=minf(near,point.distance_to(foe.position))
 		var gap: float=point.distance_to(enemy.position) if enemy!=null else preferred
-		var occupied: int=u.friends().filter(func(a):return a.position.distance_to(point)<65).size()
+		var occupied: int=mates.filter(func(a):return a.position.distance_to(point)<65).size()
 		var score: float=-maxf(0,225-near)*2.8-absf(gap-preferred)*.2-maxf(0,gap-u.data.attack_range*.96)*2-point.distance_to(u.position)*.055-occupied*40-AreaEvaluator.evaluate(u,point).total*100
 		if friend!=null:
 			var behind: float=(point-friend.position).dot(Vector2.from_angle(support_angle))
 			score-=maxf(0,90-behind)*1.5+absf(point.distance_to(friend.position)-125)*.7+maxf(0,point.distance_to(friend.position)-210)*2
 		# Cautious back line keeps formation: stations far from every ally score lower.
-		if u.stance==CombatStance.CAUTIOUS and not u.friends().is_empty():
+		if u.stance==CombatStance.CAUTIOUS and not mates.is_empty():
 			var mate: float=INF
-			for a in u.friends():mate=minf(mate,point.distance_to(a.position))
+			for a in mates:mate=minf(mate,point.distance_to(a.position))
 			score-=maxf(0,mate-StanceRules.CAUTIOUS_COHESION)*StanceRules.CAUTIOUS_REAR_COHESION
 		if score>best_score:best_score=score;best=point
+	AreaEvaluator.finish(outer)
 	return {"point":best,"friend":friend.actor_id() if friend!=null else ""}
 func move_rear(u,enemy,dt: float) -> bool:
 	var now: float=u.battle.clock.elapsed
 	if not u.data.tags.has("후열") and not (u.data.type_id==5 and u.data.tags.has("의존형")) or u.stance in [CombatStance.RUSH,CombatStance.COVER] or u.taunted_until>now or u.command_retreat_until>now or not u.ultimate.cast.is_empty() or u.character_specific_state.get("bomberRush",false):return false
-	var nearest=CharacterAbility.nearest(u,u.enemies());var close: bool=nearest!=null and u.position.distance_to(nearest.position)<210
+	var nearest=u.nearest_enemy();var close: bool=nearest!=null and u.position.distance_to(nearest.position)<210
 	var target_id: String=enemy.actor_id() if enemy!=null else ""
 	var friend=u.battle.find_actor(rear_goal.get("friend",""))
 	if rear_goal.is_empty() or now>=rear_think_at or rear_target!=target_id or not rear_goal.get("friend","").is_empty() and (friend==null or not friend.alive or friend.team!=u.team):
