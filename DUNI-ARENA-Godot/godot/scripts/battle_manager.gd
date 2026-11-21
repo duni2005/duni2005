@@ -17,6 +17,10 @@ const ARCHER: UnitData = preload("res://data/archer.tres")
 var custom_mode: bool = false
 ## Per-team colours when set (전투 예측: up to five teams); otherwise blue against red.
 var team_colors: Array[Color] = []
+## 시련 of this battle (TrialCatalog ids) and the floor their damage counts by; TrialEffects runs them.
+var trials: Array[StringName] = []
+var trial_floor: int = 1
+var trial_state: Dictionary = {}
 ## The unit whose ultimate is releasing right now; attacks it spawns are tagged for presentation.
 var ultimate_actor = null
 @export var full_characters_enabled: bool = true
@@ -105,6 +109,7 @@ func start_battle(placements: Array[Dictionary], seed_value: int = -1, map_id: i
 			if actor.stance==CombatStance.COVER:CharacterLifecycle.bind_cover(actor)
 		for actor in units:CharacterPersistence.restore_control(actor)
 		ItemEffects.on_battle_start(self)
+		TrialEffects.start(self)
 	check_outcome()
 	return true
 
@@ -455,6 +460,7 @@ func simulate_common(delta: float) -> void:
 		if unit.combat.can_start(unit,unit.target): unit.combat.start(unit,unit.target,rng)
 		unit.queue_redraw()
 	if full_characters_enabled:BindingController.advance(self,delta);ElementEffects.advance(self,delta);ItemEffects.advance(self,delta)
+	if full_characters_enabled and not trials.is_empty():TrialEffects.advance(self,delta)
 	if not spawn_queue.is_empty():_flush_spawns()
 	PhysicalAttackSystem.advance(self,delta)
 	for wave in combat_waves: wave.advance(self,delta)
@@ -477,6 +483,7 @@ func character_death(victim,source) -> void:
 	var enemy_kill: bool=is_instance_valid(source) and source.team!=victim.team and not victim.character_specific_state.has("mirrorOf")
 	victim.ability.on_death(victim)
 	ItemEffects.on_death(victim)
+	TrialEffects.on_death(self,victim)
 	if enemy_kill:
 		source.ability.on_kill(source,victim)
 		EquipmentCombatEffects.on_kill(source);ItemEffects.on_kill(source,victim)

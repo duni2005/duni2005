@@ -28,6 +28,7 @@ func start(plan: DeploymentPlan, manager: BattleManager, seed_value: int = -1) -
 	battle.room_id = room.room_id
 	# 0.97 items read the room and the sortie: 용사의 휘장, 고독한 왕의 검, 계약의 인장.
 	battle.set_meta("room_type", room.room_type)
+	battle.trials.assign(room.trials);battle.trial_floor = room.floor_index + 1
 	battle.set_meta("sortie_limit", GrowthRules.sortie_limit(guild.state))
 	var pact: Array = BuildItems.pact_bearers(guild, plan)
 	battle.set_meta("pact_off", pact.slice(floori(float(guild.state.gold) / ItemTuning.PACT_GOLD)) if not pact.is_empty() else [])
@@ -56,7 +57,7 @@ func _on_death(unit: BattleUnit, _source) -> void:
 		var enemy: EnemyRoomState = room.enemy_state.get(unit.source_enemy_id)
 		if enemy != null and enemy.spawn != null:
 			var factor: float = unit.data.recruit_tokens / 2.0 * (1 + enemy.spawn.level * .12)
-			var reward: Dictionary = {"gold": floori((10 + battle.rng.randi_range(0,30)) * factor + .5), "tokens": int(battle.rng.randf() < minf(.25,.03*factor))}
+			var reward: Dictionary = {"gold": floori((10 + battle.rng.randi_range(0,30)) * factor * TrialEffects.kill_gold(room.trials) + .5), "tokens": int(battle.rng.randf() < minf(.25,.03*factor))}
 			room.kill_rewards[unit.source_enemy_id] = reward
 			guild.state.gold += reward.gold; guild.state.tokens += reward.tokens
 	if guild.state.player_hp <= 0:

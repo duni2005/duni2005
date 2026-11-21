@@ -15,10 +15,20 @@ const KINDS = {
 	&"unique":["고유", Color("8fd0ff")],
 	&"item":["아이템", Color("7fe8e0")],
 	&"card":["전략카드", Color("e8c46a")],
+	&"trial":["시련", Color("ff8a5a")],
 }
-const KIND_ORDER = [&"control", &"debuff", &"mark", &"buff", &"growth", &"unique", &"item", &"card"]
+const KIND_ORDER = [&"control", &"debuff", &"mark", &"buff", &"growth", &"unique", &"item", &"card", &"trial"]
 ## key -> [name, kind, icon, description]
 const ENTRIES = {
+	# 시련 (TrialCatalog), shown while the battle has them.
+	&"trial_quake":["넘어짐", &"trial", "trial_quake", "지진 시련. 땅이 흔들려 잠깐 넘어져 아무 행동도 할 수 없다."],
+	&"trial_fog":["짙은 안개", &"trial", "trial_fog", "환경 시련. 안개 때문에 사거리가 30% 줄었다(최소 60)."],
+	&"trial_counter":["시련 방어", &"trial", "sturdyShield", "카운터 시련. 이 적은 해당 종류의 피해를 60% 덜 받는다."],
+	&"trial_regen":["끈질긴 생명", &"trial", "vital", "적 강화 시련. 매초 최대 HP의 1%를 회복한다."],
+	&"trial_berserk":["광폭화", &"trial", "berserkerHelm", "광전사들 시련. HP 30% 이하라 공격속도 +50%, 이동속도 +20%."],
+	&"trial_vengeance":["복수심", &"trial", "vengeanceMask", "복수심 시련. 근처 동료가 쓰러질 때마다 공격력 +10% (최대 5중첩)."],
+	&"trial_vanguard":["선봉대 돌격", &"trial", "chargeHorn", "선봉대 시련. 전투 시작 후 3초간 이동속도 +60%로 돌진한다."],
+	&"trial_elite":["정예", &"trial", "knightCrest", "정예 부대 시련. 엘리트 배율(HP · 공격 · 방어 · 몸집)이 적용됐다."],
 	# 패시브 전략카드 (on for the battle they are taken into).
 	&"card_rally":["전열 정비", &"card", "rally", "패시브 카드. 전투 시작 시 아군 전원이 최대 HP 10% 보호막을 10초 동안 받았다."],
 	&"card_resonance":["원소 공명", &"card", "resonance", "패시브 카드. 같은 속성 아군이 많을수록 그 속성 아군의 피해가 1명당 10%씩 증가한다."],
@@ -126,6 +136,17 @@ const ENTRIES = {
 	&"item_growth":["아이템 성장", &"growth", "conquerorCrown", "런 동안 자라는 아이템(정복 층 · 연승 · 대기 · 신앙)."],
 }
 
+## The 시련 a live unit is under (the quake's fall is shown in place of 기절).
+static func _trial_rows(u: BattleUnit, s: Dictionary, add: Callable) -> void:
+	if _num(s, "fogRange") > 0:add.call(&"trial_fog", "사거리 ×%.1f" % _num(s, "fogRange"))
+	if not TrialEffects.enemy_side(u):return
+	var guards: Array = u.battle.trials.filter(func(t):return TrialCatalog.kind_of(t) == TrialCatalog.COUNTER)
+	if not guards.is_empty():add.call(&"trial_counter", " · ".join(guards.map(func(t):return TrialCatalog.name_of(t))))
+	if TrialEffects.on(u.battle, &"regen"):add.call(&"trial_regen", "초당 1%")
+	if TrialEffects.berserk(u):add.call(&"trial_berserk")
+	if _num(s, "vengeanceStacks") > 0:add.call(&"trial_vengeance", "%d중첩" % int(_num(s, "vengeanceStacks")))
+	if TrialEffects.vanguard(u):add.call(&"trial_vanguard", _secs(TrialCatalog.VANGUARD_TIME - u.battle.clock.elapsed))
+	if _num(s, "trialElite") > 0 or u.combat_stats != null and u.combat_stats.rank == &"elite" and TrialEffects.on(u.battle, &"elite_squad"):add.call(&"trial_elite")
 static func entry(key: StringName) -> Array:return ENTRIES.get(key, ["", &"buff", "star", ""])
 static func kind_label(key: StringName) -> String:return KINDS[entry(key)[1]][0]
 static func kind_color(key: StringName) -> Color:return KINDS[entry(key)[1]][1]
@@ -160,7 +181,8 @@ static func collect(subject, stats: UnitCombatStats = null, type_id: int = -1) -
 	elif subject is EnemyRoomState:type_id = subject.unit_type_id;stats = subject.combat_stats if stats == null else stats
 	var now: float = u.battle.clock.elapsed if u != null else 0.0
 	# 제어
-	if _num(s, "stun") > 0:add.call(&"frozen" if _num(s, "frozenTime") > 0 else &"stun", _secs(_num(s, "stun")))
+	if _num(s, "stun") > 0:add.call(&"trial_quake" if _num(s, "quakeTime") > 0 else &"frozen" if _num(s, "frozenTime") > 0 else &"stun", _secs(_num(s, "stun")))
+	if u != null and not u.battle.trials.is_empty():_trial_rows(u, s, add)
 	if _num(s, "tetherTime") > 0:add.call(&"tether", _secs(_num(s, "tetherTime")))
 	if _num(s, "magnetTime") > 0:add.call(&"magnet", _secs(_num(s, "magnetTime")))
 	if u != null:

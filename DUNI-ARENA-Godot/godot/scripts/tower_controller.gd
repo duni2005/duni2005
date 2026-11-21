@@ -152,10 +152,10 @@ func _settled(result: BattleResult,status: BattleSettlement.Status) -> void:
 	if room.cleared:
 		state.cleared_rooms[room.room_id]=true
 		if result.end_reason==BattleEndReason.Value.VICTORY and not room.reward_claimed:
-			guild.state.gold+=room.gold_reward
+			guild.state.gold+=roundi(room.gold_reward*TrialEffects.victory_gold(room.trials))
 			for id in result.surviving_member_ids:guild.state.gold+=int(result.member_victory_gold.get(id,0))
 			guild.state.tokens+=room.token_reward;room.reward_claimed=true
-			if content!=null:content.roll_battle_reward(room,generator.rng,int(items.choices))
+			if content!=null:content.roll_battle_reward(room,generator.rng,int(items.choices)+TrialEffects.extra_choices(room.trials))
 			if room.room_type==RoomType.MINIBOSS:
 				var keys: Array=StrategyCardCatalog.DEFINITIONS.keys();guild.state.give_strategy_card(keys[generator.rng.randi_range(0,keys.size()-1)])
 		room.consumed=true;refresh_progress(room.floor_index)

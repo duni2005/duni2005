@@ -8,12 +8,39 @@ var caption: String="DUNI TOWER"
 var compact: bool=false:
 	set(value):
 		if compact==value:return
-		compact=value;custom_minimum_size.y=42 if compact else 70;queue_redraw()
+		compact=value;_fit_height();queue_redraw()
+## 시련 of the room: round icons on the panel's bottom-right edge (tap one for its popup).
+signal trial_pressed(id: StringName,at: Vector2)
+const TRIAL_R: float=11
+const TRIAL_GAP: float=4
+var trials: Array[StringName]=[]:
+	set(value):
+		trials=value;_fit_height();mouse_filter=Control.MOUSE_FILTER_STOP if not trials.is_empty() else Control.MOUSE_FILTER_IGNORE;queue_redraw()
+## Seconds into the icons' entrance (-1: settled); they wait trial_intro_delay first.
+var trial_intro: float=-1
+var trial_intro_delay: float=0
+func _panel_height() -> float:return 40.0 if compact else 68.0
+## The icons hang half below the panel, so the bar grows by that much while there are trials.
+func _fit_height() -> void:custom_minimum_size.y=(42 if compact else 70)+(TRIAL_R if not trials.is_empty() else 0)
+func trial_center(i: int) -> Vector2:
+	return Vector2(size.x-14-TRIAL_R-(trials.size()-1-i)*(TRIAL_R*2+TRIAL_GAP),_panel_height()+(2 if compact else 1))
+func trial_strip_width() -> float:return trials.size()*(TRIAL_R*2+TRIAL_GAP) if not trials.is_empty() else 0.0
+func play_trial_intro(delay: float=0) -> void:trial_intro=0.0 if UiMotion.enabled and not trials.is_empty() else -1.0;trial_intro_delay=delay;queue_redraw()
+func settle_trials() -> void:trial_intro=-1;queue_redraw()
+func _gui_input(event: InputEvent) -> void:
+	if trials.is_empty() or not ((event is InputEventMouseButton or event is InputEventScreenTouch) and event.pressed):return
+	for i in range(trials.size()):
+		if trial_center(i).distance_to(event.position)<=TRIAL_R+4:accept_event();trial_pressed.emit(trials[i],get_global_transform()*trial_center(i));return
+func _draw_trials() -> void:
+	for i in range(trials.size()):
+		# Entrance: each icon pops out in turn with a little overshoot.
+		var k: float=1.0 if trial_intro<0 else clampf((trial_intro-trial_intro_delay-.35-i*.18)/.35,0,1)
+		TrialArt.icon(self,trial_center(i),TRIAL_R,trials[i],k+.25*sin(k*PI))
 var previous_gold: int=-1
 var gold_pulse: float=0
 var gold_delta: int=0
 func _ready() -> void:
-	custom_minimum_size.y=70;clip_text=true;autowrap_mode=TextServer.AUTOWRAP_OFF;add_theme_font_size_override("font_size",1);add_theme_color_override("font_color",Color.TRANSPARENT)
+	_fit_height();clip_text=true;autowrap_mode=TextServer.AUTOWRAP_OFF;add_theme_font_size_override("font_size",1);add_theme_color_override("font_color",Color.TRANSPARENT)
 var updates_suspended: bool=false
 var shown_gold: float=-1
 var shown_tokens: float=-1
@@ -48,6 +75,9 @@ func animate_exchange(kind: String,from_value: int,spent: int,to_value: int) -> 
 	animate_resource(kind,from_value,from_value-spent,0)
 	tracks[kind]["next"]={"from":float(from_value-spent),"to":float(to_value),"age":-.4,"duration":ROLL}
 func _process(dt: float) -> void:
+	if trial_intro>=0:
+		trial_intro+=dt;queue_redraw()
+		if trial_intro>trial_intro_delay+.8+trials.size()*.18:trial_intro=-1
 	if is_visible_in_tree() and not updates_suspended:advance_view(dt)
 func advance_view(dt: float) -> void:
 	if guild==null:return
@@ -83,7 +113,7 @@ func advance_view(dt: float) -> void:
 func _draw() -> void:
 	if guild==null:return
 	if _panel_style==null:_panel_style=ArenaUI.card_style(Color("4a5680"),Color("141b2d"))
-	if compact:_draw_compact();return
+	if compact:_draw_compact();_draw_trials();return
 	draw_style_box(_panel_style,Rect2(0,0,size.x,68))
 	var font: Font=get_theme_default_font();var numbers: Font=ArenaUI.numbers_font();var w: float=size.x*.30
 	for kind in pulses:
@@ -101,8 +131,11 @@ func _draw() -> void:
 	var health: String=str(ceili(guild.state.player_hp));var health_width: float=numbers.get_string_size(health,HORIZONTAL_ALIGNMENT_LEFT,-1,30).x
 	draw_string(numbers,Vector2(w*2+8,48),health,HORIZONTAL_ALIGNMENT_LEFT,-1,30,ArenaUI.HP)
 	draw_string(numbers,Vector2(w*2+13+health_width,48),"/ %d"%ceili(guild.state.player_max_hp),HORIZONTAL_ALIGNMENT_LEFT,-1,14,ArenaUI.MUTED)
-	draw_rect(Rect2(w*2+8,61,size.x-w*2-20,3),Color("26304a"));draw_rect(Rect2(w*2+8,61,(size.x-w*2-20)*clampf(guild.state.player_hp/maxf(1,guild.state.player_max_hp),0,1),3),ArenaUI.HP)
+	# The bar stops short of the trial icons on the panel's edge.
+	var bar_w: float=maxf(12,size.x-w*2-20-(trial_strip_width()+4 if not trials.is_empty() else 0))
+	draw_rect(Rect2(w*2+8,61,bar_w,3),Color("26304a"));draw_rect(Rect2(w*2+8,61,bar_w*clampf(guild.state.player_hp/maxf(1,guild.state.player_max_hp),0,1),3),ArenaUI.HP)
 	_draw_floats(numbers,{"gold":Vector2(16+gold_width+12,40),"gem":Vector2(w+52,40)})
+	_draw_trials()
 func _draw_compact() -> void:
 	draw_style_box(_panel_style,Rect2(0,0,size.x,40))
 	var numbers: Font=ArenaUI.numbers_font();var w: float=size.x*.30

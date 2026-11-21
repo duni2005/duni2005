@@ -20,6 +20,9 @@ var portrait_types: Array[int]=[]
 ## marks under its portrait) and the team's 전투력 (top right; negative: not shown).
 var team_tint: Color=Color(0,0,0,0)
 var portrait_items: Array=[]
+## Deploy card: the 카운터 시련 its basic attack runs into (a red 불리 mark; tap it for the reason).
+var trial_warning: Array=[]
+func warning_rect() -> Rect2:return Rect2(size.x-33,22,29,15)
 var team_power: float=-1
 var dead: bool=false
 var sold: bool=false
@@ -117,6 +120,10 @@ func draw_member_summary(compact: bool=false) -> void:
 	write(Vector2(0,17),title,12 if small else 13,Color("eef1fa"),size.x,true)
 	var portrait: float=32 if small else 42
 	UnitIcon.draw(self,Rect2(size.x*.5-portrait*.5,21,portrait,portrait),type_id,.4 if dead else 1)
+	if not trial_warning.is_empty() and not dead:
+		var mark: Rect2=warning_rect()
+		draw_style_box(ArenaUI.box(Color("5a1418",.95),Color("ff5a5a")),mark)
+		draw_string(ArenaUI.heading_font(),Vector2(mark.position.x,mark.position.y+11.5),"불리",HORIZONTAL_ALIGNMENT_CENTER,mark.size.x,10,Color("ffd0d0"))
 	write(Vector2(0,65 if small else 76),subtitle,9 if small else 10,ArenaUI.MUTED,size.x,true)
 	var hp_y: float=80 if small else 91
 	write(Vector2(0,hp_y),"사망" if dead else "HP "+ArenaUI.hp(hp,hp_max),10,tint,size.x,true)

@@ -141,6 +141,11 @@ func encounter_for(room: RoomState) -> EncounterState:
 			e.items=EnemyItems.roll(item_rng,room.floor_index,e.rank)
 		e.initial_position=enemy_position(e,i,count,encounter.formation,placed);placed.append(e)
 	return encounter
+## Rolls a combat room's 시련 from `seed_value` and bakes their spawn changes into its encounter.
+static func assign_trials(room: RoomState,seed_value: int) -> void:
+	var trial_rng:=RandomNumberGenerator.new();trial_rng.seed=seed_value
+	room.trials=TrialCatalog.roll(trial_rng,room.floor_index+1,room.room_type)
+	TrialCatalog.apply_spawns(room.encounter,room.trials)
 func generate(seed_value: int,run_id: String) -> TowerMapState:
 	rng.seed=seed_value
 	var map:=TowerMapState.new()
@@ -156,6 +161,10 @@ func generate(seed_value: int,run_id: String) -> TowerMapState:
 			room.gold_reward=1000 if room.room_type==RoomType.BOSS else 700 if room.room_type==RoomType.MINIBOSS else 350+depth*50
 			room.token_reward=3 if room.room_type==RoomType.BOSS else 2 if room.room_type==RoomType.MINIBOSS else 1 if RoomType.is_combat(room.room_type) else 0
 			room.encounter=encounter_for(room)
+			# 시련 from a generator of their own (the rest of the map rolls as before; part of the
+			# balance layer: off for the source-parity tests).
+			if UnitBalance.enabled:assign_trials(room,hash("%s:%d:trials"%[room.room_id,rng.seed]))
+			room.trials_set=true
 			for e in room.encounter.enemies:
 				var enemy: EnemyRoomState=room.add_enemy(e.enemy_id,catalog[e.unit_type_id],e.initial_position)
 				enemy.spawn=e;enemy.combat_stats=TowerEnemyStatsAssembler.assemble(catalog[e.unit_type_id],e);enemy.current_hp=enemy.combat_stats.max_hp

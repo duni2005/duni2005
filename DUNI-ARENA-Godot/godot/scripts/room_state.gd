@@ -41,6 +41,10 @@ var consumed: bool = false
 var publicly_visible: bool = false
 var event_type: StringName = &""
 var encounter: EncounterState
+## 시련 (TrialCatalog ids), fixed when the floor is made; trials_set is false only in saves from
+## before 0.99.16 until the room gets its trials (rooms not yet entered) or none.
+var trials: Array[StringName] = []
+var trials_set: bool = false
 var gold_reward: int = 0
 ## 전투 보상: items offered after the win (pick one) and the pick: &"" while open, a kind, or &"skip".
 var item_choices: Array[StringName] = []

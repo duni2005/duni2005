@@ -467,6 +467,7 @@ func advance(delta: float) -> void:
 			var e: Dictionary=battle.combat_events[i];var kind: String=String(e.kind)
 			if kind=="item_proc" or kind=="item_fx":item_fx.event(e);continue
 			if CardFieldView.event(self,StringName(kind),e.point,e.metadata):continue
+			if TrialArt.event(self,StringName(kind),e.point,e.metadata):continue
 			if kind=="ult_impact":
 				add_effect("ult_impact",e.point,AttackVisuals.ink(int(e.metadata.get("type",0))),float(e.metadata.get("radius",110)),1.1)
 				particles.burst(e.point,Color("c8a77c"),20,340,0,"shard",true);particles.burst(e.point,Color("6b5a4a"),12,90,0,"smoke",true)
@@ -827,7 +828,7 @@ func _draw_battle() -> void:
 			if z.get("ultimate",false):_ult_zone(z,point,radius)
 			if z.kind=="discharge":
 				for i in range(8):VisualShapes.bolt(self,point,point+Vector2.from_angle(i*TAU/8+real_age)*radius,c,i,3)
-	if not battle.finished:EnemyStrategyView.draw_ground(self,battle,real_age);item_fx.draw_ground(self);CardFieldView.draw_walls(self,battle,real_age)
+	if not battle.finished:EnemyStrategyView.draw_ground(self,battle,real_age);item_fx.draw_ground(self);CardFieldView.draw_walls(self,battle,real_age);TrialArt.draw_ground(self,battle,real_age)
 	for u in battle.units:
 		if u.alive:AttackVisuals.frog_action(self,u)
 	for attack in battle.melee_strikes:
@@ -1224,6 +1225,7 @@ func _draw_battle() -> void:
 				draw_arc(caster.position,40,0,TAU,32,Color("d6a6ff"),3)
 	CardFieldView.draw_focus(self,battle,board,real_age)
 	draw_set_transform(Vector2.ZERO)
+	if not battle.trials.is_empty():TrialArt.draw_weather(self,battle,rect,real_age)
 	EnemyStrategyView.draw_badges(self,battle,parent_transform,board.strategy_actor_id,real_age)
 	EnemyStrategyView.draw_detail(self,battle,rect,board.strategy_actor_id)
 	if not external_kill_feed:_draw_kill_notices(rect)

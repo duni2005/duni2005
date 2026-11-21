@@ -136,6 +136,10 @@ func _rebuild_roster() -> void:
 		var button: ArenaCard=roster.get_node_or_null(member.member_id)
 		if button==null:
 			button=ArenaCard.new();button.name=member.member_id;ArenaUI.bind(button,_roster_pressed.bind(member.member_id));roster.add_child(button)
+			var card: ArenaCard=button
+			card.gui_input.connect(func(e: InputEvent):
+				if (e is InputEventMouseButton or e is InputEventScreenTouch) and e.pressed:card.set_meta("press_at",e.position))
+		button.trial_warning=_trial_warning(member)
 		button.text=label;button.card_type="deploy_member";button.show_member(guild,member);button.deployed=placed;button.subtitle="%s · Lv.%d"%[ArenaUI.member_label(member.member_id),member.level];button.status_text=ArenaUI.stance(member.stance)+(" · 배치됨" if placed else " · 대기")
 		button.name = member.member_id
 		button.custom_minimum_size = Vector2(88, 122)
@@ -156,8 +160,15 @@ func _open_unit_info(unit_type: int, member_id: String, stats: UnitCombatStats, 
 	UnitInfoSheet.open(self,unit_type,stats if stats!=null else guild.member_stats(member) if member!=null else null,member,subject)
 ## Tapping the selected roster unit again opens its description sheet. Picking a unit card while
 ## the eraser is on puts the eraser away and selects that unit.
+## The 카운터 시련 a member's basic attack runs into (none outside battle rooms).
+func _trial_warning(_member: GuildMemberState) -> Array:return []
 func _roster_pressed(member_id: String) -> void:
 	var member: GuildMemberState=guild.get_member(member_id)
+	# The 불리 mark explains itself instead of selecting the unit.
+	var card: ArenaCard=roster.get_node_or_null(member_id)
+	if card!=null and not card.trial_warning.is_empty() and card.warning_rect().grow(4).has_point(card.get_meta("press_at",Vector2(-99,-99))):
+		card.set_meta("press_at",Vector2(-99,-99));card.set_pressed_no_signal(member_id==board.selected_id)
+		TrialPopup.show(self,card.trial_warning,card.get_global_transform()*card.warning_rect().get_center(),"불리 · 기본공격이 이 시련에 막혀 피해가 60% 줄어듭니다");return
 	if board.erase_mode:
 		board.erase_mode=false;erase_button.set_pressed_no_signal(false);status.text="선택한 유닛을 배치하세요.";board.select(member_id);_update_tools();return
 	if member_id==board.selected_id and member!=null:UnitInfoSheet.open(self,member.unit_type_id,guild.member_stats(member),member,member);_refresh_roster();return

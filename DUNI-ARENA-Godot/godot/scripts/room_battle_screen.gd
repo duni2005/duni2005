@@ -76,6 +76,7 @@ func _build_ui() -> void:
 	room_hud = WalletBar.new();room_hud.guild=guild
 	room_hud.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	room_hud.custom_minimum_size.y = 70
+	room_hud.trial_pressed.connect(func(id: StringName,at: Vector2):TrialPopup.show(self,[id],at))
 	column.add_child(room_hud)
 	column.move_child(room_hud, 2)
 	character_debug_row=HFlowContainer.new()
@@ -161,6 +162,7 @@ func begin_deployment() -> void:
 	if loadout_panel!=null:loadout_panel.open(guild)
 	retreat_button.disabled = true
 	_update_room_hud()
+	_play_trial_entry()
 
 func start_battle() -> void:
 	if not board.editing or card_stage:
@@ -263,12 +265,24 @@ func _room_finished(result: BattleResult, applied: BattleSettlement.Status) -> v
 	_refresh_roster()
 	_update_room_hud()
 
+## Room entry with 시련: the wallet's icons pop in while a band carries their names; a tap skips.
+const TRIAL_ENTRY_DELAY: float=1.8
+func _play_trial_entry() -> void:
+	if room==null or room.trials.is_empty():return
+	# After the room's own entry banner has played.
+	room_hud.play_trial_intro(TRIAL_ENTRY_DELAY)
+	var band: TrialBanner=TrialBanner.play(board,room.trials,6,TRIAL_ENTRY_DELAY)
+	if band!=null:band.finished.connect(room_hud.settle_trials)
+## 불리: the counters the member's basic attack runs into in this room.
+func _trial_warning(member: GuildMemberState) -> Array:
+	return TrialCatalog.basic_counters(room.trials,member.unit_type_id) if room!=null else []
 func _update_room_hud() -> void:
 	if room_hud == null or room == null:
 		return
 	var allies: int=guild.living_members().size();var opponents: int=room.living_enemies().size()
 	if is_instance_valid(battle):allies=battle.units.filter(func(u):return u.original_team==0 and u.alive).size();opponents=battle.units.filter(func(u):return u.original_team==1 and u.alive).size()
 	room_hud.battle=battle
+	if room_hud.trials!=room.trials:room_hud.trials=room.trials.duplicate()
 	room_hud.text="플레이어 HP %s · 아군 %d · 적 %d"%[ArenaUI.hp(guild.state.player_hp,guild.state.player_max_hp),allies,opponents]
 
 func _process(delta: float) -> void:

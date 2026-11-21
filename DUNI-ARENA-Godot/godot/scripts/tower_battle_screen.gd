@@ -157,6 +157,7 @@ func _build_tower_result() -> void:
 	var column:=VBoxContainer.new();margin.add_child(column)
 	var heading:=Label.new();heading.text="%d층 · %d번 방 · %s"%[room.floor_index+1,room.lane+1,RoomType.LABELS[room.room_type]];heading.custom_minimum_size.y=44;heading.vertical_alignment=VERTICAL_ALIGNMENT_CENTER;heading.add_theme_font_override("font",ArenaUI.heading_font());heading.add_theme_font_size_override("font_size",19);column.add_child(heading)
 	result_wallet=WalletBar.new();result_wallet.guild=guild;column.add_child(result_wallet)
+	result_wallet.trial_pressed.connect(func(id: StringName,at: Vector2):TrialPopup.show(self,[id],at))
 	result_panel=PanelContainer.new();result_panel.size_flags_vertical=Control.SIZE_EXPAND_FILL;result_panel.add_theme_stylebox_override("panel",ArenaUI.window_style());column.add_child(result_panel)
 	result_emblem=PanelEmblem.new();result_emblem.mode="result";result_panel.add_child(result_emblem)
 	var center:=CenterContainer.new();result_panel.add_child(center)
@@ -174,6 +175,7 @@ func _build_tower_result() -> void:
 	next_button.custom_minimum_size.x=210;ArenaUI.with_icon(next_button,"play",14,true)
 func _format_result(result: BattleResult) -> void:
 	var victory: bool=room.cleared
+	if result_wallet.trials!=room.trials:result_wallet.trials=room.trials.duplicate()
 	if result_emblem!=null:result_emblem.tint=Color("f0d490") if victory else Color("8a96c8")
 	result_kicker.text="ROOM CLEAR" if victory else "RETREAT" if result.end_reason==BattleEndReason.Value.RETREAT else "EXPLORATION ENDED" if guild.state.game_over else "TRY AGAIN"
 	result_heading.text="방 클리어!" if victory else "안전하게 후퇴했습니다" if result.end_reason==BattleEndReason.Value.RETREAT else "탐험이 종료되었습니다" if guild.state.game_over else "길드원을 정비해 다시 도전하세요"

@@ -11,7 +11,7 @@ const SCALARS = {
 	"map":{},"formation":{},
 	"deployment":{"member_id":"s","team":"i","position":"v"},
 	"floor":{"floor_index":"i","chapter_index":"i","unlocked":"b","room_ids":"as","cleared_count":"i","required_clear_count":"i","conquered":"b","bonus":"n","bonus_item_kind":"n"},
-	"room":{"source_run_id":"s","room_id":"s","cleared":"b","battle_attempt_count":"i","active_result_id":"s","settled_result_ids":"d","floor_index":"i","chapter_index":"i","lane":"i","room_type":"n","discovered":"b","visited":"b","consumed":"b","publicly_visible":"b","event_type":"n","gold_reward":"i","token_reward":"i","kill_rewards":"d","reward_claimed":"b","content_visits":"i","item_choices":"an","item_choice":"n"},
+	"room":{"source_run_id":"s","room_id":"s","cleared":"b","battle_attempt_count":"i","active_result_id":"s","settled_result_ids":"d","floor_index":"i","chapter_index":"i","lane":"i","room_type":"n","discovered":"b","visited":"b","consumed":"b","publicly_visible":"b","event_type":"n","gold_reward":"i","token_reward":"i","kill_rewards":"d","reward_claimed":"b","content_visits":"i","item_choices":"an","item_choice":"n","trials":"an","trials_set":"b"},
 	"encounter":{"room_kind":"n","depth":"i","formation":"n"},
 	"spawn":{"enemy_id":"s","unit_type_id":"i","level":"i","initial_position":"v","rank":"n","body_scale":"f","hp_multiplier":"f","damage_multiplier":"f","defense_multiplier":"f","speed_multiplier":"f","items":"an"},
 	"enemy":{"enemy_id":"s","unit_type_id":"i","current_hp":"f","position":"v","ultimate_gauge":"f","stance":"n","persistent_state":"d"},

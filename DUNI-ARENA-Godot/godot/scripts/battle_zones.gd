@@ -52,6 +52,8 @@ func risk_hazards(u) -> Array:
 		if area.is_empty():continue
 		if area.get("shape","")=="path":out.append([RISK_PATH,CharacterPersistence.vector(area.from),CharacterPersistence.vector(area.to),float(area.radius)+body])
 		else:out.append([RISK_CIRCLE,CharacterPersistence.vector(area.point),float(area.radius)+body,weight])
+	# 소행성 시련: a marked impact circle is danger for every side.
+	for m in u.battle.trial_state.get("meteors",[]):out.append([RISK_CIRCLE,m.point,float(m.radius)+body,3.0])
 	return out
 ## 화염방사기 oil fire: whether `point` is on a puddle that has caught fire (one hit per tick
 ## however many puddles overlap there).

@@ -107,7 +107,7 @@ var velocity: Vector2 = Vector2.ZERO
 ## Base walking speed; reads include element slows (ElementEffects headwind).
 var base_move_speed: float
 var move_speed: float:
-	get: return base_move_speed * ElementEffects.move_speed(self) * ItemEffects.move_speed(self) if not character_specific_state.is_empty() else base_move_speed
+	get: return base_move_speed * ElementEffects.move_speed(self) * ItemEffects.move_speed(self) * TrialEffects.move_speed(self) if not character_specific_state.is_empty() else base_move_speed
 	set(value): base_move_speed = value
 var target = null
 var alive: bool = true

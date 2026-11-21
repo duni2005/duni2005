@@ -56,6 +56,7 @@ func _ready() -> void:
 	setup_header=HBoxContainer.new();setup_header.custom_minimum_size.y=44;column.add_child(setup_header)
 	title_label=Label.new();title_label.text="커스텀 전투";title_label.size_flags_horizontal=Control.SIZE_EXPAND_FILL;title_label.add_theme_font_override("font",ArenaUI.heading_font());title_label.add_theme_font_size_override("font_size",20);title_label.add_theme_color_override("font_color",ArenaUI.GOLD);setup_header.add_child(title_label);TitleFx.attach(title_label,TypeArt.word(&"custom")).play()
 	var info:=_button(setup_header,"ⓘ 맵 · 모드",_show_settings);ArenaUI.quiet(info)
+	trial_button=_button(setup_header,"시련",_show_trials);ArenaUI.quiet(trial_button)
 	var home:=_button(setup_header,"메인으로",func():closed.emit());ArenaUI.quiet(home)
 	# Battle header: back to setup, mode label, records.
 	battle_header=HBoxContainer.new();battle_header.custom_minimum_size.y=44;column.add_child(battle_header);battle_header.hide()
@@ -128,6 +129,32 @@ func _build_winner() -> void:
 	var again:=_button(row,"다시 전투",start_battle);ArenaUI.with_icon(again,"redo",16);again.custom_minimum_size.x=130;ArenaUI.primary(again)
 	var back:=_button(row,"전투 설정",return_setup);back.custom_minimum_size.x=110
 	var numbers:=_button(row,"통계",_open_stats);numbers.custom_minimum_size.x=84;ArenaUI.quiet(numbers)
+var trial_button: Button
+var trial_dialog: AcceptDialog
+var trial_grid: GridContainer
+## 시련 picker: up to TrialCatalog.MAX_TRIALS, each trial once, the room limits kept.
+func _show_trials() -> void:
+	if trial_dialog==null:
+		trial_dialog=AcceptDialog.new();add_child(trial_dialog);trial_dialog.min_size=Vector2i(300,0)
+		var col:=VBoxContainer.new();trial_dialog.add_child(col);ArenaUI.dialog_header(trial_dialog,col,"시련 (최대 %d개)"%TrialCatalog.MAX_TRIALS);ArenaModalBackdrop.new().connect_window(trial_dialog,self)
+		var note:=Label.new();note.text="카운터 최대 %d개 · 강인함과 해루석 보호막은 함께 켤 수 없습니다. 시련 피해는 %d층 기준입니다."%[TrialCatalog.MAX_COUNTERS,TrialCatalog.CUSTOM_FLOOR];note.autowrap_mode=TextServer.AUTOWRAP_WORD_SMART;note.custom_minimum_size.x=280;note.add_theme_font_size_override("font_size",11);note.add_theme_color_override("font_color",ArenaUI.MUTED);col.add_child(note)
+		trial_grid=GridContainer.new();trial_grid.columns=3;trial_grid.add_theme_constant_override("h_separation",4);trial_grid.add_theme_constant_override("v_separation",4);col.add_child(trial_grid)
+	_render_trials();_popup(trial_dialog)
+func _render_trials() -> void:
+	for child in trial_grid.get_children():trial_grid.remove_child(child);child.queue_free()
+	for kind in TrialCatalog.KINDS:
+		for id in TrialCatalog.of_kind(kind):
+			var on: bool=id in setup.trials
+			var b:=Button.new();b.text=TrialCatalog.name_of(id);b.toggle_mode=true;b.set_pressed_no_signal(on);b.custom_minimum_size=Vector2(92,34);b.add_theme_font_size_override("font_size",11)
+			b.add_theme_color_override("font_color",TrialCatalog.color_of(id));b.add_theme_color_override("font_pressed_color",Color.WHITE);b.tooltip_text=str(TrialCatalog.info(id).get("text",""))
+			b.disabled=not on and not TrialCatalog.allowed(id,setup.trials)
+			b.pressed.connect(func():
+				if id in setup.trials:setup.trials.erase(id)
+				elif TrialCatalog.allowed(id,setup.trials):setup.trials.append(id)
+				_render_trials.call_deferred();_update_trial_button())
+			trial_grid.add_child(b)
+func _update_trial_button() -> void:
+	if trial_button!=null:trial_button.text="시련" if setup.trials.is_empty() else "시련 %d"%setup.trials.size()
 func _build_dialogs() -> void:
 	unit_dialog=AcceptDialog.new();add_child(unit_dialog);unit_dialog.min_size=Vector2i(300,0)
 	var col:=VBoxContainer.new();unit_dialog.add_child(col);ArenaUI.dialog_header(unit_dialog,col,"유닛 설정");ArenaModalBackdrop.new().connect_window(unit_dialog,self)
@@ -258,6 +285,7 @@ func start_battle() -> void:
 	UiTransition.play("battle")
 	_dispose_battle()
 	battle=BattleManager.new();battle.auto_start=false;battle.custom_mode=true;board.add_child(battle)
+	battle.trials.assign(setup.trials);battle.trial_floor=TrialCatalog.CUSTOM_FLOOR
 	if not battle.start_battle(setup.placements(),int(Time.get_ticks_usec()&0x7fffffff),setup.map):
 		_dispose_battle();_say("전투를 시작할 수 없습니다.");refresh();return
 	for i in range(setup.entries.size()):

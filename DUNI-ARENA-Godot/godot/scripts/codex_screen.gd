@@ -5,7 +5,9 @@ extends Control
 ## card grid (the only part that scrolls) above a fixed detail panel (beside it on wide screens).
 ## Read-only: built from the same catalogues the game plays with.
 signal closed
-const TABS = [["unit","유닛"],["item","아이템"],["card","전략카드"],["event","이벤트"],["tag","피해태그"],["status","상태이상"],["boss","보스"],["plan","특수전략"]]
+const TABS = [["unit","유닛"],["item","아이템"],["card","전략카드"],["event","이벤트"],["tag","피해태그"],["status","상태이상"],["boss","보스"],["plan","특수전략"],["trial","시련"]]
+## 시련: what each kind does on top of its own description.
+const TRIAL_RULES = {&"counter":"적이 받는 해당 피해가 방어 경감 뒤 60% 줄어든다. 한 피해가 여러 카운터에 해당해도 한 번만 줄어든다.", &"environment":"아군 · 적 모두에게 적용된다. 시련이 주는 피해는 방어만 적용되고 회색 숫자로 보인다.", &"empower":"그 방의 적에게만 적용된다.", &"reward":"방이 어려워지는 대신 보상이 늘어난다. 한 방에 하나까지."}
 ## 적 특수전략: how grades are used, shown under every strategy.
 const PLAN_RULES = "터닝포인트에서 적이 준비하고, 터닝포인트가 끝나면 쓴다. 탑을 오를수록 쓰는 확률과 평균 등급이 오른다(초반엔 일반 위주). 보스는 위험 · 고위험만, 고위험은 보스급(보스 · 미니보스)만 쓴다."
 ## Rooms and events: [key, icon, name, description].
@@ -68,7 +70,8 @@ func _ready() -> void:
 	var title := Label.new();title.text = "도감";title.size_flags_horizontal = Control.SIZE_EXPAND_FILL;title.add_theme_font_override("font", ArenaUI.heading_font());title.add_theme_font_size_override("font_size", 22);header.add_child(title)
 	TitleFx.attach(title, "CODEX").play()
 	header.add_child(ArenaUI.nav_button("close", func():closed.emit()))
-	var tabs := GridContainer.new();tabs.name = "Tabs";tabs.columns = TABS.size() if get_viewport_rect().size.x >= 600 else 4;tabs.add_theme_constant_override("h_separation", 6);tabs.add_theme_constant_override("v_separation", 6);column.add_child(tabs)
+	# A phone fits the tabs in two rows.
+	var tabs := GridContainer.new();tabs.name = "Tabs";tabs.columns = TABS.size() if get_viewport_rect().size.x >= 600 else ceili(TABS.size() / 2.0);tabs.add_theme_constant_override("h_separation", 6);tabs.add_theme_constant_override("v_separation", 6);column.add_child(tabs)
 	for pair in TABS:
 		var button := Button.new();button.text = pair[1];button.toggle_mode = true;button.custom_minimum_size.y = 36;button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		ArenaUI.tab(button);button.pressed.connect(show_tab.bind(pair[0]));tabs.add_child(button);tab_buttons[pair[0]] = button
@@ -147,6 +150,10 @@ func show_tab(key: String) -> void:
 				for status in StatusCatalog.ENTRIES:
 					var e: Array = StatusCatalog.ENTRIES[status]
 					if e[1] == kind:_card(String(status), "slot", e[2], e[0], StatusCatalog.kind_label(status), StatusCatalog.kind_color(status), Vector2(86, 72))
+		"trial":
+			grid.columns = maxi(3, int(width / 96))
+			for kind in TrialCatalog.KINDS:
+				for id in TrialCatalog.of_kind(kind):_card(String(id), "slot", str(TrialCatalog.info(id).icon), TrialCatalog.name_of(id), TrialCatalog.KIND_NAMES[kind], TrialCatalog.KIND_COLORS[kind], Vector2(86, 72))
 		"plan":
 			grid.columns = maxi(3, int(width / 96))
 			for grade in StrategyCardTuning.TIER_ORDER:
@@ -234,5 +241,10 @@ func _select(node_name: String) -> void:
 				for type in users.slice(0, 24):
 					var face := Control.new();face.custom_minimum_size = Vector2(26, 26);var t: int = type
 					face.draw.connect(func():UnitIcon.draw(face, Rect2(Vector2.ZERO, Vector2(26, 26)), t));detail_units.add_child(face)
-	if tab not in ["item", "status", "plan"]:detail_title.remove_theme_color_override("font_color")
+		"trial":
+			var id := StringName(key);var kind: StringName = TrialCatalog.kind_of(id);icon_kind = str(TrialCatalog.info(id).icon)
+			detail_title.text = TrialCatalog.name_of(id);detail_title.add_theme_color_override("font_color", TrialCatalog.color_of(id))
+			detail_sub.text = "%s 시련 · %d층부터 등장%s" % [TrialCatalog.KIND_NAMES[kind], TrialCatalog.first_floor(id), " · 미니보스 · 보스 방은 카운터 1개까지" if kind == TrialCatalog.COUNTER else ""]
+			detail_text.text = "%s\n%s" % [TrialCatalog.info(id).text, TRIAL_RULES[kind]]
+	if tab not in ["item", "status", "plan", "trial"]:detail_title.remove_theme_color_override("font_color")
 	detail_icon.queue_redraw()

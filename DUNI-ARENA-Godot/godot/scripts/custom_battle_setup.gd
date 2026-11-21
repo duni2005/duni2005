@@ -23,6 +23,8 @@ var entries: Array[Dictionary] = []
 var next_id: int = 1
 ## ArenaMap size the battle is fought on (사각 정원 · 소/중/대).
 var map: int = ArenaMap.SMALL
+## 시련 switched on for the battle (balance tests); TrialCatalog.allowed keeps the room limits.
+var trials: Array[StringName] = []
 
 static func team_color(team: int) -> Color:
 	return TEAM_COLORS[team] if team >= 0 and team < TEAM_COLORS.size() else SOLO_COLOR
