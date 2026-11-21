@@ -20,11 +20,12 @@ var trials: Array[StringName]=[]:
 var trial_intro: float=-1
 var trial_intro_delay: float=0
 func _panel_height() -> float:return 40.0 if compact else 68.0
-## The icons hang half below the panel, so the bar grows by that much while there are trials.
-func _fit_height() -> void:custom_minimum_size.y=(42 if compact else 70)+(TRIAL_R if not trials.is_empty() else 0)
+## Gap between the panel and the trial icons centred under it; the bar grows by the row while there are trials.
+const TRIAL_TOP: float=6
+func _fit_height() -> void:custom_minimum_size.y=(42 if compact else 70)+(TRIAL_TOP+TRIAL_R*2 if not trials.is_empty() else 0)
 func trial_center(i: int) -> Vector2:
-	return Vector2(size.x-14-TRIAL_R-(trials.size()-1-i)*(TRIAL_R*2+TRIAL_GAP),_panel_height()+(2 if compact else 1))
-func trial_strip_width() -> float:return trials.size()*(TRIAL_R*2+TRIAL_GAP) if not trials.is_empty() else 0.0
+	return Vector2(size.x*.5-trial_strip_width()*.5+TRIAL_R+i*(TRIAL_R*2+TRIAL_GAP),_panel_height()+TRIAL_TOP+TRIAL_R)
+func trial_strip_width() -> float:return trials.size()*(TRIAL_R*2+TRIAL_GAP)-TRIAL_GAP if not trials.is_empty() else 0.0
 func play_trial_intro(delay: float=0) -> void:trial_intro=0.0 if UiMotion.enabled and not trials.is_empty() else -1.0;trial_intro_delay=delay;queue_redraw()
 func settle_trials() -> void:trial_intro=-1;queue_redraw()
 func _gui_input(event: InputEvent) -> void:
@@ -131,8 +132,7 @@ func _draw() -> void:
 	var health: String=str(ceili(guild.state.player_hp));var health_width: float=numbers.get_string_size(health,HORIZONTAL_ALIGNMENT_LEFT,-1,30).x
 	draw_string(numbers,Vector2(w*2+8,48),health,HORIZONTAL_ALIGNMENT_LEFT,-1,30,ArenaUI.HP)
 	draw_string(numbers,Vector2(w*2+13+health_width,48),"/ %d"%ceili(guild.state.player_max_hp),HORIZONTAL_ALIGNMENT_LEFT,-1,14,ArenaUI.MUTED)
-	# The bar stops short of the trial icons on the panel's edge.
-	var bar_w: float=maxf(12,size.x-w*2-20-(trial_strip_width()+4 if not trials.is_empty() else 0))
+	var bar_w: float=maxf(12,size.x-w*2-20)
 	draw_rect(Rect2(w*2+8,61,bar_w,3),Color("26304a"));draw_rect(Rect2(w*2+8,61,bar_w*clampf(guild.state.player_hp/maxf(1,guild.state.player_max_hp),0,1),3),ArenaUI.HP)
 	_draw_floats(numbers,{"gold":Vector2(16+gold_width+12,40),"gem":Vector2(w+52,40)})
 	_draw_trials()

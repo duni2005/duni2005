@@ -186,5 +186,6 @@ func ui_rules() -> void:
 	var rects: Array = range(4).map(func(i):return Rect2(bar.trial_center(i) - Vector2.ONE * WalletBar.TRIAL_R, Vector2.ONE * WalletBar.TRIAL_R * 2))
 	var apart: bool = true
 	for i in range(3):apart = apart and not rects[i].intersects(rects[i + 1])
-	verify(apart and rects[0].position.x > 360 * .3 * 2 - 20 and rects[3].end.x <= 360 - 12 and bar.custom_minimum_size.y == 70 + WalletBar.TRIAL_R, "four icons in a row at the wallet's bottom right on a 360 px phone")
+	var middle: float = (rects[0].position.x + rects[3].end.x) * .5
+	verify(apart and absf(middle - 180) < 1 and rects[0].position.y >= 68 + 4 and rects[3].end.y <= bar.custom_minimum_size.y and bar.custom_minimum_size.y == 70 + WalletBar.TRIAL_TOP + WalletBar.TRIAL_R * 2, "four icons in a row centred under the wallet panel on a 360 px phone")
 	bar.free()
