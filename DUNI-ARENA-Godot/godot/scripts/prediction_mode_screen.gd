@@ -16,6 +16,8 @@ var teams_box: VBoxContainer
 var start_button: Button
 var score_label: Label
 var speed_buttons: Dictionary = {}
+var pause_button: Button
+var watch_paused: bool = false
 var ending: RetreatPresentation
 var battle_cue: BattleCueOverlay
 var stats_dialog: AcceptDialog
@@ -84,6 +86,7 @@ func start_watch() -> void:
 	var speeds := HBoxContainer.new();speeds.alignment = BoxContainer.ALIGNMENT_END;speeds.add_theme_constant_override("separation", 4);watch_page.add_child(speeds)
 	var picked := Label.new();picked.text = "예측 · %d팀" % (state.picked_team + 1);picked.size_flags_horizontal = Control.SIZE_EXPAND_FILL;picked.add_theme_color_override("font_color", PredictionRules.team_color(state.picked_team));speeds.add_child(picked)
 	speed_buttons.clear()
+	watch_paused = false;pause_button = _button(speeds, "Ⅱ 일시정지", _toggle_pause);pause_button.custom_minimum_size.x = 96;pause_button.add_theme_font_size_override("font_size", 12);ArenaUI.quiet(pause_button)
 	for speed in [1, 2, 4]:
 		var s := _button(speeds, "%d×" % speed, func():if is_instance_valid(battle):battle.clock.set_speed(float(speed)))
 		s.toggle_mode = true;s.custom_minimum_size.x = 44;s.add_theme_font_size_override("font_size", 13);ArenaUI.quiet(s);speed_buttons[speed] = s
@@ -92,7 +95,19 @@ func start_watch() -> void:
 	battle_cue.board = board
 	pick_page.hide();watch_page.show();result_page.hide()
 
+## Pauses or resumes the watched battle (combat and its effects stop; the view stays).
+func _toggle_pause() -> void:
+	if not is_instance_valid(battle) or battle.finished:return
+	watch_paused = PredictionModeScreen.set_paused(battle, board, not watch_paused, pause_button)
+## Shared by the tower event: stops or restarts the battle and its presentation.
+static func set_paused(b: BattleManager, view: DeploymentBoard, paused: bool, button: Button) -> bool:
+	if not is_instance_valid(b):return false
+	b.set_physics_process(not paused)
+	if view != null and view.presentation != null:view.presentation.set_process(not paused)
+	if is_instance_valid(button):button.text = "▶ 계속" if paused else "Ⅱ 일시정지"
+	return paused
 func _clear_battle() -> void:
+	watch_paused = false
 	if is_instance_valid(ending):ending.queue_free()
 	ending = null
 	for child in watch_page.get_children():watch_page.remove_child(child);child.queue_free()
@@ -105,6 +120,7 @@ func _process(dt: float) -> void:
 		choice.disabled = not is_instance_valid(battle) or battle.finished or battle.clock.state != BattleClock.State.NORMAL
 		choice.set_pressed_no_signal(is_instance_valid(battle) and int(battle.clock.speed) == speed)
 	if is_instance_valid(fail_row):fail_row.visible = PredictionModeScreen.picked_wiped(battle, state.picked_team)
+	if is_instance_valid(pause_button):pause_button.disabled = not is_instance_valid(battle) or battle.finished
 	if not is_instance_valid(battle) or not battle.finished or result_page.visible:return
 	var outcome: StringName = &"draw" if battle.result.draw else &"correct" if battle.result.winner_team == state.picked_team else &"incorrect"
 	if ending == null:
@@ -159,4 +175,6 @@ static func make_fail_row(parent: Container, team: int, on_end: Callable) -> HBo
 ## 빠른 종료: ends the battle at once; the prediction has already failed.
 func quick_end() -> void:
 	if not PredictionModeScreen.picked_wiped(battle, state.picked_team):return
+	# The ending plays on the presentation, so a paused view resumes first.
+	watch_paused = PredictionModeScreen.set_paused(battle, board, false, pause_button)
 	battle.finish_with_reason(BattleEndReason.Value.DEFEAT, -1)

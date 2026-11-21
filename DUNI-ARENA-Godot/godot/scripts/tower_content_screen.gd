@@ -30,6 +30,9 @@ var board: DeploymentBoard
 ## Watch speed for the prediction battle (1×/2×/4×), shown under its field while it runs.
 var speed_row: HBoxContainer
 var speed_buttons: Dictionary={}
+## 일시정지 for the watched prediction battle.
+var pause_button: Button
+var watch_paused: bool=false
 var battle: BattleManager
 var rendered_prediction_finished: bool = false
 ## "예측 실패 · N팀 전멸" + 빠른 종료 while the prediction battle runs on without the picked team.
@@ -453,13 +456,18 @@ func _pick_prediction(team: int) -> void:controller.choose_prediction_team(team)
 func _stake_prediction(stake: int) -> void:controller.choose_prediction_stake(stake);call_deferred("render")
 ## 빠른 종료: the picked team is gone, so end the watch at once (the stake is already lost).
 func _quick_end_prediction() -> void:
-	if is_instance_valid(battle) and PredictionModeScreen.picked_wiped(battle,controller.current_room().event.prediction.picked_team):battle.finish_with_reason(BattleEndReason.Value.DEFEAT,-1)
+	if is_instance_valid(battle) and PredictionModeScreen.picked_wiped(battle,controller.current_room().event.prediction.picked_team):
+		# The ending plays on the presentation, so a paused view resumes first.
+		watch_paused=PredictionModeScreen.set_paused(battle,board,false,pause_button)
+		battle.finish_with_reason(BattleEndReason.Value.DEFEAT,-1)
 func _start_prediction() -> void:
 	battle=BattleManager.new();battle.auto_start=false
 	board=DeploymentBoard.new();board.editing=false;board.size_flags_vertical=Control.SIZE_EXPAND_FILL;board.custom_minimum_size.y=240;column.add_child(board);board.add_child(battle)
 	if not controller.start_prediction(battle):column.remove_child(board);board.queue_free();board=null;battle=null;status.text="예측 시작 불가";return
 	board.battle=battle;room_frame.hide();scroll.hide();refresh_wallet();map_button.disabled=true;abandon_button.disabled=true
 	speed_row=HBoxContainer.new();speed_row.alignment=BoxContainer.ALIGNMENT_END;speed_row.add_theme_constant_override("separation",4);column.add_child(speed_row);column.move_child(speed_row,board.get_index()+1)
+	watch_paused=false;pause_button=Button.new();pause_button.name="Pause";pause_button.text="Ⅱ 일시정지";pause_button.custom_minimum_size=Vector2(96,40);pause_button.add_theme_font_size_override("font_size",12)
+	ArenaUI.bind(pause_button,func():if is_instance_valid(battle) and not battle.finished:watch_paused=PredictionModeScreen.set_paused(battle,board,not watch_paused,pause_button));ArenaUI.quiet(pause_button);speed_row.add_child(pause_button)
 	var label:=Label.new();label.text="배속";label.add_theme_font_size_override("font_size",12);label.add_theme_color_override("font_color",ArenaUI.MUTED);speed_row.add_child(label)
 	speed_buttons.clear()
 	for speed in [1,2,4]:
@@ -480,6 +488,7 @@ func _process(_delta: float) -> void:
 		var choice: Button=speed_buttons[speed]
 		choice.disabled=not is_instance_valid(battle) or battle.finished or battle.clock.state!=BattleClock.State.NORMAL
 		choice.set_pressed_no_signal(is_instance_valid(battle) and int(battle.clock.speed)==speed)
+	if is_instance_valid(pause_button):pause_button.disabled=not is_instance_valid(battle) or battle.finished
 	if is_instance_valid(fail_row):fail_row.visible=PredictionModeScreen.picked_wiped(battle,controller.current_room().event.prediction.picked_team) if controller.current_room()!=null and controller.current_room().event!=null and controller.current_room().event.prediction!=null else false
 	if is_instance_valid(battle) and battle.finished and not rendered_prediction_finished:
 		if prediction_end==null:
@@ -494,7 +503,7 @@ func _process(_delta: float) -> void:
 		rendered_prediction_finished=true;map_button.disabled=false;room_frame.show();scroll.show()
 		presentation_requested.emit({"title":"승부예측 완료","icon":"gold","point":ArenaUI.control_center(board)})
 		if is_instance_valid(board):column.remove_child(board);board.queue_free();board=null
-		if is_instance_valid(speed_row):speed_row.queue_free();speed_row=null;speed_buttons.clear()
+		if is_instance_valid(speed_row):speed_row.queue_free();speed_row=null;speed_buttons.clear();pause_button=null;watch_paused=false
 		if is_instance_valid(fail_row):fail_row.queue_free();fail_row=null
 		call_deferred("render")
 func _return_map() -> void:

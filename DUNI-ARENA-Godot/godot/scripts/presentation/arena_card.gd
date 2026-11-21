@@ -153,6 +153,14 @@ func _shimmers() -> bool:
 	if not UiMotion.enabled or dead or sold or disabled or selected or button_pressed:return false
 	if item_grade!=&"":return ItemTuning.FRAME.get(item_grade,{}).get("glint",Color(0,0,0,0)).a>0
 	return card_type in RARITY_TYPES and UnitRarity.tier(type_id)==5
+## 전투 예측 team card: portraits shrink to fit the team.
+func _portrait_size() -> float:return clampf(minf(size.y-40,(size.x-30)/maxi(1,portrait_types.size())-4),14,36)
+## The portrait under `point` (card coordinates), or -1.
+func portrait_at(point: Vector2) -> int:
+	var icon: float=_portrait_size()
+	for i in range(portrait_types.size()):
+		if Rect2(14+i*(icon+4),28,icon,icon).grow(3).has_point(point):return i
+	return -1
 func write(at: Vector2,value: String,font_size: int=14,color: Color=Color("eef1fa"),width: float=-1,center: bool=false) -> void:
 	draw_string(get_theme_default_font(),at,ArenaUI.plain(value),HORIZONTAL_ALIGNMENT_CENTER if center else HORIZONTAL_ALIGNMENT_LEFT,width,font_size,color)
 func _draw() -> void:
@@ -266,7 +274,7 @@ func _draw() -> void:
 		write(Vector2(15,21),title,14,gold if active else (team_tint.lightened(.35) if team_tint.a>0 else Color("eef1fa")))
 		if active:write(Vector2(size.x-58,21),"선택됨",11,gold)
 		elif team_power>=0:draw_string(get_theme_default_font(),Vector2(0,21),"전투력 %s"%String.num(team_power,1).trim_suffix(".0"),HORIZONTAL_ALIGNMENT_RIGHT,size.x-10,11,Color("ffd27a"))
-		var count: int=maxi(1,portrait_types.size());var icon: float=clampf(minf(size.y-40,(size.x-30)/count-4),14,36)
+		var icon: float=_portrait_size()
 		for i in range(portrait_types.size()):
 			UnitIcon.draw(self,Rect2(14+i*(icon+4),28,icon,icon),portrait_types[i],1)
 			# Its items: one small square per item in the item's grade colour.
