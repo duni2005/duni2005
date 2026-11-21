@@ -16,8 +16,11 @@ var gauge: float=0
 var price: String=""
 var stats_summary: String=""
 var portrait_types: Array[int]=[]
-## 전투 예측 team card: the team's colour (left strip and title).
+## 전투 예측 team card: the team's colour (left strip and title), each unit's item kinds (grade
+## marks under its portrait) and the team's 전투력 (top right; negative: not shown).
 var team_tint: Color=Color(0,0,0,0)
+var portrait_items: Array=[]
+var team_power: float=-1
 var dead: bool=false
 var sold: bool=false
 var spent: bool=false
@@ -262,8 +265,13 @@ func _draw() -> void:
 		if team_tint.a>0:draw_rect(Rect2(4,8,4,size.y-16),team_tint)
 		write(Vector2(15,21),title,14,gold if active else (team_tint.lightened(.35) if team_tint.a>0 else Color("eef1fa")))
 		if active:write(Vector2(size.x-58,21),"선택됨",11,gold)
-		var count: int=maxi(1,portrait_types.size());var icon: float=clampf(minf(size.y-34,(size.x-30)/count-4),20,36)
-		for i in range(portrait_types.size()):UnitIcon.draw(self,Rect2(14+i*(icon+4),28,icon,icon),portrait_types[i],1)
+		elif team_power>=0:draw_string(get_theme_default_font(),Vector2(0,21),"전투력 %s"%String.num(team_power,1).trim_suffix(".0"),HORIZONTAL_ALIGNMENT_RIGHT,size.x-10,11,Color("ffd27a"))
+		var count: int=maxi(1,portrait_types.size());var icon: float=clampf(minf(size.y-40,(size.x-30)/count-4),14,36)
+		for i in range(portrait_types.size()):
+			UnitIcon.draw(self,Rect2(14+i*(icon+4),28,icon,icon),portrait_types[i],1)
+			# Its items: one small square per item in the item's grade colour.
+			var kinds: Array=portrait_items[i] if i<portrait_items.size() else []
+			for k in range(kinds.size()):draw_rect(Rect2(14+i*(icon+4)+k*(minf(5,icon/4.0)),28+icon+2,minf(5,icon/4.0)-1,4),ItemCatalog.grade_color(StringName(kinds[k])))
 		var x: float=22+portrait_types.size()*(icon+4)
 		if size.x-x>70:draw_multiline_string(get_theme_default_font(),Vector2(x,40),description,HORIZONTAL_ALIGNMENT_LEFT,size.x-x-10,11,2,muted)
 		return

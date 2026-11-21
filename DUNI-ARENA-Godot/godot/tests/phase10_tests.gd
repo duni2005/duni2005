@@ -40,9 +40,6 @@ func golden() -> void:
 		per_tier[clampi(data.recruit_tokens,0,5)]+=1;verify(UnitRarity.tier(data.type_id)==data.recruit_tokens,"rarity tier follows the recruit price")
 	verify(per_tier==[0,9,9,11,12,5],"9/9/11/12/5 units per rarity tier")
 	verify(UnitRarity.label(27)=="전설" and UnitRarity.label(0)=="일반","rarity names")
-	verify(PredictionRules.POOLS.size()==web.predictionPools.size(),"59 exact prediction combinations")
-	for i in range(PredictionRules.POOLS.size()):
-		for j in range(2):verify(PredictionRules.POOLS[i][j]==int(web.predictionPools[i][j]),"exact prediction pool type")
 	var g:=GuildManager.new();g.state.tower=TowerRunState.new();var inv:=InventoryService.new(g.state)
 	var base: Dictionary={}
 	for type in range(26):base[type]=[g.definition(type).max_hp,g.definition(type).attack,g.definition(type).defense_power,g.definition(type).move_speed]
@@ -419,7 +416,7 @@ func prediction() -> void:
 	groups+=1
 	var rng:=RandomNumberGenerator.new();rng.seed=73
 	for i in range(30):
-		var state: PredictionState=PredictionRules.create(rng);verify(state.teams.size()>=2 and state.teams.size()<=5 and PredictionRules.valid(state),"prediction 2-5 teams")
+		var state: PredictionState=PredictionRules.create(rng);verify(state.teams.size()>=2 and state.teams.size()<=6 and PredictionRules.valid(state),"prediction 2-6 teams")
 		for team in state.teams:verify(team.types.size()>=1 and team.types.size()<=PredictionRules.MAX_CROWD and team.types.all(func(type):return type>=0 and type<CharacterCatalog.NAMES.size()),"prediction types/size")
 	for verdict in [&"correct",&"incorrect",&"draw"]:
 		var t:=tower();enter_event(t,&"prediction");var event: EventState=t.current_room().event;var state: PredictionState=event.prediction

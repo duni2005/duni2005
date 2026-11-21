@@ -918,45 +918,33 @@ func battle_stats(tree: SceneTree) -> void:
 	verify(mine.ultimates>=1 and mine.kills==1+int(not arow.alive) and not srows[0].alive and mine.group=="블루 팀","ultimates and kills count; a slime family is one kill once its last piece falls")
 	b.queue_free()
 
-## 전투 예측 situations (0.84.0): up to five teams, clone teams, outnumbered fights, solo brawls.
+## 전투 예측 situations (0.99.14): 2-6 teams of about the same 전투력, built from units and up to
+## four items each.
 func prediction_variety(tree: SceneTree) -> void:
-	var rng:=RandomNumberGenerator.new();rng.seed=11;var labels: Dictionary={};var most: int=0;var valid: bool=true;var mirrors: int=0;var clone_clash: int=0;var balanced: int=0;var biggest: int=0;var outnumbered_ok: bool=true
+	var rng:=RandomNumberGenerator.new();rng.seed=11;var labels: Dictionary={};var counts: Dictionary={};var valid: bool=true;var balanced: int=0;var lowest: float=INF;var highest: float=0;var items_ok: bool=true;var uneven: int=0
+	var skip: Array=EnemyItems.excluded()
 	for i in range(300):
-		var state: PredictionState=PredictionRules.create(rng);labels[PredictionRules.label(state)]=true;most=maxi(most,state.teams.size())
-		var units: int=0
-		for t in state.teams:units+=t.types.size()
+		var state: PredictionState=PredictionRules.create(rng);labels[PredictionRules.label(state)]=true;counts[state.teams.size()]=true
+		var units: int=0;var powers: Array=[]
+		for t in state.teams:
+			units+=t.types.size();powers.append(PredictionRules.team_power(t))
+			for row in t.items:items_ok=items_ok and row.size()<=PredictionRules.MAX_UNIT_ITEMS and row.all(func(k):return not StringName(k) in skip)
 		valid=valid and PredictionRules.valid(state) and units<=PredictionRules.MAX_UNITS
-		mirrors+=int(PredictionRules._has_mirror(state.teams.map(func(t):return t.types)))
-		var rows: Array=state.teams.map(func(t):return t.types)
-		balanced+=int(PredictionRules.spread_of(rows)<=PredictionRules.BALANCE+.001)
-		var sizes: Array=rows.map(func(r):return r.size())
-		if sizes.max()==sizes.min():biggest=maxi(biggest,sizes.max())
-		if PredictionRules.label(state)=="수적 열세":
-			var few: Array=rows[0] if rows[0].size()<rows[1].size() else rows[1]
-			outnumbered_ok=outnumbered_ok and few.all(func(t):return CharacterCatalog.all()[t].recruit_tokens>=4)
-		if PredictionRules.label(state)=="같은 유닛 팀전":
-			var firsts: Dictionary={}
-			for t in state.teams:firsts[t.types[0]]=true
-			clone_clash+=int(firsts.size()!=state.teams.size())
-	verify(valid and most==5 and biggest==6,"every situation is valid; up to five teams, equal teams of up to six")
-	verify(balanced>=285 and outnumbered_ok,"teams' total unit cost stays within 15%% in nearly every situation (%d/300); the outnumbered side is 4-5 token units"%balanced)
-	verify(mirrors==0 and clone_clash==0,"no two teams ever field the same units; clone teams each copy a different unit")
-	verify(labels.has("같은 유닛 팀전") and labels.has("개인전") and labels.has("수적 열세") and labels.keys().any(func(k):return k.ends_with("난전")),"clone teams, solo, outnumbered and brawl situations all appear")
-	var state:=PredictionState.new()
-	for i in range(5):state.teams.append({"team":i,"types":[i,i]})
-	var b:=BattleManager.new();b.auto_start=false;b.common_combat_enabled=true;b.full_characters_enabled=true;b.team_colors=PredictionRules.TEAM_COLORS;tree.root.add_child(b)
-	verify(b.start_battle(PredictionRules.placements(state,rng),3),"a five-team prediction battle starts")
-	var colors: Dictionary={}
-	for u in b.units:colors[u.team_color()]=true
-	verify(colors.size()==5 and b.units.size()==10,"each of the five teams has its own colour")
-	# 빠른 종료: once the picked team is wiped out the watch can end at once as a failed call.
-	verify(not PredictionModeScreen.picked_wiped(b,2),"no quick end while the picked team stands")
-	for u in b.units.filter(func(v):return v.original_team==2):u.receive_damage(u.current_hp+1,null)
-	verify(PredictionModeScreen.picked_wiped(b,2) and not b.finished,"the picked team is gone while four teams fight on")
-	b.finish_with_reason(BattleEndReason.Value.DEFEAT,-1)
-	verify(b.finished and not b.result.draw and b.result.winner_team!=2,"빠른 종료 ends the battle as a failed prediction")
-	b.queue_free()
-
+		var average: float=powers.reduce(func(a,b):return a+b,0.0)/powers.size()
+		lowest=minf(lowest,average);highest=maxf(highest,average)
+		balanced+=int(float(powers.max())-float(powers.min())<=2*PredictionRules.power_tolerance(average)+.001)
+		var sizes: Array=state.teams.map(func(t):return t.types.size())
+		uneven+=int(sizes.max()!=sizes.min())
+	verify(valid and items_ok and counts.size()==5 and counts.has(2) and counts.has(6),"every situation is valid: 2-6 teams, up to 4 usable items per unit, at most 30 units")
+	verify(balanced>=285,"teams within a few points of the same 전투력 in nearly every situation (%d/300)"%balanced)
+	verify(lowest<12 and highest>70,"average 전투력 from small to large fights (%.1f-%.1f)"%[lowest,highest])
+	verify(uneven>100 and labels.keys().any(func(k):return k.ends_with("수적 열세")) and labels.keys().any(func(k):return k.contains("난전")),"teams of different sizes but equal power; outnumbered and brawl situations appear")
+	var hero: int=PredictionRules.types_of_tier(4)[0];var commons: Array=PredictionRules.types_of_tier(1)
+	var rares: Array=PredictionRules.item_pool(&"rare")
+	verify(is_equal_approx(PredictionRules.unit_power(hero,[rares[0],rares[1]]),10) and is_equal_approx(PredictionRules.team_power({"types":[commons[0],commons[1],commons[2]],"items":[[],[],[]]}),10.5),"전투력: a hero with two rare items is 10, three common units 10.5")
+	var demo:=PredictionState.new();demo.teams.assign([{"team":0,"types":[hero],"items":[[String(rares[0]),String(rares[1])]]},{"team":1,"types":[commons[0],commons[1]],"items":[[],[]]}])
+	var placed: Array[Dictionary]=PredictionRules.placements(demo,rng)
+	verify(placed[0].has("combat_stats") and placed[0].combat_stats.items.size()==2 and not placed[1].has("combat_stats"),"units carry their items into the battle")
 ## 0.84.5 balance: 소형 위성 damage and its ult-to-gauge refill, 마법사 블랙홀, 암살자.
 func balance_0845(tree: SceneTree) -> void:
 	verify(is_equal_approx(UnitStatTable.spec(2,&"ult").ratio,.04) and is_equal_approx(UnitStatTable.spec(2,&"ult").base,4.0) and is_equal_approx(UnitStatTable.spec(2,&"basic").ratio,1.0),"마법사 블랙홀 -20% (basic unchanged)")

@@ -1,130 +1,126 @@
 class_name PredictionRules
 extends RefCounted
-## spectator.js actual combo pool, count/size odds and team spawn positioning.
-const POOLS = [[0,5],[0,2],[0,3],[0,0],[3,5],[1,4],[1,2],[3,4],[2,5],[1,3],[6,4],[6,5],[7,8],[7,5],[8,0],[6,7],[8,8],[9,5],[9,4],[9,6],[9,8],[9,1],[10,5],[10,11],[11,6],[11,8],[10,4],[11,9],[12,5],[12,4],[12,11],[12,0],[13,4],[13,5],[13,0],[13,7],[17,5],[17,4],[17,18],[18,0],[18,5],[18,15],[19,0],[19,18],[19,17],[20,15],[20,4],[20,19],[21,0],[21,5],[21,20],[22,0],[22,1],[22,4],[22,3],[23,4],[23,5],[23,0],[23,22]]
-## Team colours for up to five prediction teams (블루, 레드, 그린, 퍼플, 골드).
-const TEAM_COLORS: Array[Color] = [Color("88b7ff"), Color("ff947d"), Color("a4db89"), Color("c8a1ff"), Color("ffd27a")]
-const MAX_TEAMS: int = 5
-const MAX_TEAM_SIZE: int = 6
-## 수적 열세 crowds can be larger than an ordinary team.
+## 전투 예측 situations (0.99.14), built from 전투력 (combat power):
+## 1. the number of teams (2-6);
+## 2. the average power of a team (MIN_POWER-MAX_POWER);
+## 3. each team is built up to that power from units and their items (up to MAX_UNIT_ITEMS each),
+##    so a lone hero with two rare items (10) can face three common units (10.5).
+## A unit's power is UNIT_POWER by its rarity plus ITEM_POWER by the grade of each item it holds.
+## Every team ends within POWER_TOLERANCE of the average, so no side is a sure thing.
+## Team colours for up to six prediction teams (블루, 레드, 그린, 퍼플, 골드, 청록).
+const TEAM_COLORS: Array[Color] = [Color("88b7ff"), Color("ff947d"), Color("a4db89"), Color("c8a1ff"), Color("ffd27a"), Color("7fe0d8")]
+const MIN_TEAMS: int = 2
+const MAX_TEAMS: int = 6
+## Units in one team and in the whole battle.
 const MAX_CROWD: int = 9
 const MAX_UNITS: int = 30
-## Teams are kept within this ratio of total unit cost (strongest / weakest).
-const BALANCE: float = 1.15
-## Situations, each with its weight: 클래식 (the original two-unit combos), 팀전 (2-3 teams),
-## 난전 (4-5 teams), 같은 유닛 팀전 (each team is copies of its own unit), 수적 열세 (high-tier
-## units against a larger crowd of low-tier ones) and 개인전 (lone units). Team sizes are random
-## (1-6), but every team in a situation has the same number of units except in 수적 열세, and the
-## teams' total unit cost is kept within BALANCE so no side is a sure thing.
-const SCENARIOS: Array = [[&"classic", 2], [&"teams", 4], [&"brawl", 3], [&"clones", 3], [&"outnumbered", 2], [&"solo", 2]]
+const MAX_UNIT_ITEMS: int = 4
+const MIN_POWER: float = 3.5
+const MAX_POWER: float = 90.0
+## 전투력 by unit rarity (UnitRarity.tier: 일반 · 고급 · 희귀 · 영웅 · 전설).
+const UNIT_POWER: Array[float] = [0.0, 3.5, 4.5, 6.0, 8.0, 10.0]
+## 전투력 by item grade.
+const ITEM_POWER = {&"common": .5, &"rare": 1.0, &"epic": 2.0, &"legendary": 3.5, &"ancient": 4.0}
+## Teams end within this much of the average power (at least half a point).
+static func power_tolerance(average: float) -> float:return maxf(.5, average * .03)
+
 static func create(rng: RandomNumberGenerator) -> PredictionState:
-	var total: int=0
-	for row in SCENARIOS:total+=int(row[1])
-	var roll: int=rng.randi_range(1,total);var kind: StringName=&"classic"
-	for row in SCENARIOS:
-		roll-=int(row[1])
-		if roll<=0:kind=row[0];break
-	# Keep the fairest of several tries; no two teams may line up the same units (a coin toss).
-	var best: Array=[];var best_spread: float=INF
-	for attempt in range(40):
-		var teams: Array=_teams(kind,rng)
-		if kind in [&"teams",&"brawl",&"solo",&"outnumbered"]:_even_out(teams,rng,kind==&"outnumbered")
-		if _has_mirror(teams):continue
-		var spread: float=spread_of(teams)
-		if spread<best_spread:best=teams;best_spread=spread
-		if spread<=BALANCE:break
-	var state:=PredictionState.new()
-	for i in range(best.size()):state.teams.append({"team":i,"types":best[i]})
+	var count: int = rng.randi_range(MIN_TEAMS, MAX_TEAMS)
+	var per_team: int = mini(MAX_CROWD, MAX_UNITS / count)
+	var average: float = minf(snappedf(rng.randf_range(MIN_POWER, MAX_POWER), .5), per_team * max_unit_power())
+	var teams: Array = []
+	for t in range(count):
+		var best: Dictionary = {};var best_gap: float = INF
+		for attempt in range(40):
+			var team: Dictionary = _build_team(average, per_team, rng)
+			var gap: float = absf(team_power(team) - average)
+			if _repeats(teams, team):continue
+			if gap < best_gap:best = team;best_gap = gap
+			if gap <= power_tolerance(average):break
+		teams.append(best)
+	var state := PredictionState.new()
+	for i in range(teams.size()):state.teams.append({"team": i, "types": teams[i].types, "items": teams[i].items})
 	return state
-static func cost(type: int) -> float:return float(CharacterCatalog.all()[type].base_gold_cost)
-static func team_cost(types: Array) -> float:
-	var sum: float=0
-	for t in types:sum+=cost(t)
+
+## 전투력 of one unit with its items.
+static func unit_power(type: int, items: Array = []) -> float:
+	var sum: float = UNIT_POWER[clampi(UnitRarity.tier(type), 1, 5)]
+	for kind in items:sum += item_power(StringName(kind))
 	return sum
-## Strongest team's total unit cost over the weakest's (1 = perfectly even).
-static func spread_of(teams: Array) -> float:
-	var costs: Array=teams.map(func(row):return team_cost(row))
-	return float(costs.max())/maxf(1,float(costs.min()))
-static func _teams(kind: StringName,rng: RandomNumberGenerator) -> Array:
-	var out: Array=[]
-	match kind:
-		&"classic":
-			var size: int=2 if rng.randf()<.7 else 3
-			for t in range(2 if rng.randf()<.55 else 3):
-				var combo: Array=POOLS[rng.randi_range(0,POOLS.size()-1)].duplicate()
-				if size==3:combo.append(_any(rng))
-				out.append(combo)
-		&"teams","brawl":
-			var size: int=rng.randi_range(1,MAX_TEAM_SIZE)
-			for t in range(rng.randi_range(2,3) if kind==&"teams" else rng.randi_range(4,5)):out.append(_random_types(rng,size))
-		&"clones":
-			# Each team copies its own unit; the units cost about the same.
-			var count: int=rng.randi_range(2,5);var size: int=rng.randi_range(2,MAX_TEAM_SIZE)
-			var picks: Array=CharacterCatalog.playable();_shuffle(picks,rng)
-			var first: int=picks[0];var chosen: Array=[first]
-			for t in picks.slice(1):
-				if chosen.size()>=count:break
-				if maxf(cost(t),cost(first))/minf(cost(t),cost(first))<=BALANCE:chosen.append(t)
-			if chosen.size()<2:chosen.append(picks[1])
-			for type in chosen:
-				var row: Array=[]
-				for i in range(size):row.append(type)
-				out.append(row)
-		&"outnumbered":
-			# A few high-tier units (4-5 tokens) against a larger crowd of 1-2 token units.
-			var strong: Array=_tier_types(4,5);var weak: Array=_tier_types(1,2)
-			var few: Array=[];var crowd: Array=[]
-			for i in range(rng.randi_range(1,4)):few.append(strong[rng.randi_range(0,strong.size()-1)])
-			var target: float=team_cost(few)
-			while crowd.size()<MAX_CROWD and (crowd.size()<=few.size() or team_cost(crowd)<target*.95):crowd.append(weak[rng.randi_range(0,weak.size()-1)])
-			out=[few,crowd] if rng.randf()<.5 else [crowd,few]
-		_:
-			for t in range(rng.randi_range(3,5)):out.append([_any(rng)])
-	return out
-## Swaps units (same tier band for 수적 열세) so every team's total cost moves toward the average.
-static func _even_out(teams: Array,rng: RandomNumberGenerator,keep_tiers: bool) -> void:
-	var target: float=0
-	for row in teams:target+=team_cost(row)
-	target/=teams.size()
-	if keep_tiers:target=float(teams.map(func(row):return team_cost(row)).max())
-	for row in teams:
-		var pool: Array=CharacterCatalog.playable()
-		if keep_tiers:pool=_tier_types(4,5) if CharacterCatalog.all()[row[0]].recruit_tokens>=4 else _tier_types(1,2)
-		for step in range(40):
-			var i: int=rng.randi_range(0,row.size()-1);var swap: int=pool[rng.randi_range(0,pool.size()-1)]
-			var now: float=team_cost(row);var after: float=now-cost(row[i])+cost(swap)
-			if absf(after-target)<absf(now-target):row[i]=swap
-static func _shuffle(list: Array,rng: RandomNumberGenerator) -> void:
-	for i in range(list.size()-1,0,-1):
-		var j: int=rng.randi_range(0,i);var keep=list[i];list[i]=list[j];list[j]=keep
-## True when two teams have exactly the same units (order ignored).
-static func _has_mirror(teams: Array) -> bool:
-	var seen: Dictionary={}
-	for row in teams:
-		var key: Array=row.duplicate();key.sort()
-		if seen.has(str(key)):return true
-		seen[str(key)]=true
-	return false
-## A random character the mode may use (test characters excluded).
-static func _any(rng: RandomNumberGenerator) -> int:
-	var pool: Array=CharacterCatalog.playable();return pool[rng.randi_range(0,pool.size()-1)]
-static func _random_types(rng: RandomNumberGenerator,size: int) -> Array:
-	var row: Array=[]
-	for i in range(size):row.append(_any(rng))
-	return row
-static func _tier_types(low: int,high: int) -> Array:
-	var out: Array=[];var catalog: Dictionary=CharacterCatalog.all()
-	for type in CharacterCatalog.playable():
-		if catalog[type].recruit_tokens>=low and catalog[type].recruit_tokens<=high:out.append(type)
-	return out
-## The situation's name, read back from the teams (so saves need no extra field).
+static func item_power(kind: StringName) -> float:return float(ITEM_POWER.get(ItemCatalog.grade_of(kind), 0.0))
+## 전투력 of a team ({"types", "items"}; items optional).
+static func team_power(team: Dictionary) -> float:
+	var sum: float = 0;var items: Array = team.get("items", [])
+	for i in range(team.types.size()):sum += unit_power(team.types[i], items[i] if i < items.size() else [])
+	return sum
+## The most a single unit can carry (a 전설 unit, one 고대 item and the rest 전설).
+static func max_unit_power() -> float:
+	return UNIT_POWER[5] + ITEM_POWER[&"ancient"] * ItemTuning.ANCIENT_PER_UNIT + ITEM_POWER[&"legendary"] * (MAX_UNIT_ITEMS - ItemTuning.ANCIENT_PER_UNIT)
+
+## One team of about `target` power: a random unit count that can reach it, then each unit takes
+## its share of what is left (a rarity that fits, then items to make up the rest).
+static func _build_team(target: float, max_units: int, rng: RandomNumberGenerator) -> Dictionary:
+	var fewest: int = maxi(1, ceili(target / max_unit_power()));var most: int = maxi(fewest, mini(max_units, floori(target / UNIT_POWER[1])))
+	var n: int = rng.randi_range(fewest, most)
+	var types: Array = [];var items: Array = [];var left: float = target
+	for i in range(n):
+		var share: float = left / (n - i)
+		var unit: Dictionary = _build_unit(share, rng)
+		types.append(unit.type);items.append(unit.items);left -= unit_power(unit.type, unit.items)
+	return {"types": types, "items": items}
+## A unit of about `share` power: the rarity first (any that leaves a remainder its items can
+## cover), then items, largest grades the rest still allows.
+static func _build_unit(share: float, rng: RandomNumberGenerator) -> Dictionary:
+	var carry: float = max_unit_power() - UNIT_POWER[5]
+	var tiers: Array = []
+	for tier in range(1, 6):
+		if UNIT_POWER[tier] <= share + .25 and share - UNIT_POWER[tier] <= carry:tiers.append(tier)
+	if tiers.is_empty():tiers.append(5 if share > UNIT_POWER[5] else 1)
+	var tier: int = tiers[rng.randi_range(0, tiers.size() - 1)]
+	var pool: Array = types_of_tier(tier)
+	var type: int = pool[rng.randi_range(0, pool.size() - 1)]
+	var items: Array = [];var rest: float = share - UNIT_POWER[tier]
+	while rest >= .5 - .001 and items.size() < MAX_UNIT_ITEMS:
+		var slots: int = MAX_UNIT_ITEMS - items.size()
+		var grades: Array = []
+		for grade in ITEM_POWER:
+			var p: float = ITEM_POWER[grade]
+			if p > rest + .25:continue
+			if grade == &"ancient" and items.filter(func(k):return ItemCatalog.grade_of(StringName(k)) == &"ancient").size() >= ItemTuning.ANCIENT_PER_UNIT:continue
+			# What is left after this one must still fit the remaining slots.
+			if rest - p > (slots - 1) * ITEM_POWER[&"legendary"] + .001:continue
+			grades.append(grade)
+		if grades.is_empty():break
+		var grade: StringName = grades[rng.randi_range(0, grades.size() - 1)]
+		var choices: Array = item_pool(grade).filter(func(k):return not String(k) in items)
+		if choices.is_empty():break
+		items.append(String(choices[rng.randi_range(0, choices.size() - 1)]));rest -= ITEM_POWER[grade]
+	return {"type": type, "items": items}
+## Units of a rarity the mode may use (test characters excluded).
+static func types_of_tier(tier: int) -> Array:
+	return CharacterCatalog.playable().filter(func(t):return UnitRarity.tier(t) == tier)
+## Items of a grade that work in a battle of their own (no consumables, run-economy or cost items).
+static func item_pool(grade: StringName) -> Array:
+	var skip: Array = EnemyItems.excluded()
+	return ItemCatalog.POOLS.get(grade, []).filter(func(k):return not k in skip and ItemCatalog.get_item(k) != null)
+## True when `team` lines up the same units and items as one already made (a coin toss).
+static func _repeats(teams: Array, team: Dictionary) -> bool:
+	var key: String = _key(team)
+	return teams.any(func(t):return _key(t) == key)
+static func _key(team: Dictionary) -> String:
+	var rows: Array = []
+	for i in range(team.types.size()):
+		var items: Array = (team.items[i] if i < team.get("items", []).size() else []).duplicate();items.sort()
+		rows.append(str(team.types[i]) + ":" + ",".join(items))
+	rows.sort()
+	return "|".join(rows)
+## The situation's name, read back from the teams: 개인전 (lone units), N팀 대전 / N팀 난전 (4+
+## teams), and · 수적 열세 when one team has at least twice as many units as another.
 static func label(state: PredictionState) -> String:
 	var sizes: Array=state.teams.map(func(t):return t.types.size())
-	if sizes.max()!=sizes.min():return "수적 열세"
-	if sizes.all(func(n):return n==1):return "개인전"
-	if state.teams.all(func(t):return t.types.size()>1 and t.types.all(func(x):return x==t.types[0])):return "같은 유닛 팀전"
-	if state.teams.size()>=4:return "%d팀 난전"%state.teams.size()
-	return "%d팀 대전"%state.teams.size()
+	if sizes.all(func(n):return n==1):return "%d인 개인전"%state.teams.size()
+	var name: String="%d팀 난전"%state.teams.size() if state.teams.size()>=4 else "%d팀 대전"%state.teams.size()
+	return name+(" · 수적 열세" if int(sizes.max())>=2*int(sizes.min()) else "")
 static func team_color(team: int) -> Color:return TEAM_COLORS[team%TEAM_COLORS.size()]
 ## 사각 정원 size for this prediction: more units, a bigger field.
 static func map_for(state: PredictionState) -> int:
@@ -143,8 +139,21 @@ static func placements(state: PredictionState,rng: RandomNumberGenerator) -> Arr
 		for i in range(n):
 			var row: int=i/per_row;var in_row: int=mini(per_row,n-row*per_row)
 			var at: Vector2=home+side*(i%per_row-(in_row-1)*.5)*58+out*row*52+Vector2(rng.randf_range(-14,14),rng.randf_range(-14,14))
-			result.append({"data":CharacterCatalog.all()[team.types[i]],"team":team.team,"position":at.clamp(Vector2(40,40),Vector2(760,760))})
+			var row_items: Array=team.get("items",[])[i] if i<team.get("items",[]).size() else []
+			var placement: Dictionary={"data":CharacterCatalog.all()[team.types[i]],"team":team.team,"position":at.clamp(Vector2(40,40),Vector2(760,760))}
+			if not row_items.is_empty():placement["combat_stats"]=stats_for(team.types[i],row_items)
+			result.append(placement)
 	return result
+## Level 0 stats of a unit with its items (the custom battle rules).
+static func stats_for(type: int,items: Array) -> UnitCombatStats:
+	var stats:=UnitCombatStats.from_table(CharacterCatalog.all()[type])
+	for kind in items:
+		var item: ItemData=ItemCatalog.get_item(StringName(kind))
+		if item!=null:stats.apply_item(item)
+	stats.finish_items()
+	stats.max_hp=floorf(stats.max_hp+.5)
+	stats.equipment_attack_without_growth=stats.attack
+	return stats
 
 static func valid(state: PredictionState) -> bool:
 	if state==null or state.teams.size()<2 or state.teams.size()>MAX_TEAMS:return false
@@ -154,5 +163,12 @@ static func valid(state: PredictionState) -> bool:
 		units+=team.types.size()
 		if units>MAX_UNITS:return false
 		if not team.types.all(func(type):return type is int and type>=0 and type<CharacterCatalog.NAMES.size()):return false
+		# Items (from 0.99.14; older saves have none): one list per unit, up to MAX_UNIT_ITEMS kinds.
+		if team.has("items"):
+			if not team.items is Array or team.items.size()!=team.types.size():return false
+			for row in team.items:
+				if not row is Array or row.size()>MAX_UNIT_ITEMS:return false
+				for kind in row:
+					if not (kind is String or kind is StringName) or ItemCatalog.get_item(StringName(kind))==null:return false
 		seen[team.team]=true
 	return true
