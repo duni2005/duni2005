@@ -40,6 +40,7 @@ func _init(host) -> void:p = host
 func clear() -> void:
 	pings.clear();block_at.clear();regen_frame.clear();regen_pool.clear();regen_clock = 0;berserk_seen.clear();emit_at.clear()
 	souls.clear();coins.clear();tracers.clear();rings.clear();craters.clear();texts.clear();banner = {};quake_warn = -1;quake_fade = -1;started = false
+	if is_instance_valid(strip_hit):strip_hit.hide()
 func active() -> bool:return is_instance_valid(p.battle) and not p.battle.trials.is_empty()
 func on(id: StringName) -> bool:return id in p.battle.trials
 
@@ -121,6 +122,48 @@ func event(kind: StringName, point: Vector2, m: Dictionary) -> bool:
 			p.add_effect("hit", point, C.HAZARD_ALLY, 60, .3);p.camera.impact(5, point)
 			p.particles.burst(point, C.HAZARD_ALLY, 10, 260, (point - from).angle(), "spark", true)
 			return true
+		&"trial_lightning_warn":ping(&"lightning");return true
+		&"trial_lightning":
+			ping(&"lightning")
+			var r: float = float(m.get("radius", C.LIGHTNING_RADIUS));var sky: Vector2 = point + Vector2(randf_range(-60, 60), -560)
+			if p.use_shader_fx:p.shader_fx.bolt(sky, point, .45)
+			tracers.append({"from": sky, "to": point, "age": 0.0, "life": .35, "color": Color("fff6b0"), "bolt": true, "width": 5.0})
+			rings.append({"point": point, "radius": r * 1.4, "color": Color("fff8c8"), "age": 0.0, "life": .3, "flash": true})
+			rings.append({"point": point, "radius": r * 1.2, "color": Color("ffe36a"), "age": 0.0, "life": .4, "width": 4.0})
+			if craters.size() >= 8:craters.pop_front()
+			craters.append({"point": point, "radius": r * .45, "age": 1.5, "turn": randf() * TAU})
+			p.particles.burst(point, Color("ffe36a"), 14, 260, 0, "spark", true);p.camera.impact(6, point)
+			return true
+		&"trial_martyr_mark":ping(&"martyr");return true
+		&"trial_martyr":
+			ping(&"martyr")
+			var r: float = float(m.get("radius", C.MARTYR_RADIUS))
+			p.add_effect("fireball", point, Color("ff5a3a"), r, .9, randf() * TAU)
+			rings.append({"point": point, "radius": r * 1.3, "color": Color("ff8a6a"), "age": 0.0, "life": .45, "width": 6.0})
+			if p.use_shader_fx:p.shader_fx.shock(point, r * 1.2, .5, Color("ff6a4a"))
+			p.particles.burst(point, Color("ff7a4a"), 18, 300, 0, "ember", true);p.camera.impact(8, point)
+			return true
+		&"trial_split":
+			ping(&"split")
+			# Swells, then tears in two with shadow-black shards (not a slime's green).
+			rings.append({"point": point, "radius": 46.0, "color": Color("2a2036"), "age": 0.0, "life": .35, "width": 7.0})
+			p.particles.burst(point, Color("1e1828"), 14, 240, 0, "shard", true);p.particles.burst(point, Color("8a70b8"), 6, 120, 0, "mote", true)
+			return true
+		&"keg_lit":
+			ping(&"powder_kegs");p.particles.burst(point + Vector2(0, -20), Color("ffd070"), 8, 160, -PI * .5, "spark", true);return true
+		&"keg_blast":
+			ping(&"powder_kegs")
+			var r: float = float(m.get("radius", FieldObject.KEG_BLAST))
+			p.add_effect("fireball", point, Color("ff8a3d"), r, 1.0, randf() * TAU)
+			rings.append({"point": point, "radius": r * 1.2, "color": Color("ffd08a"), "age": 0.0, "life": .45, "width": 6.0})
+			if p.use_shader_fx:p.shader_fx.shock(point, r * 1.1, .55, Color("ffb057"))
+			if craters.size() >= 8:craters.pop_front()
+			craters.append({"point": point, "radius": r * .55, "age": 0.0, "turn": randf() * TAU})
+			p.particles.burst(point, Color("5a3a2a"), 14, 320, 0, "shard", true);p.particles.burst(point, Color("ffb347"), 18, 280, 0, "ember", true);p.particles.burst(point, Color("4a4038"), 8, 80, -PI * .5, "smoke", true)
+			p.camera.impact(10, point)
+			return true
+		&"statue_heal":ping(&"warm_statue");return true
+		&"object_block":p.particles.burst(point, Color("e8d0a0"), 5, 150, float(m.get("angle", 0)) + PI, "spark", true);return true
 		&"trial_hit":
 			var trial: StringName = StringName(m.get("trial", ""))
 			p.number("damage", point, float(m.get("amount", 0)), TrialArt.TRIAL_NUMBER, int(m.get("actor_id", 0)), {"icon": String(C.info(trial).get("icon", "")) if trial != &"" else ""})
@@ -150,7 +193,27 @@ func death(u) -> void:
 		var from: Vector2 = p.parent_transform * u.position
 		for i in range(6):coins.append({"from": from + Vector2(randf_range(-14, 14), randf_range(-10, 6)), "age": -i * .05, "bend": randf_range(-60, 60)})
 
+## Custom battles: the icon row drawn on the field answers a tap with the trial's card.
+var strip_hit: Control
+const STRIP_R: float = 11
+func _sync_strip() -> void:
+	var show: bool = active() and p.battle.custom_mode and is_instance_valid(p.board)
+	if not show:
+		if is_instance_valid(strip_hit):strip_hit.hide()
+		return
+	if not is_instance_valid(strip_hit):
+		strip_hit = Control.new();strip_hit.mouse_filter = Control.MOUSE_FILTER_STOP;p.add_child(strip_hit)
+		strip_hit.gui_input.connect(_strip_input)
+	var n: int = p.battle.trials.size();var width: float = n * (STRIP_R * 2 + 4) - 4
+	strip_hit.position = Vector2(p.board.board_rect().get_center().x - width * .5, 16 - STRIP_R - 4);strip_hit.size = Vector2(width, STRIP_R * 2 + 8);strip_hit.show()
+func _strip_input(e: InputEvent) -> void:
+	if not ((e is InputEventMouseButton or e is InputEventScreenTouch) and e.pressed) or not active():return
+	var i: int = clampi(int(e.position.x / (STRIP_R * 2 + 4)), 0, p.battle.trials.size() - 1)
+	strip_hit.accept_event()
+	TrialPopup.show(p, [p.battle.trials[i]], strip_hit.get_global_transform() * Vector2(STRIP_R + i * (STRIP_R * 2 + 4), STRIP_R + 4))
+
 func advance(dt: float) -> void:
+	_sync_strip()
 	if not active():return
 	var battle = p.battle
 	if not started and battle.started:
@@ -245,8 +308,22 @@ func draw_ground(c: CanvasItem) -> void:
 		c.draw_circle(m.point, r, Color(C.HAZARD_ALL, .08 + .12 * k))
 		c.draw_arc(m.point, r, 0, TAU, 48, Color(C.HAZARD_ALL, .7 + .3 * sin(time * 14)), 3, true)
 		c.draw_arc(m.point, r * k, 0, TAU, 48, Color(C.HAZARD_ALL, .5), 2, true)
+	# 낙뢰: yellow (everyone) with crackling sparks; 순교자: red (the player's side), shrinking.
+	for b in s.get("bolts", []):
+		var k: float = clampf(1 - float(b.left) / C.LIGHTNING_WARN, 0, 1);var r: float = float(b.radius)
+		c.draw_circle(b.point, r, Color(C.HAZARD_ALL, .1 + .14 * k))
+		c.draw_arc(b.point, r, 0, TAU, 40, Color(C.HAZARD_ALL, .75 + .25 * sin(time * 16)), 2.5, true)
+		for i in range(3):
+			var a: float = time * 9 + i * 2.1
+			VisualShapes.bolt(c, b.point + Vector2.from_angle(a) * r * .2, b.point + Vector2.from_angle(a + .6) * r * .9, Color("fff6a0", .7), time * 40 + i, 1.5)
+	for mk in s.get("blasts", []):
+		var k: float = clampf(float(mk.left) / C.MARTYR_FUSE, 0, 1);var r: float = float(mk.radius)
+		VfxArt.glow(c, mk.point, r * (.4 + .6 * k), C.HAZARD_ALLY, .35 + .25 * (1 - k))
+		c.draw_arc(mk.point, r * k, 0, TAU, 48, Color(C.HAZARD_ALLY, .9), 3, true)
+		c.draw_arc(mk.point, r, 0, TAU, 48, Color(C.HAZARD_ALLY, .4), 1.5, true)
 	for u in battle.units:
 		if u.alive and TrialEffects.enemy_side(u):TrialArt.unit_ground(c, u.position, 25 * u.combat_scale(), battle.trials, time, u.battle_id)
+	if not battle.field_objects.is_empty():TrialArt.objects(c, battle.field_objects, time)
 
 ## Over the units (arena space): enemy marks, empowerments, falling meteors, aim, souls, rings, words.
 func draw_over(c: CanvasItem) -> void:
@@ -355,4 +432,4 @@ func draw_screen(c: CanvasItem, rect: Rect2) -> void:
 		var f: Dictionary = {}
 		for id in battle.trials:f[id] = flash(id)
 		# In the status row at the top of the board (between "전투 중" and the clock).
-		TrialArt.strip(c, Vector2(rect.get_center().x, 16), battle.trials, 11, f)
+		TrialArt.strip(c, Vector2(rect.get_center().x, 16), battle.trials, STRIP_R, f)

@@ -88,6 +88,8 @@ func advance(delta: float) -> void:
 	lifetime -= delta
 	if not source.battle.card_walls.is_empty() and CardWalls.blocks(self):
 		queue_redraw();return
+	if not source.battle.field_objects.is_empty() and FieldObjects.blocks(self):
+		queue_redraw();return
 	if source.battle.full_characters_enabled:
 		if kind=="bomb":
 			metadata.flight=maxf(0,float(metadata.flight)-delta)

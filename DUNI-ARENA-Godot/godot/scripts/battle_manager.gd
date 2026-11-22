@@ -21,6 +21,10 @@ var team_colors: Array[Color] = []
 var trials: Array[StringName] = []
 var trial_floor: int = 1
 var trial_state: Dictionary = {}
+## 구조물 시련: the objects on the field (FieldObject, map space) and the saved layout they come
+## from (board-space rows; a custom battle lays its own out).
+var field_objects: Array = []
+var field_layout: Array = []
 ## The unit whose ultimate is releasing right now; attacks it spawns are tagged for presentation.
 var ultimate_actor = null
 @export var full_characters_enabled: bool = true
@@ -382,6 +386,7 @@ func emit_combat_event(kind: StringName, point: Vector2, metadata: Dictionary) -
 	combat_event_counts[kind] = int(combat_event_counts.get(kind,0))+1
 	if kind == &"ultimate":stats.ultimate(find_actor(String(metadata.get("actor",""))))
 	combat_events.append({"kind":kind,"point":point,"metadata":metadata.duplicate(true),"time":clock.elapsed})
+	if not field_objects.is_empty():FieldObjects.on_event(self,kind,point,metadata)
 	if combat_events.size() > 64: combat_events.pop_front()
 func spawn_melee_strike(unit: BattleUnit, profile: AttackData, damage: float) -> AttackInstance:
 	if finished or clock.is_turning_paused() or not unit.alive or unit.stun_remaining > 0: return null
@@ -459,6 +464,7 @@ func simulate_common(delta: float) -> void:
 		if full_characters_enabled and unit.data.type_id==5:unit.ability.tick(unit,delta)
 		if unit.combat.can_start(unit,unit.target): unit.combat.start(unit,unit.target,rng)
 		unit.queue_redraw()
+	if not field_objects.is_empty():FieldObjects.constrain(self)
 	if full_characters_enabled:BindingController.advance(self,delta);ElementEffects.advance(self,delta);ItemEffects.advance(self,delta)
 	if full_characters_enabled and not trials.is_empty():TrialEffects.advance(self,delta)
 	if not spawn_queue.is_empty():_flush_spawns()

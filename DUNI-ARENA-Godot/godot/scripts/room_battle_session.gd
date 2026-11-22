@@ -28,8 +28,9 @@ func start(plan: DeploymentPlan, manager: BattleManager, seed_value: int = -1) -
 	battle.room_id = room.room_id
 	# 0.97 items read the room and the sortie: 용사의 휘장, 고독한 왕의 검, 계약의 인장.
 	battle.set_meta("room_type", room.room_type)
-	battle.trials.assign(room.trials);battle.trial_floor = room.floor_index + 1
-	battle.set_meta("sortie_limit", GrowthRules.sortie_limit(guild.state))
+	battle.trials.assign(TrialCatalog.active(room, guild.state));battle.trial_floor = room.floor_index + 1
+	battle.field_layout = room.field_objects.duplicate(true)
+	battle.set_meta("sortie_limit", TrialCatalog.sortie_limit(GrowthRules.sortie_limit(guild.state), battle.trials))
 	var pact: Array = BuildItems.pact_bearers(guild, plan)
 	battle.set_meta("pact_off", pact.slice(floori(float(guild.state.gold) / ItemTuning.PACT_GOLD)) if not pact.is_empty() else [])
 	battle.unit_died.connect(_on_death)
@@ -57,12 +58,14 @@ func start(plan: DeploymentPlan, manager: BattleManager, seed_value: int = -1) -
 func _on_death(unit: BattleUnit, _source) -> void:
 	# One owner for death loss: this event path, never the final dead list.
 	settlement.record_member_death(unit, guild, room)
-	if room.floor_index >= 0 and not unit.source_enemy_id.is_empty() and not unit.alive and not room.kill_rewards.has(unit.source_enemy_id):
-		var enemy: EnemyRoomState = room.enemy_state.get(unit.source_enemy_id)
+	# A split family (슬라임, 분열 시련) pays once, when its last member falls.
+	var enemy_id: String = TrialEffects.reward_enemy_id(unit)
+	if room.floor_index >= 0 and not enemy_id.is_empty() and not unit.alive and not room.kill_rewards.has(enemy_id) and not TrialEffects.family_alive(unit):
+		var enemy: EnemyRoomState = room.enemy_state.get(enemy_id)
 		if enemy != null and enemy.spawn != null:
 			var factor: float = unit.data.recruit_tokens / 2.0 * (1 + enemy.spawn.level * .12)
 			var reward: Dictionary = {"gold": floori((10 + battle.rng.randi_range(0,30)) * factor * TrialEffects.kill_gold(room.trials) + .5), "tokens": int(battle.rng.randf() < minf(.25,.03*factor))}
-			room.kill_rewards[unit.source_enemy_id] = reward
+			room.kill_rewards[enemy_id] = reward
 			guild.state.gold += reward.gold; guild.state.tokens += reward.tokens
 	if guild.state.player_hp <= 0:
 		battle.run_end_requested = true

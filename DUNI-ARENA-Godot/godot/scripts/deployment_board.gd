@@ -23,6 +23,8 @@ var enemies: Array[Dictionary] = []
 var trials: Array = []
 var trial_reveal: float = 0
 var trial_elite: String = ""
+## 구조물 시련: the room's objects (layout rows, board space); their spots cannot be used.
+var field_objects: Array = []
 const TRIAL_FADE: float = 1.5
 var selected_id: String = ""
 var editing: bool = true
@@ -295,6 +297,8 @@ func _draw() -> void:
 	var trial_k: float = clampf(trial_reveal / TRIAL_FADE, 0, 1) if not trials.is_empty() else 0.0
 	var time: float = Time.get_ticks_msec() * .001
 	if trial_k > 0:TrialArt.field(self, trials, 800, time, trial_k)
+	# Objects rise / drop into place with the reveal (it is over before units can be placed).
+	if not field_objects.is_empty():TrialArt.objects(self, field_objects, time, trial_k)
 	draw_rect(Rect2(40,40,340,720),Color(.35,.5,.95,.09))
 	draw_rect(Rect2(40,40,340,720),Color("7f9cd6"),false,2)
 	var font: Font = ArenaUI.heading_font()

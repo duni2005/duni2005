@@ -63,7 +63,7 @@ func _ensure_room() -> void:
 	pass # The route owns the encounter, never recreate or grant debug cards.
 func start_battle() -> void:
 	if not board.editing or starting_battle:return
-	starting_battle=true;start_button.disabled=true
+	starting_battle=true;start_button.disabled=true;_end_trial_entry()
 	UiTransition.play("battle");BackgroundMusic.play(BackgroundMusic.battle_track(room.room_type))
 	_reset_ending();result_revealed=false;reward_feedback.clear();retreat_routed=false
 	for icon in trans_row.get_children():trans_row.remove_child(icon);icon.queue_free()
@@ -177,7 +177,8 @@ func _build_tower_result() -> void:
 	next_button.custom_minimum_size.x=210;ArenaUI.with_icon(next_button,"play",14,true)
 func _format_result(result: BattleResult) -> void:
 	var victory: bool=room.cleared
-	if result_wallet.trials!=room.trials:result_wallet.trials=room.trials.duplicate()
+	var trials: Array[StringName]=TrialCatalog.active(room,guild.state)
+	if result_wallet.trials!=trials:result_wallet.trials=trials
 	if result_emblem!=null:result_emblem.tint=Color("f0d490") if victory else Color("8a96c8")
 	result_kicker.text="ROOM CLEAR" if victory else "RETREAT" if result.end_reason==BattleEndReason.Value.RETREAT else "EXPLORATION ENDED" if guild.state.game_over else "TRY AGAIN"
 	result_heading.text="방 클리어!" if victory else "안전하게 후퇴했습니다" if result.end_reason==BattleEndReason.Value.RETREAT else "탐험이 종료되었습니다" if guild.state.game_over else "길드원을 정비해 다시 도전하세요"

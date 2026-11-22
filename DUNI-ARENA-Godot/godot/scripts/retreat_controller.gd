@@ -1,7 +1,7 @@
 class_name RetreatController
 extends RefCounted
 ## Entire battle retreat. Not an individual tactical/strategy-card command.
-enum Code { OK, NOT_STARTED, FINISHED, TOO_EARLY, NO_ALLIES, NO_ENEMIES, ALREADY_RETREATING, RUN_OVER, NOT_ROOM_BATTLE, CLOCK_LOCKED }
+enum Code { OK, NOT_STARTED, FINISHED, TOO_EARLY, NO_ALLIES, NO_ENEMIES, ALREADY_RETREATING, RUN_OVER, NOT_ROOM_BATTLE, CLOCK_LOCKED, TRIAL_LOCKED }
 const MIN_TIME: float = 20.0
 var processing: bool = false
 
@@ -20,6 +20,9 @@ func check(battle: BattleManager, run: RunState) -> Code:
 		return Code.CLOCK_LOCKED
 	if battle.room_id.is_empty():
 		return Code.NOT_ROOM_BATTLE
+	# 도망칠 길은 없다.
+	if &"no_escape" in battle.trials:
+		return Code.TRIAL_LOCKED
 	if battle.clock.elapsed < MIN_TIME:
 		return Code.TOO_EARLY
 	var allies: bool = false

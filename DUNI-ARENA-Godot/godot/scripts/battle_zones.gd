@@ -54,6 +54,11 @@ func risk_hazards(u) -> Array:
 		else:out.append([RISK_CIRCLE,CharacterPersistence.vector(area.point),float(area.radius)+body,weight])
 	# 소행성 시련: a marked impact circle is danger for every side.
 	for m in u.battle.trial_state.get("meteors",[]):out.append([RISK_CIRCLE,m.point,float(m.radius)+body,3.0])
+	# 낙뢰 for everyone; 순교자 blasts for the player's side only; 화약통.
+	for b in u.battle.trial_state.get("bolts",[]):out.append([RISK_CIRCLE,b.point,float(b.radius)+body,3.0])
+	if u.original_team==0:
+		for m in u.battle.trial_state.get("blasts",[]):out.append([RISK_CIRCLE,m.point,float(m.radius)+body,3.0])
+	if not u.battle.field_objects.is_empty():FieldObjects.hazards(u.battle,body,out)
 	return out
 ## 화염방사기 oil fire: whether `point` is on a puddle that has caught fire (one hit per tick
 ## however many puddles overlap there).
@@ -73,6 +78,8 @@ func safe_areas(u) -> Array[Dictionary]:
 		if friend.data.type_id==4:safe.append({"ref":friend.actor_id()+":armor","point":CharacterPersistence.point(friend.position),"radius":150*friend.combat_scale(),"life":INF,"kind":"armor"})
 		if friend.vigor_totem_count>0:safe.append({"ref":friend.actor_id()+":totem","point":CharacterPersistence.point(friend.position),"radius":165*friend.combat_scale(),"life":INF,"kind":"totem"})
 		if friend.data.type_id==16 and not friend.ultimate.cast.is_empty():safe.append({"ref":friend.actor_id()+":blessing","point":CharacterPersistence.point(friend.position),"radius":280*friend.combat_scale(),"life":maxf(0,float(friend.ultimate.cast.duration)-float(friend.ultimate.cast.t)),"kind":"blessingReady"})
+	# 온기의 동상 warms every side alike.
+	if not u.battle.field_objects.is_empty():FieldObjects.refuges(u.battle,safe)
 	return safe
 func support(u,point: Vector2) -> float:
 	var best: float=0

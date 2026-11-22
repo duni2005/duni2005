@@ -1527,7 +1527,7 @@ func items_0940(tree: SceneTree) -> void:
 	var loaded: SaveLoadResult=SaveSnapshotLoader.restore(doc)
 	verify(loaded.ok() and loaded.run.gold==gold_before+260 and loaded.run.inventory.all(func(i):return String(i.kind)!="woodSword+staff"),"v6 save: removed combination refunded 260 G")
 	verify(loaded.ok() and loaded.run.item_notice.contains("마검") and loaded.run.item_notice.contains("260 G"),"one-time notice names the item and the gold")
-	verify(SaveMigrator.CURRENT_VERSION==13,"save version 13")
+	verify(SaveMigrator.CURRENT_VERSION==14,"save version 14")
 
 ## 0.95: fifty more items (ten per grade) and their twenty statuses.
 func _spec(skill: StringName,kind: StringName,tags: Array) -> Dictionary:return {"key":&"basic","skill":skill,"kind":kind,"base":0.0,"ratio":1.0,"tags":tags,"label":""}

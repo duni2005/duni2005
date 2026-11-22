@@ -163,3 +163,46 @@ static func broken_shield(c: CanvasItem, at: Vector2, size: float, color: Color)
 	c.draw_colored_polygon(outline, Color(color, .35 * color.a))
 	outline.append(outline[0]);c.draw_polyline(outline, color, 1.6, true)
 	c.draw_polyline(PackedVector2Array([at + Vector2(s * .05, -s * .45), at + Vector2(-s * .12, -s * .1), at + Vector2(s * .1, s * .08), at + Vector2(-s * .05, s * .4)]), Color(1, 1, 1, color.a), 1.6, true)
+
+## 온기의 동상: a stone figure on a pedestal, a warm glow, its circle pulsing on the ground. `rise`
+## 0..1 lifts it out of the ground (the room entry).
+static func statue(c: CanvasItem, at: Vector2, r: float, aura: float, time: float, rise: float = 1.0) -> void:
+	if rise <= 0:return
+	var pulse: float = .5 + .5 * sin(time * 2.2)
+	c.draw_circle(at, aura, Color("ffb35a", .05 + .04 * pulse))
+	c.draw_arc(at, aura * (.96 + .04 * pulse), 0, TAU, 64, Color("ffc87a", .35 + .25 * pulse), 2, true)
+	var top: Vector2 = at + Vector2(0, (1 - rise) * r)
+	VfxArt.glow(c, top + Vector2(0, -r * .4), r * 2.4, Color("ffb34a"), .45 * rise)
+	c.draw_circle(at, r, Color("5a5148", rise));c.draw_circle(at, r * .82, Color("8a8072", rise))
+	var body := PackedVector2Array([top + Vector2(-r * .35, r * .3), top + Vector2(r * .35, r * .3), top + Vector2(r * .25, -r * .5), top + Vector2(-r * .25, -r * .5)])
+	c.draw_colored_polygon(body, Color("b8ad9a", rise))
+	c.draw_circle(top + Vector2(0, -r * .7), r * .26, Color("cfc4b0", rise))
+	for i in range(3):
+		var k: float = fposmod(time * .5 + i / 3.0, 1.0)
+		c.draw_line(top + Vector2((i - 1) * r * .4, -r * .9 - k * r), top + Vector2((i - 1) * r * .4 + 4, -r * 1.1 - k * r), Color("ffd08a", (1 - k) * .8 * rise), 2)
+## 화약통: a red barrel with iron hoops and a fuse; `lit` 0..1 burns the fuse down with sparks.
+## `drop` 0..1 brings it down from above (the room entry).
+static func keg(c: CanvasItem, at: Vector2, r: float, time: float, lit: float = -1.0, drop: float = 1.0) -> void:
+	if drop <= 0:return
+	var p: Vector2 = at + Vector2(0, -(1 - drop) * (1 - drop) * 120)
+	c.draw_circle(at + Vector2(0, r * .6), r * .9 * drop, Color(0, 0, 0, .25))
+	c.draw_rect(Rect2(p - Vector2(r * .85, r), Vector2(r * 1.7, r * 2)), Color("a3322a"))
+	for y in [-.55, .45]:c.draw_rect(Rect2(p + Vector2(-r * .9, r * y - 2), Vector2(r * 1.8, 4)), Color("3a2a22"))
+	c.draw_rect(Rect2(p - Vector2(r * .85, r), Vector2(r * 1.7, r * 2)), Color("4a1612"), false, 2)
+	var fuse_end: Vector2 = p + Vector2(r * .5, -r * 1.6)
+	var burnt: float = clampf(lit, 0, 1) if lit >= 0 else 0.0
+	c.draw_line(p + Vector2(0, -r), p.lerp(fuse_end, 1.0).lerp(p + Vector2(0, -r), burnt), Color("d8c39a"), 2)
+	if lit >= 0:
+		var spark: Vector2 = fuse_end.lerp(p + Vector2(0, -r), burnt)
+		VfxArt.glow(c, spark, 14, Color("ffb347"), .9)
+		for i in range(5):c.draw_line(spark, spark + Vector2.from_angle(time * 30 + i * 1.3) * 7, Color("fff0a0"), 1.5)
+## Every object of a layout or a battle (FieldObject rows in board space, or FieldObjects).
+static func objects(c: CanvasItem, list: Array, time: float, k: float = 1.0) -> void:
+	for o in list:
+		var kind: StringName = o.kind if o is FieldObject else StringName(str(o.kind))
+		var at: Vector2 = o.position if o is FieldObject else Vector2(float(o.x), float(o.y))
+		if o is FieldObject and not o.alive:continue
+		var def: Dictionary = FieldObject.KINDS[kind]
+		match kind:
+			FieldObject.STATUE:statue(c, at, float(def.radius), float(def.aura.radius), time, k)
+			FieldObject.KEG:keg(c, at, float(def.radius), time, 1 - o.fuse / FieldObject.KEG_FUSE if o is FieldObject and o.fuse >= 0 else -1.0, k)

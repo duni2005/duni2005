@@ -22,7 +22,8 @@ static func position_error(point: Vector2, entries: Array[DeploymentEntry], bloc
 			return Code.TOO_CLOSE
 	return Code.OK
 
-static func validate(guild: GuildManager, entry: DeploymentEntry, entries: Array[DeploymentEntry], blockers: Array[Vector2], moving: bool = false) -> Code:
+## `limit`: the sortie limit of this battle (좁은 방); -1 is the guild's own.
+static func validate(guild: GuildManager, entry: DeploymentEntry, entries: Array[DeploymentEntry], blockers: Array[Vector2], moving: bool = false, limit: int = -1) -> Code:
 	if guild == null or entry == null:
 		return Code.UNKNOWN_MEMBER
 	var member: GuildMemberState = guild.get_member(entry.member_id)
@@ -44,7 +45,7 @@ static func validate(guild: GuildManager, entry: DeploymentEntry, entries: Array
 	if not moving and boss_locked(guild, member):
 		return Code.BOSS_LOCKED
 	# 지휘관의 홀: its bearer goes out without taking a sortie place.
-	if not moving and not ItemEffects.sortie_free(guild.member_stats(member)) and counted(guild, entries) >= GrowthRules.sortie_limit(guild.state):
+	if not moving and not ItemEffects.sortie_free(guild.member_stats(member)) and counted(guild, entries) >= (limit if limit >= 0 else GrowthRules.sortie_limit(guild.state)):
 		return Code.SORTIE_FULL
 	return position_error(entry.position, entries, blockers, entry.member_id if moving else "")
 
@@ -63,12 +64,12 @@ static func counted(guild: GuildManager, entries: Array) -> int:
 		if m == null or not ItemEffects.sortie_free(guild.member_stats(m)):n += 1
 	return n
 
-static func validate_all(guild: GuildManager, entries: Array[DeploymentEntry], blockers: Array[Vector2]) -> Code:
+static func validate_all(guild: GuildManager, entries: Array[DeploymentEntry], blockers: Array[Vector2], limit: int = -1) -> Code:
 	if entries.is_empty():
 		return Code.EMPTY_DEPLOYMENT
 	var checked: Array[DeploymentEntry] = []
 	for entry in entries:
-		var error: Code = validate(guild, entry, checked, blockers)
+		var error: Code = validate(guild, entry, checked, blockers, false, limit)
 		if error != Code.OK:
 			return error
 		checked.append(entry)

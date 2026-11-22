@@ -56,6 +56,8 @@ static func split(u) -> bool:
 	u.invincible_remaining=maxf(u.invincible_remaining,.35)
 	var away: Vector2=Vector2.from_angle(u.battle.rng.randf_range(0,TAU))
 	u.knockback_velocity=away*260
+	# Kill gold goes to the room enemy the family came from when its last member falls.
+	if not u.source_enemy_id.is_empty():u.set_state("splitSource",u.source_enemy_id)
 	var state: Dictionary=u.character_specific_state.duplicate(true)
 	for key in ["slimeLeap","leapHeight","burnStacks","poisonStacks","darkMark","lightMark"]:state.erase(key)
 	u.battle.queue_spawn(u,u.position-away*30,halved(u.combat_stats,1.0),state,-away*260)

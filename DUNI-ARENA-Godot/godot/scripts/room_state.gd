@@ -45,6 +45,9 @@ var encounter: EncounterState
 ## before 0.99.16 until the room gets its trials (rooms not yet entered) or none.
 var trials: Array[StringName] = []
 var trials_set: bool = false
+## 구조물 시련: where its objects stand ({kind, x, y} in board space, FieldObjects.layout), fixed
+## with the trials.
+var field_objects: Array[Dictionary] = []
 var gold_reward: int = 0
 ## 전투 보상: items offered after the win (pick one) and the pick: &"" while open, a kind, or &"skip".
 var item_choices: Array[StringName] = []

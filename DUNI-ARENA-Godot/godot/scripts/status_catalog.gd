@@ -29,6 +29,8 @@ const ENTRIES = {
 	&"trial_vengeance":["복수심", &"trial", "vengeanceMask", "복수심 시련. 근처 동료가 쓰러질 때마다 공격력 +10% (최대 5중첩)."],
 	&"trial_vanguard":["선봉대 돌격", &"trial", "chargeHorn", "선봉대 시련. 전투 시작 후 3초간 이동속도 +60%로 돌진한다."],
 	&"trial_elite":["정예", &"trial", "knightCrest", "정예 부대 시련. 엘리트 배율(HP · 공격 · 방어 · 몸집)이 적용됐다."],
+	&"trial_warmth":["온기", &"trial", "trial_statue", "온기의 동상 근처. 매초 최대 HP의 2%를 회복한다(받는 치유량 · 맹독 오염 적용)."],
+	&"trial_split":["분열체", &"trial", "trial_split", "분열 시련으로 나뉜 적. HP 25% · 피해 30% · 몸집 80%, 다시 나뉘지 않고 궁극기를 쓸 수 없다."],
 	# 패시브 전략카드 (on for the battle they are taken into).
 	&"card_rally":["전열 정비", &"card", "rally", "패시브 카드. 전투 시작 시 아군 전원이 최대 HP 10% 보호막을 10초 동안 받았다."],
 	&"card_resonance":["원소 공명", &"card", "resonance", "패시브 카드. 같은 속성 아군이 많을수록 그 속성 아군의 피해가 1명당 10%씩 증가한다."],
@@ -146,6 +148,8 @@ static func _trial_rows(u: BattleUnit, s: Dictionary, add: Callable) -> void:
 	if TrialEffects.berserk(u):add.call(&"trial_berserk")
 	if _num(s, "vengeanceStacks") > 0:add.call(&"trial_vengeance", "%d중첩" % int(_num(s, "vengeanceStacks")))
 	if TrialEffects.vanguard(u):add.call(&"trial_vanguard", _secs(TrialCatalog.VANGUARD_TIME - u.battle.clock.elapsed))
+	if _num(s, "trialWarmth") > 0:add.call(&"trial_warmth", "초당 2%")
+	if _num(s, "trialSplit") > 0:add.call(&"trial_split")
 	if _num(s, "trialElite") > 0 or u.combat_stats != null and u.combat_stats.rank == &"elite" and TrialEffects.on(u.battle, &"elite_squad"):add.call(&"trial_elite")
 static func entry(key: StringName) -> Array:return ENTRIES.get(key, ["", &"buff", "star", ""])
 static func kind_label(key: StringName) -> String:return KINDS[entry(key)[1]][0]

@@ -146,6 +146,8 @@ static func assign_trials(room: RoomState,seed_value: int) -> void:
 	var trial_rng:=RandomNumberGenerator.new();trial_rng.seed=seed_value
 	room.trials=TrialCatalog.roll(trial_rng,room.floor_index+1,room.room_type)
 	TrialCatalog.apply_spawns(room.encounter,room.trials)
+	# 구조물: their objects, clear of the enemies.
+	room.field_objects=FieldObjects.layout(trial_rng,room.trials,room.encounter.enemies.map(func(e):return e.initial_position) if room.encounter!=null else [])
 func generate(seed_value: int,run_id: String) -> TowerMapState:
 	rng.seed=seed_value
 	var map:=TowerMapState.new()

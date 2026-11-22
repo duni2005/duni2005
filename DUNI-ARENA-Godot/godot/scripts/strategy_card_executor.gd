@@ -23,6 +23,8 @@ static func hand_state(manager: TurningPointManager, card: StrategyCardInstance)
 	if manager.used_cards.has(card.card_id):return &"used"
 	if card.wins_left > 0 and not card.card_id in manager.cooldown_armed:return &"cooldown"
 	var data: StrategyCardData = StrategyCardCatalog.get_card(card.kind)
+	# 도망칠 길은 없다: no card that pulls a unit out of the fight.
+	if manager.battle != null and &"no_escape" in manager.battle.trials and card.kind in TrialCatalog.RETREAT_CARDS:return &"blocked"
 	if not condition_open(manager, data):return &"blocked"
 	return &"ready"
 

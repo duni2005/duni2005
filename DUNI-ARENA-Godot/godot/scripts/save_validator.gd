@@ -195,6 +195,7 @@ static func validate_room(room: RoomState) -> String:
 	if room.item_choices.size()>ItemTuning.REWARD_CHOICES+6 or room.item_choices.any(func(k):return not ClearRewards.valid(k)):return "item_choices"
 	if room.item_choice!=&"" and room.item_choice!=&"skip" and not room.item_choice in room.item_choices:return "item_choice"
 	if not TrialCatalog.valid(room.trials) or not room.trials.is_empty() and not RoomType.is_combat(room.room_type):return "room_trials"
+	if not room.field_objects.all(func(row):return FieldObjects.valid_row(row)):return "room_field_objects"
 	if room.recruit!=null:
 		if room.room_type!=RoomType.RECRUIT or room.recruit.revision<0 or not room.recruit.offers.size() in [3,TowerContentService.RECRUIT_SLOTS]:return "recruit"
 		seen={}

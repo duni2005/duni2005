@@ -126,7 +126,7 @@ func _prepare_battle(plan: DeploymentPlan,manager: BattleManager) -> Dictionary:
 		if plan==null or plan.guild!=guild or manager.started or not session.can_enter():session=null;return {}
 		var blockers: Array[Vector2]=[]
 		for enemy in CombatPersistence.placements(room,guild):blockers.append(enemy.position)
-		if DeploymentRules.validate_all(guild,plan.entries(),blockers)!=DeploymentRules.Code.OK:session=null;return {}
+		if DeploymentRules.validate_all(guild,plan.entries(),blockers,TrialCatalog.sortie_limit(GrowthRules.sortie_limit(guild.state),TrialCatalog.active(room,guild.state)))!=DeploymentRules.Code.OK:session=null;return {}
 	var previous_rng: int=combat_rng.state;var seed_value: int=_attempt_seed("battle")
 	var formation:=FormationState.new();formation.capture(plan.entries() if plan!=null else [])
 	return {"previous_rng":previous_rng,"seed":seed_value,"formation":formation}

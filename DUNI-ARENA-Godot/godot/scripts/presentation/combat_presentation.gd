@@ -309,8 +309,8 @@ func _death(u,source) -> void:
 func _count_kill(victim,source) -> void:
 	kill_streaks.erase(victim.actor_id())
 	if source==null or not source.alive:return
-	# 슬라임: only the last slime of a family counts toward a kill streak.
-	if victim.data.type_id==35 and battle.units.any(func(v):return v!=victim and v.alive and v.data.type_id==35 and v.team==victim.team and str(v.character_specific_state.get("slimeFamily",""))==str(victim.character_specific_state.get("slimeFamily",""))):return
+	# 슬라임 (and 분열 시련): only the last of a split family counts toward a kill streak.
+	if TrialEffects.family_alive(victim):return
 	var previous: Dictionary=kill_streaks.get(source.actor_id(),{})
 	var count: int=int(previous.count)+1 if not previous.is_empty() and battle.clock.elapsed-float(previous.last)<=KILL_CHAIN_WINDOW else 1
 	kill_streaks[source.actor_id()]={"count":count,"last":battle.clock.elapsed}

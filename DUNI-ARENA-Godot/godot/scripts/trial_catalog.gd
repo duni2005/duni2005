@@ -2,28 +2,38 @@ class_name TrialCatalog
 extends RefCounted
 ## 시련: traits of a battle room (일반 전투 · 미니보스 · 보스). Most work on the room's enemies; 환경
 ## trials work on both sides. At most MAX_TRIALS per room, each trial once.
-## Kinds: 카운터 (enemies take COUNTER_TAKEN of one damage kind or tag), 환경, 적 강화 and 보상
-## (a harder room that pays more). Every definition and number is here; TrialEffects runs them
-## in battle, TrialArt draws them.
+## Kinds: 카운터 (enemies take COUNTER_TAKEN of one damage kind or tag), 환경, 적 강화, 보상
+## (a harder room that pays more), 제약 (fewer options for the player) and 구조물 (objects on the
+## field, FieldObjects). Every definition and number is here; TrialEffects runs them in battle,
+## TrialArt draws them.
 const COUNTER: StringName = &"counter"
 const ENVIRONMENT: StringName = &"environment"
 const EMPOWER: StringName = &"empower"
 const REWARD: StringName = &"reward"
-const KINDS: Array[StringName] = [COUNTER, ENVIRONMENT, EMPOWER, REWARD]
-const KIND_NAMES = {COUNTER: "카운터", ENVIRONMENT: "환경", EMPOWER: "적 강화", REWARD: "보상"}
-## Icon rim by kind: 카운터 red, 환경 yellow, 적 강화 purple, 보상 gold.
-const KIND_COLORS = {COUNTER: Color("ff5a5a"), ENVIRONMENT: Color("f2e45a"), EMPOWER: Color("b884ff"), REWARD: Color("e8a93a")}
+const CONSTRAINT: StringName = &"constraint"
+const STRUCTURE: StringName = &"structure"
+const KINDS: Array[StringName] = [COUNTER, ENVIRONMENT, EMPOWER, REWARD, CONSTRAINT, STRUCTURE]
+const KIND_NAMES = {COUNTER: "카운터", ENVIRONMENT: "환경", EMPOWER: "적 강화", REWARD: "보상", CONSTRAINT: "제약", STRUCTURE: "구조물"}
+## Icon rim by kind: 카운터 red, 환경 yellow, 적 강화 purple, 보상 gold, 제약 grey, 구조물 teal.
+const KIND_COLORS = {COUNTER: Color("ff5a5a"), ENVIRONMENT: Color("f2e45a"), EMPOWER: Color("b884ff"), REWARD: Color("e8a93a"), CONSTRAINT: Color("a4acb6"), STRUCTURE: Color("3fd6c4")}
 
 const MAX_TRIALS: int = 4
 const MAX_COUNTERS: int = 2
 ## 미니보스 and 챕터 보스 rooms.
 const MAX_BOSS_COUNTERS: int = 1
 const MAX_REWARDS: int = 1
+## 제약 and 구조물: at most one each in a room, from these floors.
+const MAX_CONSTRAINTS: int = 1
+const MAX_STRUCTURES: int = 1
+const CONSTRAINT_FLOOR: int = 4
+const STRUCTURE_FLOOR: int = 2
+## Kinds with a cap of one per room.
+const KIND_CAPS = {REWARD: MAX_REWARDS, CONSTRAINT: MAX_CONSTRAINTS, STRUCTURE: MAX_STRUCTURES}
 ## Floors (1-based): [first, last, fewest trials, most trials, most counters].
 const FLOOR_RULES: Array = [[1, 3, 0, 1, 0], [4, 6, 1, 2, 1], [7, 9, 2, 3, 2], [10, 15, 2, 4, 2]]
 ## 강인함 (physical) and 해루석 보호막 (magic) appear from this floor and never together.
 const BROAD_COUNTER_FLOOR: int = 7
-const EXCLUSIVE: Array = [[&"tough", &"seastone"]]
+const EXCLUSIVE: Array = [[&"tough", &"seastone"], [&"martyr", &"split"]]
 
 ## 카운터: share of a matching hit an enemy still takes (60% less), once however many match.
 const COUNTER_TAKEN: float = .4
@@ -68,6 +78,34 @@ const TREASURE_CHOICES: int = 1
 ## The floor trial damage is counted at in custom battles (no tower floor there).
 const CUSTOM_FLOOR: int = 8
 
+## 낙뢰: every LIGHTNING_EVERY s LIGHTNING_STRIKES bolts (radius LIGHTNING_RADIUS) after a
+## LIGHTNING_WARN s warning; LIGHTNING_NEAR of them land within LIGHTNING_SPREAD of a random unit.
+## A hit: 시련 피해 LIGHTNING_BASE + LIGHTNING_PER_FLOOR × floor and LIGHTNING_SHOCK 감전 stacks.
+const LIGHTNING_EVERY: float = 10.0
+const LIGHTNING_WARN: float = 1.2
+const LIGHTNING_STRIKES: int = 3
+const LIGHTNING_NEAR: int = 2
+const LIGHTNING_SPREAD: float = 80.0
+const LIGHTNING_RADIUS: float = 70.0
+const LIGHTNING_BASE: float = 15.0
+const LIGHTNING_PER_FLOOR: float = 8.0
+const LIGHTNING_SHOCK: int = 2
+## 순교자: a fallen enemy's circle shrinks for MARTYR_FUSE s, then blasts the player's side within
+## MARTYR_RADIUS for MARTYR_HP of its max HP (MARTYR_SPLIT_FACTOR of that for the last of a split
+## family) and a MARTYR_PUSH knockback.
+const MARTYR_FUSE: float = 1.0
+const MARTYR_RADIUS: float = 120.0
+const MARTYR_HP: float = .2
+const MARTYR_SPLIT_FACTOR: float = .5
+const MARTYR_PUSH: float = 320.0
+## 도망칠 길은 없다: the strategy cards that pull a unit out of the fight cannot be used.
+const RETREAT_CARDS: Array[StringName] = [&"evade"]
+## 좁은 방: one sortie place fewer (never below NARROW_MIN); dormant while the room's limit is at
+## most NARROW_FROM_LIMIT - 1 (no 출정 확장 yet).
+const NARROW_CUT: int = 1
+const NARROW_MIN: int = 1
+const NARROW_FROM_LIMIT: int = 4
+
 ## id -> name, kind, icon, description; 카운터 add "match" (a damage kind or tag) and may add
 ## "from" (first floor); "weather" marks the ones with a screen effect.
 const TRIALS = {
@@ -94,6 +132,13 @@ const TRIALS = {
 	&"vengeance": {"name": "복수심", "kind": EMPOWER, "icon": "vengeanceMask", "short": "적이 쓰러지면 주변 적 공격력 +10%", "text": "적이 쓰러질 때마다 반경 200 안의 적 공격력 +10% (최대 5중첩, 전투 동안)."},
 	&"vanguard": {"name": "선봉대", "kind": EMPOWER, "icon": "chargeHorn", "short": "시작 3초 적 돌진 · 이동속도 +60%", "text": "전투 시작 후 3초간 적 전원 이동속도 +60%, 아군 쪽으로 돌진합니다."},
 	&"sniper": {"name": "저격 지원", "kind": EMPOWER, "icon": "sniperScope", "short": "12초마다 HP 높은 아군 저격", "text": "12초마다 맵 밖에서 HP가 가장 높은 아군을 저격합니다. 1.2초 동안 붉은 조준선으로 예고하고 물리 피해(25 + 12 × 층)를 줍니다."},
+	&"lightning": {"name": "낙뢰", "kind": ENVIRONMENT, "icon": "trial_lightning", "short": "10초마다 낙뢰 3곳 · 모두에게 피해", "text": "번개 조심하세요! 10초마다 무작위 위치 3곳(반경 70)에 번개가 칩니다. 1.2초 전 노란 원으로 예고하고, 맞은 유닛(아군 · 적)은 시련 피해(15 + 8 × 층)와 감전 2스택을 받습니다."},
+	&"martyr": {"name": "순교자", "kind": EMPOWER, "icon": "trial_martyr", "short": "쓰러진 적이 1초 뒤 폭발", "text": "그들의 죽음은 헛되지 않았습니다. 적이 쓰러지면 그 자리(반경 120)가 1초 뒤 폭발해 아군에게 쓰러진 적 최대 HP 20%의 시련 피해를 주고 밀쳐 냅니다."},
+	&"split": {"name": "분열", "kind": EMPOWER, "icon": "trial_split", "short": "적이 처음 쓰러지면 2명으로 분열", "text": "적이 처음 사망 시 분열하여 2명으로 나눠집니다(각 HP 25% · 피해 30% · 몸집 80%, 다시 나뉘지 않고 궁극기 불가). 챕터 보스는 나뉘지 않습니다."},
+	&"no_escape": {"name": "도망칠 길은 없다", "kind": CONSTRAINT, "icon": "trial_no_escape", "short": "후퇴 불가", "text": "후퇴할 수 없습니다. 후퇴 효과가 있는 전략카드(전투 회피)도 쓸 수 없습니다."},
+	&"narrow_room": {"name": "좁은 방", "kind": CONSTRAINT, "icon": "trial_narrow", "short": "출정 인원 -1", "text": "출정 인원 -1 (최소 1명). 출정 확장을 하기 전에는 나오지 않습니다."},
+	&"warm_statue": {"name": "온기의 동상", "kind": STRUCTURE, "icon": "trial_statue", "short": "중앙의 동상이 주변을 회복", "text": "필드 중앙에 온기의 동상이 배치됩니다. 온기의 동상은 매초마다 가까운(반경 150) 유닛의 HP 2%를 회복시킵니다. 유닛은 지나갈 수 없고 투사체는 지나갑니다."},
+	&"powder_kegs": {"name": "화약통", "kind": STRUCTURE, "icon": "trial_keg", "short": "맞으면 터지는 화약통 5개", "text": "필드 곳곳에 화약통이 배치됩니다. 화약통은 피해를 받으면 0.4초 뒤 크게 폭발합니다(반경 110, 시련 피해 25 + 12 × 층, 화염 2스택, 넉백). 근처 화약통도 연쇄 폭발합니다."},
 	&"gold_convoy": {"name": "금괴 운반대", "kind": REWARD, "icon": "goldToken", "short": "적 이동 +20% · 골드 대폭 증가", "text": "적 이동속도 +20%. 대신 적 처치 골드 2배, 승리 골드 +30%."},
 	&"treasure_guard": {"name": "보물 수호자", "kind": REWARD, "icon": "supply", "short": "적 HP +25% · 보상 선택지 +1", "text": "적 HP +25%. 대신 승리 보상 아이템 선택지가 하나 늘어납니다(3 → 4)."},
 }
@@ -108,10 +153,14 @@ static func of_kind(kind: StringName) -> Array[StringName]:
 	for id in TRIALS:
 		if TRIALS[id].kind == kind:out.append(id)
 	return out
-## First floor (1-based) a trial can appear on: 카운터 from 4 (강인함 · 해루석 보호막 from 7), the rest from 1.
+## First floor (1-based) a trial can appear on: 카운터 from 4 (강인함 · 해루석 보호막 from 7),
+## 제약 from 4, 구조물 from 2, the rest from 1.
 static func first_floor(id: StringName) -> int:
-	if kind_of(id) != COUNTER:return 1
-	return int(TRIALS[id].get("from", FLOOR_RULES[1][0]))
+	match kind_of(id):
+		COUNTER:return int(TRIALS[id].get("from", FLOOR_RULES[1][0]))
+		CONSTRAINT:return CONSTRAINT_FLOOR
+		STRUCTURE:return STRUCTURE_FLOOR
+	return 1
 ## [fewest, most, most counters] for a 1-based floor.
 static func floor_rule(floor: int) -> Array:
 	for row in FLOOR_RULES:
@@ -128,7 +177,7 @@ static func allowed(id: StringName, chosen: Array, floor: int = -1, cap: int = M
 	if floor >= 0 and floor < first_floor(id):return false
 	var kind: StringName = kind_of(id)
 	if kind == COUNTER and chosen.filter(func(t):return kind_of(t) == COUNTER).size() >= cap:return false
-	if kind == REWARD and chosen.filter(func(t):return kind_of(t) == REWARD).size() >= MAX_REWARDS:return false
+	if KIND_CAPS.has(kind) and chosen.filter(func(t):return kind_of(t) == kind).size() >= int(KIND_CAPS[kind]):return false
 	for pair in EXCLUSIVE:
 		if id in pair and chosen.any(func(t):return t != id and t in pair):return false
 	return true
@@ -177,6 +226,19 @@ static func trial_elite_id(room) -> String:
 	for i in range(own, room.encounter.enemies.size()):
 		if room.encounter.enemies[i].rank == &"elite":return room.encounter.enemies[i].enemy_id
 	return ""
+
+## The trials of `room` in force for `run`: 좁은 방 sleeps while the sortie limit is below
+## NARROW_FROM_LIMIT.
+static func active(room, run) -> Array[StringName]:
+	var out: Array[StringName] = []
+	if room == null:return out
+	for id in room.trials:
+		if id == &"narrow_room" and run != null and GrowthRules.sortie_limit(run) < NARROW_FROM_LIMIT:continue
+		out.append(id)
+	return out
+## The sortie limit with `trials` (좁은 방).
+static func sortie_limit(base: int, trials: Array) -> int:
+	return maxi(NARROW_MIN, base - NARROW_CUT) if &"narrow_room" in trials and base >= NARROW_FROM_LIMIT else base
 
 ## One short line for the entry band: what the trial does.
 static func short_of(id: StringName) -> String:

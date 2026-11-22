@@ -7,7 +7,7 @@ extends Control
 signal closed
 const TABS = [["unit","유닛"],["item","아이템"],["card","전략카드"],["event","이벤트"],["tag","피해태그"],["status","상태이상"],["boss","보스"],["plan","특수전략"],["trial","시련"]]
 ## 시련: what each kind does on top of its own description.
-const TRIAL_RULES = {&"counter":"적이 받는 해당 피해가 방어 경감 뒤 60% 줄어든다. 한 피해가 여러 카운터에 해당해도 한 번만 줄어든다.", &"environment":"아군 · 적 모두에게 적용된다. 시련이 주는 피해는 방어만 적용되고 회색 숫자로 보인다.", &"empower":"그 방의 적에게만 적용된다.", &"reward":"방이 어려워지는 대신 보상이 늘어난다. 한 방에 하나까지."}
+const TRIAL_RULES = {&"counter":"적이 받는 해당 피해가 방어 경감 뒤 60% 줄어든다. 한 피해가 여러 카운터에 해당해도 한 번만 줄어든다.", &"environment":"아군 · 적 모두에게 적용된다. 시련이 주는 피해는 방어만 적용되고 회색 숫자로 보인다.", &"empower":"그 방의 적에게만 적용된다.", &"reward":"방이 어려워지는 대신 보상이 늘어난다. 한 방에 하나까지.", &"constraint":"플레이어의 선택지를 줄인다. 한 방에 하나까지, 4층부터.", &"structure":"필드에 구조물을 놓는다. 배치 화면에서도 보이고 그 자리에는 유닛을 놓을 수 없다. 한 방에 하나까지, 2층부터."}
 ## 적 특수전략: how grades are used, shown under every strategy.
 const PLAN_RULES = "터닝포인트에서 적이 준비하고, 터닝포인트가 끝나면 쓴다. 탑을 오를수록 쓰는 확률과 평균 등급이 오른다(초반엔 일반 위주). 보스는 위험 · 고위험만, 고위험은 보스급(보스 · 미니보스)만 쓴다."
 ## Rooms and events: [key, icon, name, description].

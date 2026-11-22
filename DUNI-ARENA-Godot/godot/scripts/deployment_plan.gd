@@ -4,6 +4,8 @@ extends RefCounted
 var guild: GuildManager
 var _entries: Array[DeploymentEntry] = []
 var _blockers: Array[Vector2] = []
+## This battle's sortie limit (좁은 방); -1: the guild's own.
+var sortie_limit: int = -1
 
 func _init(manager: GuildManager, enemy_positions: Array[Vector2] = []) -> void:
 	guild = manager
@@ -23,14 +25,14 @@ func get_entry(member_id: String) -> DeploymentEntry:
 
 func place(member_id: String, point: Vector2) -> DeploymentRules.Code:
 	var entry := DeploymentEntry.new(member_id, point)
-	var error: DeploymentRules.Code = DeploymentRules.validate(guild, entry, _entries, _blockers)
+	var error: DeploymentRules.Code = DeploymentRules.validate(guild, entry, _entries, _blockers, false, sortie_limit)
 	if error == DeploymentRules.Code.OK:
 		_entries.append(entry)
 	return error
 
 func move(member_id: String, point: Vector2) -> DeploymentRules.Code:
 	var entry := DeploymentEntry.new(member_id, point)
-	var error: DeploymentRules.Code = DeploymentRules.validate(guild, entry, _entries, _blockers, true)
+	var error: DeploymentRules.Code = DeploymentRules.validate(guild, entry, _entries, _blockers, true, sortie_limit)
 	if error == DeploymentRules.Code.OK:
 		for existing in _entries:
 			if existing.member_id == member_id:
@@ -69,7 +71,7 @@ func launch(battle: BattleManager, enemies: Array[Dictionary], seed_value: int =
 		if not enemy.get("position") is Vector2 or not enemy.get("data") is UnitData or int(enemy.get("team", 1)) == 0 or enemy.has("member"):
 			return false
 		enemy_points.append(enemy.position)
-	if DeploymentRules.validate_all(guild, _entries, enemy_points) != DeploymentRules.Code.OK:
+	if DeploymentRules.validate_all(guild, _entries, enemy_points, sortie_limit) != DeploymentRules.Code.OK:
 		return false
 	var payload: Array[Dictionary] = []
 	for entry in _entries:

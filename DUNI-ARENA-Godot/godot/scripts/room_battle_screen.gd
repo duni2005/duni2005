@@ -168,6 +168,7 @@ func begin_deployment() -> void:
 func start_battle() -> void:
 	if not board.editing or card_stage:
 		return
+	_end_trial_entry()
 	_reset_ending()
 	for icon in trans_row.get_children():trans_row.remove_child(icon);icon.queue_free()
 	trans_press.clear()
@@ -192,6 +193,9 @@ func start_battle() -> void:
 	_update_room_hud()
 
 func _retreat() -> void:
+	# 도망칠 길은 없다: the trial's card says why.
+	if _no_escape():
+		TrialPopup.show(self,[&"no_escape"],ArenaUI.control_center(retreat_button)-Vector2(0,90),"이 방은 후퇴할 수 없습니다");return
 	# 배수진의 인장: warn that its bearers fall, and ask once more (the battle waits).
 	if session != null and is_instance_valid(battle) and not BuildItems.retreat_victims(battle).is_empty() and session.retreat.check(battle, guild.state) == RetreatController.Code.OK:
 		if not watch_paused:_toggle_watch_pause()
@@ -271,23 +275,36 @@ func _room_finished(result: BattleResult, applied: BattleSettlement.Status) -> v
 ## name and line along the bottom of the field; a tap skips.
 const TRIAL_ENTRY_DELAY: float=1.8
 func _play_trial_entry() -> void:
-	board.trials=room.trials.duplicate() if room!=null else [];board.trial_elite=TrialCatalog.trial_elite_id(room)
+	var trials: Array[StringName]=_trials()
+	board.trials=trials;board.trial_elite=TrialCatalog.trial_elite_id(room);board.field_objects=room.field_objects if room!=null else []
 	board.trial_reveal=-TRIAL_ENTRY_DELAY if UiMotion.enabled else DeploymentBoard.TRIAL_FADE
-	if room==null or room.trials.is_empty():return
+	if trials.is_empty():return
 	# After the room's own entry banner has played.
 	room_hud.play_trial_intro(TRIAL_ENTRY_DELAY)
-	var band: TrialBanner=TrialBanner.play(board,room.trials,TRIAL_ENTRY_DELAY)
+	var band: TrialBanner=TrialBanner.play(board,trials,TRIAL_ENTRY_DELAY)
 	if band!=null:band.finished.connect(func():room_hud.settle_trials();board.trial_reveal=maxf(board.trial_reveal,DeploymentBoard.TRIAL_FADE))
+## The 시련 entry bands end with the deployment.
+func _end_trial_entry() -> void:
+	for band in board.get_children():
+		if band is TrialBanner:band.skip()
 ## 불리: the counters the member's basic attack runs into in this room.
 func _trial_warning(member: GuildMemberState) -> Array:
-	return TrialCatalog.basic_counters(room.trials,member.unit_type_id) if room!=null else []
+	return TrialCatalog.basic_counters(_trials(),member.unit_type_id) if room!=null else []
+## The room's trials in force (좁은 방 sleeps before 출정 확장).
+func _trials() -> Array[StringName]:return TrialCatalog.active(room,guild.state)
+## 좁은 방: one sortie place fewer; 구조물: their spots are taken.
+func _sortie_limit() -> int:return TrialCatalog.sortie_limit(GrowthRules.sortie_limit(guild.state),_trials()) if room!=null else super()
+func _object_blockers() -> Array[Vector2]:return FieldObjects.points(room.field_objects) if room!=null else []
+## 도망칠 길은 없다.
+func _no_escape() -> bool:return room!=null and &"no_escape" in _trials()
 func _update_room_hud() -> void:
 	if room_hud == null or room == null:
 		return
 	var allies: int=guild.living_members().size();var opponents: int=room.living_enemies().size()
 	if is_instance_valid(battle):allies=battle.units.filter(func(u):return u.original_team==0 and u.alive).size();opponents=battle.units.filter(func(u):return u.original_team==1 and u.alive).size()
 	room_hud.battle=battle
-	if room_hud.trials!=room.trials:room_hud.trials=room.trials.duplicate()
+	var trials: Array[StringName]=_trials()
+	if room_hud.trials!=trials:room_hud.trials=trials
 	room_hud.text="플레이어 HP %s · 아군 %d · 적 %d"%[ArenaUI.hp(guild.state.player_hp,guild.state.player_max_hp),allies,opponents]
 
 func _process(delta: float) -> void:
@@ -299,6 +316,8 @@ func _process(delta: float) -> void:
 	if session != null and is_instance_valid(battle) and battle.started and not battle.finished:
 		retreat_button.disabled = session.retreat.check(battle, guild.state) != RetreatController.Code.OK
 		retreat_button.text = "전체 후퇴" if not retreat_button.disabled else "후퇴까지 %d초" % maxi(0, ceili(20 - battle.clock.elapsed))
+		# 도망칠 길은 없다: locked, but a press says why.
+		if _no_escape():retreat_button.disabled=false;retreat_button.text="🔒 후퇴 불가"
 		_update_room_hud()
 
 	if not board.editing:

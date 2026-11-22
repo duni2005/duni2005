@@ -160,6 +160,10 @@ func _open_unit_info(unit_type: int, member_id: String, stats: UnitCombatStats, 
 	UnitInfoSheet.open(self,unit_type,stats if stats!=null else guild.member_stats(member) if member!=null else null,member,subject)
 ## Tapping the selected roster unit again opens its description sheet. Picking a unit card while
 ## the eraser is on puts the eraser away and selects that unit.
+## This battle's sortie limit (a room's 좁은 방 lowers it) and the board points field objects
+## take up (none outside battle rooms).
+func _sortie_limit() -> int:return GrowthRules.sortie_limit(guild.state)
+func _object_blockers() -> Array[Vector2]:return []
 ## The 카운터 시련 a member's basic attack runs into (none outside battle rooms).
 func _trial_warning(_member: GuildMemberState) -> Array:return []
 func _roster_pressed(member_id: String) -> void:
@@ -186,7 +190,8 @@ func begin_deployment() -> void:
 	var blockers: Array[Vector2] = []
 	for enemy in enemies:
 		blockers.append(enemy.position)
-	plan = DeploymentPlan.new(guild, blockers)
+	blockers.append_array(_object_blockers())
+	plan = DeploymentPlan.new(guild, blockers);plan.sortie_limit=_sortie_limit()
 	board.plan = plan
 	board.enemies = enemies
 	board.editing = true
@@ -288,7 +293,7 @@ func toggle_eraser() -> void:
 	board.erase_mode=erase_button.button_pressed;status.text="해제할 유닛을 누르세요." if board.erase_mode else "선택한 유닛을 배치하세요."
 func _update_tools() -> void:
 	if undo_button==null or board==null:return
-	var view_state: Array=[board.editing,undo_history.size(),redo_history.size(),plan.entries().size() if plan!=null else 0,board.erase_mode,GrowthRules.sortie_limit(guild.state)]
+	var view_state: Array=[board.editing,undo_history.size(),redo_history.size(),plan.entries().size() if plan!=null else 0,board.erase_mode,_sortie_limit()]
 	if view_state==tool_view_state:return
 	tool_view_state=view_state
 	tools_row.visible=board.editing;undo_button.disabled=not board.editing or undo_history.is_empty();redo_button.disabled=not board.editing or redo_history.is_empty()
@@ -296,5 +301,5 @@ func _update_tools() -> void:
 	for tool in [undo_button,redo_button,erase_button,tools_row.get_node("ClearAll")]:tool.queue_redraw()
 	if tool_mode_label!=null:tool_mode_label.text="지우개 켜짐" if board.erase_mode else "";tool_mode_label.add_theme_color_override("font_color",ArenaUI.GOLD)
 	# Units sent out of the guild's sortie limit; full turns gold.
-	var placed: int=DeploymentRules.counted(guild,plan.entries()) if plan!=null else 0;var limit: int=GrowthRules.sortie_limit(guild.state)
-	sortie_label.text="출정 %d/%d"%[placed,limit];sortie_label.add_theme_color_override("font_color",ArenaUI.GOLD if placed>=limit else ArenaUI.MUTED)
+	var placed: int=DeploymentRules.counted(guild,plan.entries()) if plan!=null else 0;var limit: int=_sortie_limit()
+	sortie_label.text="출정 %d/%d"%[placed,limit]+(" (좁은 방 -%d)"%(GrowthRules.sortie_limit(guild.state)-limit) if limit<GrowthRules.sortie_limit(guild.state) else "");sortie_label.add_theme_color_override("font_color",ArenaUI.GOLD if placed>=limit else ArenaUI.MUTED)

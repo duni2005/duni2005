@@ -11,13 +11,13 @@ func verify(ok: bool, label: String) -> void:
 
 func run(tree: SceneTree) -> void:
 	host = tree
-	catalog();rolls();generation();saves();counters();environment();empowered();rewards();ui_rules();visuals()
+	catalog();rolls();generation();saves();counters();environment();empowered();rewards();ui_rules();visuals();added_rules();structures();added_battle()
 	print("TRIAL RESULT: %d checks; %d failures" % [checks, failures])
 
 func catalog() -> void:
 	var by_kind: Dictionary = {}
 	for kind in TrialCatalog.KINDS:by_kind[kind] = TrialCatalog.of_kind(kind).size()
-	verify(by_kind == {&"counter": 14, &"environment": 3, &"empower": 6, &"reward": 2}, "14 카운터, 3 환경, 6 적 강화, 2 보상 (%s)" % str(by_kind))
+	verify(by_kind == {&"counter": 14, &"environment": 4, &"empower": 8, &"reward": 2, &"constraint": 2, &"structure": 2}, "14 카운터, 4 환경, 8 적 강화, 2 보상, 2 제약, 2 구조물 (%s)" % str(by_kind))
 	verify(TrialCatalog.TRIALS.keys().all(func(id):return ArenaIcon.texture(str(TrialCatalog.info(id).icon)) != null and not TrialCatalog.info(id).text.is_empty()), "every trial has an icon and a description")
 	verify(TrialCatalog.of_kind(TrialCatalog.COUNTER).all(func(id):return TrialCatalog.info(id).has("match")), "every counter names what it blocks")
 	verify(TrialCatalog.KIND_COLORS[&"counter"].r > .9 and TrialCatalog.KIND_COLORS[&"counter"].g < .5 and TrialCatalog.KIND_COLORS[&"empower"].b > .9, "counter red, empower purple rims")
@@ -222,3 +222,137 @@ func visuals() -> void:
 	for rank in [&"boss", &"elite", &"normal", &"elite"]:
 		var e := EnemySpawnEntry.new();e.set_rank(rank);e.enemy_id = "e%d" % room.encounter.enemies.size();room.encounter.enemies.append(e)
 	verify(TrialCatalog.trial_elite_id(room) == "e3", "정예 부대 mark: the first elite after a boss room's own boss and elite")
+
+## 0.99.19: 낙뢰, 순교자, 분열, 도망칠 길은 없다, 좁은 방, 온기의 동상, 화약통.
+func added_rules() -> void:
+	verify(TrialCatalog.first_floor(&"no_escape") == 4 and TrialCatalog.first_floor(&"narrow_room") == 4 and TrialCatalog.first_floor(&"warm_statue") == 2 and TrialCatalog.first_floor(&"lightning") == 1, "제약 from floor 4, 구조물 from floor 2")
+	verify(not TrialCatalog.allowed(&"narrow_room", [&"no_escape"]) and not TrialCatalog.allowed(&"powder_kegs", [&"warm_statue"]) and not TrialCatalog.allowed(&"split", [&"martyr"]) and TrialCatalog.allowed(&"martyr", [&"no_escape", &"warm_statue"]), "one 제약, one 구조물; 순교자 never with 분열")
+	var bad: int = 0;var seen_structure_low: bool = false
+	for seed_value in range(400):
+		var rng := RandomNumberGenerator.new();rng.seed = seed_value
+		var floor: int = 1 + seed_value % 15
+		var list: Array = TrialCatalog.roll(rng, floor, RoomType.BATTLE)
+		if not TrialCatalog.valid(list):bad += 1
+		if floor < 2 and list.any(func(t):return TrialCatalog.kind_of(t) == TrialCatalog.STRUCTURE):seen_structure_low = true
+		if floor < 4 and list.any(func(t):return TrialCatalog.kind_of(t) == TrialCatalog.CONSTRAINT):seen_structure_low = true
+	verify(bad == 0 and not seen_structure_low, "400 rolls: every list valid, kinds only from their floors")
+	var run := RunState.new()
+	var room := RoomState.new();room.trials.assign([&"narrow_room", &"fog"])
+	verify(TrialCatalog.active(room, run) == [&"fog"], "좁은 방 sleeps before 출정 확장 (limit 3)")
+	run.sortie_level = 1
+	verify(TrialCatalog.active(room, run) == [&"narrow_room", &"fog"] and TrialCatalog.sortie_limit(4, [&"narrow_room"]) == 3 and TrialCatalog.sortie_limit(3, [&"narrow_room"]) == 3 and TrialCatalog.sortie_limit(4, []) == 4, "…then the sortie limit is one lower")
+	var t := TowerController.new();t.new_run(19, 73)
+	var member: GuildMemberState = t.guild.all_members()[0];var others: Array = t.guild.all_members().slice(1)
+	var entries: Array[DeploymentEntry] = []
+	for i in range(2):entries.append(DeploymentEntry.new(others[i].member_id, Vector2(100, 100 + i * 100)))
+	verify(DeploymentRules.validate(t.guild, DeploymentEntry.new(member.member_id, Vector2(300, 600)), entries, [], false, 2) == DeploymentRules.Code.SORTIE_FULL, "deployment honours the lowered limit")
+	var b := battle([&"no_escape"]);b.room_id = "test"
+	verify(RetreatController.new().check(b, RunState.new()) == RetreatController.Code.TRIAL_LOCKED, "도망칠 길은 없다: no retreat")
+	verify(&"evade" in TrialCatalog.RETREAT_CARDS, "…and 전투 회피 is among the cards it locks")
+	b.free()
+
+func structures() -> void:
+	var rng := RandomNumberGenerator.new();rng.seed = 5
+	var enemies: Array = [Vector2(450, 300), Vector2(460, 520)]
+	var rows: Array = FieldObjects.layout(rng, [&"powder_kegs"], enemies)
+	var points: Array = FieldObjects.points(rows)
+	var spaced: bool = true
+	for i in range(points.size()):
+		for j in range(i + 1, points.size()):spaced = spaced and points[i].distance_to(points[j]) >= FieldObject.KEG_SPACING
+	verify(rows.size() == FieldObject.KEG_COUNT and spaced and points.all(func(p):return p.x > DeploymentRules.MAX_POSITION.x and p.x < 415 and enemies.all(func(e):return e.distance_to(p) >= FieldObjects.ENEMY_GAP)), "화약통: five, 120 apart, between the deployment zones, clear of the enemies")
+	verify(FieldObjects.layout(rng, [&"warm_statue"]) == [{"kind": "statue", "x": 400.0, "y": 400.0}], "온기의 동상: the middle of the field")
+	var t := TowerController.new();t.new_run(19, 73)
+	var room: RoomState = t.guild.state.tower.map.rooms.values().filter(func(r):return RoomType.is_combat(r.room_type))[0]
+	room.trials.assign([&"powder_kegs"]);room.field_objects.assign(rows)
+	var doc: Dictionary = JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(t, "objects", 1).document))
+	var loaded: SaveLoadResult = SaveSnapshotLoader.restore(doc)
+	verify(loaded.ok() and FieldObjects.points(loaded.run.tower.map.get_room(room.room_id).field_objects) == points, "the layout survives a save and load")
+	doc.schema_version = 13
+	for r in doc.run.tower.map.rooms:r.erase("field_objects")
+	var old: SaveLoadResult = SaveSnapshotLoader.restore(doc)
+	verify(old.ok() and old.run.tower.map.get_room(room.room_id).field_objects.is_empty() and SaveMigrator.CURRENT_VERSION == 14, "a v13 save loads (rooms without objects)")
+	var broken: Dictionary = JSON.parse_string(JSON.stringify(SaveSnapshotBuilder.capture(t, "objects", 1).document))
+	for r in broken.run.tower.map.rooms:
+		if r.room_id == room.room_id:r.field_objects = [{"kind": "volcano", "x": 1, "y": 2}]
+	verify(not SaveSnapshotLoader.restore(broken).ok(), "an unknown object kind is rejected")
+	# In battle: the statue keeps units out and warms them; kegs stop shots and blow up in a chain.
+	var s := battle([&"warm_statue"], [0, 0], [0, 0])
+	var statue: FieldObject = s.field_objects[0]
+	s.units[0].position = statue.position;s.units[2].position = statue.position + Vector2(90, 0)
+	for u in s.units:u.combat.cooldown = 999;u.current_hp = u.max_hp * .5
+	FieldObjects.constrain(s)
+	verify(s.units[0].position.distance_to(statue.position) >= statue.radius, "a unit cannot stand in the statue")
+	var before: Array = s.units.map(func(u):return u.current_hp)
+	FieldObjects.advance(s, 1.01)
+	var near_gain: float = s.units[2].current_hp - float(before[2])
+	verify(absf(near_gain - s.units[2].max_hp * FieldObject.STATUE_HEAL) < 1 and s.units[2].state_value("trialWarmth") > 0 and StatusCatalog.collect(s.units[2]).any(func(r):return r.key == &"trial_warmth"), "…heals 2%% a second within 150 (both sides) and shows 온기")
+	verify(s.zones.safe_areas(s.units[0]).any(func(a):return str(a.ref).begins_with("object:")) and s.zones.safe_areas(s.units[2]).any(func(a):return str(a.ref).begins_with("object:")), "the AI sees the statue as a place to recover")
+	s.free()
+	var k := battle([&"powder_kegs"], [0, 0], [0, 0])
+	verify(k.field_objects.size() == FieldObject.KEG_COUNT, "a custom battle lays its kegs out")
+	var first: FieldObject = k.field_objects[0];var second: FieldObject = k.field_objects[1]
+	second.position = first.position + Vector2(0, FieldObject.KEG_BLAST - 10)
+	for i in range(2, k.field_objects.size()):k.field_objects[i].position = Vector2(60 + i * 10, 60)
+	for u in k.units:u.combat.cooldown = 999;StatusController.stun(u, 5)
+	k.units[0].position = first.position + Vector2(-60, 0);k.units[2].position = first.position + Vector2(60, 0)
+	verify(k.zones.risk_hazards(k.units[0]).size() >= 1, "the AI keeps a little away from kegs")
+	var shot := BattleProjectile.new();shot.source = k.units[2];shot.previous_position = first.position + Vector2(40, 0);shot.position = first.position - Vector2(40, 0);shot.hit_radius = 8
+	verify(FieldObjects.blocks(shot) and not shot.live and first.fuse > 0, "a projectile stops on a keg and lights it")
+	shot.free()
+	var hp: Array = k.units.map(func(u):return u.current_hp)
+	for i in range(30):FieldObjects.advance(k, 1.0 / 60)
+	verify(not first.alive and k.units[0].current_hp < float(hp[0]) and k.units[2].current_hp < float(hp[2]) and k.units[0].state_value("burnStacks") >= FieldObject.KEG_BURN and second.alive and second.fuse > 0 and second.fuse <= FieldObject.KEG_CHAIN_FUSE, "it blasts both sides (burn, push) and lights the next keg")
+	for i in range(12):FieldObjects.advance(k, 1.0 / 60)
+	verify(not second.alive, "…which goes off %.2f s later" % FieldObject.KEG_CHAIN_FUSE)
+	k.free()
+
+func added_battle() -> void:
+	var l := battle([&"lightning"], [0, 0], [0, 0])
+	l.trial_state.lightning_clock = .02
+	step(l, .05)
+	var bolts: Array = l.trial_state.bolts
+	var near: int = bolts.filter(func(b):return l.units.any(func(u):return u.position.distance_to(b.point) <= TrialCatalog.LIGHTNING_SPREAD * 1.5)).size()
+	verify(bolts.size() == TrialCatalog.LIGHTNING_STRIKES and near >= TrialCatalog.LIGHTNING_NEAR and l.zones.risk_hazards(l.units[0]).size() >= TrialCatalog.LIGHTNING_STRIKES, "낙뢰: three warned spots, two by units, read as danger")
+	var spot: Vector2 = bolts[0].point
+	for u in l.units:u.position = spot;u.combat.cooldown = 999;StatusController.stun(u, 5)
+	var hp: Array = l.units.map(func(u):return u.current_hp)
+	l.trial_state.bolts = [bolts[0]]
+	for u in l.units:u.stun_remaining = 0
+	l.trial_state.bolts[0].left = .01
+	TrialEffects.advance(l, .02)
+	var hurt: bool = true
+	for i in range(l.units.size()):hurt = hurt and l.units[i].current_hp < float(hp[i])
+	verify(hurt and l.units.all(func(u):return u.state_value("shockStacks") == TrialCatalog.LIGHTNING_SHOCK), "…the bolt hurts everyone inside and leaves 2 감전 stacks")
+	l.free()
+	var m := battle([&"martyr"], [0, 0], [0, 0, 0])
+	for u in m.units:u.combat.cooldown = 999;StatusController.stun(u, 5)
+	var foe: BattleUnit = m.units[2];var ally: BattleUnit = m.units[0];var friend: BattleUnit = m.units[3]
+	ally.position = foe.position + Vector2(-60, 0);friend.position = foe.position + Vector2(60, 0)
+	var ally_hp: float = ally.current_hp;var friend_hp: float = friend.current_hp
+	m.damage_resolver.resolve(m.units[1], foe, 99999, {"dmg": &"basic", "critical": false, "transcendent": true})
+	verify(not foe.alive and m.trial_state.blasts.size() == 1 and m.zones.risk_hazards(ally).size() >= 1 and m.zones.risk_hazards(friend).is_empty(), "순교자: a fallen enemy leaves a blast the player's side avoids")
+	TrialEffects.advance(m, TrialCatalog.MARTYR_FUSE + .01)
+	verify(absf(ally_hp - ally.current_hp - CombatRules.js_round(foe.max_hp * TrialCatalog.MARTYR_HP * UnitStatTable.mitigation(CombatRules.defense_sum(ally)))) <= 1 and friend.current_hp == friend_hp and ally.knockback_velocity.length() > 0, "…a second later it hits only the player's side (20%% of its max HP) and pushes")
+	m.free()
+	var sp := battle([&"split"], [0, 0], [0, 35])
+	for u in sp.units:u.combat.cooldown = 999
+	var target: BattleUnit = sp.units[2];var full: float = target.max_hp
+	sp.damage_resolver.resolve(sp.units[0], target, 99999, {"dmg": &"basic", "critical": false, "transcendent": true})
+	step(sp, .02)
+	var family: Array = sp.units.filter(func(u):return u.alive and u.original_team == 1 and u.data.type_id == 0)
+	verify(target.alive and family.size() == 2 and absf(target.max_hp - full * .25) <= 1 and target.invincible_remaining > 0 and family.all(func(u):return u.state_value("trialSplit") > 0), "분열: the first deadly blow splits it in two (HP 25%, briefly invincible)")
+	target.invincible_remaining = 0
+	verify(TrialEffects.family_alive(target) and TrialEffects.reward_enemy_id(target) == target.source_enemy_id, "kill gold and kill streaks wait for the family's last member")
+	sp.damage_resolver.resolve(sp.units[0], target, 99999, {"dmg": &"basic", "critical": false, "transcendent": true})
+	verify(not target.alive, "…a split enemy does not split again")
+	var slime: BattleUnit = sp.units[3];var count_before: int = sp.units.size()
+	sp.damage_resolver.resolve(sp.units[0], slime, 99999, {"dmg": &"basic", "critical": false, "transcendent": true})
+	step(sp, .02)
+	verify(slime.alive and slime.state_value("trialSplit") == 0 and slime.state_value("slimeSplits") == 1 and sp.units.size() == count_before + 1, "a slime keeps its own split rule only")
+	sp.free()
+	var el := battle([&"split", &"elite_squad"], [0], [0, 27])
+	var elite: BattleUnit = el.units[2];var elite_hp: float = elite.max_hp
+	el.damage_resolver.resolve(el.units[0], elite, 99999, {"dmg": &"basic", "critical": false, "transcendent": true})
+	var rank := EnemySpawnEntry.new();rank.set_rank(&"elite")
+	verify(elite.alive and elite.state_value("trialElite") == 0 and absf(elite.max_hp - floorf(elite_hp / rank.hp_multiplier + .5) * .25) <= 2, "an elite that splits loses its elite multipliers (%.0f → %.0f)" % [elite_hp, elite.max_hp])
+	el.free()
