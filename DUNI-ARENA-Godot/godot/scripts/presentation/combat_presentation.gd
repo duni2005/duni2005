@@ -5,6 +5,8 @@ const MAX_EFFECTS=96
 const MAX_NUMBERS=40
 const FLAMETHROWER=preload("res://scripts/abilities/flamethrower_ability.gd")
 const ZONE_COLORS={"blackhole":Color("a878f5"),"tankFire":Color("ff934f"),"ring":Color("ffd68a"),"healing":Color("6de3ad"),"holy":Color("ffeeb3"),"cosmic":Color("80b1ff"),"galaxy":Color("a0a1ff"),"discharge":Color("b8e7ff"),"griffinStorm":Color("9ff0d8")}
+## A 시련 acted (TrialFx.ping): its wallet icon flashes.
+signal trial_pinged(id: StringName)
 var board: DeploymentBoard
 var battle: BattleManager
 var camera:=ArenaCameraController.new()
@@ -73,6 +75,10 @@ var use_shader_fx: bool=true
 var ult_released: Dictionary={}
 var ult_timers: Dictionary={}
 var stance_marks:=StanceMarks.new()
+## The moments of the battle's 시련.
+var trial_fx:=TrialFx.new(self)
+## The wallet 금괴 운반대 coins fly to (the tower's room HUD); none, they rise off the field.
+var wallet: WalletBar
 ## Buff windows opened by an ultimate; the unit wears a rising aura in its ink colour meanwhile.
 const EMPOWERED_STATES=["guardianUltTime","paladinBlessingTime","mirrorReflectTime","sniperBurstReady","tankFlameReady"]
 func impact_pause(milliseconds: int) -> void:
@@ -113,6 +119,7 @@ func cleanup() -> void:
 	if is_instance_valid(glow_layer):glow_layer.queue_redraw()
 	if is_instance_valid(field_layer):field_layer.clear()
 	if is_instance_valid(shader_fx):shader_fx.clear()
+	trial_fx.clear()
 ## Effects that bring their own particles (no default burst where they are added).
 const QUIET_EFFECTS: Array = ["santa_sleigh","santa_snowfall","gift_fall","gift_text","gift_mark","frost_patch","snow_gather"]
 const SANTA_AWAY: float = 3.2 # SantaAbility.AWAY_TIME
@@ -210,14 +217,19 @@ func add_effect(kind: String,point: Vector2,color: Color=Color.WHITE,radius: flo
 	elif kind=="explosion":impact_pause(80);camera.impact(9,point)
 	elif kind=="ultimate":camera.impact(10,point)
 
-func number(kind: String,point: Vector2,value: float,color: Color,actor: int) -> void:
+## `extra`: "counter" (a 카운터 시련 cut it: smaller, with that trial's cracked shield when "mark"),
+## "icon" (시련 피해: a small trial icon), "small".
+func number(kind: String,point: Vector2,value: float,color: Color,actor: int,extra: Dictionary={}) -> void:
 	if value<=0:return
 	# 피해량 표시 off: damage numbers go, heals still show.
 	if not GameSettings.damage_numbers and kind!="heal":return
 	for n in numbers:
-		if n.actor==actor and n.kind==kind and float(n.age)<.12:n.value+=value;return
+		if n.actor==actor and n.kind==kind and float(n.age)<.12 and n.get("counter",&"")==extra.get("counter",&"") and n.get("icon","")==extra.get("icon",""):
+			n.value+=value;n.mark=n.get("mark",false) or extra.get("mark",false);return
 	if numbers.size()>=MAX_NUMBERS:numbers.pop_front()
-	numbers.append({"kind":kind,"point":point,"value":value,"color":color,"actor":actor,"age":0.0})
+	var entry: Dictionary={"kind":kind,"point":point,"value":value,"color":color,"actor":actor,"age":0.0}
+	entry.merge(extra)
+	numbers.append(entry)
 func _explosion_once(key: int,point: Vector2,radius: float) -> void:
 	if explosive_seen.has(key):return
 	if explosive_seen.size()>=256:explosive_seen.erase(explosive_seen.keys()[0])
@@ -242,8 +254,12 @@ func _damage(source,target,out: DamageOutcome) -> void:
 			if p.source!=source:continue
 			if p.metadata.get("detonated",false):_explosion_once(p.projectile_id,p.position,float(p.metadata.get("blast_radius",120)))
 			elif source.data.type_id==2 and p.live and p.kind.is_empty() and p.attack_instance!=null and p.attack_instance.hit_ids.has(target.battle_id):_explosion_once(p.projectile_id,p.position,110*float(p.metadata.get("scale",1)))
+	# 카운터 시련: a smaller number, the trial's reaction and (limited) its cracked shield.
+	var cut: Dictionary={}
+	if out.trial_counter!=&"" and out.hp_damage+out.shield_absorbed>0:
+		cut={"counter":out.trial_counter,"mark":trial_fx.blocked(target,out.trial_counter,(target.position-source.position).angle() if is_instance_valid(source) else -PI*.5)}
 	if out.status!=&"":
-		if out.hp_damage>0:number("status",target.position,out.hp_damage,STATUS_COLORS.get(out.status,Color.WHITE),target.battle_id)
+		if out.hp_damage>0:number("status",target.position,out.hp_damage,STATUS_COLORS.get(out.status,Color.WHITE),target.battle_id,cut)
 		if out.status==&"chain_shock" and out.hp_damage>0:flashes[target.battle_id]=.1
 		match out.status:
 			&"burn":particles.burst(target.position,Color("ff9a52"),3,90,-PI/2,"flame",false)
@@ -255,7 +271,7 @@ func _damage(source,target,out: DamageOutcome) -> void:
 		flashes[target.battle_id]=.15
 		add_effect("critical" if out.critical else "hit",target.position,ArenaUI.GOLD if out.critical else AttackVisuals.ink(source.data.type_id) if is_instance_valid(source) else Color("fff3d1"),95 if out.critical else 28,.32 if out.critical else .24,(target.position-source.position).angle() if is_instance_valid(source) else 0)
 		effects[-1]["angle"]=(target.position-source.position).angle() if is_instance_valid(source) else 0
-		number("critical" if out.critical else "damage",target.position,out.hp_damage,ArenaUI.GOLD if out.critical else Color.WHITE,target.battle_id)
+		number("critical" if out.critical else "damage",target.position,out.hp_damage,ArenaUI.GOLD if out.critical else Color.WHITE,target.battle_id,cut)
 		camera.impact(5 if out.critical else 2,target.position)
 	if out.ultimate and (out.hp_damage>0 or out.shield_absorbed>0) and is_instance_valid(source) and real_age-float(ult_timers.get("hit%d"%target.battle_id,-1.0))>.12:
 		ult_timers["hit%d"%target.battle_id]=real_age
@@ -269,6 +285,7 @@ func _damage(source,target,out: DamageOutcome) -> void:
 	if out.reflected_damage>0:add_effect("reflect",target.position,Color("ff90ce"),40)
 	if is_instance_valid(source) and source.data.attack_profile.kind==AttackData.Kind.PROJECTILE:add_effect("projectile_hit",target.position,source.team_color(),18)
 func _death(u,source) -> void:
+	if not battle.trials.is_empty():trial_fx.death(u)
 	if u.data.type_id==13 and u.state_value("bomberFuse",1)<=0:_explosion_once(-u.battle_id,u.position,165*u.combat_scale())
 	add_effect("death",u.position,u.team_color(),115*u.combat_scale(),.72)
 	effects[-1]["type"]=u.data.type_id;effects[-1]["scale"]=u.combat_scale()
@@ -395,6 +412,7 @@ func advance(delta: float) -> void:
 		kill_notices[i].age+=maxf(0,ui_delta)
 		if kill_notices[i].age>3.2:kill_notices.remove_at(i)
 	_age_banner(ui_delta)
+	if is_instance_valid(battle) and not battle.trials.is_empty():trial_fx.advance(maxf(0,delta))
 	impact_cooldown=maxf(0,impact_cooldown-delta);impact_remaining=maxf(0,impact_remaining-delta)
 	if impact_remaining<=0:particles.advance(delta)
 	for id in flashes:flashes[id]=maxf(0,float(flashes[id])-delta)
@@ -467,7 +485,7 @@ func advance(delta: float) -> void:
 			var e: Dictionary=battle.combat_events[i];var kind: String=String(e.kind)
 			if kind=="item_proc" or kind=="item_fx":item_fx.event(e);continue
 			if CardFieldView.event(self,StringName(kind),e.point,e.metadata):continue
-			if TrialArt.event(self,StringName(kind),e.point,e.metadata):continue
+			if trial_fx.event(StringName(kind),e.point,e.metadata):continue
 			if kind=="ult_impact":
 				add_effect("ult_impact",e.point,AttackVisuals.ink(int(e.metadata.get("type",0))),float(e.metadata.get("radius",110)),1.1)
 				particles.burst(e.point,Color("c8a77c"),20,340,0,"shard",true);particles.burst(e.point,Color("6b5a4a"),12,90,0,"smoke",true)
@@ -756,10 +774,14 @@ func advance(delta: float) -> void:
 				if kind in ["clash","ultimate"]:camera.impact(5,e.point);camera.focus(e.point)
 		for u in battle.units:
 			var old: Dictionary=previous.get(u.battle_id,{"hp":u.current_hp,"shield":0,"stun":0,"inv":0})
-			if u.current_hp>float(old.hp):add_effect("heal",u.position,Color("77edb4"),25);number("heal",u.position,u.current_hp-float(old.hp),Color("77edb4"),u.battle_id)
+			# 끈질긴 생명's ticks are summed by TrialFx instead.
+			var gain: float=u.current_hp-float(old.hp)
+			if gain>0 and not battle.trials.is_empty():gain=trial_fx.shown_heal(u,gain)
+			if gain>.01:add_effect("heal",u.position,Color("77edb4"),25);number("heal",u.position,gain,Color("77edb4"),u.battle_id)
 			if u.stun_remaining>0 and float(old.stun)<=0:add_effect("stun",u.position,ArenaUI.GOLD,32)
 			if u.invincible_remaining>0 and float(old.inv)<=0:add_effect("invincible",u.position,ArenaUI.GOLD,38)
 			previous[u.battle_id]={"hp":u.current_hp,"shield":u.shield_hp,"stun":u.stun_remaining,"inv":u.invincible_remaining}
+		trial_fx.end_frame()
 	_status_emitters(delta);_advance_orbs(delta);item_fx.advance(delta)
 	var rows: Array=[]
 	for unit in battle.units:
@@ -828,7 +850,8 @@ func _draw_battle() -> void:
 			if z.get("ultimate",false):_ult_zone(z,point,radius)
 			if z.kind=="discharge":
 				for i in range(8):VisualShapes.bolt(self,point,point+Vector2.from_angle(i*TAU/8+real_age)*radius,c,i,3)
-	if not battle.finished:EnemyStrategyView.draw_ground(self,battle,real_age);item_fx.draw_ground(self);CardFieldView.draw_walls(self,battle,real_age);TrialArt.draw_ground(self,battle,real_age)
+	if not battle.finished:EnemyStrategyView.draw_ground(self,battle,real_age);item_fx.draw_ground(self);CardFieldView.draw_walls(self,battle,real_age)
+	if not battle.finished and not battle.trials.is_empty():trial_fx.draw_ground(self)
 	for u in battle.units:
 		if u.alive:AttackVisuals.frog_action(self,u)
 	for attack in battle.melee_strikes:
@@ -838,7 +861,9 @@ func _draw_battle() -> void:
 			AttackVisuals.melee(self,owner,attack)
 	for p in ([] if battle.finished else battle.projectiles):
 		if p.live and not p.hidden_launch and p.metadata.get("ultimate",false):_ult_projectile(p)
-		if p.live and not p.hidden_launch:AttackVisuals.projectile(self,p,projectile_trails.get(p.projectile_id,[]),battle.clock.elapsed,parent_transform,projectile_origins.get(p.projectile_id,p.previous_position))
+		if p.live and not p.hidden_launch:
+			AttackVisuals.projectile(self,p,projectile_trails.get(p.projectile_id,[]),battle.clock.elapsed,parent_transform,projectile_origins.get(p.projectile_id,p.previous_position))
+			if TrialEffects.on(battle,&"fog"):trial_fx.veil(self,p,projectile_origins.get(p.projectile_id,p.previous_position))
 	for wave in ([] if battle.finished else battle.combat_waves):
 		var t: float=clampf(wave.age/maxf(.001,wave.duration),0,1)
 		VfxArt.pressure(self,wave.origin,0,wave.radius*(.2+t*.8),Color("a7eaff"),(1-t)*.3)
@@ -846,10 +871,15 @@ func _draw_battle() -> void:
 		if AttackVisuals.body_visible(u):
 			visual_positions[u.battle_id]=u.position
 			var difference: Vector2=Vector2(freeze_positions.get(u.battle_id,u.position))-u.position if impact_remaining>0 else Vector2.ZERO
-			draw_set_transform_matrix(parent_transform*Transform2D(0,difference));_unit(u,parent_transform*Transform2D(0,difference));draw_set_transform_matrix(parent_transform)
+			var body: Transform2D=parent_transform*Transform2D(0,difference)
+			# 지진: a fallen unit tips over while it is down.
+			var down: float=u.state_value("quakeTime") if u.alive else 0.0
+			if down>0:body=body*Transform2D(0,u.position)*Transform2D(.45*sin(clampf(down/TrialCatalog.QUAKE_FALL,0,1)*PI)*(1 if u.battle_id%2==0 else -1),Vector2.ZERO)*Transform2D(0,-u.position)
+			draw_set_transform_matrix(body);_unit(u,body);draw_set_transform_matrix(parent_transform)
 	for u in ([] if battle.finished else battle.units):
 		if u.data.type_id==27 and u.state_value("trainFx")>0 and u.ultimate.cast.has("track"):_draw_train(u)
 		if u.alive and u.character_specific_state.has("snowball"):_draw_snowball(u)
+	if not battle.finished and not battle.trials.is_empty():trial_fx.draw_over(self)
 	particles.draw(self)
 	_draw_orbs()
 	if not battle.finished:item_fx.draw_over(self)
@@ -1204,8 +1234,16 @@ func _draw_battle() -> void:
 		var size: int=23 if n.kind=="critical" else 14 if n.kind=="status" else 18
 		# 무한의 칼날: bigger gold criticals; 영겁의 갑주: a cracked number.
 		if n.get("big",false):size=31
+		# 카운터: a number a counter cut is smaller; small: summed 끈질긴 생명 heals.
+		if n.get("counter",&"")!=&"" or n.get("small",false):size=maxi(12,size-4)
 		var at: Vector2=n.point+Vector2(-14+(16 if n.kind=="status" else 0),-38-float(n.age)*42);var nc: Color=Color(n.color,1-clampf(float(n.age)/.9,0,1))
-		draw_string(ThemeDB.fallback_font,at,prefix+str(ceili(n.value)),HORIZONTAL_ALIGNMENT_LEFT,-1,size,nc)
+		var text: String=prefix+str(ceili(n.value))
+		draw_string(ThemeDB.fallback_font,at,text,HORIZONTAL_ALIGNMENT_LEFT,-1,size,nc)
+		if not str(n.get("icon","")).is_empty():
+			draw_circle(at+Vector2(-9,-size*.35),7.5,Color("2a2f3a",nc.a));ArenaIcon.draw(self,at+Vector2(-9,-size*.35),str(n.icon),12,Color(1,1,1,nc.a))
+		if n.get("mark",false):
+			var w: float=ThemeDB.fallback_font.get_string_size(text,HORIZONTAL_ALIGNMENT_LEFT,-1,size).x
+			TrialArt.broken_shield(self,at+Vector2(w+9,-size*.35),13,Color(TrialArt.COUNTER_TINT.get(n.counter,Color.WHITE),nc.a))
 		if n.get("cracked",false):draw_polyline(PackedVector2Array([at+Vector2(-2,-16),at+Vector2(8,-8),at+Vector2(4,-4),at+Vector2(16,2)]),Color(ArenaUI.GOLD,nc.a),2,true)
 	if battle.transcendence!=null:
 		var action: Dictionary=battle.transcendence.aim if not battle.transcendence.aim.is_empty() else battle.transcendence.cast
@@ -1225,7 +1263,7 @@ func _draw_battle() -> void:
 				draw_arc(caster.position,40,0,TAU,32,Color("d6a6ff"),3)
 	CardFieldView.draw_focus(self,battle,board,real_age)
 	draw_set_transform(Vector2.ZERO)
-	if not battle.trials.is_empty():TrialArt.draw_weather(self,battle,rect,real_age)
+	if not battle.finished and not battle.trials.is_empty():trial_fx.draw_screen(self,rect)
 	EnemyStrategyView.draw_badges(self,battle,parent_transform,board.strategy_actor_id,real_age)
 	EnemyStrategyView.draw_detail(self,battle,rect,board.strategy_actor_id)
 	if not external_kill_feed:_draw_kill_notices(rect)

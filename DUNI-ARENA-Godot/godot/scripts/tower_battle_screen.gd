@@ -17,6 +17,8 @@ var result_losses: Label
 var result_rewards: Label
 ## 전투 보상: the item pick under the result summary.
 var reward_row: ItemRewardRow
+## The room whose 보물 수호자 chest has played.
+var treasure_shown: String=""
 var result_detail: VBoxContainer
 var result_column: VBoxContainer
 var retreat_scene: RetreatPresentation
@@ -218,6 +220,12 @@ func _show_item_reward() -> void:
 	reward_row.setup(room.item_choices,&"")
 	reward_row.picked.connect(_pick_item_reward);reward_row.stats_requested.connect(_open_stats)
 	next_button.disabled=true
+	# 보물 수호자: the chest opens first (once per room), then the cards come up.
+	if &"treasure_guard" in room.trials and UiMotion.enabled and treasure_shown!=room.room_id:
+		treasure_shown=room.room_id;reward_row.modulate.a=0
+		var row: ItemRewardRow=reward_row
+		TreasureChestShow.play(result_overlay).finished.connect(func():
+			if is_instance_valid(row):row.modulate.a=1;UiMotion.pop(row,0,.9,Motion.ENTER))
 func _pick_item_reward(kind: StringName) -> void:
 	var result: Dictionary=tower_controller.content_action(&"pick_reward",{"kind":kind})
 	if not result.ok:return

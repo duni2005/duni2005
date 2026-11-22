@@ -85,17 +85,17 @@ const TRIALS = {
 	&"melee_masters": {"name": "백병전", "kind": COUNTER, "icon": "duelistGlove", "match": &"melee", "text": "적들은 백병전의 달인들입니다! 받는 근접공격 피해가 60% 감소합니다."},
 	&"spread": {"name": "산개", "kind": COUNTER, "icon": "commanderCompass", "match": &"area", "text": "적들이 넓게 흩어져 분산했습니다! 받는 범위 피해가 60% 감소합니다."},
 	&"stubborn": {"name": "불굴의 체질", "kind": COUNTER, "icon": "lifeResonance", "match": &"dot", "text": "적들이 끈질긴 체질을 지녔습니다. 받는 지속 피해가 60% 감소합니다."},
-	&"meteor": {"name": "소행성", "kind": ENVIRONMENT, "icon": "trial_meteor", "text": "10초마다 무작위 위치(반경 110)에 운석이 떨어집니다. 1.5초 전 붉은 원으로 예고하고, 아군 · 적 모두에게 큰 범위 피해(20 + 10 × 층)를 줍니다."},
-	&"fog": {"name": "짙은 안개", "kind": ENVIRONMENT, "icon": "trial_fog", "weather": true, "text": "짙은 안개로 모든 유닛의 사거리가 30% 줄어듭니다(최소 60)."},
-	&"quake": {"name": "지진", "kind": ENVIRONMENT, "icon": "trial_quake", "text": "15초마다 땅이 흔들려 모든 유닛이 0.6초 동안 넘어집니다(행동 불가). 1초 전 화면이 흔들리며 예고합니다."},
-	&"regen": {"name": "끈질긴 생명", "kind": EMPOWER, "icon": "vital", "text": "적이 매초 최대 HP의 1%를 회복합니다."},
-	&"berserkers": {"name": "광전사들", "kind": EMPOWER, "icon": "berserkerHelm", "text": "적은 HP 30% 이하가 되면 공격속도 +50%, 이동속도 +20%."},
-	&"elite_squad": {"name": "정예 부대", "kind": EMPOWER, "icon": "knightCrest", "text": "가장 비싼 일반 적 1명이 엘리트가 됩니다(엘리트 배율 적용)."},
-	&"vengeance": {"name": "복수심", "kind": EMPOWER, "icon": "vengeanceMask", "text": "적이 쓰러질 때마다 반경 200 안의 적 공격력 +10% (최대 5중첩, 전투 동안)."},
-	&"vanguard": {"name": "선봉대", "kind": EMPOWER, "icon": "chargeHorn", "text": "전투 시작 후 3초간 적 전원 이동속도 +60%, 아군 쪽으로 돌진합니다."},
-	&"sniper": {"name": "저격 지원", "kind": EMPOWER, "icon": "sniperScope", "text": "12초마다 맵 밖에서 HP가 가장 높은 아군을 저격합니다. 1.2초 동안 붉은 조준선으로 예고하고 물리 피해(25 + 12 × 층)를 줍니다."},
-	&"gold_convoy": {"name": "금괴 운반대", "kind": REWARD, "icon": "goldToken", "text": "적 이동속도 +20%. 대신 적 처치 골드 2배, 승리 골드 +30%."},
-	&"treasure_guard": {"name": "보물 수호자", "kind": REWARD, "icon": "supply", "text": "적 HP +25%. 대신 승리 보상 아이템 선택지가 하나 늘어납니다(3 → 4)."},
+	&"meteor": {"name": "소행성", "kind": ENVIRONMENT, "icon": "trial_meteor", "short": "10초마다 운석 낙하 · 모두에게 피해", "text": "10초마다 무작위 위치(반경 110)에 운석이 떨어집니다. 1.5초 전 노란 원으로 예고하고, 아군 · 적 모두에게 큰 범위 피해(20 + 10 × 층)를 줍니다."},
+	&"fog": {"name": "짙은 안개", "kind": ENVIRONMENT, "icon": "trial_fog", "weather": true, "short": "모든 유닛 사거리 -30%", "text": "짙은 안개로 모든 유닛의 사거리가 30% 줄어듭니다(최소 60)."},
+	&"quake": {"name": "지진", "kind": ENVIRONMENT, "icon": "trial_quake", "short": "15초마다 모두 0.6초 넘어짐", "text": "15초마다 땅이 흔들려 모든 유닛이 0.6초 동안 넘어집니다(행동 불가). 1초 전 화면이 흔들리며 예고합니다."},
+	&"regen": {"name": "끈질긴 생명", "kind": EMPOWER, "icon": "vital", "short": "적이 매초 최대 HP 1% 회복", "text": "적이 매초 최대 HP의 1%를 회복합니다."},
+	&"berserkers": {"name": "광전사들", "kind": EMPOWER, "icon": "berserkerHelm", "short": "HP 30% 이하 적 공격속도 +50%", "text": "적은 HP 30% 이하가 되면 공격속도 +50%, 이동속도 +20%."},
+	&"elite_squad": {"name": "정예 부대", "kind": EMPOWER, "icon": "knightCrest", "short": "가장 비싼 적 1명이 엘리트", "text": "가장 비싼 일반 적 1명이 엘리트가 됩니다(엘리트 배율 적용)."},
+	&"vengeance": {"name": "복수심", "kind": EMPOWER, "icon": "vengeanceMask", "short": "적이 쓰러지면 주변 적 공격력 +10%", "text": "적이 쓰러질 때마다 반경 200 안의 적 공격력 +10% (최대 5중첩, 전투 동안)."},
+	&"vanguard": {"name": "선봉대", "kind": EMPOWER, "icon": "chargeHorn", "short": "시작 3초 적 돌진 · 이동속도 +60%", "text": "전투 시작 후 3초간 적 전원 이동속도 +60%, 아군 쪽으로 돌진합니다."},
+	&"sniper": {"name": "저격 지원", "kind": EMPOWER, "icon": "sniperScope", "short": "12초마다 HP 높은 아군 저격", "text": "12초마다 맵 밖에서 HP가 가장 높은 아군을 저격합니다. 1.2초 동안 붉은 조준선으로 예고하고 물리 피해(25 + 12 × 층)를 줍니다."},
+	&"gold_convoy": {"name": "금괴 운반대", "kind": REWARD, "icon": "goldToken", "short": "적 이동 +20% · 골드 대폭 증가", "text": "적 이동속도 +20%. 대신 적 처치 골드 2배, 승리 골드 +30%."},
+	&"treasure_guard": {"name": "보물 수호자", "kind": REWARD, "icon": "supply", "short": "적 HP +25% · 보상 선택지 +1", "text": "적 HP +25%. 대신 승리 보상 아이템 선택지가 하나 늘어납니다(3 → 4)."},
 }
 
 static func has(id: StringName) -> bool:return TRIALS.has(id)
@@ -168,6 +168,25 @@ static func apply_spawns(encounter: EncounterState, trials: Array) -> void:
 	for e in encounter.enemies:
 		if &"treasure_guard" in trials:e.hp_multiplier *= TREASURE_HP
 		if &"gold_convoy" in trials:e.speed_multiplier *= CONVOY_SPEED
+
+## The enemy 정예 부대 promoted in a tower room ("" when none): the room's own elites (a boss
+## room's boss and elite, a miniboss room's elite) lead its list, so it is the first elite after them.
+static func trial_elite_id(room) -> String:
+	if room == null or not &"elite_squad" in room.trials or room.encounter == null:return ""
+	var own: int = 2 if room.room_type == RoomType.BOSS else 1 if room.room_type == RoomType.MINIBOSS else 0
+	for i in range(own, room.encounter.enemies.size()):
+		if room.encounter.enemies[i].rank == &"elite":return room.encounter.enemies[i].enemy_id
+	return ""
+
+## One short line for the entry band: what the trial does.
+static func short_of(id: StringName) -> String:
+	var info: Dictionary = TRIALS.get(id, {})
+	if info.get("kind") == COUNTER:return "적이 받는 %s 피해 -60%%" % MATCH_NAMES.get(info.get("match"), "")
+	return str(info.get("short", ""))
+const MATCH_NAMES = {&"projectile": "투사체", &"magic": "마법", &"physical": "물리", &"dark": "어둠", &"light": "빛", &"poison": "맹독", &"lightning": "번개", &"ice": "얼음", &"fire": "화염", &"wind": "바람", &"explosion": "폭발", &"melee": "근접공격", &"area": "범위", &"dot": "지속"}
+## 위험 예고: red when only the player's side is in danger, yellow when everyone is.
+const HAZARD_ALLY := Color("ff3a3a")
+const HAZARD_ALL := Color("ffd23a")
 
 ## The counter trials in `trials` that a hit of this damage kind and these tags falls under.
 static func counters_for(trials: Array, kind: StringName, tags: Array) -> Array[StringName]:

@@ -48,6 +48,10 @@ func start(plan: DeploymentPlan, manager: BattleManager, seed_value: int = -1) -
 	# Web launchOpeningEquipment skips every retry of an already-started room.
 	if room.battle_attempt_count == 1 and room.floor_index >= 0: EquipmentCombatEffects.launch_opening(battle)
 	battle.enable_turning_points(guild)
+	# 정예 부대: the enemy the room promoted wears its mark (StatusCatalog, TrialFx).
+	var elite_id: String = TrialCatalog.trial_elite_id(room)
+	for u in battle.units:
+		if not elite_id.is_empty() and u.source_enemy_id == elite_id:u.set_state("trialElite", 1.0)
 	return true
 
 func _on_death(unit: BattleUnit, _source) -> void:

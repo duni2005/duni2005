@@ -18,6 +18,12 @@ signal unit_info_requested(unit_type: int, member_id: String, stats: UnitCombatS
 var tapped_selected: bool = false
 var plan: DeploymentPlan
 var enemies: Array[Dictionary] = []
+## The room's 시련: their weather and the enemies' marks fade in from `trial_reveal` 0 (seconds,
+## negative while waiting); `trial_elite` is the enemy 정예 부대 promoted.
+var trials: Array = []
+var trial_reveal: float = 0
+var trial_elite: String = ""
+const TRIAL_FADE: float = 1.5
 var selected_id: String = ""
 var editing: bool = true
 var battle: BattleManager
@@ -105,6 +111,7 @@ func select(member_id: String) -> void:
 	queue_redraw()
 
 func _process(_delta: float) -> void:
+	if editing and not trials.is_empty():trial_reveal += _delta;queue_redraw()
 	if is_instance_valid(battle):
 		if presentation!=null and presentation.battle!=battle:presentation.attach(battle)
 		var rect: Rect2 = board_rect()
@@ -285,6 +292,9 @@ func _draw() -> void:
 		return
 	draw_set_transform_matrix(edit_canvas())
 	VisualShapes.arena(self)
+	var trial_k: float = clampf(trial_reveal / TRIAL_FADE, 0, 1) if not trials.is_empty() else 0.0
+	var time: float = Time.get_ticks_msec() * .001
+	if trial_k > 0:TrialArt.field(self, trials, 800, time, trial_k)
 	draw_rect(Rect2(40,40,340,720),Color(.35,.5,.95,.09))
 	draw_rect(Rect2(40,40,340,720),Color("7f9cd6"),false,2)
 	var font: Font = ArenaUI.heading_font()
@@ -292,7 +302,12 @@ func _draw() -> void:
 	for enemy in enemies:
 		var room_enemy = enemy.get("enemy");var spawn: EnemySpawnEntry=room_enemy.spawn if room_enemy != null else null
 		var kinds: Array=spawn.items if spawn != null else []
+		var mark_r: float = maxf(TOKEN_ICON * .5, 14.0 / maxf(.2, edit_canvas().get_scale().x)) * float(RANK_SIZE.get(spawn.rank if spawn != null else &"normal", 1.0))
+		if trial_k > 0:TrialArt.unit_ground(self, enemy.position, mark_r, trials, time, enemies.find(enemy))
 		_draw_token(enemy.position, enemy.data, enemy.data.display_name, float(enemy.get("current_hp", enemy.data.max_hp)), false, false, enemy.combat_stats.max_hp if enemy.get("combat_stats") != null else enemy.data.max_hp, kinds, spawn.rank if spawn != null else &"normal")
+		if trial_k > 0:
+			TrialArt.unit_over(self, enemy.position, mark_r, trials, time, enemies.find(enemy))
+			if spawn != null and spawn.enemy_id == trial_elite:TrialArt.elite_mark(self, enemy.position, mark_r, time)
 	for entry in plan.entries():
 		var member: GuildMemberState = plan.guild.get_member(entry.member_id)
 		if member != null:

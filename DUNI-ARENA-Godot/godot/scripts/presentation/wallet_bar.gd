@@ -32,11 +32,18 @@ func _gui_input(event: InputEvent) -> void:
 	if trials.is_empty() or not ((event is InputEventMouseButton or event is InputEventScreenTouch) and event.pressed):return
 	for i in range(trials.size()):
 		if trial_center(i).distance_to(event.position)<=TRIAL_R+4:accept_event();trial_pressed.emit(trials[i],get_global_transform()*trial_center(i));return
+## Seconds since each trial last acted (TrialFx ping): its icon flashes and hops.
+var trial_flash: Dictionary={}
+const FLASH_LIFE: float=.5
+func ping_trial(id: StringName) -> void:
+	if UiMotion.enabled and id in trials:trial_flash[id]=0.0;queue_redraw()
 func _draw_trials() -> void:
 	for i in range(trials.size()):
-		# Entrance: each icon pops out in turn with a little overshoot.
+		# Entrance: each icon pops out in turn with a little overshoot and a burst of its kind's colour.
 		var k: float=1.0 if trial_intro<0 else clampf((trial_intro-trial_intro_delay-.35-i*.18)/.35,0,1)
-		TrialArt.icon(self,trial_center(i),TRIAL_R,trials[i],k+.25*sin(k*PI))
+		var f: float=1-float(trial_flash[trials[i]])/FLASH_LIFE if trial_flash.has(trials[i]) else 0.0
+		if trial_intro>=0 and k>0 and k<1:f=maxf(f,sin(k*PI))
+		TrialArt.icon(self,trial_center(i)+Vector2(0,-sin(f*PI)*4),TRIAL_R,trials[i],k+.25*sin(k*PI)+.15*f,f)
 var previous_gold: int=-1
 var gold_pulse: float=0
 var gold_delta: int=0
@@ -79,6 +86,11 @@ func _process(dt: float) -> void:
 	if trial_intro>=0:
 		trial_intro+=dt;queue_redraw()
 		if trial_intro>trial_intro_delay+.8+trials.size()*.18:trial_intro=-1
+	if not trial_flash.is_empty():
+		for id in trial_flash.keys():
+			trial_flash[id]=float(trial_flash[id])+dt
+			if float(trial_flash[id])>=FLASH_LIFE:trial_flash.erase(id)
+		queue_redraw()
 	if is_visible_in_tree() and not updates_suspended:advance_view(dt)
 func advance_view(dt: float) -> void:
 	if guild==null:return

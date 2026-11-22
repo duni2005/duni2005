@@ -132,7 +132,9 @@ func resolve_common(source, target, raw_damage: float, options: Dictionary) -> D
 		impulse *= .4
 		out.damage_reduced = true
 	# 카운터 시련: after defense, enemies take less of the countered kinds and tags (once).
-	if full and not battle.trials.is_empty():amount = CombatRules.js_round(amount*TrialEffects.counter_factor(battle,target,&"physical" if collision else kind,[] if collision else spec.get("tags",[])))
+	if full and not battle.trials.is_empty():
+		var countered: StringName = TrialEffects.counter_of(battle,target,&"physical" if collision else kind,[] if collision else spec.get("tags",[]))
+		if countered != &"":amount = CombatRules.js_round(amount*TrialCatalog.COUNTER_TAKEN);out.trial_counter = countered
 	if battle.full_characters_enabled and not reducing and not recoil and not collision and not transcend and not duel_result and target.stun_remaining<=0:
 		var unique: Dictionary=target.ability.unique_defense(target,source,amount,can_evade,options)
 		if unique.get("avoid",false):out.avoided=true;return complete(source,target,out)

@@ -77,6 +77,7 @@ func _build_ui() -> void:
 	room_hud.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	room_hud.custom_minimum_size.y = 70
 	room_hud.trial_pressed.connect(func(id: StringName,at: Vector2):TrialPopup.show(self,[id],at))
+	board.presentation.trial_pinged.connect(room_hud.ping_trial);board.presentation.wallet=room_hud
 	column.add_child(room_hud)
 	column.move_child(room_hud, 2)
 	character_debug_row=HFlowContainer.new()
@@ -265,14 +266,18 @@ func _room_finished(result: BattleResult, applied: BattleSettlement.Status) -> v
 	_refresh_roster()
 	_update_room_hud()
 
-## Room entry with 시련: the wallet's icons pop in while a band carries their names; a tap skips.
+## Room entry with 시련: once the room's own banner has played, the wallet's icons pop in one by
+## one, their weather and the enemies' marks fade in on the field, and bands carry each trial's
+## name and line along the bottom of the field; a tap skips.
 const TRIAL_ENTRY_DELAY: float=1.8
 func _play_trial_entry() -> void:
+	board.trials=room.trials.duplicate() if room!=null else [];board.trial_elite=TrialCatalog.trial_elite_id(room)
+	board.trial_reveal=-TRIAL_ENTRY_DELAY if UiMotion.enabled else DeploymentBoard.TRIAL_FADE
 	if room==null or room.trials.is_empty():return
 	# After the room's own entry banner has played.
 	room_hud.play_trial_intro(TRIAL_ENTRY_DELAY)
-	var band: TrialBanner=TrialBanner.play(board,room.trials,6,TRIAL_ENTRY_DELAY)
-	if band!=null:band.finished.connect(room_hud.settle_trials)
+	var band: TrialBanner=TrialBanner.play(board,room.trials,TRIAL_ENTRY_DELAY)
+	if band!=null:band.finished.connect(func():room_hud.settle_trials();board.trial_reveal=maxf(board.trial_reveal,DeploymentBoard.TRIAL_FADE))
 ## 불리: the counters the member's basic attack runs into in this room.
 func _trial_warning(member: GuildMemberState) -> Array:
 	return TrialCatalog.basic_counters(room.trials,member.unit_type_id) if room!=null else []

@@ -54,7 +54,9 @@ static func advance(battle, dt: float) -> void:
 		while float(s.regen_clock) >= 1.0:
 			s.regen_clock = float(s.regen_clock) - 1.0
 			for u in battle.units:
-				if u.alive and enemy_side(u) and u.current_hp < u.max_hp:StrategyEffects.heal(u, u.max_hp * C.REGEN_PER_SECOND)
+				if u.alive and enemy_side(u) and u.current_hp < u.max_hp:
+					var gain: float = StrategyEffects.heal(u, u.max_hp * C.REGEN_PER_SECOND)
+					if gain > 0:battle.emit_combat_event(&"trial_regen", u.position, {"actor_id": u.battle_id, "amount": gain})
 
 ## 소행성: a warning circle, then a blow to everyone inside it.
 static func _meteors(battle, s: Dictionary, dt: float) -> void:
@@ -71,7 +73,7 @@ static func _meteors(battle, s: Dictionary, dt: float) -> void:
 		s.meteors.erase(m)
 		var damage: float = C.METEOR_BASE + C.METEOR_PER_FLOOR * battle.trial_floor
 		for u in battle.units.duplicate():
-			if u.alive and u.position.distance_to(m.point) <= float(m.radius) + 20 * u.combat_scale():hit(battle, u, damage, &"trial")
+			if u.alive and u.position.distance_to(m.point) <= float(m.radius) + 20 * u.combat_scale():hit(battle, u, damage, &"trial", &"meteor")
 		battle.emit_combat_event(&"trial_meteor", m.point, {"radius": float(m.radius)})
 ## 지진: shakes QUAKE_WARN s before, then everyone falls.
 static func _quake(battle, s: Dictionary, dt: float) -> void:
@@ -100,28 +102,32 @@ static func _sniper(battle, s: Dictionary, dt: float) -> void:
 	if target == null or not target.alive:s.aim = {};s.sniper_clock = C.SNIPER_EVERY;return
 	if float(aim.left) > 0:return
 	s.aim = {};s.sniper_clock = C.SNIPER_EVERY
-	hit(battle, target, C.SNIPER_BASE + C.SNIPER_PER_FLOOR * battle.trial_floor, &"physical")
+	hit(battle, target, C.SNIPER_BASE + C.SNIPER_PER_FLOOR * battle.trial_floor, &"physical", &"sniper")
 	battle.emit_combat_event(&"trial_snipe", target.position, {"from": sniper_origin(battle, target.position)})
 ## Where the sniper fires from: just beyond the enemies' edge of the field, level with the target.
 static func sniper_origin(_battle, at: Vector2) -> Vector2:return Vector2(ArenaMap.side + 60, at.y)
 
 ## A hit from a trial (not a unit): 소행성 is 시련 피해 (only defense applies), 저격 지원 physical.
 ## No counter, element or tag bonus; invincible units are spared. Returns the HP lost.
-static func hit(battle, target, raw: float, kind: StringName) -> float:
+static func hit(battle, target, raw: float, kind: StringName, trial: StringName = &"") -> float:
 	if not target.alive or target.invincible_remaining > 0 or not battle.started or battle.finished or battle.clock.is_turning_paused():return 0.0
 	var mitigation: float = UnitStatTable.mitigation(CombatRules.defense_sum(target)) if kind == &"trial" else CombatRules.mitigation(target, kind)
 	var amount: float = CombatRules.js_round(raw * mitigation)
 	var absorbed: float = StrategyEffects.absorb(target, amount)
 	var lost: float = target.receive_damage(amount - absorbed, null, true)
 	battle.stats.damage(null, target, lost + absorbed)
-	battle.emit_combat_event(&"trial_hit", target.position, {"actor_id": target.battle_id, "amount": lost + absorbed, "kind": String(kind)})
+	battle.emit_combat_event(&"trial_hit", target.position, {"actor_id": target.battle_id, "amount": lost + absorbed, "kind": String(kind), "trial": String(trial)})
 	target.announce_death(null)
 	return lost
 
 ## 카운터: share of a hit an enemy takes (COUNTER_TAKEN once, however many counters match).
 static func counter_factor(battle, target, kind: StringName, tags: Array) -> float:
-	if battle.trials.is_empty() or not enemy_side(target):return 1.0
-	return C.COUNTER_TAKEN if not C.counters_for(battle.trials, kind, tags).is_empty() else 1.0
+	return C.COUNTER_TAKEN if counter_of(battle, target, kind, tags) != &"" else 1.0
+## The first 카운터 of the battle that cuts this hit on `target` (&"" when none does).
+static func counter_of(battle, target, kind: StringName, tags: Array) -> StringName:
+	if battle.trials.is_empty() or not enemy_side(target):return &""
+	var hits: Array[StringName] = C.counters_for(battle.trials, kind, tags)
+	return hits[0] if not hits.is_empty() else &""
 ## 광전사들 attack speed.
 static func attack_speed(u) -> float:
 	if u.battle == null or u.battle.trials.is_empty() or not enemy_side(u):return 1.0

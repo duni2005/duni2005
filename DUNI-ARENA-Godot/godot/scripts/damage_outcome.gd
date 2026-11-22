@@ -22,3 +22,5 @@ var ultimate: bool = false
 var status: StringName = &""
 # Reserved stages for later mirror/share/rescue; no invented effects here.
 var reflected_damage: float = 0
+## The 카운터 시련 that cut this hit (TrialCatalog id), for its block reaction.
+var trial_counter: StringName = &""

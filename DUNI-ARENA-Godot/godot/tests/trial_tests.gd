@@ -11,7 +11,7 @@ func verify(ok: bool, label: String) -> void:
 
 func run(tree: SceneTree) -> void:
 	host = tree
-	catalog();rolls();generation();saves();counters();environment();empowered();rewards();ui_rules()
+	catalog();rolls();generation();saves();counters();environment();empowered();rewards();ui_rules();visuals()
 	print("TRIAL RESULT: %d checks; %d failures" % [checks, failures])
 
 func catalog() -> void:
@@ -126,7 +126,8 @@ func environment() -> void:
 	var falling: Array = meteor.trial_state.meteors
 	verify(falling.size() == 1 and meteor.zones.risk_hazards(meteor.units[0]).size() >= 1, "소행성: a warning circle the AI reads as danger")
 	var spot: Vector2 = falling[0].point
-	for u in meteor.units:u.position = spot + Vector2(randf_range(-20, 20), randf_range(-20, 20));u.combat.cooldown = 999
+	# Held in place: the AI would rightly walk out of the warning circle.
+	for u in meteor.units:u.position = spot + Vector2(u.battle_id % 3 * 10 - 10, u.battle_id % 2 * 10);u.combat.cooldown = 999;StatusController.stun(u, 5)
 	var hp: Array = meteor.units.map(func(u):return u.current_hp)
 	step(meteor, TrialCatalog.METEOR_WARN + .05)
 	var hurt: bool = true
@@ -189,3 +190,35 @@ func ui_rules() -> void:
 	var middle: float = (rects[0].position.x + rects[3].end.x) * .5
 	verify(apart and absf(middle - 180) < 1 and rects[0].position.y >= 68 + 4 and rects[3].end.y <= bar.custom_minimum_size.y and bar.custom_minimum_size.y == 70 + WalletBar.TRIAL_TOP + WalletBar.TRIAL_R * 2, "four icons in a row centred under the wallet panel on a 360 px phone")
 	bar.free()
+
+## 0.99.18 effects: what the presentation is told and how it answers (TrialFx).
+func visuals() -> void:
+	verify(TrialCatalog.TRIALS.keys().all(func(id):return not TrialCatalog.short_of(id).is_empty()), "every trial has its one-line entry text")
+	var b := battle([&"tough"])
+	var seen: Array = []
+	b.damage_resolver.damage_resolved.connect(func(_s, _t, out):seen.append(out.trial_counter))
+	blow(b, b.units[2]);blow(b, b.units[0])
+	verify(seen == [&"tough", &""], "a cut hit names its counter (강인함); an ally's hit names none")
+	var view := CombatPresentation.new();host.root.add_child(view);view.attach(b)
+	var pings: Array = []
+	view.trial_pinged.connect(func(id):pings.append(id))
+	blow(b, b.units[2]);blow(b, b.units[2])
+	var cut: Array = view.numbers.filter(func(n):return n.get("counter", &"") == &"tough")
+	verify(pings == [&"tough"] and not cut.is_empty() and cut[0].get("mark", false), "the block pings its icon once a second and marks the number with its cracked shield")
+	verify(view.trial_fx.blocked(b.units[2], &"tough", 0) == false, "…one reaction per unit per 0.3 s")
+	view.queue_free();b.free()
+	var m := battle([&"meteor", &"regen"])
+	m.trial_state.meteor_clock = .02
+	for u in m.units:u.combat.cooldown = 999
+	m.units[2].current_hp = m.units[2].max_hp * .5
+	step(m, .05);var spot: Vector2 = m.trial_state.meteors[0].point
+	for u in m.units:u.position = spot;StatusController.stun(u, 5)
+	step(m, TrialCatalog.METEOR_WARN + .05)
+	var hits: Array = m.combat_events.filter(func(e):return e.kind == &"trial_hit")
+	verify(not hits.is_empty() and hits.all(func(e):return str(e.metadata.get("trial", "")) == "meteor"), "시련 피해 says which trial dealt it (the number's icon)")
+	verify(m.combat_events.any(func(e):return e.kind == &"trial_regen" and float(e.metadata.get("amount", 0)) > 0), "끈질긴 생명 reports each heal (summed on screen)")
+	m.free()
+	var room := RoomState.new();room.room_type = RoomType.BOSS;room.trials.assign([&"elite_squad"]);room.encounter = EncounterState.new()
+	for rank in [&"boss", &"elite", &"normal", &"elite"]:
+		var e := EnemySpawnEntry.new();e.set_rank(rank);e.enemy_id = "e%d" % room.encounter.enemies.size();room.encounter.enemies.append(e)
+	verify(TrialCatalog.trial_elite_id(room) == "e3", "정예 부대 mark: the first elite after a boss room's own boss and elite")
