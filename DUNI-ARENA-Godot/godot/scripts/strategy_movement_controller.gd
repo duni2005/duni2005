@@ -90,6 +90,7 @@ static func advance(unit, delta: float) -> bool:
 	if direction.length() > 1: direction = direction.normalized()
 	unit.strategy_heading = unit.strategy_heading.lerp(direction, 1.0 - exp(-delta * 9))
 	var before: Vector2 = unit.position
-	unit.position = MovementController.clamp_position(before + unit.strategy_heading * unit.move_speed * 1.25 * delta)
+	var heading: Vector2 = FieldObjects.avoid(unit, unit.strategy_heading) if not unit.battle.field_objects.is_empty() else unit.strategy_heading
+	unit.position = MovementController.clamp_position(before + heading * unit.move_speed * 1.25 * delta)
 	unit.velocity = (unit.position - before) / delta
 	return true

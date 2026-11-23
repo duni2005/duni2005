@@ -147,6 +147,8 @@ func attack_ready(u, enemy) -> bool:
 		var anchor=u.battle.find_actor(u.cover_actor_id)
 		if anchor!=null and anchor.alive and anchor.position.distance_to(enemy.position)>240:return false
 	if ParryController.perfect(u) or u.threat_response.response.get("mode",&"")==&"parry":return false
+	# 화약통: no shot into a keg (it would stop there and blow up); move for a clear line first.
+	if u.data.attack_range>100 and not u.battle.field_objects.is_empty() and FieldObjects.keg_in_line(u.battle,u.position,enemy.position):return false
 	if u.state_value("shadowTime")>0:return true
 	var pressure: bool=u.stance==CombatStance.RUSH or u.taunted_until>now or u.mind.charging(u) or exposed(enemy)
 	if not pressure and (u.threat_response.response.get("mode",&"")==&"dodge" and now<float(u.threat_response.response.get("until",0)) or now>=commit_until and now>=punish_until or now<disengage_until or now<return_until):return false
@@ -176,6 +178,8 @@ func steer(u,direction: Vector2,dt: float,factor: float=1,style: String="archety
 	for axis in range(2):
 		if p[axis]<wall:direction[axis]+=(wall-p[axis])/(30 if style=="strategy" else wall)*(2 if style=="general" else 1)
 		if p[axis]>ArenaMap.side-wall:direction[axis]-=(p[axis]-ArenaMap.side+wall)/(30 if style=="strategy" else wall)*(2 if style=="general" else 1)
+	# 구조물: round the solid objects ahead instead of into them.
+	if not u.battle.field_objects.is_empty():direction=FieldObjects.avoid(u,direction)
 	steered_direction=direction.limit_length(1)
 	if not heading.is_finite():heading=Vector2.ZERO
 	heading=heading.limit_length(1).lerp(steered_direction,1-exp(-dt*(9 if style=="strategy" else 8)))
@@ -366,6 +370,7 @@ func movement(u,enemy,dt: float) -> void:
 		if enemy!=null:turn_face(u,enemy.position,dt)
 		return
 	if move_stance(u,enemy,dt):return
+	if move_clear_shot(u,enemy,dt):return
 	if u.data.type_id==16 and u.ability.modify_movement(u,enemy,dt):ability_override="paladin_rally";return
 	if u.data.type_id==14 and u.combat_state!=CombatController.State.IDLE:heading=Vector2.ZERO;u.velocity=Vector2.ZERO;ability_override="slash_combo";return
 	if u.data.type_id in [19,18,15,23,29] and u.ability.modify_movement(u,enemy,dt):ability_override=u.data.display_name;return
@@ -373,6 +378,17 @@ func movement(u,enemy,dt: float) -> void:
 	if u.data.type_id in [6,7,8,11] or u.data.type_id==10 and not u.lost_sword.is_empty():
 		if u.ability.modify_movement(u,enemy,dt):ability_override=u.data.display_name;return
 	move_general(u,enemy,dt)
+## 화약통: a shooter whose line of fire runs into an unlit keg steps sideways (to whichever side
+## clears it sooner) until the line is clear; attack_ready holds the shot meanwhile.
+func move_clear_shot(u,enemy,dt: float) -> bool:
+	if enemy==null or u.data.attack_range<=100 or u.battle.field_objects.is_empty() or u.combat_state!=CombatController.State.IDLE or not FieldObjects.keg_in_line(u.battle,u.position,enemy.position):return false
+	var across: Vector2=(enemy.position-u.position).normalized().orthogonal()
+	for step in [40.0,80.0,120.0]:
+		var a: bool=not FieldObjects.keg_in_line(u.battle,u.position+across*step,enemy.position);var b: bool=not FieldObjects.keg_in_line(u.battle,u.position-across*step,enemy.position)
+		if a!=b:side=1.0 if a else -1.0;break
+		if a:break
+	movement_override="clear_shot";steer(u,across*side,dt,1,"general")
+	return true
 func move_general(u,enemy,dt: float) -> void:
 	var now: float=u.battle.clock.elapsed;var r: RandomNumberGenerator=u.battle.rng
 	if u.state_value("shadowTime")<=0 and mode=="shadow":mode="approach";hold=0;think=0

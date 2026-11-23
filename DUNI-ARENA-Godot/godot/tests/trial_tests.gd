@@ -11,7 +11,7 @@ func verify(ok: bool, label: String) -> void:
 
 func run(tree: SceneTree) -> void:
 	host = tree
-	catalog();rolls();generation();saves();counters();environment();empowered();rewards();ui_rules();visuals();added_rules();structures();added_battle()
+	catalog();rolls();generation();saves();counters();environment();empowered();rewards();ui_rules();visuals();added_rules();structures();added_battle();structure_ai()
 	print("TRIAL RESULT: %d checks; %d failures" % [checks, failures])
 
 func catalog() -> void:
@@ -356,3 +356,33 @@ func added_battle() -> void:
 	var rank := EnemySpawnEntry.new();rank.set_rank(&"elite")
 	verify(elite.alive and elite.state_value("trialElite") == 0 and absf(elite.max_hp - floorf(elite_hp / rank.hp_multiplier + .5) * .25) <= 2, "an elite that splits loses its elite multipliers (%.0f → %.0f)" % [elite_hp, elite.max_hp])
 	el.free()
+
+## Units and solid objects: round them, never into them (0.99.20).
+func structure_ai() -> void:
+	var b := battle([&"warm_statue"], [0], [0])
+	var statue: FieldObject = b.field_objects[0];var me: BattleUnit = b.units[0];var foe: BattleUnit = b.units[1]
+	me.position = statue.position + Vector2(-170, 3);foe.position = statue.position + Vector2(170, 0)
+	foe.combat.cooldown = 999;StatusController.stun(foe, 99)
+	var closest: float = INF;var reached: float = -1;var turns: int = 0;var last: Vector2 = Vector2.ZERO
+	for frame in range(60 * 8):
+		b.simulate(1.0 / 60)
+		closest = minf(closest, me.position.distance_to(statue.position) - FieldObjects.reach(statue, me))
+		var v: Vector2 = me.velocity
+		if v.length() > 5 and last.length() > 5 and v.normalized().dot(last.normalized()) < -.5:turns += 1
+		if v.length() > 5:last = v
+		if reached < 0 and me.position.distance_to(foe.position) < 110:reached = frame / 60.0
+	verify(reached > 0 and reached < 6 and closest >= -1 and turns <= 2, "a unit whose target is behind the statue walks round it (reached in %.1f s, nearest %.0f from its face, %d reversals)" % [reached, closest, turns])
+	b.free()
+	var k := battle([&"powder_kegs"], [1], [0])
+	var keg: FieldObject = k.field_objects[0];var archer: BattleUnit = k.units[0];var target: BattleUnit = k.units[1]
+	for i in range(1, k.field_objects.size()):k.field_objects[i].position = Vector2(60 + i * 30, 760)
+	archer.position = keg.position + Vector2(-150, 0);target.position = keg.position + Vector2(150, 0)
+	target.combat.cooldown = 999;StatusController.stun(target, 99);archer.combat.cooldown = 0
+	verify(k.zones.risk(archer, keg.position + Vector2(0, FieldObjects.reach(keg, archer) + 1)) < 1.0 and k.zones.risk(archer, keg.position) > 2, "the inside of an object is no place to go; its face is")
+	var hp: float = target.current_hp;var first_hit: float = -1;var lit: float = -1
+	for frame in range(60 * 6):
+		k.simulate(1.0 / 60)
+		if first_hit < 0 and target.current_hp < hp:first_hit = frame / 60.0
+		if lit < 0 and (keg.fuse >= 0 or not keg.alive):lit = frame / 60.0
+	verify(first_hit > 0 and (lit < 0 or lit > first_hit), "an archer with a keg in its line of fire steps aside and shoots its target, not straight into the keg (hit %.1f s, keg %.1f s)" % [first_hit, lit])
+	k.free()

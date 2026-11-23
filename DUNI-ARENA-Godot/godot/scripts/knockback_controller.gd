@@ -72,6 +72,7 @@ static func advance(unit, delta: float) -> void:
 		if point.y < 28 or point.y > ArenaMap.side - 28:
 			wall = maxf(wall, absf(unit.knockback_velocity.y))
 			unit.knockback_velocity.y *= -.24
+		if not unit.battle.field_objects.is_empty():point = FieldObjects.knock(unit, point)
 		unit.position = MovementController.clamp_position(point)
 		if wall >= 160:
 			collision_damage(unit, wall, unit.battle.find_unit(unit.knockback_source_id))

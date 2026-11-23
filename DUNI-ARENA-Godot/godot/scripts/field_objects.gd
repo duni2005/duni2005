@@ -49,19 +49,68 @@ static func start(battle, rows: Array) -> void:
 		o.object_id = battle.field_objects.size() + 1;battle.field_objects.append(o)
 	constrain(battle)
 
-## Keeps living units out of solid objects (sliding round them, not stuck on their face).
+## Unit movement and solid objects. A unit's body (BODY × its scale) never overlaps one: steering
+## (avoid) bends a path that would run into an object round its nearer side LOOK_AHEAD before it
+## gets there and keeps CLEARANCE off its face; constrain is only the hard stop behind that (a
+## straight push back to the edge, momentum into the object bounces off like off a wall).
+const BODY: float = 22.0
+const CLEARANCE: float = 10.0
+const LOOK_AHEAD: float = 80.0
+const BOUNCE: float = .24
+static func reach(o: FieldObject, u) -> float:return o.radius + BODY * u.combat_scale()
+static func solid(o: FieldObject) -> bool:return o.alive and not o.units_pass
+
+## `direction` (any length) bent round the solid objects ahead of `u`.
+static func avoid(u, direction: Vector2) -> Vector2:
+	if u.battle.field_objects.is_empty() or direction.length_squared() < 1e-6:return direction
+	var length: float = direction.length();var out: Vector2 = direction / length
+	for o in u.battle.field_objects:
+		if not solid(o):continue
+		var to: Vector2 = o.position - u.position;var d: float = to.length();var r: float = reach(o, u) + CLEARANCE
+		if d > r + LOOK_AHEAD or d < .01:continue
+		var n: Vector2 = to / d;var ahead: float = out.dot(n)
+		if ahead <= 0:continue
+		# Does the path pass within r of the centre? (distance of the centre from the path's line)
+		if absf(out.cross(to)) >= r:continue
+		# Round the side the path already leans to; dead centre, a side by the unit's id.
+		var lean: Vector2 = out - n * ahead
+		var tangent: Vector2 = lean.normalized() if lean.length() > .05 else n.orthogonal() * (1.0 if u.battle_id % 2 == 0 else -1.0)
+		var k: float = clampf((r + LOOK_AHEAD - d) / LOOK_AHEAD, 0, 1) * ahead
+		out = out.lerp(tangent, k).normalized()
+	return out * length
+
+## The hard stop: a unit inside a solid object goes back to its edge.
 static func constrain(battle) -> void:
 	for o in battle.field_objects:
-		if not o.alive or o.units_pass:continue
+		if not solid(o):continue
 		for u in battle.units:
 			if not u.alive:continue
-			var reach: float = o.radius + 22 * u.combat_scale()
-			var away: Vector2 = u.position - o.position;var d: float = away.length()
-			if d >= reach:continue
-			var dir: Vector2 = away / d if d > .01 else Vector2.from_angle(u.battle_id * 2.4)
-			# A nudge round the object so a unit walking straight at it slides past.
-			dir = (dir + dir.orthogonal() * (.25 if u.battle_id % 2 == 0 else -.25)).normalized()
-			u.position = MovementController.clamp_position(o.position + dir * reach)
+			var r: float = reach(o, u);var away: Vector2 = u.position - o.position;var d: float = away.length()
+			if d >= r:continue
+			var n: Vector2 = away / d if d > .01 else Vector2.from_angle(u.battle_id * 2.4)
+			u.position = MovementController.clamp_position(o.position + n * r)
+			var into: float = u.knockback_velocity.dot(n)
+			if into < 0:u.knockback_velocity -= n * into * (1 + BOUNCE)
+			var walk: float = u.velocity.dot(n)
+			if walk < 0:u.velocity -= n * walk
+## Knockback moving `u` to `point`: off a solid object it stops on the edge and bounces.
+static func knock(u, point: Vector2) -> Vector2:
+	for o in u.battle.field_objects:
+		if not solid(o):continue
+		var r: float = reach(o, u);var away: Vector2 = point - o.position;var d: float = away.length()
+		if d >= r:continue
+		var n: Vector2 = away / d if d > .01 else (u.position - o.position).normalized()
+		var into: float = u.knockback_velocity.dot(n)
+		if into < 0:u.knockback_velocity -= n * into * (1 + BOUNCE)
+		point = o.position + n * r
+	return point
+## An unlit keg stands on the line `from` → `to` (a shot would stop on it). The margin covers a
+## shot's own width and its aim drifting as the shooter or target moves.
+const SHOT_MARGIN: float = 24.0
+static func keg_in_line(battle, from: Vector2, to: Vector2, pad: float = SHOT_MARGIN) -> bool:
+	for o in battle.field_objects:
+		if o.alive and o.kind == FieldObject.KEG and o.fuse < 0 and Geometry2D.get_closest_point_to_segment(o.position, from, to).distance_to(o.position) < o.radius + pad:return true
+	return false
 
 ## A projectile that reached an object it cannot pass stops there (and hits it).
 static func blocks(p) -> bool:
@@ -128,9 +177,12 @@ static func _foe_of(battle, u):
 		if v.alive and v.team != u.team and (best == null or v.position.distance_squared_to(u.position) < best.position.distance_squared_to(u.position)):best = v
 	return best
 
-## Danger for the AI: near a keg a little, a lit keg's blast a lot.
+## Danger for the AI: inside a solid object (no place to stand or walk through), near a keg a
+## little, a lit keg's blast a lot. Standing against an object's face counts as nothing.
 static func hazards(battle, body: float, out: Array) -> void:
 	for o in battle.field_objects:
+		# `body` is the AI's (25 × scale); the inside is within reach() (BODY × scale) less a margin.
+		if solid(o):out.append([BattleZones.RISK_CIRCLE, o.position, o.radius + body * BODY / 25.0 - 4, 4.0])
 		if not o.alive or o.kind != FieldObject.KEG:continue
 		if o.fuse >= 0:out.append([BattleZones.RISK_CIRCLE, o.position, FieldObject.KEG_BLAST + body, 3.0])
 		else:out.append([BattleZones.RISK_CIRCLE, o.position, FieldObject.KEG_BLAST * .6 + body, .8])
@@ -138,4 +190,5 @@ static func hazards(battle, body: float, out: Array) -> void:
 static func refuges(battle, out: Array[Dictionary]) -> void:
 	for o in battle.field_objects:
 		if o.alive and not o.aura.is_empty() and float(o.aura.get("heal", 0)) > 0:
-			out.append({"ref": "object:%d" % o.object_id, "point": CharacterPersistence.point(o.position), "radius": float(o.aura.radius), "life": 99.0, "kind": "healing"})
+			# "ring": the nearest a unit's goal may be to its centre (outside its body).
+			out.append({"ref": "object:%d" % o.object_id, "point": CharacterPersistence.point(o.position), "radius": float(o.aura.radius), "life": 99.0, "kind": "healing", "ring": o.radius + BODY * 1.6 + CLEARANCE})

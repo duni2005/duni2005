@@ -117,6 +117,7 @@ func advance_minimal(unit, delta: float) -> bool:
 		var side: Vector2 = toward.normalized().orthogonal()
 		if evaluate(unit,(unit.position+side*85).clamp(Vector2(35,35),ArenaMap.hi(35))).total > evaluate(unit,(unit.position-side*85).clamp(Vector2(35,35),ArenaMap.hi(35))).total: side *= -1
 		direction=toward.normalized()*.2+side
+	if not unit.battle.field_objects.is_empty():direction=FieldObjects.avoid(unit,direction)
 	unit.position=MovementController.clamp_position(unit.position+direction.limit_length(1)*unit.move_speed*delta)
 	unit.velocity=(unit.position-before)/delta
 	return true
@@ -146,7 +147,7 @@ func goals(u) -> Dictionary:
 	for radius in [95,185,285]:
 		for i in range(12):options.append({"point":(u.position+Vector2.from_angle(u.brain.phase+i*PI/6)*radius).clamp(Vector2(40,40),ArenaMap.hi(40))})
 	for area in safe:
-		var center: Vector2=CharacterPersistence.vector(area.point);options.append({"point":(center+(u.position-center).normalized()*float(area.radius)*.45).clamp(Vector2(40,40),ArenaMap.hi(40)),"safe":area})
+		var center: Vector2=CharacterPersistence.vector(area.point);options.append({"point":(center+(u.position-center).normalized()*maxf(float(area.radius)*.45,float(area.get("ring",0)))).clamp(Vector2(40,40),ArenaMap.hi(40)),"safe":area})
 	var escape: Dictionary={};var refuge: Dictionary={};var benefit: float=0;var best_score: float=-INF;var current: float=evaluate(u,u.position).total
 	for option in options:
 		var point: Vector2=option.point;var risk: float=evaluate(u,point).total;var route: float=route_cost(u,point);var support: float=0
@@ -179,7 +180,7 @@ func _advance(u,delta: float) -> bool:
 		for candidate in u.battle.zones.safe_areas(u):
 			if candidate.ref==safe_ref:area=candidate;break
 		if area.is_empty() or support_value(u,area,goal)<=.15:reset_plan(u,.25);return false
-		var center: Vector2=CharacterPersistence.vector(area.point);goal=(center+(u.position-center).normalized()*float(area.radius)*.4).clamp(Vector2(40,40),ArenaMap.hi(40));in_support=u.position.distance_to(center)<float(area.radius)*.76
+		var center: Vector2=CharacterPersistence.vector(area.point);goal=(center+(u.position-center).normalized()*maxf(float(area.radius)*.4,float(area.get("ring",0)))).clamp(Vector2(40,40),ArenaMap.hi(40));in_support=u.position.distance_to(center)<float(area.radius)*.76
 	if now>=next_think:
 		next_think=now+u.battle.rng.randf_range(.45,.95)*u.brain.patience
 		var ahead: float=evaluate(u,(u.position+u.brain.heading*80).clamp(Vector2(35,35),ArenaMap.hi(35))).total
