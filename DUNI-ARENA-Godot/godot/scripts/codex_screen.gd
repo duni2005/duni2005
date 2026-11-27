@@ -119,6 +119,7 @@ func show_tab(key: String) -> void:
 		"boss":
 			grid.columns = maxi(3, int(width / 80))
 			for type in TowerMapGenerator.BOSS_POOL:_unit_card(type, "boss")
+			for type in TowerMapGenerator.MINIBOSS_TYPES:_unit_card(type, "miniboss")
 			for type in TowerMapGenerator.FRONT:_unit_card(type, "miniboss")
 		"item":
 			grid.columns = maxi(4, int(width / 74))
@@ -194,10 +195,10 @@ func _select(node_name: String) -> void:
 		"unit", "boss":
 			var type: int = card.type_id;var data: UnitData = CharacterCatalog.all()[type];icon_unit = type
 			detail_title.text = data.display_name
-			detail_sub.text = "%s · 영입 %d토큰 · %s 피해" % [UnitRarity.label(type), UnitRarity.price(type), CharacterCatalog.damage_label(type)]
+			detail_sub.text = ("보스 · 영입 불가 · %s 피해" % CharacterCatalog.damage_label(type)) if type in CharacterCatalog.BOSS_TYPES else "%s · 영입 %d토큰 · %s 피해" % [UnitRarity.label(type), UnitRarity.price(type), CharacterCatalog.damage_label(type)]
 			var lines: Array[String] = []
 			if tab == "boss":
-				lines.append("챕터 보스 후보 · 5 · 10 · 15층 보스 방에 나온다. HP ×3.6 · 공격 ×2.15 · 방어 ×2 · 이동 ×1.12 · 몸집 ×1.85" if card.kind == "boss" else "미니보스(정예) 후보 · 각 챕터 3층에 나온다. HP ×2.5 · 공격 ×1.65 · 방어 ×1.5 · 이동 ×1.08 · 몸집 ×1.5")
+				lines.append("챕터 보스 후보 · 5 · 10 · 15층 보스 방에 나온다. HP ×3.6 · 공격 ×2.15 · 방어 ×2 · 이동 ×1.12 · 몸집 ×1.85" if card.kind == "boss" else ("보스 유닛 · 미니보스 방의 절반에 정예로 나온다(영입 불가). 터닝포인트마다 전용 특수전략 '폭발 슬러그 탄약'을 쓴다. HP ×2.5 · 공격 ×1.65 · 방어 ×1.5" if type in TowerMapGenerator.MINIBOSS_TYPES else "미니보스(정예) 후보 · 각 챕터 3층에 나온다. HP ×2.5 · 공격 ×1.65 · 방어 ×1.5 · 이동 ×1.08 · 몸집 ×1.5"))
 			lines.append("“%s”" % UnitLore.story(type))
 			lines.append("HP %d · %s" % [int(UnitBalance.max_hp(data)), " / ".join(data.tags)])
 			detail_text.text = "\n".join(lines)

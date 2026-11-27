@@ -68,6 +68,7 @@ const STATS = {
 	"bounty_hunter":[&"physical", 30, 0, 5, 40, 10],
 	"researcher":[&"magic", 30, 0, 10, 10, 34],
 	"fumble":[&"physical", 40, 0, 0, 24, 8],
+	"shotgun_master":[&"physical", 60, 10, 10, 80, 10],
 }
 
 const DAMAGE = {
@@ -222,6 +223,8 @@ const DAMAGE = {
 		&"ult":[&"ultimate", &"magic", 6, 1.1, [&"explosion", &"area"], "인지 각성 폭탄 (광란 6초)"]},
 	"fumble":{
 		&"basic":[&"basic", &"physical", 0, 1.0, [&"melee"], "일반 타격"]},
+	"shotgun_master":{
+		&"basic":[&"basic", &"physical", 0, 0.3, [&"projectile"], "산탄 1발 (9발 · 거리 감쇠)"]},
 }
 ## Damage every unit can deal regardless of character, using its main damage kind.
 const TRANSCEND = [&"transcend", &"", 60, 5.0, [&"area"], "초월 · 검격"]
@@ -234,7 +237,7 @@ const ITEM = {&"dragon_heart":[&"item", &"magic", 15, 0.6, [&"fire", &"area"], "
 	&"spirit_bolt":[&"item", &"magic", 6, 0.35, [&"projectile"], "정령 등불"], &"dragon_breath":[&"item", &"magic", 8, 0.35, [&"fire", &"area"], "새끼 용"],
 	&"volcano_burst":[&"item", &"magic", 10, 0.5, [&"fire", &"explosion", &"area"], "화산의 심장"], &"wall_slam":[&"item", &"physical", 8, 0.3, [&"melee"], "벽치기 장갑"]}
 ## Turning-point special strategies; the ratio grows with tower progress (see EnemyStrategyPlanner).
-const STRATEGY = {&"strategy_smash":[&"system", &"", 0, 2.0, [&"area"], "특수전략 · 강타"], &"strategy_cleave":[&"system", &"", 0, 1.5, [], "특수전략 · 가르기"], &"strategy_slash":[&"system", &"", 0, 1.3, [&"area"], "특수전략 · 참격"], &"strategy_sweep":[&"system", &"", 0, 2.4, [&"area"], "특수전략 · 휩쓸어 모으기"], &"strategy_shout":[&"system", &"", 0, 1.0, [&"area"], "특수전략 · 소리치기"], &"strategy_lava":[&"system", &"", 0, .2, [&"dot", &"area"], "특수전략 · 용암 붓기"], &"strategy_missile":[&"system", &"", 0, 2.6, [&"explosion", &"area"], "특수전략 · 미사일"]}
+const STRATEGY = {&"strategy_smash":[&"system", &"", 0, 2.0, [&"area"], "특수전략 · 강타"], &"strategy_cleave":[&"system", &"", 0, 1.5, [], "특수전략 · 가르기"], &"strategy_slash":[&"system", &"", 0, 1.3, [&"area"], "특수전략 · 참격"], &"strategy_sweep":[&"system", &"", 0, 2.4, [&"area"], "특수전략 · 휩쓸어 모으기"], &"strategy_shout":[&"system", &"", 0, 1.0, [&"area"], "특수전략 · 소리치기"], &"strategy_lava":[&"system", &"", 0, .2, [&"dot", &"area"], "특수전략 · 용암 붓기"], &"strategy_missile":[&"system", &"", 0, 2.6, [&"explosion", &"area"], "특수전략 · 미사일"], &"strategy_slug":[&"system", &"", 0, 2.2, [&"explosion", &"area"], "특수전략 · 폭발 슬러그"]}
 
 ## Element status damage (ElementEffects): the raw value is set by the status itself.
 const STATUS = {&"burn":[&"system", &"magic", 4, 0, [&"fire", &"dot"], "화상"], &"burn_spread":[&"system", &"magic", 2, 0, [&"fire", &"dot"], "화염 확산"], &"poison":[&"system", &"magic", 1, 0, [&"poison", &"dot"], "맹독 (스택당)"], &"frostbite":[&"system", &"magic", 5, 0, [&"ice"], "동상 추가 피해"], &"chain_shock":[&"system", &"magic", 0, 0, [&"lightning"], "연쇄충격"], &"erosion":[&"system", &"magic", 6, 0, [&"dark", &"dot"], "침식"]}

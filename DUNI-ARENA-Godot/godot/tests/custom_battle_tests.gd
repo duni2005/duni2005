@@ -73,6 +73,7 @@ func run(tree: SceneTree) -> void:
 	ai_fluid(tree)
 	fixes_0910(tree)
 	fumble(tree)
+	shotgun_master(tree)
 	items_0940(tree)
 	items_0960(tree)
 	items_0970(tree)
@@ -104,7 +105,7 @@ func step(b: BattleManager,seconds: float) -> void:
 		if b.finished:return
 		b.simulate(1.0/60)
 func new_characters(tree: SceneTree) -> void:
-	verify(CharacterCatalog.all().size()==47,"47 characters in the catalog (one test unit)")
+	verify(CharacterCatalog.all().size()==48 and CharacterCatalog.playable().size()==46,"48 characters in the catalog (one test unit, one boss unit)")
 	# 말뚝: opening stake tethers the nearest enemy to a small circle.
 	var b:=duel(tree,[[26,0,Vector2(150,400)],[1,1,Vector2(450,400)],[1,1,Vector2(700,700)]])
 	step(b,.2)
@@ -506,7 +507,7 @@ func stat_damage(tree: SceneTree) -> void:
 		if not UnitStatTable.STATS.has(unit_name) or not UnitStatTable.DAMAGE.has(unit_name):tagged=false
 		for d in UnitStatTable.instances(id):
 			if not UnitStatTable.KIND_NAMES.has(d.kind) or not d.tags.all(func(t):return t in UnitStatTable.ELEMENTS+UnitStatTable.DAMAGE_TAGS):tagged=false
-	verify(tagged and CharacterCatalog.NAMES.size()==47,"all 47 units have base stats and exactly one kind plus known tags per damage instance")
+	verify(tagged and CharacterCatalog.NAMES.size()==48,"all 48 units have base stats and exactly one kind plus known tags per damage instance")
 	verify(UnitStatTable.mitigation(0)==1 and UnitStatTable.mitigation(100)==.5 and is_equal_approx(UnitStatTable.mitigation(-100),1.5),"mitigation 100/(100+def), 2-100/(100-def) below zero")
 	# Bomber (fire · explosion · area) hits a mage.
 	var b:=duel(tree,[[13,0,Vector2(300,400)],[2,1,Vector2(380,400)]]);var src: BattleUnit=b.units[0];var tgt: BattleUnit=b.units[1];b.started=true
@@ -2100,3 +2101,51 @@ func setup_edge_check() -> void:
 	var e:=CustomBattleSetup.new();e.add(0,0,Vector2(200,200));var plain: UnitCombatStats=e.stats_for(e.entries[0]);e.equip(int(e.entries[0].id),&"infinityEdge")
 	var worn: UnitCombatStats=e.stats_for(e.entries[0])
 	verify(is_equal_approx(worn.crit-plain.crit,.2) and is_equal_approx(worn.crit_damage-plain.crit_damage,.6) and worn.physical_damage>plain.physical_damage,"무한의 칼날: +15% physical, +20%p critical, +60% critical damage")
+
+## 강화된 샷건 마스터 (0.99.21): the shotgun's boss — 9-pellet fan, 빠른 장전, 폭발 슬러그 탄약.
+func shotgun_master(tree: SceneTree) -> void:
+	const M = preload("res://scripts/abilities/shotgun_master_ability.gd")
+	var t:=CharacterCatalog.SHOTGUN_MASTER
+	verify(CharacterCatalog.all()[t].display_name=="강화된 샷건 마스터" and not t in CharacterCatalog.playable() and t in TowerMapGenerator.MINIBOSS_TYPES,"a boss unit: never recruited or an ordinary enemy, a 미니보스 candidate")
+	var b:=duel(tree,[[t,1,Vector2(400,400)],[0,0,Vector2(250,400)],[4,0,Vector2(520,600)]])
+	step(b,.05)
+	var boss: BattleUnit=b.units[0];var near: BattleUnit=b.units[1];var far: BattleUnit=b.units[2]
+	for u in b.units:u.combat.cooldown=999
+	boss.combat.aim_angle=PI;var before: int=b.projectiles.size()
+	boss.ability.release_basic(boss)
+	verify(b.projectiles.size()-before==M.PELLETS and boss.state_value("ammo")==1,"a shot is a fan of %d pellets" % M.PELLETS)
+	verify(not boss.ability.can_ultimate(boss,near),"빠른 장전 waits until it has to reload")
+	boss.ability.release_basic(boss)
+	verify(boss.state_value("ammo")==0 and is_equal_approx(boss.state_value("reloadRemaining"),M.RELOAD) and boss.ability.can_ultimate(boss,near),"two shots, then a reload; now 빠른 장전 may be used")
+	boss.ability.release_ultimate(boss,{},0)
+	verify(boss.state_value("ammo")==2 and boss.state_value("reloadRemaining")==0 and is_equal_approx(boss.shield_hp,boss.max_hp*M.SHIELD) and not boss.strategy_dash.is_empty() and boss.strategy_dash.direction.dot((near.position-boss.position).normalized())>.9,"빠른 장전: reloaded at once, a dash at the target and a shield")
+	b.free()
+	# 폭발 슬러그 탄약: every turning point, whatever the roll.
+	var s:=duel(tree,[[t,1,Vector2(400,400)],[0,0,Vector2(300,400)],[4,0,Vector2(150,430)],[2,0,Vector2(400,700)]])
+	step(s,.05)
+	var master: BattleUnit=s.units[0];master.source_enemy_id="boss"
+	for u in s.units:u.combat.cooldown=999;StatusController.stun(u,99)
+	var always: bool=true
+	for seed_value in range(20):
+		var rng:=RandomNumberGenerator.new();rng.seed=seed_value
+		var plan: EnemyTurningPlan=EnemyStrategyPlanner.plan(master,0.0,rng,5,&"elite",false)
+		always=always and plan!=null and plan.plan_type==EnemyTurningPlan.SLUG
+	verify(always and EnemyTurningPlan.TIERS[EnemyTurningPlan.SLUG]==EnemyTurningPlan.HIGH,"the boss uses its own strategy at every turning point (even at the bottom of the tower, past the 고위험 cap)")
+	var rng:=RandomNumberGenerator.new();rng.seed=1
+	var slug: EnemyTurningPlan=EnemyStrategyPlanner.plan(master,.5,rng)
+	slug.source_enemy_id="boss"
+	for u in s.units.slice(1):u.max_hp=5000;u.current_hp=5000
+	var hp: Array=s.units.map(func(u):return u.current_hp)
+	EnemyPlanExecutor.execute(slug,s)
+	for i in range(80):EnemyPlanExecutor.advance(master,1.0/60)
+	var close: BattleUnit=s.units[1];var wide: BattleUnit=s.units[2];var aside: BattleUnit=s.units[3]
+	verify(close.current_hp<float(hp[1]) and wide.current_hp<float(hp[2]) and aside.current_hp==float(hp[3]),"a wide fan: the ones in front are hit, the one off to the side is not")
+	verify(close.state_value("burnStacks")>=EnemyTurningPlan.SLUG_NEAR_BURN and wide.state_value("burnStacks")>=EnemyTurningPlan.SLUG_BURN and wide.state_value("burnStacks")<EnemyTurningPlan.SLUG_NEAR_BURN,"화상 7 up close, 4 further out")
+	s.free()
+	var found: bool=false
+	for seed_value in range(6):
+		var c:=TowerController.new();c.new_run(100+seed_value,7)
+		for room in c.guild.state.tower.map.rooms.values():
+			if room.room_type==RoomType.MINIBOSS and room.encounter.enemies.any(func(e):return e.unit_type_id==t and e.rank==&"elite"):found=true
+			if room.room_type!=RoomType.MINIBOSS and room.encounter.enemies.any(func(e):return e.unit_type_id==t):found=false;break
+	verify(found,"it leads some 미니보스 rooms, and no other room")

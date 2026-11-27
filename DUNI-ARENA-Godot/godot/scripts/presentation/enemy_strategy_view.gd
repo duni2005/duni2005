@@ -3,7 +3,7 @@ extends RefCounted
 ## Shows the special strategies enemies are preparing at a turning point: a badge over each
 ## enemy's head, the range or path of attacks and moves on the ground, and a detail card for the
 ## selected enemy. After the turning point the warning stays up until a smash or cleave lands.
-const COLORS = {&"heal":Color("77edb4"), &"smash":Color("ff7a5a"), &"move":Color("8ec5ff"), &"charge":Color("c49dff"), &"overcharge":Color("ffd36b"), &"cleave":Color("ff7a5a"), &"evade":Color("8ee8ff"), &"slash":Color("ffb36b"), &"sweep":Color("ff3d5a"), &"lava":Color("ff6a2a"), &"mend":Color("ffe9a0"), &"shout":Color("9ff0d8"), &"unite":Color("8fd0ff"), &"stealth":Color("b9a6ff"), &"missile":Color("ff3d5a")}
+const COLORS = {&"heal":Color("77edb4"), &"smash":Color("ff7a5a"), &"move":Color("8ec5ff"), &"charge":Color("c49dff"), &"overcharge":Color("ffd36b"), &"cleave":Color("ff7a5a"), &"evade":Color("8ee8ff"), &"slash":Color("ffb36b"), &"sweep":Color("ff3d5a"), &"lava":Color("ff6a2a"), &"mend":Color("ffe9a0"), &"shout":Color("9ff0d8"), &"unite":Color("8fd0ff"), &"stealth":Color("b9a6ff"), &"missile":Color("ff3d5a"), &"slug":Color("ff7a2a")}
 ## Grade marks: 주의 one "!", 위험 two, 고위험 three, in the grade's colour.
 const TIER_COLORS = {&"normal":Color("9fb4d8"), &"caution":Color("ffd36b"), &"danger":Color("ff9a4a"), &"high":Color("ff3d5a")}
 const TIER_MARKS = {&"normal":"", &"caution":"!", &"danger":"!!", &"high":"!!!"}
@@ -39,8 +39,14 @@ static func draw_ground(c: CanvasItem, battle: BattleManager, time: float) -> vo
 static func _area(c: CanvasItem, kind: StringName, m: Dictionary, u: BattleUnit, time: float, charge: float) -> void:
 	var color: Color = COLORS.get(kind, Color.WHITE);var pulse: float = .5 + .5 * sin(time * 5)
 	match kind:
-		EnemyTurningPlan.SMASH, EnemyTurningPlan.SHOUT:
-			var angle: float = float(m.angle);var r: float = float(m.range);var arc: float = EnemyPlanExecutor.SHOUT_ARC if kind == EnemyTurningPlan.SHOUT else EnemyPlanExecutor.SMASH_ARC
+		EnemyTurningPlan.SMASH, EnemyTurningPlan.SHOUT, EnemyTurningPlan.SLUG:
+			var angle: float = float(m.angle);var r: float = float(m.range);var arc: float = EnemyPlanExecutor.SHOUT_ARC if kind == EnemyTurningPlan.SHOUT else EnemyTurningPlan.SLUG_ARC if kind == EnemyTurningPlan.SLUG else EnemyPlanExecutor.SMASH_ARC
+			# 폭발 슬러그: the close band (more damage, more burn) is darker.
+			if kind == EnemyTurningPlan.SLUG:
+				var close := PackedVector2Array([u.position])
+				for i in range(17):close.append(u.position + Vector2.from_angle(angle - arc + arc * 2 * i / 16.0) * float(m.get("near", 0)))
+				c.draw_colored_polygon(close, Color("ff3a1a", .22 + .1 * pulse))
+				c.draw_arc(u.position, float(m.get("near", 0)), angle - arc, angle + arc, 20, Color("ff3a1a", .8), 2, VfxArt.aa)
 			var fan := PackedVector2Array([u.position])
 			for i in range(17):fan.append(u.position + Vector2.from_angle(angle - arc + arc * 2 * i / 16.0) * r)
 			c.draw_colored_polygon(fan, Color(color, .13 + .06 * pulse + .25 * charge))

@@ -621,6 +621,23 @@ func advance(delta: float) -> void:
 				"weapon_recovered":
 					add_effect("slime_ring",e.point,Color("bfe9ff"),26,.3)
 					particles.burst(e.point,Color("e8f6ff"),6,160,-PI*.5,"spark",true)
+				"master_reload":
+					# 빠른 장전: shells snap in (a spin of brass), a shield flares, dust behind the dash.
+					var dir: float=float(e.metadata.get("angle",0))
+					add_effect("shield_hit",e.point,Color("ffd27a"),46,.45)
+					particles.burst(e.point,Color("e8b04a"),8,180,dir+PI,"shard",true);particles.burst(e.point,Color("b8a68a"),6,90,dir+PI,"smoke",true)
+					add_effect("slime_ring",e.point,Color("ffcf6e"),70,.4)
+				"slug_blast":
+					# 폭발 슬러그 탄약: a fan of blasts rolling out, the near band hottest.
+					var ang: float=float(e.metadata.get("angle",0));var reach: float=float(e.metadata.get("range",300))
+					for lane in range(5):
+						var k: float=(lane-2)/2.0*EnemyTurningPlan.SLUG_ARC*.85
+						for d in [.35,.7,1.0]:
+							var at: Vector2=e.point+Vector2.from_angle(ang+k)*reach*d
+							add_effect("fireball",at,Color("ff6a2a") if d<.5 else Color("ff9a4a"),reach*(.28 if d<.5 else .2),.8,randf()*TAU)
+							particles.burst(at,Color("ffb347"),6,200,ang+k,"ember",true)
+					if use_shader_fx:shader_fx.shock(e.point+Vector2.from_angle(ang)*reach*.4,reach*.7,.6,Color("ff8a4a"),ang,.85)
+					camera.impact(11,e.point)
 				"fumble_wave":
 					# The 놓침 ultimate: a wide ring sweeps out from the unit.
 					add_effect("hero_shock",e.point,Color("ffd27a"),260,.7)
@@ -1379,12 +1396,12 @@ func _ability_state(u: BattleUnit,parent: Transform2D) -> void:
 		var oil: float=u.state_value("oil",FLAMETHROWER.OIL_MAX)/FLAMETHROWER.OIL_MAX
 		draw_rect(Rect2(p+Vector2(-15,38)*s,Vector2(30,4)*s),Color("2a2320"))
 		draw_rect(Rect2(p+Vector2(-15,38)*s,Vector2(30*oil,4)*s),Color("ff8a3d") if u.state_value("oil",FLAMETHROWER.OIL_MAX)>=FLAMETHROWER.OIL_START else Color("8a5a3b"))
-	if u.data.type_id in [7,23]:
-		var maximum: int=2 if u.data.type_id==7 else 20
+	if u.data.type_id in [7,23,CharacterCatalog.SHOTGUN_MASTER]:
+		var maximum: int=20 if u.data.type_id==23 else 2
 		var ammo: int=int(u.state_value("ammo",maximum))
 		for i in range(maximum):draw_rect(Rect2(p+Vector2(-maximum*1.5+i*3,38)*s,Vector2(2,4)*s),c if i<ammo else Color("39463b"))
 		if u.state_value("reloadRemaining")>0:
-			var progress: float=clampf(1-u.state_value("reloadRemaining")/4,0,1)
+			var progress: float=clampf(1-u.state_value("reloadRemaining")/(3.5 if u.data.type_id==CharacterCatalog.SHOTGUN_MASTER else 4.0),0,1)
 			draw_arc(p,37*s,-PI/2,-PI/2+maxf(.001,progress*TAU),32,Color("e4bc73"),3)
 	var shock: int=int(u.state_value("shockStacks"))
 	for i in range(mini(ElementEffects.SHOCK_STACKS,shock)):

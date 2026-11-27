@@ -127,7 +127,7 @@ func impact_delay_extra(u,observer,ultimate: bool) -> float:
 	if u.data.type_id==13:return 2.5 if ultimate else 2
 	if u.data.type_id==8:return maxf(0,d-50)/320
 	if u.data.type_id==11:return maxf(0,d-50)/560
-	if not ultimate and u.data.attack_range>100:return d/(4200 if u.data.type_id==23 else 4700 if u.data.type_id==6 else 720 if u.data.type_id==7 else 470 if u.data.type_id==1 else 340)
+	if not ultimate and u.data.attack_range>100:return d/(4200 if u.data.type_id==23 else 4700 if u.data.type_id==6 else 720 if u.data.type_id in [7,CharacterCatalog.SHOTGUN_MASTER] else 470 if u.data.type_id==1 else 340)
 	if ultimate and u.data.type_id in [0,1,10]:return maxf(0,d-90)/1050
 	return 0
 

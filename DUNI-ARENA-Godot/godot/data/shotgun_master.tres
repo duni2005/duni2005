@@ -1,0 +1,38 @@
+[gd_resource type="Resource" script_class="UnitData" load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/unit_data.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/attack_data.gd" id="2"]
+
+[sub_resource type="Resource" id="Attack"]
+script = ExtResource("2")
+kind = 1
+windup = 0.32
+active = 0.12
+recovery = 0.18
+reach = 200
+cone = 0.5
+impulse = 140
+projectile_speed = 740
+projectile_lifetime = 2.4
+projectile_radius = 26
+projectile_offset = 34
+projectile_spread = 0.025
+aim_lead = 0.45
+
+[resource]
+script = ExtResource("1")
+type_id = 47
+display_name = "강화된 샷건 마스터"
+base_gold_cost = 420
+max_hp = 300
+attack = 12
+defense_power = 34
+move_speed = 116
+attack_range = 200
+attack_interval = 0.5
+critical_chance = 0.25
+tags = PackedStringArray("보스", "돌격형")
+emoji = "💥"
+ultimate_windup = 0.12
+attack_profile = SubResource("Attack")
+recruit_tokens = 5

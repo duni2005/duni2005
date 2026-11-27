@@ -23,6 +23,10 @@ static func pose_progress(u: BattleUnit) -> float:
 	return t
 static func pose(u: BattleUnit) -> Dictionary:
 	var variant: String="basic";var type: int=u.data.type_id;var index: int=0;var angle: float=u.facing;var weapon_scale: float=1
+	# 강화된 샷건 마스터 carries the shotgun's gun (a little bigger); its ultimate is a reload.
+	if type==CharacterCatalog.SHOTGUN_MASTER:
+		type=7;weapon_scale=1.15
+		if not u.ultimate.cast.is_empty():return {"key":"7:reload","index":1+int(fposmod(u.battle.clock.elapsed*14,DATA.samples)),"angle":u.facing,"weapon_scale":weapon_scale}
 	if not u.ultimate.cast.is_empty():
 		variant="ultimate";index=roundi(clampf(float(u.ultimate.cast.t)/maxf(.001,float(u.ultimate.cast.duration)),0,1)*(DATA.samples-1));angle=float(u.ultimate.cast.angle)
 		if type==0:

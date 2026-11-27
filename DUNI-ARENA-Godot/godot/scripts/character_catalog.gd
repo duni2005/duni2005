@@ -1,11 +1,15 @@
 class_name CharacterCatalog
 extends RefCounted
-const NAMES = ["warrior", "archer", "mage", "assassin", "guardian", "healer", "sniper", "shotgun", "rps", "ufc", "greatsword", "dolphin", "predator", "bomber", "swordsman", "satellite", "paladin", "hero", "tank", "fanatic", "lightning", "mirror", "galaxy", "machine_gun", "frog", "puppet","stake", "conductor", "refraction", "courier", "magnet", "frost", "flamethrower", "griffin", "crossbow", "slime", "parrot", "whisperer", "plague", "golem", "flame_blade", "snowman", "santa", "top", "bounty_hunter", "researcher", "fumble"]
+const NAMES = ["warrior", "archer", "mage", "assassin", "guardian", "healer", "sniper", "shotgun", "rps", "ufc", "greatsword", "dolphin", "predator", "bomber", "swordsman", "satellite", "paladin", "hero", "tank", "fanatic", "lightning", "mirror", "galaxy", "machine_gun", "frog", "puppet","stake", "conductor", "refraction", "courier", "magnet", "frost", "flamethrower", "griffin", "crossbow", "slime", "parrot", "whisperer", "plague", "golem", "flame_blade", "snowman", "santa", "top", "bounty_hunter", "researcher", "fumble", "shotgun_master"]
 ## Test-only characters: custom battles only, never in the tower, recruits or 전투 예측.
 const TEST_TYPES: Array[int] = [46]
+## Boss characters: only as the tower's 미니보스 / 보스 (TowerMapGenerator) and in custom battles;
+## never recruited, never an ordinary enemy, never in 전투 예측.
+const SHOTGUN_MASTER: int = 47
+const BOSS_TYPES: Array[int] = [SHOTGUN_MASTER]
 static var _data: Dictionary = {}
 ## Every character the tower, recruiting and 전투 예측 may use.
-static func playable() -> Array:return range(NAMES.size()).filter(func(t):return not t in TEST_TYPES)
+static func playable() -> Array:return range(NAMES.size()).filter(func(t):return not t in TEST_TYPES and not t in BOSS_TYPES)
 static func all() -> Dictionary:
 	if _data.is_empty():
 		for name in NAMES:
@@ -22,7 +26,7 @@ const DAMAGE = {
 	"paladin":[&"physical",&"light"],"hero":[&"physical",&"lightning"],"tank":[&"physical",&"fire"],"fanatic":[&"physical",&"dark"],
 	"lightning":[&"magic",&"lightning"],"mirror":[&"magic",&"light"],"galaxy":[&"magic",&"dark"],"machine_gun":[&"physical",&""],
 	"frog":[&"physical",&"poison"],"puppet":[&"magic",&""],"stake":[&"physical",&""],"conductor":[&"physical",&""],
-	"refraction":[&"magic",&"light"],"courier":[&"physical",&""],"magnet":[&"magic",&"lightning"],"frost":[&"magic",&"ice"],"flamethrower":[&"magic",&"fire"],"griffin":[&"magic",&"wind"],"crossbow":[&"physical",&"wind"],"slime":[&"physical",&"poison"],"parrot":[&"physical",&"wind"],"whisperer":[&"physical",&"dark"],"plague":[&"physical",&"poison"],"golem":[&"physical",&"ice"],"flame_blade":[&"physical",&"fire"],"snowman":[&"magic",&"ice"],"santa":[&"physical",&""],"top":[&"physical",&"wind"],"bounty_hunter":[&"physical",&""],"fumble":[&"physical",&""],"researcher":[&"magic",&""],
+	"refraction":[&"magic",&"light"],"courier":[&"physical",&""],"magnet":[&"magic",&"lightning"],"frost":[&"magic",&"ice"],"flamethrower":[&"magic",&"fire"],"griffin":[&"magic",&"wind"],"crossbow":[&"physical",&"wind"],"slime":[&"physical",&"poison"],"parrot":[&"physical",&"wind"],"whisperer":[&"physical",&"dark"],"plague":[&"physical",&"poison"],"golem":[&"physical",&"ice"],"flame_blade":[&"physical",&"fire"],"snowman":[&"magic",&"ice"],"santa":[&"physical",&""],"top":[&"physical",&"wind"],"bounty_hunter":[&"physical",&""],"fumble":[&"physical",&""],"researcher":[&"magic",&""],"shotgun_master":[&"physical",&""],
 }
 const ELEMENT_NAMES = {&"fire":"화염",&"ice":"얼음",&"lightning":"번개",&"light":"빛",&"dark":"어둠",&"poison":"맹독",&"wind":"바람"}
 static func damage_kind(type_id: int) -> StringName:

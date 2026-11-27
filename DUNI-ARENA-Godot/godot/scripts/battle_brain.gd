@@ -339,7 +339,7 @@ func move_stance(u,enemy,dt: float) -> bool:
 	if not u.lost_sword.is_empty() or u.data.type_id==6 and u.combat_state!=CombatController.State.IDLE:return false
 	if u.stance==CombatStance.COVER and u.friends().is_empty() and not taunting:
 		if move_precommit(u,enemy,dt):return true
-		if u.data.type_id in [6,7,8,11]:return u.ability.modify_movement(u,enemy,dt)
+		if u.data.type_id in [6,7,8,11,CharacterCatalog.SHOTGUN_MASTER]:return u.ability.modify_movement(u,enemy,dt)
 		move_general(u,enemy,dt);return true
 	var direction: Vector2;var factor: float=1
 	if u.stance==CombatStance.COVER:
@@ -375,7 +375,7 @@ func movement(u,enemy,dt: float) -> void:
 	if u.data.type_id==14 and u.combat_state!=CombatController.State.IDLE:heading=Vector2.ZERO;u.velocity=Vector2.ZERO;ability_override="slash_combo";return
 	if u.data.type_id in [19,18,15,23,29] and u.ability.modify_movement(u,enemy,dt):ability_override=u.data.display_name;return
 	if move_rear(u,enemy,dt) or move_precommit(u,enemy,dt) or move_defensive(u,enemy,dt):return
-	if u.data.type_id in [6,7,8,11] or u.data.type_id==10 and not u.lost_sword.is_empty():
+	if u.data.type_id in [6,7,8,11,CharacterCatalog.SHOTGUN_MASTER] or u.data.type_id==10 and not u.lost_sword.is_empty():
 		if u.ability.modify_movement(u,enemy,dt):ability_override=u.data.display_name;return
 	move_general(u,enemy,dt)
 ## 화약통: a shooter whose line of fire runs into an unlit keg steps sideways (to whichever side

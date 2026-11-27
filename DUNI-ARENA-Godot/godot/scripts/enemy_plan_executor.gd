@@ -44,7 +44,7 @@ static func execute(plan: EnemyTurningPlan, battle: BattleManager) -> Dictionary
 				ally.shield_remaining = maxf(ally.shield_remaining, float(m.time))
 		EnemyTurningPlan.STEALTH:
 			enemy.set_state("shadowTime", maxf(enemy.state_value("shadowTime"), float(m.time)));enemy.set_state("strategyShadow", 1.0);enemy.hidden_from_enemies = true
-		EnemyTurningPlan.SMASH, EnemyTurningPlan.CLEAVE, EnemyTurningPlan.SLASH, EnemyTurningPlan.SWEEP, EnemyTurningPlan.SHOUT, EnemyTurningPlan.LAVA, EnemyTurningPlan.MISSILE:
+		EnemyTurningPlan.SMASH, EnemyTurningPlan.CLEAVE, EnemyTurningPlan.SLASH, EnemyTurningPlan.SWEEP, EnemyTurningPlan.SHOUT, EnemyTurningPlan.LAVA, EnemyTurningPlan.MISSILE, EnemyTurningPlan.SLUG:
 			StrategyCommandExecutor.cancel_intent(enemy)
 			m["kind"] = plan.plan_type
 			m["age"] = 0.0
@@ -110,6 +110,23 @@ static func advance(unit: BattleUnit, delta: float) -> bool:
 				if foe.position.distance_to(center) <= float(m.radius) + 20 * foe.combat_scale():
 					battle.damage_resolver.resolve(unit, foe, float(m.damage), {"impulse": 300, "visible_hazard": true, "attack_origin": center, "dmg": &"strategy_missile"})
 			battle.emit_combat_event(&"ult_impact", center, {"actor": unit.actor_id(), "type": unit.data.type_id, "radius": float(m.radius)})
+		return true
+	if cast.kind == EnemyTurningPlan.SLUG:
+		# 폭발 슬러그 탄약: the fan blasts; the near ones take more and burn longer.
+		unit.facing = float(cast.angle)
+		if cast.age < windup(cast):
+			return true
+		var forward := Vector2.from_angle(float(cast.angle));var reach: float = float(cast.range);var near: float = float(cast.near);var damage: float = float(cast.damage)
+		unit.strategy_cast = {}
+		for foe in battle.units.filter(func(u): return u.alive and u.team != unit.team):
+			var offset: Vector2 = foe.position - unit.position;var body: float = 20 * foe.combat_scale()
+			if offset.length() > reach + body or absf(forward.angle_to(offset)) > EnemyTurningPlan.SLUG_ARC:continue
+			var close: bool = offset.length() <= near + body
+			battle.damage_resolver.resolve(unit, foe, damage * (EnemyTurningPlan.SLUG_NEAR_FACTOR if close else 1.0), {"impulse": 320 if close else 200, "visible_hazard": true, "attack_origin": unit.position, "dmg": &"strategy_slug"})
+			if foe.alive:ElementEffects.add_burn(unit, foe, EnemyTurningPlan.SLUG_NEAR_BURN if close else EnemyTurningPlan.SLUG_BURN)
+		if not battle.field_objects.is_empty():FieldObjects.area(battle, unit.position + forward * reach * .5, reach * .5)
+		battle.emit_combat_event(&"slug_blast", unit.position, {"actor": unit.actor_id(), "angle": float(cast.angle), "range": reach, "near": near})
+		unit.knockback_velocity -= forward * 360
 		return true
 	if cast.kind in [EnemyTurningPlan.SMASH, EnemyTurningPlan.SHOUT]:
 		unit.facing = float(cast.angle)

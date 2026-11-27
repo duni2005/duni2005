@@ -18,17 +18,32 @@ const SHOUT: StringName = &"shout"
 const UNITE: StringName = &"unite"
 const STEALTH: StringName = &"stealth"
 const MISSILE: StringName = &"missile"
-const NAMES = {HEAL:"회복", SMASH:"강타", MOVE:"이동", CHARGE:"충전", OVERCHARGE:"과충전", CLEAVE:"가르기", EVADE:"회피", SLASH:"참격", SWEEP:"휩쓸어 모으기", LAVA:"용암 붓기", MEND:"치유", SHOUT:"소리치기", UNITE:"단결", STEALTH:"은신", MISSILE:"미사일"}
-const ICONS = {HEAL:"mango", SMASH:"battle", MOVE:"boots", CHARGE:"charge", OVERCHARGE:"energy", CLEAVE:"woodSword", EVADE:"evade", SLASH:"woodSword", SWEEP:"skull", LAVA:"phoenixFeather", MEND:"star", SHOUT:"hawkFeather", UNITE:"shield", STEALTH:"evade", MISSILE:"dragonHeart"}
+## 0.99.21: 강화된 샷건 마스터's own strategy.
+const SLUG: StringName = &"slug"
+const NAMES = {SLUG:"폭발 슬러그 탄약", HEAL:"회복", SMASH:"강타", MOVE:"이동", CHARGE:"충전", OVERCHARGE:"과충전", CLEAVE:"가르기", EVADE:"회피", SLASH:"참격", SWEEP:"휩쓸어 모으기", LAVA:"용암 붓기", MEND:"치유", SHOUT:"소리치기", UNITE:"단결", STEALTH:"은신", MISSILE:"미사일"}
+const ICONS = {SLUG:"powderPouch", HEAL:"mango", SMASH:"battle", MOVE:"boots", CHARGE:"charge", OVERCHARGE:"energy", CLEAVE:"woodSword", EVADE:"evade", SLASH:"woodSword", SWEEP:"skull", LAVA:"phoenixFeather", MEND:"star", SHOUT:"hawkFeather", UNITE:"shield", STEALTH:"evade", MISSILE:"dragonHeart"}
 ## Danger grades: 일반 (normal), 주의 (caution), 위험 (danger), 고위험 (high, 보스급 only).
 const NORMAL: StringName = &"normal"
 const CAUTION: StringName = &"caution"
 const DANGER: StringName = &"danger"
 const HIGH: StringName = &"high"
-const TIERS = {HEAL:NORMAL, MOVE:NORMAL, CHARGE:NORMAL, EVADE:NORMAL, MEND:NORMAL, SLASH:CAUTION, SHOUT:CAUTION, STEALTH:CAUTION, SMASH:DANGER, CLEAVE:DANGER, OVERCHARGE:DANGER, LAVA:DANGER, UNITE:DANGER, SWEEP:HIGH, MISSILE:HIGH}
+const TIERS = {SLUG:HIGH, HEAL:NORMAL, MOVE:NORMAL, CHARGE:NORMAL, EVADE:NORMAL, MEND:NORMAL, SLASH:CAUTION, SHOUT:CAUTION, STEALTH:CAUTION, SMASH:DANGER, CLEAVE:DANGER, OVERCHARGE:DANGER, LAVA:DANGER, UNITE:DANGER, SWEEP:HIGH, MISSILE:HIGH}
 const TIER_NAMES = {NORMAL:"일반", CAUTION:"주의", DANGER:"위험", HIGH:"고위험"}
 ## Damage a strategy needs the unit to deal (any of its own damage instances): fire, light, explosion.
 const NEEDS = {LAVA:&"fire", MEND:&"light", MISSILE:&"explosion"}
+## 전용 특수전략: a boss character's own strategy, used at every turning point (type → kind).
+const EXCLUSIVE = {CharacterCatalog.SHOTGUN_MASTER: SLUG}
+## 폭발 슬러그 탄약: a wide fan (SLUG_RANGE, SLUG_ARC half-angle) of explosive slugs: damage and
+## SLUG_BURN 화상 stacks; within SLUG_NEAR the damage is SLUG_NEAR_FACTOR times and SLUG_NEAR_BURN stacks.
+const SLUG_RANGE: float = 320
+const SLUG_ARC: float = deg_to_rad(65)
+const SLUG_NEAR: float = 130
+const SLUG_NEAR_FACTOR: float = 1.5
+const SLUG_BURN: int = 4
+const SLUG_NEAR_BURN: int = 7
+## Its damage: the boss's damage stat × (SLUG_BASE + SLUG_PER_PROGRESS × tower progress).
+const SLUG_BASE: float = 1.4
+const SLUG_PER_PROGRESS: float = .6
 ## Numbers of the 0.99.10 strategies.
 const LAVA_TIME: float = 7
 const LAVA_RADIUS: float = 85
@@ -57,6 +72,7 @@ const INFO = {
 	UNITE:["모든 아군에게 최대 HP의 30%만큼 보호막(10초)을 준다.", "언제든. 아군이 많을수록 더 자주."],
 	SWEEP:["주변 넓은 원에 강한 참격을 일으키고 맞은 유닛을 한곳에 모은다.", "보스급. 주변에 적이 있을 때."],
 	MISSILE:["표시된 위치로 미사일을 날려 큰 범위에 폭발 피해를 준다.", "폭발 피해를 쓰는 보스급 적. 적이 사거리 안에 있을 때."],
+	SLUG:["넓은 부채꼴 범위에 폭발 슬러그 샷건을 쏴 큰 피해와 화상 4스택을 준다. 가까운 적(130 안)에게는 피해 1.5배와 화상 7스택.", "강화된 샷건 마스터 전용. 보스는 터닝포인트마다 반드시 전용 특수전략을 쓴다."],
 }
 ## Units whose own damage can use `kind` (always true for strategies with no NEEDS).
 static func usable(kind: StringName, type_id: int) -> bool:
@@ -105,5 +121,6 @@ func describe() -> String:
 		UNITE:return "이 유닛은 모든 아군에게 보호막을 부여하려 한다. (최대 HP의 %d%%)" % roundi(UNITE_SHIELD * 100)
 		STEALTH:return "이 유닛은 %d초간 은신하려 한다." % roundi(STEALTH_TIME)
 		MISSILE:return "이 유닛은 해당 위치에 미사일을 날려 큰 범위 폭발 피해 %d를 가하려 한다." % roundi(float(m.get("damage", 0)))
+		SLUG:return "이 유닛은 해당 부채꼴에 폭발 슬러그를 쏴 피해 %d와 화상 %d스택을 주려 한다. 가까운 적은 피해 %d와 화상 %d스택." % [roundi(float(m.get("damage", 0))), SLUG_BURN, roundi(float(m.get("damage", 0)) * SLUG_NEAR_FACTOR), SLUG_NEAR_BURN]
 	return ""
 func tier() -> StringName:return TIERS.get(plan_type, NORMAL)

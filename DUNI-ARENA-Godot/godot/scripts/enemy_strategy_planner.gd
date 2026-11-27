@@ -31,6 +31,8 @@ static func high_cap(i: float, room_type: StringName = &"battle") -> int:
 
 ## Returns null when the enemy holds back this turning point.
 static func plan(enemy: BattleUnit, i: float, rng: RandomNumberGenerator, enemy_count: int = 3, rank: StringName = &"normal", allow_high: bool = true) -> EnemyTurningPlan:
+	# A boss with its own strategy uses it at every turning point (no roll, no grade cap).
+	if EnemyTurningPlan.EXCLUSIVE.has(enemy.data.type_id):return exclusive(enemy, i)
 	if rng.randf() >= act_chance(i, enemy_count, rank):return null
 	var p: float = clampf(i, 0, 1)
 	var foes: Array = enemy.battle.units.filter(func(u): return u.alive and u.team != enemy.team)
@@ -116,6 +118,18 @@ static func plan(enemy: BattleUnit, i: float, rng: RandomNumberGenerator, enemy_
 			result.metadata = {"from": CharacterPersistence.point(enemy.position), "to": CharacterPersistence.point(to)}
 	return result
 
+## A boss's own strategy (EnemyTurningPlan.EXCLUSIVE), aimed at the nearest foe; null with none.
+static func exclusive(enemy: BattleUnit, i: float) -> EnemyTurningPlan:
+	var nearest: BattleUnit = null
+	for foe in enemy.battle.units:
+		if foe.alive and foe.team != enemy.team and (nearest == null or enemy.position.distance_to(foe.position) < enemy.position.distance_to(nearest.position)):nearest = foe
+	if nearest == null:return null
+	var p: float = clampf(i, 0, 1);var power: float = UnitStatTable.damage_stat(enemy, UnitStatTable.main_kind(enemy.data.type_id))
+	var result := EnemyTurningPlan.new();result.plan_type = EnemyTurningPlan.EXCLUSIVE[enemy.data.type_id]
+	match result.plan_type:
+		EnemyTurningPlan.SLUG:
+			result.metadata = {"angle": (nearest.position - enemy.position).angle(), "range": EnemyTurningPlan.SLUG_RANGE * sqrt(enemy.combat_scale()), "near": EnemyTurningPlan.SLUG_NEAR * sqrt(enemy.combat_scale()), "damage": roundf(power * (EnemyTurningPlan.SLUG_BASE + EnemyTurningPlan.SLUG_PER_PROGRESS * p)), "windup": EnemyTurningPlan.WINDUP_HIGH}
+	return result
 ## The most hurt ally (not the unit itself) within reach, below 80% HP; null when none.
 static func _wounded_ally(enemy: BattleUnit, allies: Array) -> BattleUnit:
 	var best: BattleUnit = null

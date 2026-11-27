@@ -8,6 +8,10 @@ const FRONT = [0,3,4,7,8,9,10,11,12,14,16,17,19,26,33,35,39,40,41,42,43]
 const RANGED = [1,2,6,13,15,18,20,21,22,23,24,25,28,30,31,32,34,36,37,38]
 const SUPPORT = [4,5,15,16,17,19,24,25,27,29]
 const BOSS_POOL = [0,2,4,7,9,10,11,12,13]
+## 미니보스 rooms: the boss characters that lead one this often instead of a FRONT elite (its own
+## generator, so the rest of the map rolls as before; part of the balance layer).
+const MINIBOSS_TYPES = [CharacterCatalog.SHOTGUN_MASTER]
+const MINIBOSS_UNIQUE_CHANCE: float = .5
 const FORMATIONS = [&"전열", &"분산", &"쌍익", &"포위", &"밀집"]
 ## Chance that a floor's second service room is the blacksmith instead of the shop.
 const BLACKSMITH_CHANCE: float = .5
@@ -119,7 +123,12 @@ func encounter_for(room: RoomState) -> EncounterState:
 	if room.room_type==RoomType.BOSS:
 		var type: int=pick(BOSS_POOL,encounter.enemies,room.floor_index);add_enemy(encounter,type,&"boss")
 		add_enemy(encounter,pick(all.filter(func(v):return v!=type),encounter.enemies,room.floor_index),&"elite")
-	elif room.room_type==RoomType.MINIBOSS:add_enemy(encounter,pick(FRONT,encounter.enemies,room.floor_index),&"elite")
+	elif room.room_type==RoomType.MINIBOSS:
+		var type: int=pick(FRONT,encounter.enemies,room.floor_index)
+		if UnitBalance.enabled:
+			var boss_rng:=RandomNumberGenerator.new();boss_rng.seed=hash("%s:%d:miniboss"%[room.room_id,rng.seed])
+			if boss_rng.randf()<MINIBOSS_UNIQUE_CHANCE:type=MINIBOSS_TYPES[boss_rng.randi_range(0,MINIBOSS_TYPES.size()-1)]
+		add_enemy(encounter,type,&"elite")
 	for pool in [FRONT,RANGED,SUPPORT]:
 		if encounter.enemies.size()>=count:break
 		var fresh: Array=pool.filter(func(t):return not encounter.enemies.any(func(e):return e.unit_type_id==t))
