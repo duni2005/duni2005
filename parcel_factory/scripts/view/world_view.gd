@@ -1,6 +1,6 @@
 extends Node2D
-## 공장을 그리는 노드. 그래픽 에셋 없이 도형과 글자로만 그려요.
-## (픽셀아트는 나중에 이 파일만 바꾸면 돼요.)
+## 공장을 그리는 노드. 큰방 지형은 도트 텍스처(assets/art.gd), 설비는 아직 도형과 글자로 그려요.
+## 시뮬레이션 상태는 읽기만 해요.
 
 const TILE := 32.0
 const CAT_COLORS := {
@@ -12,19 +12,47 @@ const CAT_COLORS := {
 	"크리에이티브": Color("7a4fa8"),
 }
 
+const OUTSIDE_COLOR := Color("0b0c0f")
+const ROOM_GRID_COLOR := Color(1, 1, 1, 0.035)
+const TILE_FLOOR_FROM_X := 40     # 이 x부터 정문 쪽은 카펫 대신 타일 바닥
+const EXPANSION_COLOR := Color(0.75, 0.78, 0.85, 0.45)
+const POP_SEC := 0.9              # 손으로 꺼낸 물건이 튀어나오는 연출 시간
+const POP_GRAVITY := 900.0
+const LABEL_SIZE := 26            # 정문·복도 이름 글자 크기
+const SUBLABEL_SIZE := 16
+const EXPANSION_LABEL_SIZE := 48
+
 var factory: Factory = null
 var ghost := {}             # {def, pos, rot, ok}
 var selected = null         # Building
 var show_layers := true
 var font: Font
+var _pops: Array = []        # [{p, v, t, id}] 튀어나오는 물건 연출
 
 
 func _ready() -> void:
 	font = ThemeDB.fallback_font
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	factory.items_popped.connect(_on_items_popped)
 
 
-func _process(_dt: float) -> void:
+func _process(dt: float) -> void:
+	for pop in _pops:
+		var v: Vector2 = pop["v"]
+		v.y += POP_GRAVITY * dt
+		pop["v"] = v
+		pop["p"] += v * dt
+		pop["t"] += dt
+	_pops = _pops.filter(func(pp) -> bool: return pp["t"] < POP_SEC)
 	queue_redraw()
+
+
+func _on_items_popped(_pile, cell: Vector2i, items: Array) -> void:
+	var i := 0
+	for it in items:
+		var ang := -PI * 0.5 + (float(i) - float(items.size() - 1) * 0.5) * 0.45
+		_pops.append({"p": cell_center(cell), "v": Vector2(cos(ang), sin(ang)) * 260.0, "t": 0.0, "id": it.id})
+		i += 1
 
 
 func cell_rect(c: Vector2i, s: Vector2i = Vector2i.ONE) -> Rect2:
@@ -51,9 +79,16 @@ func _draw() -> void:
 		return
 	var vis := _visible_cells()
 	var zoom := get_viewport().get_canvas_transform().get_scale().x
-	draw_rect(Rect2(Vector2(vis.position) * TILE, Vector2(vis.size) * TILE), Color("1d2026"))
-	if zoom > 0.45:
-		_draw_grid(vis)
+	var room: Room = factory.room
+	if room == null:
+		draw_rect(Rect2(Vector2(vis.position) * TILE, Vector2(vis.size) * TILE), Color("1d2026"))
+		if zoom > 0.45:
+			_draw_grid(vis, vis)
+	else:
+		draw_rect(Rect2(Vector2(vis.position) * TILE, Vector2(vis.size) * TILE), OUTSIDE_COLOR)
+		_draw_room(room, vis)
+		if zoom > 0.45:
+			_draw_grid(vis, vis if factory.creative else room.interior())
 	# 물 샘
 	for c in factory.water:
 		if vis.has_point(c):
@@ -65,17 +100,149 @@ func _draw() -> void:
 		if not vis.intersects(Rect2i(b.pos, b.size)):
 			continue
 		_draw_building(b, zoom)
+	_draw_pops()
 	if selected != null and factory.buildings.has(selected):
 		draw_rect(cell_rect(selected.pos, selected.size), Color(1, 1, 1, 0.9), false, 3.0)
 	_draw_ghost()
 
 
-func _draw_grid(vis: Rect2i) -> void:
-	var col := Color(1, 1, 1, 0.04)
-	for x in range(vis.position.x, vis.end.x + 1):
-		draw_line(Vector2(x * TILE, vis.position.y * TILE), Vector2(x * TILE, vis.end.y * TILE), col, 1.0)
-	for y in range(vis.position.y, vis.end.y + 1):
-		draw_line(Vector2(vis.position.x * TILE, y * TILE), Vector2(vis.end.x * TILE, y * TILE), col, 1.0)
+func _draw_grid(vis: Rect2i, area: Rect2i) -> void:
+	var g := vis.intersection(area)
+	if g.size.x <= 0 or g.size.y <= 0:
+		return
+	var col := ROOM_GRID_COLOR
+	for x in range(g.position.x, g.end.x + 1):
+		draw_line(Vector2(x * TILE, g.position.y * TILE), Vector2(x * TILE, g.end.y * TILE), col, 1.0)
+	for y in range(g.position.y, g.end.y + 1):
+		draw_line(Vector2(g.position.x * TILE, y * TILE), Vector2(g.end.x * TILE, y * TILE), col, 1.0)
+
+
+# ---------- 큰방 ----------
+
+func _tex_at(key: String, c: Vector2i) -> void:
+	draw_texture_rect(Art.tex(key), cell_rect(c), false)
+
+
+func _draw_room(room: Room, vis: Rect2i) -> void:
+	for z in Room.EXPANSIONS:
+		_draw_expansion(z["name"], z["rect"])
+	# 바닥 (카펫, 정문 쪽은 타일)
+	var inner := vis.intersection(room.interior())
+	for y in range(inner.position.y, inner.end.y):
+		for x in range(inner.position.x, inner.end.x):
+			var c := Vector2i(x, y)
+			if x >= TILE_FLOOR_FROM_X:
+				_tex_at("tile", c)
+			else:
+				_tex_at("carpet_stain" if absi(hash(c)) % 11 == 0 else "carpet", c)
+	# 벽·정문·복도
+	var ring := vis.intersection(room.interior().grow(1))
+	for y in range(ring.position.y, ring.end.y):
+		for x in range(ring.position.x, ring.end.x):
+			var c := Vector2i(x, y)
+			match room.terrain_at(c):
+				Room.T.WALL:
+					_tex_at("wall", c)
+				Room.T.DOOR:
+					_tex_at("door", c)
+				Room.T.NO_BUILD:
+					_tex_at("hazard", c)
+	for r in room.corridor_rects():
+		_draw_corridor(r, r.position.y < 0)
+	_draw_door(room)
+	var wb := cell_rect(Room.WORKBENCH_RECT.position, Room.WORKBENCH_RECT.size)
+	_dashed_rect(wb.grow(-2), Color(1, 1, 1, 0.5))
+	_text(wb.get_center(), "작업대 자리", 12, Color(1, 1, 1, 0.75), wb.size.x)
+
+
+func _draw_corridor(r: Rect2i, up: bool) -> void:
+	## 벽에 뚫린 입구 + 바깥으로 이어지는 어두운 통로 + 막힘 표시
+	var dir := -1 if up else 1
+	for k in Room.CORRIDOR_LEN + 1:
+		var fade := 1.0 - float(k) / float(Room.CORRIDOR_LEN + 1)
+		for x in range(r.position.x, r.end.x):
+			var c := Vector2i(x, r.position.y + dir * k)
+			draw_texture_rect(Art.tex("corridor"), cell_rect(c), false, Color(1, 1, 1, fade))
+		# 통로 양옆 벽
+		var wl := Vector2i(r.position.x - 1, r.position.y + dir * k)
+		var wr := Vector2i(r.end.x, r.position.y + dir * k)
+		draw_texture_rect(Art.tex("wall"), cell_rect(wl), false, Color(1, 1, 1, fade))
+		draw_texture_rect(Art.tex("wall"), cell_rect(wr), false, Color(1, 1, 1, fade))
+	for x in range(r.position.x, r.end.x):
+		_tex_at("barrier", Vector2i(x, r.position.y))
+	var area := cell_rect(r.position, r.size)
+	var label_c := area.get_center() + Vector2(0, dir * TILE * 3.0)
+	_label_plate(label_c, "복도", "막힘 · 아직 못 들어가요", Color(1, 0.6, 0.55), area.size.x + TILE * 2)
+
+
+func _draw_door(room: Room) -> void:
+	var d := room.door_rect()
+	var r := cell_rect(d.position, d.size)
+	draw_rect(r, Color("d4a82a"), false, 2.0)
+	# 문 밖: 바깥 길 (배달 아르바이트가 드나드는 곳)
+	var outside := Rect2(r.position + Vector2(TILE, 0), Vector2(TILE * 3, r.size.y))
+	draw_rect(outside, Color("23262b"))
+	for i in 3:
+		for k in [-3, 3]:
+			var p := outside.get_center() + Vector2(-TILE + i * TILE, k * TILE)
+			_arrow(p, Vector2.RIGHT, 9.0, Color(1, 1, 1, 0.25), 2.0)
+	_label_plate(outside.get_center(), "정문", "배달 출입", Color("f0d070"), outside.size.x)
+
+
+func _draw_expansion(label: String, rect: Rect2i) -> void:
+	var r := cell_rect(rect.position, rect.size)
+	_dashed_rect(r, EXPANSION_COLOR)
+	_text(r.get_center(), "확장 예정 %s" % label, EXPANSION_LABEL_SIZE, EXPANSION_COLOR, r.size.x)
+
+
+func _label_plate(c: Vector2, title: String, sub: String, col: Color, width: float) -> void:
+	## 어두운 판 위에 큰 이름 + 작은 설명
+	var h := float(LABEL_SIZE + SUBLABEL_SIZE) + 16.0
+	draw_rect(Rect2(c - Vector2(width * 0.5, h * 0.5), Vector2(width, h)), Color(0, 0, 0, 0.7))
+	_text(c - Vector2(0, SUBLABEL_SIZE * 0.6), title, LABEL_SIZE, col, width)
+	_text(c + Vector2(0, LABEL_SIZE * 0.6), sub, SUBLABEL_SIZE, col.darkened(0.15), width)
+
+
+func _dashed_rect(r: Rect2, col: Color) -> void:
+	var a := r.position
+	var b := r.position + Vector2(r.size.x, 0)
+	var c := r.end
+	var d := r.position + Vector2(0, r.size.y)
+	for seg in [[a, b], [b, c], [c, d], [d, a]]:
+		draw_dashed_line(seg[0], seg[1], col, 2.0, 8.0)
+
+
+func _draw_giant_pile(b: ItemPile) -> void:
+	var r := cell_rect(b.pos, b.size)
+	for y in range(b.pos.y, b.pos.y + b.size.y):
+		for x in range(b.pos.x, b.pos.x + b.size.x):
+			var c := Vector2i(x, y)
+			_tex_at("trash%d" % (absi(hash(c)) % 3 + 1), c)
+	draw_rect(r, Color(0, 0, 0, 0.35), false, 3.0)
+	# 출구 자리: 비어 있으면 점선 칸 + 화살표
+	for s in b.exit_slots():
+		var sr := cell_rect(s)
+		var occupant = factory.get_at(s)
+		if occupant == null:
+			_dashed_rect(sr.grow(-3), Color("f0d070"))
+			_arrow(sr.get_center() - Vector2(4, 0), Vector2.RIGHT, 7.0, Color("f0d070"), 2.0)
+		draw_rect(Rect2(sr.position - Vector2(4, 0), Vector2(4, TILE)), Color("f0d070"))
+	draw_set_transform(r.get_center(), -PI * 0.5, Vector2.ONE)
+	_text(Vector2.ZERO, "엄청난 쓰레기 더미 · %s Lv%d" % [b.pile_type, b.level], 20, Color(1, 1, 0.85), r.size.y)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _draw_pops() -> void:
+	for pop in _pops:
+		var t: float = pop["t"]
+		var p: Vector2 = pop["p"]
+		var id: String = pop["id"]
+		var a := 1.0 - clampf((t - POP_SEC * 0.6) / (POP_SEC * 0.4), 0.0, 1.0)
+		var col: Color = DB.color_of(id)
+		col.a = a
+		draw_circle(p, 9.0, col)
+		draw_arc(p, 9.0, 0, TAU, 16, Color(0, 0, 0, 0.5 * a), 1.5)
+		_text(p, DB.short(id).substr(0, 2), 8, Color(0, 0, 0, a), 24)
 
 
 func _draw_layer(layer: Dictionary, col: Color, w: float, vis: Rect2i) -> void:
@@ -107,6 +274,9 @@ func _draw_building(b, _zoom: float) -> void:
 	var base: Color = CAT_COLORS.get(cat, Color.GRAY)
 	if b.is_conveyor():
 		_draw_conveyor(b, r, base)
+		return
+	if b is ItemPile and b.is_giant():
+		_draw_giant_pile(b)
 		return
 	draw_rect(r.grow(-2), base.darkened(0.15))
 	draw_rect(r.grow(-2), base.lightened(0.25), false, 2.0)

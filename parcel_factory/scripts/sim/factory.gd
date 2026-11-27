@@ -6,10 +6,11 @@ extends Node
 
 signal topology_changed
 signal shipment(parcel, ok)
+signal items_popped(pile, cell, items)   # 손으로 뒤져 물건이 튀어나왔을 때 (화면 연출용)
 
 const DT := 0.05
 const MAX_STEPS_PER_FRAME := 80   # 프레임이 밀려도 한 번에 이만큼만 따라잡아요
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 const KINDS := {
 	"rail": preload("res://scripts/sim/conveyor.gd"),
 	"exit": preload("res://scripts/sim/exit_port.gd"),
@@ -44,6 +45,11 @@ var pipes := {}
 var water := {}       # 물 샘 칸
 var power_nets: Array = []
 var water_nets: Array = []
+
+var room: Room = null     # 지형 (없으면 무한 격자)
+var creative := false     # 켜면 지형 규칙을 무시하고 어디든 설치·철거
+var hand_items := {}      # 손으로 꺼낸 물건 (다음 단계 플레이어 인벤토리 자리) 이름 -> 개수
+var _rng := RandomNumberGenerator.new()
 
 var paused := false
 var speed := 1.0
@@ -101,20 +107,31 @@ func footprint(def: Dictionary, p: Vector2i, r: int) -> Array:
 	return out
 
 
+func cell_ok(c: Vector2i) -> bool:
+	## 지형상 이 칸에 무언가를 놓을 수 있는지 (크리에이티브면 어디든)
+	return creative or room == null or room.is_buildable(c)
+
+
 func can_place(def: Dictionary, p: Vector2i, r: int) -> bool:
 	if def["kind"] in LAYER_KINDS:
-		return true
+		return cell_ok(p)
 	for c in footprint(def, p, r):
-		if grid.has(c):
+		if grid.has(c) or not cell_ok(c):
 			return false
 	if def["kind"] == "pump" and not water.has(p):
 		return false
+	if def["kind"] == "exit" and not creative:
+		var src = get_at(p - Building.DIRV[r])
+		if src is ItemPile and not src.accepts_exit_at(p):
+			return false
 	return true
 
 
 func place(def_name: String, p: Vector2i, r: int):
 	var def: Dictionary = DB.buildings[def_name]
 	var k: String = def["kind"]
+	if k in LAYER_KINDS and not cell_ok(p):
+		return null
 	if k == "wire":
 		wires[p] = true
 		_dirty = true
@@ -148,12 +165,37 @@ func remove_at(c: Vector2i) -> bool:
 	var b = grid.get(c, null)
 	if b == null:
 		return false
+	if is_fixed(b) and not creative:
+		return false
 	for cc in b.cells():
 		grid.erase(cc)
 	buildings.erase(b)
 	_release(b)
 	_dirty = true
 	return true
+
+
+func is_fixed(b: Building) -> bool:
+	return bool(b.def.get("fixed", false))
+
+
+func hand_pull(pile: ItemPile, at_cell: Vector2i) -> Array:
+	## 손으로 더미를 뒤져 정의의 hand_pull 범위만큼 물건을 꺼내요
+	var r := pile.hand_pull_range()
+	if r == Vector2i.ZERO:
+		return []
+	var items := pile.hand_pull(_rng.randi_range(r.x, r.y))
+	for it in items:
+		hand_items[it.id] = int(hand_items.get(it.id, 0)) + 1
+	items_popped.emit(pile, at_cell, items)
+	return items
+
+
+func hand_total() -> int:
+	var n := 0
+	for k in hand_items:
+		n += int(hand_items[k])
+	return n
 
 
 func _release(b: Building) -> void:
@@ -184,6 +226,7 @@ func clear_all() -> void:
 	wires.clear()
 	pipes.clear()
 	water.clear()
+	hand_items.clear()
 	shipped = 0
 	shipped_ok = 0
 	_dirty = true
@@ -322,6 +365,7 @@ func to_save() -> Dictionary:
 		bs.append({"name": b.name, "pos": [b.pos.x, b.pos.y], "rot": b.rot, "state": b.save_state()})
 	return {
 		"version": SAVE_VERSION,
+		"creative": creative,
 		"buildings": bs,
 		"wires": _cells_to_list(wires),
 		"pipes": _cells_to_list(pipes),
@@ -332,7 +376,11 @@ func to_save() -> Dictionary:
 func load_save(d) -> bool:
 	if not (d is Dictionary) or not d.has("buildings"):
 		return false
+	if int(d.get("version", 0)) != SAVE_VERSION:
+		push_warning("저장 파일 버전이 달라요 (%s ≠ %d). 새로 시작해요" % [str(d.get("version", "?")), SAVE_VERSION])
+		return false
 	clear_all()
+	creative = bool(d.get("creative", false))
 	sim_time = 0.0
 	# 물 샘이 먼저 있어야 펌프를 놓을 수 있어요
 	_list_to_cells(d.get("water", []), water)

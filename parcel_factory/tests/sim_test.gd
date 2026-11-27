@@ -10,15 +10,20 @@ const MEASURE_SEC := 300.0    # 이 시간 동안 센 개수를 분당으로 바
 const TOLERANCE := 0.5        # 분당 허용 오차
 const DEMO_SEC := 120.0       # 예시 공장을 돌려 보는 시간
 const CYCLES := 60            # 설비 속도는 레시피를 이만큼 돌리는 데 걸린 시간으로 재요
+const PILE_SEC := 60.0        # 쓰레기 더미 출구를 지켜보는 시간
+const WATCHDOG_SEC := 10.0    # 스크립트 오류로 멈추면 이 시간 뒤 실패로 끝내요
 
 var _fails := 0
 
 
 func _ready() -> void:
+	get_tree().create_timer(WATCHDOG_SEC).timeout.connect(func() -> void: get_tree().quit(2))
 	print("=== 시뮬레이션 테스트 ===")
 	_test_rail_mk1()
 	_test_disassembler_paper()
 	_test_half_power()
+	_test_room_rules()
+	_test_trash_pile()
 	_test_demos()
 	_test_save_roundtrip()
 	print("=== 결과: %s (실패 %d) ===" % ["통과" if _fails == 0 else "실패", _fails])
@@ -37,6 +42,14 @@ func _new_factory() -> Factory:
 	var f := Factory.new()
 	add_child(f)
 	f.paused = true   # _process로 따로 돌지 않게, step()만 써요
+	return f
+
+
+func _new_room_factory() -> Factory:
+	## 큰방 + 지형 설비(쓰레기 더미·물 샘)
+	var f := _new_factory()
+	f.room = Room.new()
+	f.room.build_fixed(f)
 	return f
 
 
@@ -150,27 +163,94 @@ func _test_half_power() -> void:
 	f.free()
 
 
+func _test_room_rules() -> void:
+	var f := _new_room_factory()
+	var rail: Dictionary = DB.buildings["레일 Mk1"]
+	var door_y := f.room.door_rect().position.y + 2
+	var corridor: Rect2i = f.room.corridor_rects()[0]
+	var blocked := {
+		"벽": Vector2i(-1, 5),
+		"정문": Vector2i(Room.W, door_y),
+		"정문 앞 통로": Vector2i(Room.W - 1, door_y),
+		"복도": corridor.position,
+		"방 밖": Vector2i(-5, -5),
+		"작업대 자리": Room.WORKBENCH_RECT.position,
+		"쓰레기 더미 위": Vector2i(2, 10),
+	}
+	var wrong := []
+	for k in blocked:
+		if f.can_place(rail, blocked[k], 0):
+			wrong.append(k)
+	f.place("전선", Vector2i(-1, 5), 0)
+	if f.wires.has(Vector2i(-1, 5)):
+		wrong.append("벽 위 전선")
+	var floor_ok := f.can_place(rail, Vector2i(20, 20), 0)
+	_check("큰방: 벽·정문·통로·복도·방 밖 설치 불가", wrong.is_empty() and floor_ok, "막혀야 하는데 놓인 곳: %s · 바닥 설치 %s" % [str(wrong), "가능" if floor_ok else "불가"])
+	var pile_kept := not f.remove_at(Vector2i(1, 1))
+	f.creative = true
+	var creative_ok := f.can_place(rail, Vector2i(-1, 5), 0) and f.can_place(rail, Vector2i(-5, -5), 0) and f.can_place(rail, Vector2i(Room.W - 1, door_y), 0)
+	_check("크리에이티브: 켜면 어디든 설치 · 끄면 더미 철거 불가", pile_kept and creative_ok, "더미 남음 %s · 크리에이티브 벽/밖/통로 설치 %s" % [str(pile_kept), str(creative_ok)])
+	f.free()
+
+
+func _test_trash_pile() -> void:
+	var f := _new_room_factory()
+	var pile: ItemPile = f.get_at(Room.PILE_POS)
+	var slots: Array = pile.exit_slots()
+	var slot: Vector2i = slots[0]
+	var bad := slot + Vector2i(0, 2)
+	var bad_exit = f.place("출구", bad, 0)
+	f.place("출구", slot, 0)
+	f.place("레일 Mk1", slot + Vector2i(1, 0), 0)
+	var sink: VoidSink = f.place("소각기", slot + Vector2i(2, 0), 0)
+	# 출구 자리가 아닌 곳의 바깥쪽 레일로는 자동 출력되지 않아야 해요
+	f.place("레일 Mk1", bad, 0)
+	var sink2: VoidSink = f.place("소각기", bad + Vector2i(1, 0), 0)
+	_run(f, PILE_SEC)
+	var mix: Dictionary = DB.piles[pile.pile_type]
+	var only_raw := true
+	for k in sink.counts:
+		if not mix.has(k):
+			only_raw = false
+	_check("쓰레기 더미 → 출구 자리에서 원재료", sink.total > 0 and only_raw and pile.level == 1 and slots.size() == int(pile.def["exit_slots"]), "출구 자리 %d곳 · %d초 동안 %d개 %s · Lv%d" % [slots.size(), int(PILE_SEC), sink.total, str(sink.counts.keys()), pile.level])
+	_check("쓰레기 더미: 출구 자리 밖은 막힘", bad_exit == null and sink2.total == 0, "자리 밖 출구 %s · 자리 밖 레일로 나온 수 %d" % ["못 놓음" if bad_exit == null else "놓임", sink2.total])
+	var before := f.hand_total()
+	var got: Array = f.hand_pull(pile, pile.pos)
+	var r := pile.hand_pull_range()
+	_check("쓰레기 더미: 손으로 뒤지면 3~5개", got.size() >= r.x and got.size() <= r.y and r == Vector2i(3, 5) and f.hand_total() == before + got.size(), "%d개 (범위 %d~%d)" % [got.size(), r.x, r.y])
+	f.free()
+
+
 func _test_demos() -> void:
-	var f := _new_factory()
+	# 예시는 큰방(지형 + 지급 설비) 안에 깔려야 해요
+	var plain := _new_factory()
+	Demo.build(plain)
+	var want := plain.buildings.size()
+	plain.free()
+	var f := _new_room_factory()
+	f.room.build_given(f)
+	var n0 := f.buildings.size()
 	Demo.build(f)
+	_check("예시 공장이 큰방 안에 전부 깔림", f.buildings.size() - n0 == want, "%d / %d개" % [f.buildings.size() - n0, want])
+	var o := Demo.ORIGIN
 	_run(f, DEMO_SEC)
 	# A: 창고에 박스
-	var st: StorageBlock = f.get_at(Vector2i(11, 0))
+	var st: StorageBlock = f.get_at(Vector2i(11, 0) + o)
 	var boxes := 0
 	for it in st.group.items:
 		if it.id == "작은 택배 박스":
 			boxes += 1
 	_check("예시 A 종이→박스 → 창고", boxes > 0, "창고의 작은 택배 박스 %d개" % boxes)
 	# B: 출하대 정상 배달
-	var sh: Shelf = f.get_at(Vector2i(9, 13))
+	var sh: Shelf = f.get_at(Vector2i(9, 13) + o)
 	_check("예시 B 요청 포장 → 정상 배달", sh.shipped_ok > 0 and sh.shipped_ok == sh.shipped, "배달 %d · 정상 %d" % [sh.shipped, sh.shipped_ok])
 	# C: 옆 소각기에는 장난감만, 앞 소각기에는 장난감 없음
-	var side: VoidSink = f.get_at(Vector2i(23, 2))
-	var front: VoidSink = f.get_at(Vector2i(25, 0))
+	var side: VoidSink = f.get_at(Vector2i(23, 2) + o)
+	var front: VoidSink = f.get_at(Vector2i(25, 0) + o)
 	var toys: int = side.counts.get("장난감", 0)
 	_check("예시 C 분류기 장난감만 옆으로", toys > 0 and toys == side.total and not front.counts.has("장난감") and front.total > 0, "옆 %d개(장난감 %d) · 앞 %d개(장난감 %d)" % [side.total, toys, front.total, int(front.counts.get("장난감", 0))])
 	# D: 창고에 물 양동이만
-	var ws: StorageBlock = f.get_at(Vector2i(21, 7))
+	var ws: StorageBlock = f.get_at(Vector2i(21, 7) + o)
 	var filled := 0
 	for it in ws.group.items:
 		if it.id == "물 양동이":
@@ -180,12 +260,14 @@ func _test_demos() -> void:
 
 
 func _test_save_roundtrip() -> void:
-	var a := _new_factory()
+	var a := _new_room_factory()
+	a.room.build_given(a)
 	Demo.build(a)
-	var so: Sorter = a.get_at(Vector2i(23, 0))
+	var so: Sorter = a.get_at(Vector2i(23, 0) + Demo.ORIGIN)
 	so.mode = "inverse"
 	var text := JSON.stringify(a.to_save())
 	var b := _new_factory()
+	b.room = Room.new()
 	var parsed = JSON.parse_string(text)
 	var ok: bool = b.load_save(parsed)
 	var same: bool = ok and JSON.stringify(b.to_save()) == text

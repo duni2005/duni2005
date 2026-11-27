@@ -52,7 +52,7 @@ func _process(dt: float) -> void:
 func _refresh() -> void:
 	var lines := []
 	lines.append("FPS %d · 틱/초 %.1f (기준 %d × 속도 %s)" % [Engine.get_frames_per_second(), _tps, int(round(1.0 / Factory.DT)), _speed_text()])
-	lines.append("설비 %d · 레일 위 물건 %d" % [factory.buildings.size(), factory.items_on_rails()])
+	lines.append("설비 %d · 레일 위 물건 %d · 크리에이티브 %s" % [factory.buildings.size(), factory.items_on_rails(), "켬" if factory.creative else "끔"])
 	lines.append("전력망 %d개" % factory.power_nets.size())
 	var i := 0
 	for net in factory.power_nets:

@@ -16,6 +16,7 @@ const ZOOM_MIN := 0.3
 const ZOOM_MAX := 4.0
 const DRAG_THRESHOLD := 14.0    # 이만큼 움직여야 탭이 아니라 끌기로 봐요
 const SAVE_PATH := "user://save.json"
+const CAM_START_ZOOM := 0.7     # 처음 화면: 큰방 가운데를 이 배율로
 const HUD := preload("res://scripts/view/hud.gd")
 const WorldView := preload("res://scripts/view/world_view.gd")
 const Demo := preload("res://scripts/demo.gd")
@@ -36,26 +37,61 @@ var _multi := false
 var _last_cell := Vector2i(0, 0)
 var _pinch_dist := 0.0
 var _pinch_center := Vector2.ZERO
+var _tap_cell := Vector2i.ZERO     # 마지막으로 탭한 칸 (손으로 뒤질 때 물건이 튀어나오는 자리)
 
 
 func _ready() -> void:
 	factory = Factory.new()
 	factory.name = "Factory"
+	factory.room = Room.new()
 	add_child(factory)
 	view = WorldView.new()
 	view.factory = factory
 	add_child(view)
 	cam = Camera2D.new()
-	cam.zoom = Vector2(1.4, 1.4)
-	cam.position = Vector2(16, 8) * TILE
+	cam.zoom = Vector2(CAM_START_ZOOM, CAM_START_ZOOM)
+	cam.position = Vector2(Room.W, Room.H) * 0.5 * TILE
 	add_child(cam)
 	cam.make_current()
 	hud = HUD.new()
 	hud.main = self
 	add_child(hud)
-	# 저장 파일이 있으면 그대로 이어서, 없으면 예시 공장으로 시작해요
+	# 저장 파일이 있으면 그대로 이어서, 없으면 빈 큰방(지형 + 지급 설비)으로 시작해요
 	if not _load_file():
+		new_room(false)
+
+
+# ---------- 큰방 ----------
+
+func new_room(with_demo: bool) -> void:
+	## 큰방을 처음 상태로: 쓰레기 더미·물 샘 + 지급 설비 (+ 예시 공장)
+	factory.clear_all()
+	factory.room.build_fixed(factory)
+	factory.room.build_given(factory)
+	if with_demo:
 		Demo.build(factory)
+	hud.hide_inspector()
+
+
+func clear_room() -> void:
+	## 비우기: 지울 수 없는 지형 설비만 남겨요
+	factory.clear_all()
+	factory.room.build_fixed(factory)
+	hud.hide_inspector()
+
+
+func toggle_creative() -> void:
+	factory.creative = not factory.creative
+	hud.show_message("크리에이티브 %s" % ("켬: 어디든 설치·철거" if factory.creative else "끔: 큰방 규칙"))
+
+
+func hand_pull(pile: ItemPile) -> void:
+	var cell := _tap_cell if pile.has_cell(_tap_cell) else pile.pos
+	var items: Array = factory.hand_pull(pile, cell)
+	var names := []
+	for it in items:
+		names.append(it.id)
+	hud.show_message("손으로 %d개 꺼냈어요: %s" % [items.size(), ", ".join(names)])
 
 
 # ---------- 저장·불러오기 ----------
@@ -156,6 +192,7 @@ func _erase(c: Vector2i) -> void:
 
 func _tap(sp: Vector2) -> void:
 	var c := screen_to_cell(sp)
+	_tap_cell = c
 	match tool:
 		"view":
 			view.selected = factory.get_at(c)

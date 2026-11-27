@@ -23,6 +23,7 @@ var ins_target = null
 var _refresh_t := 0.0
 
 var menu_panel: PanelContainer
+var creative_btn: Button
 var debug_overlay
 var _msg := ""
 var _msg_t := 0.0
@@ -84,7 +85,7 @@ func _build_top() -> void:
 		h.add_child(b)
 	h.add_child(_btn("회전", main.rotate_tool, 100))
 	h.add_child(_btn("층 보기", _on_layers, 100))
-	h.add_child(_btn("예시", _on_demo, 80))
+	h.add_child(_btn("예시 불러오기", _on_demo, 150))
 	h.add_child(_btn("비우기", _on_clear, 90))
 	h.add_child(_btn("메뉴", toggle_menu, 80))
 	status_label = Label.new()
@@ -122,14 +123,11 @@ func _on_layers() -> void:
 
 
 func _on_demo() -> void:
-	main.factory.clear_all()
-	hide_inspector()
-	preload("res://scripts/demo.gd").build(main.factory)
+	main.new_room(true)
 
 
 func _on_clear() -> void:
-	main.factory.clear_all()
-	hide_inspector()
+	main.clear_room()
 
 
 # ---------- 아래쪽 팔레트 ----------
@@ -247,7 +245,7 @@ func _process(dt: float) -> void:
 		_msg_t -= 0.25
 		status_label.text = _msg
 	else:
-		status_label.text = "%s · %s · 배달 %d (오배송 %d)" % [f.time_text(), f.power_summary(), f.shipped, f.shipped - f.shipped_ok]
+		status_label.text = "%s%s · %s · 배달 %d (오배송 %d) · 손 %d" % ["[크리에이티브] " if f.creative else "", f.time_text(), f.power_summary(), f.shipped, f.shipped - f.shipped_ok, f.hand_total()]
 	if inspector.visible:
 		if ins_target == null or not f.buildings.has(ins_target):
 			hide_inspector()
@@ -285,12 +283,24 @@ func _build_menu() -> void:
 	v.add_child(_btn("저장 (Ctrl+S)", _on_menu_save, 300))
 	v.add_child(_btn("불러오기", _on_menu_load, 300))
 	v.add_child(_btn("팔레트 접기/펴기 (E)", toggle_palette, 300))
+	creative_btn = _btn("", _on_creative, 300)
+	v.add_child(creative_btn)
 	v.add_child(_btn("닫기 (Esc)", toggle_menu, 300))
 	menu_panel.visible = false
 
 
 func toggle_menu() -> void:
 	menu_panel.visible = not menu_panel.visible
+	_refresh_creative_btn()
+
+
+func _on_creative() -> void:
+	main.toggle_creative()
+	_refresh_creative_btn()
+
+
+func _refresh_creative_btn() -> void:
+	creative_btn.text = "크리에이티브 (디버그): %s" % ("켬" if main.factory.creative else "끔")
 
 
 func close_menu() -> bool:
@@ -400,6 +410,9 @@ func _build_controls(b) -> void:
 			types.append([t, t])
 		_row("종류").add_child(_options(types, b.pile_type, func(t): b.set_type(t)))
 		_row("레벨").add_child(_options([["Lv1 · 30개/분", 1], ["Lv2 · 60개/분", 2], ["Lv3 · 120개/분", 3]], b.level, func(l): b.level = l))
+		var hr: Vector2i = b.hand_pull_range()
+		if hr != Vector2i.ZERO:
+			_row("손").add_child(_btn("손으로 뒤지기 (%d~%d개)" % [hr.x, hr.y], main.hand_pull.bind(b), 300))
 	elif b is InfiniteSource:
 		_row("아이템").add_child(_item_option(b.item_id, false, func(n): b.item_id = n))
 		_row("속도").add_child(_options([["1개/초", 1.0], ["2개/초", 2.0], ["4개/초", 4.0]], b.per_sec, func(v): b.per_sec = v))

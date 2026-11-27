@@ -21,7 +21,8 @@ func tick(dt: float) -> void:
 	_cd -= dt
 	if item == null and _cd <= 0.0:
 		var src = factory.get_at(back_cell())
-		if src != null and not src.is_conveyor():
+		# 엄청난 쓰레기 더미는 정해진 출구 자리에서만 꺼낼 수 있어요
+		if src != null and not src.is_conveyor() and not (src is ItemPile and not src.accepts_exit_at(pos)):
 			var it: Item = src.try_extract()
 			if it != null:
 				item = it
