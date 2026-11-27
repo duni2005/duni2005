@@ -15,6 +15,16 @@ func _init_state() -> void:
 	speed = 4.0
 
 
+func save_state() -> Dictionary:
+	return {"filter": filter_item, "mode": mode, "side_right": side_right}
+
+
+func load_state(d: Dictionary) -> void:
+	filter_item = str(d.get("filter", ""))
+	mode = str(d.get("mode", "filter"))
+	side_right = bool(d.get("side_right", true))
+
+
 func side_cell() -> Vector2i:
 	return right_cell() if side_right else left_cell()
 

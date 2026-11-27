@@ -16,6 +16,15 @@ func _init_state() -> void:
 	speed = 2.0
 
 
+func save_state() -> Dictionary:
+	return {"selected": selected, "sale_mode": sale_mode}
+
+
+func load_state(d: Dictionary) -> void:
+	selected = str(d.get("selected", ""))
+	sale_mode = bool(d.get("sale_mode", false))
+
+
 func try_insert(it: Item, from_cell: Vector2i) -> bool:
 	if from_cell == back_cell():
 		return super.try_insert(it, from_cell)

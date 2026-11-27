@@ -22,7 +22,15 @@ var ins_controls: VBoxContainer
 var ins_target = null
 var _refresh_t := 0.0
 
+var menu_panel: PanelContainer
+var debug_overlay
+var _msg := ""
+var _msg_t := 0.0
+
 const SPEEDS := [1.0, 2.0, 4.0, 8.0]
+const MSG_SEC := 2.5            # 저장·불러오기 알림을 위쪽 막대에 띄우는 시간
+const HOTBAR_SIZE := 9          # 숫자 1~9로 고를 수 있는 팔레트 칸 수
+const DebugOverlay := preload("res://scripts/view/debug_overlay.gd")
 
 
 func _ready() -> void:
@@ -37,6 +45,11 @@ func _ready() -> void:
 	_build_top()
 	_build_bottom()
 	_build_inspector()
+	_build_menu()
+	debug_overlay = DebugOverlay.new()
+	debug_overlay.factory = main.factory
+	debug_overlay.position = Vector2(8, 76)
+	root.add_child(debug_overlay)
 	refresh_tool_buttons()
 	_select_category(DB.building_categories[0])
 
@@ -59,6 +72,7 @@ func _build_top() -> void:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 6)
 	top_panel.add_child(h)
+	h.add_child(_btn("F3", toggle_debug, 56))
 	pause_btn = _btn("멈춤", _on_pause, 110)
 	h.add_child(pause_btn)
 	speed_btn = _btn("×1", _on_speed, 70)
@@ -72,6 +86,7 @@ func _build_top() -> void:
 	h.add_child(_btn("층 보기", _on_layers, 100))
 	h.add_child(_btn("예시", _on_demo, 80))
 	h.add_child(_btn("비우기", _on_clear, 90))
+	h.add_child(_btn("메뉴", toggle_menu, 80))
 	status_label = Label.new()
 	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
@@ -150,8 +165,11 @@ func _select_category(c: String) -> void:
 		b.button_pressed = (b.text == c)
 	for ch in item_box.get_children():
 		ch.queue_free()
-	for n in DB.buildings_in(c):
-		var b := _btn(n, main.select_build.bind(n), 0)
+	var names := DB.buildings_in(c)
+	for i in names.size():
+		var n: String = names[i]
+		var label := "%d %s" % [i + 1, n] if i < HOTBAR_SIZE else n
+		var b := _btn(label, main.select_build.bind(n), 0)
 		b.tooltip_text = DB.buildings[n].get("desc", "")
 		item_box.add_child(b)
 
@@ -225,7 +243,11 @@ func _process(dt: float) -> void:
 		return
 	_refresh_t = 0.25
 	var f = main.factory
-	status_label.text = "%s · %s · 배달 %d (오배송 %d)" % [f.time_text(), f.power_summary(), f.shipped, f.shipped - f.shipped_ok]
+	if _msg_t > 0.0:
+		_msg_t -= 0.25
+		status_label.text = _msg
+	else:
+		status_label.text = "%s · %s · 배달 %d (오배송 %d)" % [f.time_text(), f.power_summary(), f.shipped, f.shipped - f.shipped_ok]
 	if inspector.visible:
 		if ins_target == null or not f.buildings.has(ins_target):
 			hide_inspector()
@@ -239,10 +261,75 @@ func _refresh_info() -> void:
 
 
 func is_over_ui(p: Vector2) -> bool:
-	for c in [top_panel, bottom_panel, inspector]:
+	for c in [top_panel, bottom_panel, inspector, menu_panel]:
 		if c.visible and c.get_global_rect().has_point(p):
 			return true
 	return false
+
+
+# ---------- 메뉴 · 단축키 ----------
+
+func _build_menu() -> void:
+	menu_panel = PanelContainer.new()
+	menu_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+	menu_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	menu_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
+	root.add_child(menu_panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	menu_panel.add_child(v)
+	var t := Label.new()
+	t.text = "메뉴"
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(t)
+	v.add_child(_btn("저장 (Ctrl+S)", _on_menu_save, 300))
+	v.add_child(_btn("불러오기", _on_menu_load, 300))
+	v.add_child(_btn("팔레트 접기/펴기 (E)", toggle_palette, 300))
+	v.add_child(_btn("닫기 (Esc)", toggle_menu, 300))
+	menu_panel.visible = false
+
+
+func toggle_menu() -> void:
+	menu_panel.visible = not menu_panel.visible
+
+
+func close_menu() -> bool:
+	## 메뉴가 열려 있었으면 닫고 true
+	if menu_panel.visible:
+		menu_panel.visible = false
+		return true
+	return false
+
+
+func _on_menu_save() -> void:
+	main.save_game()
+	menu_panel.visible = false
+
+
+func _on_menu_load() -> void:
+	main.load_game()
+	menu_panel.visible = false
+
+
+func toggle_debug() -> void:
+	debug_overlay.toggle()
+
+
+func toggle_palette() -> void:
+	bottom_panel.visible = not bottom_panel.visible
+
+
+func select_hotbar(i: int) -> void:
+	## 숫자 키 i(1~9): 지금 보이는 팔레트 분류의 i번째 설비를 골라요
+	var names := DB.buildings_in(current_cat)
+	if i >= 1 and i <= mini(names.size(), HOTBAR_SIZE):
+		main.select_build(names[i - 1])
+
+
+func show_message(s: String) -> void:
+	_msg = s
+	_msg_t = MSG_SEC
+	_refresh_t = 0.0
 
 
 # ---------- 설비별 설정 ----------

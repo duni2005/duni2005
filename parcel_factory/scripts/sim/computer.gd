@@ -18,6 +18,20 @@ func _init_state() -> void:
 	_rng.seed = 12345
 
 
+func save_state() -> Dictionary:
+	return {"orders": order_items.duplicate(), "max_kinds": max_kinds, "max_total": max_total, "gift": gift, "printing": printing}
+
+
+func load_state(d: Dictionary) -> void:
+	order_items.clear()
+	for n in d.get("orders", []):
+		order_items.append(str(n))
+	max_kinds = int(d.get("max_kinds", max_kinds))
+	max_total = int(d.get("max_total", max_total))
+	gift = bool(d.get("gift", false))
+	printing = bool(d.get("printing", true))
+
+
 func make_request() -> Item:
 	var p := Item.new("요청서")
 	var items := {}

@@ -8,6 +8,15 @@ var _t := 0.0
 var sent := 0
 
 
+func save_state() -> Dictionary:
+	return {"item": item_id, "per_sec": per_sec}
+
+
+func load_state(d: Dictionary) -> void:
+	item_id = str(d.get("item", item_id))
+	per_sec = float(d.get("per_sec", per_sec))
+
+
 func tick(dt: float) -> void:
 	_t += dt
 	if _t >= 1.0 / per_sec:

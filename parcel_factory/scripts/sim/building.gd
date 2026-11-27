@@ -176,6 +176,17 @@ func power_mult() -> float:
 	return power_net["sat"]
 
 
+# ---------- 저장 ----------
+
+func save_state() -> Dictionary:
+	## 설비별 설정만 저장해요 (안에 든 물건은 아직 저장하지 않아요)
+	return {}
+
+
+func load_state(_d: Dictionary) -> void:
+	pass
+
+
 # ---------- 진행 ----------
 
 func tick(_dt: float) -> void:

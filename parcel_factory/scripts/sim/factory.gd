@@ -8,6 +8,8 @@ signal topology_changed
 signal shipment(parcel, ok)
 
 const DT := 0.05
+const MAX_STEPS_PER_FRAME := 80   # 프레임이 밀려도 한 번에 이만큼만 따라잡아요
+const SAVE_VERSION := 1
 const KINDS := {
 	"rail": preload("res://scripts/sim/conveyor.gd"),
 	"exit": preload("res://scripts/sim/exit_port.gd"),
@@ -46,6 +48,7 @@ var water_nets: Array = []
 var paused := false
 var speed := 1.0
 var sim_time := 0.0
+var tick_count := 0   # 지금까지 돈 틱 수 (디버그 오버레이가 틱/초 계산에 써요)
 var shipped := 0
 var shipped_ok := 0
 var _acc := 0.0
@@ -57,11 +60,11 @@ func _process(delta: float) -> void:
 		return
 	_acc += delta * speed
 	var n := 0
-	while _acc >= DT and n < 80:
+	while _acc >= DT and n < MAX_STEPS_PER_FRAME:
 		step(DT)
 		_acc -= DT
 		n += 1
-	if n >= 80:
+	if n >= MAX_STEPS_PER_FRAME:
 		_acc = 0.0
 
 
@@ -73,6 +76,12 @@ func step(dt: float) -> void:
 	for b in buildings:
 		b.tick(dt)
 	sim_time += dt
+	tick_count += 1
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_PREDELETE:
+		clear_all()
 
 
 # ---------- 설치·철거 ----------
@@ -142,8 +151,18 @@ func remove_at(c: Vector2i) -> bool:
 	for cc in b.cells():
 		grid.erase(cc)
 	buildings.erase(b)
+	_release(b)
 	_dirty = true
 	return true
+
+
+func _release(b: Building) -> void:
+	## 설비 ↔ 전력망·창고 묶음이 서로를 붙잡아 메모리에 남지 않게 끊어요
+	b.power_net = null
+	b.water_net = null
+	b.out_links.clear()
+	if b is StorageBlock:
+		b.group = null
 
 
 func remove_layer(layer: String, c: Vector2i) -> bool:
@@ -156,6 +175,10 @@ func remove_layer(layer: String, c: Vector2i) -> bool:
 
 
 func clear_all() -> void:
+	for b in buildings:
+		_release(b)
+	power_nets.clear()
+	water_nets.clear()
 	buildings.clear()
 	grid.clear()
 	wires.clear()
@@ -290,7 +313,68 @@ func record_shipment(p, ok: bool) -> void:
 	shipment.emit(p, ok)
 
 
+# ---------- 저장·불러오기 ----------
+## 설비(이름·위치·방향·설정)와 전선·파이프·물 샘 칸만 저장해요. 물건 내용물은 아직 빼요.
+
+func to_save() -> Dictionary:
+	var bs := []
+	for b in buildings:
+		bs.append({"name": b.name, "pos": [b.pos.x, b.pos.y], "rot": b.rot, "state": b.save_state()})
+	return {
+		"version": SAVE_VERSION,
+		"buildings": bs,
+		"wires": _cells_to_list(wires),
+		"pipes": _cells_to_list(pipes),
+		"water": _cells_to_list(water),
+	}
+
+
+func load_save(d) -> bool:
+	if not (d is Dictionary) or not d.has("buildings"):
+		return false
+	clear_all()
+	sim_time = 0.0
+	# 물 샘이 먼저 있어야 펌프를 놓을 수 있어요
+	_list_to_cells(d.get("water", []), water)
+	_list_to_cells(d.get("wires", []), wires)
+	_list_to_cells(d.get("pipes", []), pipes)
+	for e in d["buildings"]:
+		var n := str(e.get("name", ""))
+		if not DB.buildings.has(n):
+			push_warning("저장 파일의 모르는 설비: " + n)
+			continue
+		var pp: Array = e.get("pos", [0, 0])
+		var b = place(n, Vector2i(int(pp[0]), int(pp[1])), int(e.get("rot", 0)))
+		if b == null:
+			push_warning("저장된 설비를 놓지 못했어요: %s %s" % [n, str(pp)])
+			continue
+		var st = e.get("state", {})
+		if st is Dictionary:
+			b.load_state(st)
+	_dirty = true
+	return true
+
+
+func _cells_to_list(layer: Dictionary) -> Array:
+	var out := []
+	for c in layer:
+		out.append([c.x, c.y])
+	return out
+
+
+func _list_to_cells(list, layer: Dictionary) -> void:
+	for p in list:
+		layer[Vector2i(int(p[0]), int(p[1]))] = true
+
+
 # ---------- 요약 ----------
+
+func items_on_rails() -> int:
+	var n := 0
+	for b in buildings:
+		if b is Conveyor and b.item != null:
+			n += 1
+	return n
 
 func power_summary() -> String:
 	var sup := 0.0

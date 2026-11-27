@@ -27,11 +27,13 @@ func power_supply() -> float:
 
 
 func tick(dt: float) -> void:
-	if burn_left <= 0.0 and fuel > 0:
-		fuel -= 1
-		burn_left = 60.0 / float(def.get("fuel_rate", 1.0))
 	if burn_left > 0.0:
 		burn_left -= dt
+	# 다 탄 그 틱에 다음 연료를 넣어야 전력이 한 틱도 끊기지 않아요 (남은 시간은 이어 붙여요)
+	if burn_left <= 0.0 and fuel > 0:
+		fuel -= 1
+		burn_left += 60.0 / float(def.get("fuel_rate", 1.0))
+	if burn_left > 0.0:
 		status = "가동 중 (+%d)" % int(def.get("gen", 0.0))
 	else:
 		status = "연료 없음"

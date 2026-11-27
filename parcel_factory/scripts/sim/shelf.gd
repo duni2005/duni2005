@@ -10,6 +10,14 @@ var shipped := 0
 var shipped_ok := 0
 
 
+func save_state() -> Dictionary:
+	return {"auto_deliver": auto_deliver}
+
+
+func load_state(d: Dictionary) -> void:
+	auto_deliver = bool(d.get("auto_deliver", true))
+
+
 func try_insert(it: Item, _from_cell: Vector2i) -> bool:
 	if it.id != "택배" and it.id != "선물용 택배":
 		return false

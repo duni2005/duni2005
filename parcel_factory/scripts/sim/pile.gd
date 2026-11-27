@@ -35,6 +35,17 @@ func set_type(t: String) -> void:
 	buffer.clear()
 
 
+func save_state() -> Dictionary:
+	return {"type": pile_type, "level": level}
+
+
+func load_state(d: Dictionary) -> void:
+	var t := str(d.get("type", pile_type))
+	if DB.piles.has(t):
+		set_type(t)
+	level = clampi(int(d.get("level", 1)), 1, 3)
+
+
 func rate_per_min() -> float:
 	return float(DB.pile_rates[clampi(level, 1, 3) - 1])
 

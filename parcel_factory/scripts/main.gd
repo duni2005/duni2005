@@ -4,8 +4,18 @@ extends Node2D
 ##   한 손가락 끌기 : 화면 이동 (설치 중인 레일·전선·파이프는 끌어서 깔기)
 ##   두 손가락      : 확대·축소와 이동
 ##   탭            : 보기 = 설비 선택 / 설치 = 놓기 / 철거 = 지우기
+## 키보드·마우스는 InputMap 액션(project.godot)으로 받아요.
+##   move_* 화면 이동 · interact 탭과 같음 · cancel 도구 취소 · rotate 회전
+##   hotbar_1~9 팔레트 고르기 · inventory 팔레트 접기 · zoom_in/out 확대·축소
+##   debug 디버그 오버레이 · save_game 저장 (Ctrl+S)
 
 const TILE := 32.0
+const PAN_SPEED := 900.0        # 키보드 화면 이동 (화면 픽셀/초)
+const ZOOM_STEP := 1.1          # 휠 한 칸 확대 배율
+const ZOOM_MIN := 0.3
+const ZOOM_MAX := 4.0
+const DRAG_THRESHOLD := 14.0    # 이만큼 움직여야 탭이 아니라 끌기로 봐요
+const SAVE_PATH := "user://save.json"
 const HUD := preload("res://scripts/view/hud.gd")
 const WorldView := preload("res://scripts/view/world_view.gd")
 const Demo := preload("res://scripts/demo.gd")
@@ -43,7 +53,49 @@ func _ready() -> void:
 	hud = HUD.new()
 	hud.main = self
 	add_child(hud)
-	Demo.build(factory)
+	# 저장 파일이 있으면 그대로 이어서, 없으면 예시 공장으로 시작해요
+	if not _load_file():
+		Demo.build(factory)
+
+
+# ---------- 저장·불러오기 ----------
+
+func save_game() -> void:
+	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if file == null:
+		hud.show_message("저장 실패: %s" % error_string(FileAccess.get_open_error()))
+		return
+	file.store_string(JSON.stringify(factory.to_save(), "\t"))
+	file.close()
+	hud.show_message("저장했어요 (설비 %d개)" % factory.buildings.size())
+
+
+func load_game() -> void:
+	if _load_file():
+		hud.hide_inspector()
+		hud.show_message("불러왔어요 (설비 %d개)" % factory.buildings.size())
+	else:
+		hud.show_message("불러올 저장 파일이 없어요")
+
+
+func _load_file() -> bool:
+	if not FileAccess.file_exists(SAVE_PATH):
+		return false
+	var data = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+	if not factory.load_save(data):
+		push_warning("저장 파일을 읽지 못했어요: " + SAVE_PATH)
+		return false
+	return true
+
+
+func cancel() -> void:
+	## Esc·오른쪽 클릭: 메뉴 닫기 → 설치·철거 취소 → 정보 패널 닫기 순서
+	if hud.close_menu():
+		return
+	if tool != "view":
+		set_tool("view")
+	else:
+		hud.hide_inspector()
 
 
 # ---------- 도구 ----------
@@ -135,21 +187,69 @@ func _drag_path(c: Vector2i) -> void:
 
 # ---------- 입력 ----------
 
+func _process(dt: float) -> void:
+	# Ctrl+S의 S가 move_down으로 같이 잡히지 않게 Ctrl을 누르는 동안은 멈춰요
+	if Input.is_key_pressed(KEY_CTRL):
+		return
+	var v := Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	if v != Vector2.ZERO:
+		cam.position += v * PAN_SPEED * dt / cam.zoom.x
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		_on_touch(event as InputEventScreenTouch)
 	elif event is InputEventScreenDrag:
 		_on_drag(event as InputEventScreenDrag)
-	elif event is InputEventMouseButton:
-		var mb := event as InputEventMouseButton
-		if mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_UP:
-			_zoom_at(1.1, mb.position)
-		elif mb.pressed and mb.button_index == MOUSE_BUTTON_WHEEL_DOWN:
-			_zoom_at(1.0 / 1.1, mb.position)
+	elif _handle_actions(event):
+		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseMotion and tool == "build" and _touches.is_empty():
 		var mm := event as InputEventMouseMotion
 		if not hud.is_over_ui(mm.position):
 			_update_ghost(screen_to_cell(mm.position))
+
+
+func _handle_actions(event: InputEvent) -> bool:
+	## InputMap 액션 처리. 처리했으면 true
+	if event.is_echo():
+		return false
+	if event.is_action_pressed("save_game", false, true):
+		save_game()
+	elif event.is_action_pressed("zoom_in"):
+		_zoom_at(ZOOM_STEP, _event_pos(event))
+	elif event.is_action_pressed("zoom_out"):
+		_zoom_at(1.0 / ZOOM_STEP, _event_pos(event))
+	elif event.is_action_pressed("cancel"):
+		cancel()
+	elif event.is_action_pressed("interact") and not (event is InputEventMouseButton):
+		# 마우스 왼쪽은 터치 흉내(emulate_touch_from_mouse)로 _on_touch에서 처리돼요.
+		# 여기서는 F 키: 마우스가 가리키는 칸을 탭한 것과 같아요
+		var mp := get_viewport().get_mouse_position()
+		if hud.is_over_ui(mp):
+			pass
+		elif tool == "build":
+			_place(screen_to_cell(mp))   # 레일처럼 끌어서 까는 설비도 한 칸씩 놓여요
+		else:
+			_tap(mp)
+	elif event.is_action_pressed("rotate"):
+		rotate_tool()
+	elif event.is_action_pressed("inventory"):
+		hud.toggle_palette()
+	elif event.is_action_pressed("debug"):
+		hud.toggle_debug()
+	else:
+		for i in range(1, 10):
+			if event.is_action_pressed("hotbar_%d" % i):
+				hud.select_hotbar(i)
+				return true
+		return false
+	return true
+
+
+func _event_pos(event: InputEvent) -> Vector2:
+	if event is InputEventMouse:
+		return (event as InputEventMouse).position
+	return get_viewport().get_visible_rect().size * 0.5
 
 
 func _on_touch(e: InputEventScreenTouch) -> void:
@@ -190,7 +290,7 @@ func _on_drag(e: InputEventScreenDrag) -> void:
 		return
 	if _multi:
 		return
-	if not _moved and (e.position - _drag_start).length() > 14.0:
+	if not _moved and (e.position - _drag_start).length() > DRAG_THRESHOLD:
 		_moved = true
 	if not _moved:
 		return
@@ -233,7 +333,7 @@ func _do_pinch() -> void:
 
 func _zoom_at(f: float, sp: Vector2) -> void:
 	var before: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * sp
-	var z := clampf(cam.zoom.x * f, 0.3, 4.0)
+	var z := clampf(cam.zoom.x * f, ZOOM_MIN, ZOOM_MAX)
 	cam.zoom = Vector2(z, z)
 	cam.force_update_scroll()
 	var after: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * sp

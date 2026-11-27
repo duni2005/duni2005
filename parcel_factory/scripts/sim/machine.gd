@@ -30,6 +30,22 @@ func set_recipe(r) -> void:
 	# 다른 레시피의 결과물은 그대로 두면 꺼낼 수 있어요
 
 
+func save_state() -> Dictionary:
+	return {"recipe": int(recipe["id"]) if recipe != null else -1, "speed": speed_setting}
+
+
+func load_state(d: Dictionary) -> void:
+	speed_setting = float(d.get("speed", 1.0))
+	var id := int(d.get("recipe", -1))
+	if id < 0:
+		set_recipe(null)
+		return
+	for r in available_recipes():
+		if int(r["id"]) == id:
+			set_recipe(r)
+			return
+
+
 func input_cap(n: String) -> int:
 	return maxi(int(recipe["in"][n]) * 2, 2)
 
