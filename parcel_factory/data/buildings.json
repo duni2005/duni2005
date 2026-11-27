@@ -1,0 +1,56 @@
+{
+  "categories": ["물류", "택배 라인", "생산·가공", "물", "전력·방어", "크리에이티브"],
+  "buildings": [
+    {"name": "레일 Mk1", "short": "R1", "cat": "물류", "kind": "rail", "size": [1, 1], "speed": 1, "drag": true, "desc": "60개/분. 한 칸에 1개씩 옮겨요"},
+    {"name": "레일 Mk2", "short": "R2", "cat": "물류", "kind": "rail", "size": [1, 1], "speed": 2, "drag": true, "desc": "120개/분"},
+    {"name": "레일 Mk3", "short": "R3", "cat": "물류", "kind": "rail", "size": [1, 1], "speed": 4, "drag": true, "desc": "240개/분"},
+    {"name": "출구", "short": "출", "cat": "물류", "kind": "exit", "size": [1, 1], "desc": "뒤쪽 더미·창고·설비에서 물건을 꺼내 앞으로 보내요"},
+    {"name": "입구", "short": "입", "cat": "물류", "kind": "entrance", "size": [1, 1], "desc": "뒤쪽 레일에서 받아 앞쪽 창고·설비에 넣어요"},
+    {"name": "창고 블록", "short": "창", "cat": "물류", "kind": "storage", "size": [1, 1], "desc": "20개 보관. 붙이면 하나로 합쳐져요"},
+    {"name": "분류기", "short": "분류", "cat": "물류", "kind": "sorter", "size": [1, 1], "desc": "입력 1, 출력 2. 고른 품목만 옆으로"},
+    {"name": "분배기", "short": "분배", "cat": "물류", "kind": "splitter", "size": [1, 1], "desc": "입력 1, 출력 3. 차례로 나눠요"},
+    {"name": "병합기", "short": "병합", "cat": "물류", "kind": "merger", "size": [1, 1], "speed": 4, "desc": "뒤·양옆 입력을 앞으로 합쳐요"},
+    {"name": "레일 다리", "short": "다리", "cat": "물류", "kind": "bridge", "size": [1, 1], "desc": "앞쪽 2~5칸 안의 같은 방향 다리로 건너뛰어요"},
+
+    {"name": "출하대", "short": "출하대", "cat": "택배 라인", "kind": "shelf", "size": [1, 1], "cap": 10, "rate": 0.5, "desc": "택배 10개 보관. 자동 배달(테스트용) 2초에 1개"},
+    {"name": "포장기", "short": "포장", "cat": "택배 라인", "kind": "packer", "size": [2, 2], "power": 4, "time": 3, "desc": "박스 + 테이프 2 → 택배 / 판매용 상품"},
+    {"name": "요청 결합기", "short": "결합", "cat": "택배 라인", "kind": "combiner", "size": [1, 1], "power": 1, "time": 1, "desc": "빈 박스 + 요청서 → 요청 박스"},
+    {"name": "요청 감지기", "short": "감지", "cat": "택배 라인", "kind": "detector", "size": [1, 1], "power": 2, "desc": "고른 물건을 옆에서 받아 두었다가 덜 찬 박스에 넣어요"},
+    {"name": "완료 판정기", "short": "판정", "cat": "택배 라인", "kind": "judge", "size": [1, 1], "power": 1, "desc": "다 찬 박스는 오른쪽, 아니면 앞으로"},
+    {"name": "출하 도크", "short": "도크", "cat": "택배 라인", "kind": "shelf", "size": [4, 2], "cap": 25, "rate": 1.0, "desc": "트럭 자리. 테스트용으로 1초에 1개 출발"},
+    {"name": "선물 포장기", "short": "선물", "cat": "택배 라인", "kind": "gift", "size": [2, 2], "power": 4, "time": 6, "desc": "택배 + 리본 → 선물용 택배"},
+    {"name": "작업 컴퓨터", "short": "PC", "cat": "택배 라인", "kind": "computer", "size": [2, 2], "desc": "요청서를 1초에 1장 출력해요"},
+
+    {"name": "설비 제작대", "short": "제작대", "cat": "생산·가공", "kind": "machine", "size": [2, 2], "power": 3, "desc": "재료 → 설비 아이템"},
+    {"name": "분해기", "short": "분해", "cat": "생산·가공", "kind": "machine", "size": [2, 2], "power": 4, "desc": "물건 1개를 재료로 쪼개요"},
+    {"name": "가공기", "short": "가공", "cat": "생산·가공", "kind": "machine", "size": [2, 2], "power": 5, "desc": "여러 개를 합치거나 손질해요"},
+    {"name": "제작기", "short": "제작", "cat": "생산·가공", "kind": "machine", "size": [2, 2], "power": 6, "desc": "재료 2종을 합쳐요"},
+    {"name": "용광로", "short": "용광", "cat": "생산·가공", "kind": "machine", "size": [2, 2], "power": 10, "desc": "석탄으로 금속판·유리"},
+    {"name": "생산기", "short": "생산", "cat": "생산·가공", "kind": "machine", "size": [3, 3], "power": 12, "desc": "재료 3종을 합쳐요"},
+    {"name": "현금인쇄기", "short": "인쇄", "cat": "생산·가공", "kind": "machine", "size": [2, 2], "power": 30, "needs_computer": true, "desc": "작업 컴퓨터와 같은 전력망이어야 돌아요"},
+
+    {"name": "펌프", "short": "펌프", "cat": "물", "kind": "pump", "size": [1, 1], "power": 3, "desc": "물 샘 위에만. 물 60/분"},
+    {"name": "파이프", "short": "관", "cat": "물", "kind": "pipe", "size": [1, 1], "drag": true, "layer": true, "desc": "물을 나르는 층. 설비 밑에도 깔 수 있어요"},
+    {"name": "주입기", "short": "주입", "cat": "물", "kind": "injector", "size": [1, 1], "power": 3, "time": 6, "water": 10, "desc": "지나가는 양동이·페트병에 물을 채워요 (물 10/분)"},
+
+    {"name": "전선", "short": "선", "cat": "전력·방어", "kind": "wire", "size": [1, 1], "drag": true, "layer": true, "desc": "전력을 나르는 층. 설비 밑에 닿아야 전력을 받아요"},
+    {"name": "바이오 발전기", "short": "바이오", "cat": "전력·방어", "kind": "generator", "size": [2, 2], "gen": 20, "fuel": "유기물", "fuel_rate": 3, "desc": "유기물 3개/분 → 전력 20"},
+    {"name": "석탄 발전기", "short": "석탄발", "cat": "전력·방어", "kind": "generator", "size": [2, 2], "gen": 80, "fuel": "석탄", "fuel_rate": 6, "desc": "석탄 6개/분 → 전력 80"},
+    {"name": "경비 터렛", "short": "터렛", "cat": "전력·방어", "kind": "turret", "size": [1, 1], "power": 8, "ammo": "조약돌", "desc": "조약돌 20발 장전 (샌드박스에선 탄약만 받아요)"},
+    {"name": "전기 터렛", "short": "전터", "cat": "전력·방어", "kind": "turret", "size": [1, 1], "power": 25, "desc": "탄약 없음 (샌드박스에선 전력만 써요)"},
+
+    {"name": "물건 더미", "short": "더미", "cat": "크리에이티브", "kind": "pile", "size": [2, 2], "desc": "원재료를 30·60·120개/분 내보내요. 종류·레벨 변경 가능"},
+    {"name": "무한 공급기", "short": "공급", "cat": "크리에이티브", "kind": "source", "size": [1, 1], "desc": "고른 아이템을 앞으로 계속 내보내요"},
+    {"name": "소각기", "short": "소각", "cat": "크리에이티브", "kind": "void", "size": [1, 1], "desc": "들어온 물건을 없애고 세요"},
+    {"name": "물 샘", "short": "샘", "cat": "크리에이티브", "kind": "water", "size": [1, 1], "drag": true, "layer": true, "desc": "펌프를 놓을 수 있는 물 칸을 칠해요"}
+  ],
+  "piles": {
+    "기본": {"장난감": 2, "먹다 남은 음식": 2, "나뭇가지": 2, "바위": 1, "가전": 1, "헌옷": 1, "쓰레기": 1},
+    "고물": {"가전": 4, "쓰레기": 3, "바위": 3},
+    "자갈": {"바위": 6, "나뭇가지": 2, "쓰레기": 2},
+    "생활": {"장난감": 3, "먹다 남은 음식": 3, "헌옷": 2, "나뭇가지": 2},
+    "석탄": {"석탄": 10},
+    "폐기물": {"쓰레기": 10}
+  },
+  "pile_rates": [30, 60, 120]
+}
