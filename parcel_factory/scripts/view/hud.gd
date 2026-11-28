@@ -31,6 +31,7 @@ const ModeBorder := preload("res://scripts/view/mode_border.gd")
 const HpBar := preload("res://scripts/view/hp_bar.gd")
 const Hotbar := preload("res://scripts/view/hotbar.gd")
 const InventoryPanelScene := preload("res://scenes/inventory_panel.tscn")
+const PressFx := preload("res://scripts/view/press_fx.gd")
 
 var settings := Settings.new()
 var root: Control
@@ -62,6 +63,7 @@ var current_cat := ""
 var info                  # info_panel.gd (설비 정보창)
 var backdrop: Control     # 정보창이 열린 동안 두 창 바깥 탭 받기
 var fly_layer             # 옮겨지는 아이템 연출
+var hold_ring             # 손가락 아래 꾹 게이지
 var sel_bar: PanelContainer   # 범위 선택 바
 var sel_label: Label
 var sel_decon                 # InfoPanel.HoldButton
@@ -98,6 +100,12 @@ func _ready() -> void:
 	_build_menu()
 	fly_layer = FlyLayer.new()
 	root.add_child(fly_layer)
+	hold_ring = HoldRing.new()
+	hold_ring.edit = main.edit
+	root.add_child(hold_ring)
+	# 모든 버튼에 누름 효과 (나중에 생기는 버튼·칸도)
+	_attach_fx(root)
+	get_tree().node_added.connect(_on_node_added)
 	get_viewport().size_changed.connect(apply_layout)
 	apply_layout()
 	match settings.input_mode:
@@ -546,6 +554,7 @@ func _build_menu() -> void:
 		["UI 크게", _on_ui_scale.bind(1)],
 		["ui_scale", Callable()],
 		["input_mode", _on_input_mode],
+		["continuous", _on_continuous],
 	])
 	_menu_page(v, "디버그", [
 		["F3 디버그 오버레이", toggle_debug],
@@ -590,6 +599,8 @@ func _refresh_menu_labels() -> void:
 	if _menu_labels.has("input_mode"):
 		var names := {"auto": "자동 (터치·키보드)", "touch": "터치", "keyboard": "키보드·마우스"}
 		_menu_labels["input_mode"].text = "조작: %s" % names[settings.input_mode]
+	if _menu_labels.has("continuous"):
+		_menu_labels["continuous"].text = "연속 설치: %s" % ("켬" if settings.build_continuous else "끔")
 	if _menu_labels.has("creative"):
 		_menu_labels["creative"].text = "크리에이티브: %s" % ("켬" if main.factory.creative else "끔")
 	if _menu_labels.has("storage") and inventory_panel != null:
@@ -629,6 +640,11 @@ func _on_input_mode() -> void:
 		set_touch_mode(true)
 	elif settings.input_mode == "keyboard":
 		set_touch_mode(false)
+	_refresh_menu_labels()
+
+
+func _on_continuous() -> void:
+	settings.toggle_continuous()
 	_refresh_menu_labels()
 
 
@@ -713,6 +729,43 @@ func _set_play_hud(on: bool) -> void:
 	mode_bar.visible = on
 	if not on:
 		rotate_btn.visible = false
+
+
+# ---------- 누름 효과 · 꾹 게이지 ----------
+
+func _attach_fx(n: Node) -> void:
+	if PressFx.wants(n) and n != joystick:
+		PressFx.attach(n as Control, main.sfx)
+	for ch in n.get_children():
+		_attach_fx(ch)
+
+
+func _on_node_added(n: Node) -> void:
+	if PressFx.wants(n) and root.is_ancestor_of(n):
+		PressFx.attach(n as Control, main.sfx)
+
+
+class HoldRing extends Control:
+	## 월드를 누르고 있는 동안 손가락 아래 작은 원형 게이지 (0.35초에 다 차면 '꾹')
+	const R := 26.0
+	const SHOW_AFTER := 0.25   # 짧은 탭에는 안 보이게 (게이지 25%부터)
+	var edit = null
+
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		set_anchors_preset(Control.PRESET_FULL_RECT)
+
+	func _process(_dt: float) -> void:
+		queue_redraw()
+
+	func _draw() -> void:
+		var k: float = edit.press_progress()
+		if k < SHOW_AFTER:
+			return
+		var p: Vector2 = get_global_transform().affine_inverse() * edit.press["p"]
+		p -= Vector2(0, R * 2.2)   # 손가락에 가리지 않게 조금 위
+		draw_circle(p, R, Color(Palette.c(Palette.INK), 0.55))
+		draw_arc(p, R - 4.0, -PI * 0.5, -PI * 0.5 + TAU * k, 32, Palette.c(Palette.PAPER), 6.0)
 
 
 # ---------- 옮겨지는 아이템 연출 ----------

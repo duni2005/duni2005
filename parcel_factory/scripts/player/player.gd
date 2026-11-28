@@ -32,6 +32,9 @@ const PICKUP_SNAP := 0.25      # 이만큼 가까워지면 가방에 넣어요
 const PULL_SPEED := 4.0        # 끌려오는 빠르기 (칸/초)
 const DROP_DIST := 1.4         # 버리면 플레이어 앞 이 거리에 떨어져요 (줍는 거리 밖)
 const DROP_DELAY := 1.5        # 버린 물건은 이 시간 동안 다시 줍지 않아요
+const TARGET_LOCK_SEC := 0.15  # 새 대상이 이만큼 계속 '가장 좋은 대상'이어야 바뀌어요 (마구 바뀌지 않게)
+const CORNER_NUDGE := 0.4      # 벽·설비 모서리에 걸리면 옆으로 이만큼(칸)까지 살짝 비켜 지나가요
+const CORNER_SPEED := 0.8      # 비켜 가는 빠르기 (이동 속도 배)
 const HELD_OFFSET := [Vector2(14, -12), Vector2(12, -10), Vector2(-14, -12), Vector2(-12, -14)]
 
 var factory: Factory = null
@@ -55,6 +58,9 @@ var _press_t := 0.0
 var _hold_started := false
 var _press_target = null
 var _anim_t := 0.0
+var _cand = null               # 대상 후보 (고정 시간을 재는 중)
+var _cand_t := 0.0
+var _press_world := false      # 월드를 직접 눌렀어요 (버튼·F가 아니라)
 
 var sprite: Sprite2D
 var held_icon: Sprite2D
@@ -102,11 +108,33 @@ func _physics_process(dt: float) -> void:
 		var under = factory.get_at(cell())
 		if under != null and under.is_conveyor():
 			velocity += Vector2(under.dir_vec()) * RAIL_PUSH_SPEED * TILE
+	var before := position
 	move_and_slide()
+	_corner_assist(before, want, dt)
 	_pull_drops(dt)
 	if move_input.length() > 0.2:
 		var v := move_input
 		facing = (0 if v.x > 0 else 2) if absf(v.x) > absf(v.y) else (1 if v.y > 0 else 3)
+
+
+func _corner_assist(before: Vector2, want: Vector2, dt: float) -> void:
+	## 코너 보정: 거의 정면으로 모서리에 걸려 멈췄으면, 옆으로 조금 비키면 지나갈 수 있는 쪽으로 미끄러뜨려요
+	if want.length() < 1.0 or get_slide_collision_count() == 0:
+		return
+	var step := want * dt
+	if (position - before).length() > step.length() * 0.5:
+		return   # 잘 가고 있어요
+	var fwd := Vector2(signf(want.x), 0) if absf(want.x) >= absf(want.y) else Vector2(0, signf(want.y))
+	var side := Vector2(-fwd.y, fwd.x)
+	var probe := fwd * maxf(2.0, step.length())
+	for k in [1, 2, 3, 4]:
+		var off: float = CORNER_NUDGE * TILE * k / 4.0
+		for sgn in [1.0, -1.0]:
+			var t := global_transform.translated(side * off * sgn)
+			if not test_move(global_transform, side * off * sgn) and not test_move(t, probe):
+				var slide: Vector2 = side * sgn * minf(off, want.length() * CORNER_SPEED * dt)
+				move_and_collide(slide)
+				return
 
 
 func _pull_drops(dt: float) -> void:
@@ -137,7 +165,7 @@ func cell() -> Vector2i:
 # ---------- 매 프레임: 대상 고르기 · 누르기 · 진행 중인 일 ----------
 
 func _process(dt: float) -> void:
-	target = _find_target()
+	_pick_target(dt)
 	if blink_t > 0.0:
 		blink_t -= dt
 		if blink_t <= 0.0:
@@ -152,6 +180,26 @@ func _process(dt: float) -> void:
 	_run_action(dt)
 	_animate(dt)
 	_update_held_icon()
+
+
+func _pick_target(dt: float) -> void:
+	## 대상 고정 시간: 새 후보가 TARGET_LOCK_SEC 동안 계속 가장 좋아야 바꿔요.
+	## 지금 대상이 사라졌거나 손이 안 닿으면, PC(마우스 조준)면 바로 바꿔요
+	var best = _find_target()
+	if best == target:
+		_cand = null
+		return
+	if use_aim or target == null or not is_instance_valid_building(target) or not in_reach(target):
+		target = best
+		_cand = null
+		return
+	if best != _cand:
+		_cand = best
+		_cand_t = 0.0
+	_cand_t += dt
+	if _cand_t >= TARGET_LOCK_SEC:
+		target = best
+		_cand = null
 
 
 func in_reach(b) -> bool:
@@ -244,6 +292,7 @@ func action_press(override = null) -> void:
 	_press_t = 0.0
 	_hold_started = false
 	_press_target = override if override != null else target
+	_press_world = override != null
 
 
 func action_release() -> void:
@@ -307,7 +356,8 @@ func _hold(t) -> void:
 	## 꾹: 들고 있으면 빠른 넣기(넣을 수 있는 만큼), 맨손이면 휘두르기. 쓰레기 더미는 뒤지기
 	var held := held_id()
 	if held.begins_with("[설비]"):
-		build_hold.emit()
+		if not _press_world:
+			build_hold.emit()   # 설치는 상호작용 버튼·F 꾹으로만 (월드를 누른 손가락은 설치 조준에 안 써요)
 	elif t != null and _is_rummage_pile(t):
 		start_rummage(t)
 	elif held != "" and t != null:

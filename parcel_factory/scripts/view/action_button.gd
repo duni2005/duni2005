@@ -11,6 +11,7 @@ signal dragged(offset: Vector2)   # 누른 채 끈 거리 (설치 미리보기 �
 const ICON_SCALE := 0.75      # 원 지름 대비 아이콘 크기
 const CANCEL_RADIUS := 0.45   # 버튼 반지름 대비: 이 안으로 되돌아와 떼면 취소
 const CANCEL_ARM := 1.2       # 한 번이라도 이만큼(반지름 배) 끌어야 취소 표시가 켜져요
+const HOLD_SEC := 0.35        # 누르는 동안 테두리 게이지가 이 시간에 다 차요 ('꾹'이 되는 때)
 
 var radius := 72.0
 var icon_kind := "fist"
@@ -20,6 +21,7 @@ var drag_offset := Vector2.ZERO
 var cancel_mode := false      # 설치 끌기 중: 가운데에 취소 X
 var _armed := false           # 충분히 끌었다가
 var _press_at := Vector2.ZERO
+var _down_t := 0.0
 
 
 func in_cancel_zone() -> bool:
@@ -69,6 +71,12 @@ func _gui_input(e: InputEvent) -> void:
 		accept_event()
 
 
+func _process(dt: float) -> void:
+	if _touch != -2 and _down_t < HOLD_SEC:
+		_down_t += dt
+		queue_redraw()
+
+
 func _drag(p: Vector2) -> void:
 	drag_offset = p - _press_at
 	if drag_offset.length() > radius * CANCEL_ARM:
@@ -81,6 +89,7 @@ func _down(index: int) -> void:
 	_touch = index
 	drag_offset = Vector2.ZERO
 	_armed = false
+	_down_t = 0.0
 	pressed_down.emit()
 	queue_redraw()
 
@@ -104,6 +113,9 @@ func _draw() -> void:
 		fill = fill.lightened(0.25)
 	draw_circle(c, r, Color(Palette.c(Palette.INK), 0.6))
 	draw_circle(c, r - 5.0, Color(fill, 0.92))
+	if _touch != -2:
+		# 꾹 게이지: 테두리가 0.35초 동안 차요
+		draw_arc(c, r - 2.5, -PI * 0.5, -PI * 0.5 + TAU * clampf(_down_t / HOLD_SEC, 0.0, 1.0), 48, Palette.c(Palette.PAPER), 4.0)
 	if cancel_mode and _armed and _touch != -2:
 		# 설치 끌기 중: 가운데 취소 X (되돌아오면 밝게)
 		var hot := in_cancel_zone()

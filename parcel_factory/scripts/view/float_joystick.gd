@@ -2,6 +2,7 @@ extends Control
 ## 떠 있는 조이스틱. 이 Control이 '조이스틱 영역'(부모가 화면 왼쪽 AREA_W × 아래 AREA_H로 잡아 줘요)이고,
 ## 영역 안을 누르면 그 자리에 조이스틱이 생겨요. vector(-1~1)를 main이 읽어 플레이어 이동에 써요.
 ## 데드존 DEADZONE, 끝까지(RUN_THRESHOLD) 밀면 달리기. 터치·마우스 모두 받아요.
+## 입력 곡선: 데드존 밖 기울기를 0~1로 펴고 제곱해요 (조금 밀면 아주 천천히 → 미세 이동이 쉬워요).
 
 const AREA_W := 0.35          # 화면 왼쪽 35%
 const AREA_H := 0.60          # 화면 아래 60%
@@ -10,7 +11,8 @@ const KNOB := 38.0            # 손잡이 반지름
 const DEADZONE := 0.15
 const RUN_THRESHOLD := 0.95
 
-var vector := Vector2.ZERO
+var vector := Vector2.ZERO     # 곡선을 지난 이동 입력
+var _raw := 0.0               # 곡선 전 기울기 (달리기 판정)
 var _touch := -2              # 잡고 있는 손가락 번호 (-2 = 없음, -1 = 마우스)
 var _center := Vector2.ZERO   # 누른 자리 (이 Control 안 좌표)
 var _knob := Vector2.ZERO
@@ -21,7 +23,7 @@ func _ready() -> void:
 
 
 func is_running() -> bool:
-	return vector.length() >= RUN_THRESHOLD
+	return _raw >= RUN_THRESHOLD
 
 
 func is_active() -> bool:
@@ -63,13 +65,19 @@ func _start(index: int, p: Vector2) -> void:
 func _update(p: Vector2) -> void:
 	var v := ((p - _center) / RADIUS).limit_length(1.0)
 	_knob = v
-	vector = Vector2.ZERO if v.length() < DEADZONE else v
+	_raw = v.length()
+	if _raw < DEADZONE:
+		vector = Vector2.ZERO
+	else:
+		var k := (_raw - DEADZONE) / (1.0 - DEADZONE)
+		vector = v / _raw * k * k
 	queue_redraw()
 
 
 func _release() -> void:
 	_touch = -2
 	vector = Vector2.ZERO
+	_raw = 0.0
 	_knob = Vector2.ZERO
 	queue_redraw()
 

@@ -4,7 +4,8 @@ extends Node2D
 ##   이동            : WASD·방향키 / 왼쪽 아래 조이스틱 (Shift 또는 끝까지 밀면 달리기)
 ##   상호작용        : F · 오른쪽 아래 버튼 = 지금 대상 / 설비를 직접 탭(마우스 왼쪽) = 그 설비
 ##                    짧게 = 탭, 길게 = 꾹 (자세한 건 scripts/player/player.gd)
-##   두 손가락·휠     : 확대·축소 (카메라는 플레이어를 따라가요)
+##   두 손가락·휠     : 확대·축소 0.5~3배 (설정에 저장). 카메라는 플레이어를 따라가요(데드존 1칸, 달리면 앞을 1.5칸)
+##   둘러보기        : 조이스틱 영역 밖 월드를 누르자마자 끌기 (PC는 마우스 가운데 버튼). 떼고 1.5초 뒤 플레이어에게
 ##   설치 도구(메뉴 → 디버그 → 설치 팔레트): 탭 = 놓기, 레일·전선·파이프는 끌어서 깔기
 ##   모드: Z 일반 / X 이동 / C 철거 (오른쪽 아래 묶음 버튼과 같아요). 이동·철거·범위 선택은 scripts/player/edit_controller.gd
 ##   빈 칸 꾹 → 끌기 = 범위 선택 (모든 모드). Delete = 선택 철거 (조작 표: docs/CONTROLS.md)
@@ -32,8 +33,16 @@ const STARTER_KIT := [
 	["[설비] 전선", 50], ["박스 테이프", 20], ["작은 택배 박스", 40],
 ]
 const ZOOM_STEP := 1.1          # 휠 한 칸 확대 배율
-const ZOOM_MIN := 0.3
-const ZOOM_MAX := 4.0
+const ZOOM_MIN := 0.5
+const ZOOM_MAX := 3.0
+const CAM_DEADZONE := 1.0       # 플레이어가 이만큼(칸) 움직여야 카메라가 따라가요
+const LOOK_AHEAD := 1.5         # 달릴 때 진행 방향으로 앞을 보여주는 거리 (칸)
+const LOOK_AHEAD_SPEED := 3.0   # 앞보기가 따라가는 빠르기
+const LOOK_RETURN_SEC := 1.5    # 둘러보기·가장자리 이동 뒤 플레이어에게 돌아가기까지
+const EDGE := 0.15              # 화면 가장자리 15%
+const EDGE_PAN_CELLS := 6.0     # 가장자리에 닿았을 때 카메라 이동 (칸/초, 천천히)
+const ZOOM_SAVE_SEC := 0.5      # 확대를 멈추고 이만큼 지나면 설정에 저장
+const Sfx := preload("res://scripts/view/sfx.gd")
 const DRAG_THRESHOLD := 14.0    # 이만큼 움직여야 탭이 아니라 끌기로 봐요
 const SAVE_PATH := "user://save.json"
 const CAM_START_ZOOM := 1.6     # 처음 확대 배율 (카메라가 플레이어를 따라가요)
@@ -50,8 +59,15 @@ var play_mode := PlayMode.new()   # 일반·이동·철거 모드는 여기 한 
 var build        # scripts/player/build_controller.gd (설비 아이템 설치)
 var dust         # 설치 먼지 효과
 var edit         # scripts/player/edit_controller.gd (이동·철거·범위 선택)
-var cam_pan := Vector2.ZERO      # 범위 선택 중 화면 가장자리로 민 카메라 (플레이어가 걸으면 돌아와요)
-var cam_pan_hold := false
+var cam_pan := Vector2.ZERO      # 둘러보기·가장자리로 민 카메라 (LOOK_RETURN_SEC 뒤 돌아와요)
+var cam_pan_hold := false        # 둘러보기 손가락을 누르고 있는 동안 돌아오지 않아요
+var sfx                          # scripts/view/sfx.gd (효과음 자리)
+var _cam_focus := Vector2.ZERO   # 데드존을 지난 따라가기 점
+var _cam_smooth := Vector2.ZERO  # 반올림 전 카메라 위치
+var _look := Vector2.ZERO        # 앞보기
+var _pan_idle := 0.0
+var _zoom_save_t := -1.0
+var _mid_drag := false           # PC: 가운데 버튼 둘러보기
 var save_path := SAVE_PATH   # 테스트는 다른 파일을 써요
 
 var tool: String = "view"          # view / build
@@ -96,6 +112,8 @@ func _ready() -> void:
 	build.view = view
 	add_child(build)
 	player.build_hold.connect(build.begin)
+	sfx = Sfx.new()
+	add_child(sfx)
 	edit = EditController.new()
 	edit.main = self
 	edit.factory = factory
@@ -107,13 +125,15 @@ func _ready() -> void:
 	view.add_actor(edit_layer)
 	cam = Camera2D.new()
 	cam.zoom = Vector2(CAM_START_ZOOM, CAM_START_ZOOM)
-	cam.position = player.position
 	add_child(cam)
+	snap_camera()
 	player.hotbar_changed.connect(_on_hotbar_changed)
 	cam.make_current()
 	hud = HUD.new()
 	hud.main = self
 	add_child(hud)
+	var z := clampf(hud.settings.zoom, ZOOM_MIN, ZOOM_MAX)   # 저장해 둔 확대
+	cam.zoom = Vector2(z, z)
 	# 저장 파일이 있으면 그대로 이어서, 없으면 빈 큰방(지형 + 지급 설비) + 시작 지급품으로 시작해요
 	if not _load_file():
 		new_room(false)
@@ -146,7 +166,7 @@ func _reset_player() -> void:
 	player.cancel()
 	player.position = PLAYER_START * TILE
 	player.velocity = Vector2.ZERO
-	cam.position = player.position
+	snap_camera()
 
 
 func clear_room() -> void:
@@ -198,7 +218,7 @@ func _load_file() -> bool:
 		return false
 	if data.has("player"):
 		player.load_save(data["player"])
-		cam.position = player.position
+		snap_camera()
 	return true
 
 
@@ -333,15 +353,85 @@ func _process(dt: float) -> void:
 	if player.use_aim:
 		var mp := get_viewport().get_mouse_position()
 		player.aim = null if hud.is_over_ui(mp) else factory.get_at(screen_to_cell(mp))
-	# 카메라는 플레이어를 부드럽게 따라가요
-	if not cam_pan_hold and player.move_input.length() > 0.2:
-		cam_pan = cam_pan.lerp(Vector2.ZERO, 1.0 - exp(-CAM_FOLLOW * dt))
-	cam.position = cam.position.lerp(player.position + cam_pan, 1.0 - exp(-CAM_FOLLOW * dt))
+	update_camera(dt)
 	if tool == "build" and not view.ghost.is_empty():
 		_update_ghost(view.ghost["pos"])   # 걸어가면 설치 가능 거리가 바뀌어요
 
 
+# ---------- 카메라 ----------
+
+func update_camera(dt: float) -> void:
+	## 데드존 1칸 따라가기 + 달릴 때 앞보기 + 둘러보기(cam_pan). 화면 픽셀에 맞춰 반올림해 떨림이 없게
+	var d: Vector2 = player.position - _cam_focus
+	var dz := CAM_DEADZONE * TILE
+	if d.length() > dz:
+		_cam_focus += d - d.normalized() * dz
+	var want := Vector2.ZERO
+	if player.run and player.velocity.length() > 4.0:
+		want = player.velocity.normalized() * LOOK_AHEAD * TILE
+	_look = _look.lerp(want, 1.0 - exp(-LOOK_AHEAD_SPEED * dt))
+	if cam_pan_hold:
+		_pan_idle = 0.0
+	else:
+		_pan_idle += dt
+	if _pan_idle >= LOOK_RETURN_SEC:
+		cam_pan = cam_pan.lerp(Vector2.ZERO, 1.0 - exp(-CAM_FOLLOW * dt))
+	_cam_smooth = _cam_smooth.lerp(_cam_focus + _look + cam_pan, 1.0 - exp(-CAM_FOLLOW * dt))
+	var z := cam.zoom.x
+	cam.position = (_cam_smooth * z).round() / z
+	if _zoom_save_t >= 0.0:
+		_zoom_save_t -= dt
+		if _zoom_save_t < 0.0:
+			hud.settings.zoom = z
+			hud.settings.save_file()
+
+
+func snap_camera() -> void:
+	## 순간이동(시작·불러오기): 카메라도 바로 플레이어에게
+	_cam_focus = player.position
+	_cam_smooth = player.position
+	_look = Vector2.ZERO
+	cam_pan = Vector2.ZERO
+	cam.position = player.position
+
+
+func look_drag(screen_delta: Vector2) -> void:
+	## 둘러보기: 손가락이 끈 만큼 화면이 따라와요 (지연 없이)
+	var w := screen_delta / cam.zoom.x
+	cam_pan += w
+	_cam_smooth += w
+	_pan_idle = 0.0
+
+
+func edge_pan(sp: Vector2, dt: float) -> void:
+	## 설치·이동·범위 선택 중 손가락·미리보기가 화면 가장자리 15%에 닿으면 그쪽으로 천천히
+	var vs := get_viewport().get_visible_rect().size
+	var d := Vector2.ZERO
+	if sp.x < vs.x * EDGE:
+		d.x = -1.0
+	elif sp.x > vs.x * (1.0 - EDGE):
+		d.x = 1.0
+	if sp.y < vs.y * EDGE:
+		d.y = -1.0
+	elif sp.y > vs.y * (1.0 - EDGE):
+		d.y = 1.0
+	if d != Vector2.ZERO:
+		cam_pan += d * EDGE_PAN_CELLS * TILE * dt
+		_pan_idle = 0.0
+
+
+func cell_to_screen(c: Vector2i) -> Vector2:
+	return get_viewport().get_canvas_transform() * ((Vector2(c) + Vector2(0.5, 0.5)) * TILE)
+
+
 func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and (event as InputEventMouseButton).button_index == MOUSE_BUTTON_MIDDLE:
+		_mid_drag = event.pressed   # PC 둘러보기: 가운데 버튼 끌기
+		cam_pan_hold = _mid_drag
+		return
+	if event is InputEventMouseMotion and _mid_drag:
+		look_drag(-(event as InputEventMouseMotion).relative)
+		return
 	if event is InputEventScreenTouch:
 		_on_touch(event as InputEventScreenTouch)
 	elif event is InputEventScreenDrag:
@@ -363,8 +453,8 @@ func _on_hotbar_changed() -> void:
 func _input(event: InputEvent) -> void:
 	## 입력 방식 자동 전환: 진짜 터치면 터치 UI(조이스틱), 키보드·마우스를 쓰면 조이스틱을 숨겨요.
 	## (마우스에서 흉내 낸 터치·터치에서 흉내 낸 마우스는 DEVICE_ID_EMULATION이라 무시해요)
-	# 범위 선택·옮기기·철거 게이지 중인 손가락은 UI(조이스틱 등) 위를 지나가도 놓치지 않게 먼저 받아요
-	if (event is InputEventScreenDrag or (event is InputEventScreenTouch and not event.pressed)) and edit.busy() and edit.owns(event.index):
+	# 범위 선택·옮기기·철거 게이지·둘러보기 중인 손가락은 UI(조이스틱 등) 위를 지나가도 놓치지 않게 먼저 받아요
+	if (event is InputEventScreenDrag or (event is InputEventScreenTouch and not event.pressed)) and edit.capturing() and edit.owns(event.index):
 		if event is InputEventScreenDrag:
 			_on_drag(event as InputEventScreenDrag)
 		else:
@@ -447,10 +537,12 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 		else:
 			build.world_release(e.index, e.position)
 		return
-	# PC(키보드·마우스)로 설비를 들었으면: 왼쪽 클릭 = 마우스 칸에 설치 (레일은 두 번으로 A→B)
+	# PC(키보드·마우스)로 설비를 들었으면: 왼쪽 클릭 = 마우스 칸에 설치 (레일은 두 번으로 A→B, 연속 설치면 끌기)
 	if not hud.touch_mode and build.busy() and not hud.is_over_ui(e.position) and tool == "view":
-		if not e.pressed:
-			build.confirm()
+		if e.pressed:
+			build.pc_press()
+		else:
+			build.pc_release()
 		return
 	if e.pressed:
 		if _touches.is_empty() and hud.is_over_ui(e.position):
@@ -539,3 +631,4 @@ func _zoom_at(f: float, _sp: Vector2) -> void:
 	## 카메라가 플레이어를 따라가니 확대·축소는 플레이어 중심으로 해요
 	var z := clampf(cam.zoom.x * f, ZOOM_MIN, ZOOM_MAX)
 	cam.zoom = Vector2(z, z)
+	_zoom_save_t = ZOOM_SAVE_SEC

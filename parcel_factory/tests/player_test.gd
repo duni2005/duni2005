@@ -36,6 +36,7 @@ func _ready() -> void:
 	await _test_build()
 	await _test_edit_modes()
 	await _test_range_select()
+	await _test_feel()
 	await _test_save_load()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SAVE))
 	print("=== 결과: %s (실패 %d) ===" % ["통과" if _fails == 0 else "실패", _fails])
@@ -568,4 +569,119 @@ func _test_range_select() -> void:
 		selecting and picked and cleared and all_moved and many and gone and spilled,
 		"선택 중 %s · 5개 %s(%d) · 해제 %s · 옮김 %s · 게이지 %s · 철거 %s · 쏟음 %s" % [str(selecting), str(picked), ed.sel.size(), str(cleared), str(all_moved), str(many), str(gone), str(spilled)])
 	main.play_mode.set_mode(PlayMode.Mode.NORMAL)
+
+
+# ---------- 10단계: 손에 붙는 조작감 ----------
+
+func _cam(sec: float) -> void:
+	## main._process를 꺼 둬서 카메라만 직접 돌려요
+	var n := int(sec * PHYS_FPS)
+	for i in n:
+		main.update_camera(1.0 / PHYS_FPS)
+		await get_tree().physics_frame
+
+
+func _test_feel() -> void:
+	main.new_room(false)
+	var ed = main.edit
+	var hud = main.hud
+	await _put(Vector2(25.5, 30.5))
+	main.snap_camera()
+	await _frames(2)
+	# 데드존: 0.5칸 움직여도 카메라는 그대로 · 위치는 화면 픽셀에 맞춰 반올림
+	var c0: Vector2 = main.cam.position
+	player.position += Vector2(16, 0)
+	await _cam(0.5)
+	var dead_ok: bool = main.cam.position.distance_to(c0) < 1.0
+	player.position += Vector2(48, 0)
+	await _cam(1.0)
+	var follow_ok: bool = main.cam.position.x > c0.x + 30.0
+	var z: float = main.cam.zoom.x
+	var px: Vector2 = main.cam.position * z
+	var round_ok: bool = absf(px.x - roundf(px.x)) < 0.01 and absf(px.y - roundf(px.y)) < 0.01
+	main.snap_camera()
+	# 꾹 게이지: 누르는 동안 차고 · 12px 넘게 끌면 둘러보기(꾹 아님) · 떼고 1.5초 뒤 돌아와요
+	_touch(0, Vector2(25.5, 27.5), true)
+	await _frames(int(0.2 * PHYS_FPS))
+	var ring: float = ed.press_progress()
+	var ring_ok: bool = ring > 0.3 and ring < 1.0
+	var e := InputEventScreenDrag.new()
+	e.index = 0
+	e.position = _sp(Vector2(25.5, 27.5)) + Vector2(120, 0)
+	main._on_drag(e)
+	await _frames(int(0.4 * PHYS_FPS))
+	var panned: bool = main.cam_pan.x < -20.0 and ed.state == "" and ed.press_progress() < 0.0
+	_touch(0, Vector2(25.5, 27.5), false)
+	await _cam(1.0)
+	var stays: bool = main.cam_pan.length() > 20.0
+	await _cam(1.5)
+	var back: bool = main.cam_pan.length() < 10.0
+	_check("카메라: 데드존 1칸 · 픽셀 반올림 · 꾹 게이지 · 끌면 둘러보기 · 1.5초 뒤 복귀",
+		dead_ok and follow_ok and round_ok and ring_ok and panned and stays and back,
+		"데드존 %s · 따라감 %s · 반올림 %s · 게이지 %.2f · 둘러보기 %s(%s) · 1초 뒤 그대로 %s · 돌아옴 %s" % [str(dead_ok), str(follow_ok), str(round_ok), ring, str(panned), str(main.cam_pan), str(stays), str(back)])
+	# 확대 0.5~3배 · 저장
+	main._zoom_at(100.0, Vector2.ZERO)
+	var zmax: float = main.cam.zoom.x
+	main._zoom_at(0.0001, Vector2.ZERO)
+	var zmin: float = main.cam.zoom.x
+	main._zoom_at(2.0, Vector2.ZERO)
+	await _cam(0.7)
+	var saved: bool = is_equal_approx(hud.settings.zoom, 1.0)
+	main._zoom_at(1.6, Vector2.ZERO)
+	await _cam(0.7)
+	_check("확대·축소 0.5~3배 · 설정에 저장", is_equal_approx(zmax, 3.0) and is_equal_approx(zmin, 0.5) and saved,
+		"최대 %.2f · 최소 %.2f · 저장 %.2f" % [zmax, zmin, hud.settings.zoom])
+	# 대상 고정 0.15초: 다른 쪽을 바라봐도 바로 안 바뀌어요
+	var a = f.place("창고 블록", Vector2i(27, 30), 0)
+	var b = f.place("창고 블록", Vector2i(23, 30), 0)
+	await _put(Vector2(25.5, 30.5))
+	player.use_aim = false
+	player.facing = 0
+	await _frames(int(0.3 * PHYS_FPS))
+	var first_ok: bool = player.target == a
+	player.facing = 2
+	await _frames(int(0.05 * PHYS_FPS))
+	var held_on: bool = player.target == a
+	await _frames(int(0.2 * PHYS_FPS))
+	var switched: bool = player.target == b
+	_check("대상 고정 0.15초", first_ok and held_on and switched, "처음 %s · 0.05초 뒤 그대로 %s · 0.25초 뒤 바뀜 %s" % [str(first_ok), str(held_on), str(switched)])
+	# 연속 설치: 창고 블록을 들고 버튼 꾹 → 3칸 끌기 = 지나간 칸마다 (떼도 더 안 놓아요)
+	f.remove_at(a.pos)
+	f.remove_at(b.pos)
+	hud.settings.build_continuous = true
+	player.inventory.clear()
+	player.inventory.add("[설비] 창고 블록", 10)
+	_select("[설비] 창고 블록")
+	player.facing = 1
+	await _frames(2)
+	var n0: int = f.buildings.size()
+	await _hold_build()
+	for k in 4:
+		main.build.drag(Vector2(40.0 * k, 0))
+		await _frames(3)
+	await _release_build()
+	var placed: int = f.buildings.size() - n0
+	var cont_ok: bool = placed == 4 and player.inventory.count("[설비] 창고 블록") == 6
+	hud.settings.build_continuous = false
+	await _hold_build()
+	main.build.drag(Vector2(0, 80))
+	await _frames(3)
+	await _release_build()
+	var single_ok: bool = f.buildings.size() - n0 == 5
+	_check("연속 설치: 켜면 끄는 칸마다 · 끄면 한 개만", cont_ok and single_ok, "연속 %d개 · 끈 뒤 한 개 %s" % [placed, str(single_ok)])
+	# 설비 아이템을 들고 월드의 설비를 꾹 = 설치 모드가 아니에요 (설치는 버튼으로만)
+	await _hold_at(Vector2(25.5, 32.5), 0.5)
+	var not_build: bool = not main.build.active
+	_touch(0, Vector2(25.5, 32.5), false)
+	await _frames(2)
+	player.hotbar = -1
+	# 코너 보정: 1칸 틈 옆 모서리에 살짝 어긋나게 걸어 들어가도 미끄러져 지나가요
+	main.new_room(false)
+	f.place("창고 블록", Vector2i(30, 20), 0)
+	f.place("창고 블록", Vector2i(30, 22), 0)
+	await _frames(2)
+	await _put(Vector2(28.5, 21.5 - 0.62))
+	await _walk(Vector2.RIGHT, 1.6)
+	var through: bool = player.position.x / TILE > 31.2
+	_check("코너 보정 · 월드 꾹은 설치 모드 아님", through and not_build, "틈 통과 %s (x %.2f) · 설치 모드 아님 %s" % [str(through), player.position.x / TILE, str(not_build)])
 

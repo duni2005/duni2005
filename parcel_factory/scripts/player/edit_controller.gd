@@ -1,6 +1,7 @@
 extends Node
 ## 이동·철거 모드와 범위 선택 (docs/CONTROLS.md).
-##   월드 누르기: HOLD_SEC 전에 DRAG_PX 넘게 움직이면 '끌기'(10단계 둘러보기), 아니면 짧게 = 탭, 길게 = 꾹.
+##   월드 누르기: HOLD_SEC 전에 DRAG_PX 넘게 움직이면 '끌기' = 둘러보기(카메라 이동), 아니면 짧게 = 탭, 길게 = 꾹.
+##   누르는 동안 손가락 아래 작은 원형 게이지(press_progress)가 차서 꾹이 될 때를 보여줘요.
 ##   철거 모드 : 설비 꾹 → 원형 게이지(DECON_SEC) → 철거. 탭 = '꾹 눌러서 철거' 안내
 ##   이동 모드 : 설비 꾹 → 들어서 손가락을 따라 미리보기, 놓으면 그 칸으로. 막히면 제자리로 스르륵(SNAP_SEC)
 ##   상호작용 버튼(F): 이동·철거 모드에선 지금 대상(흰 테두리)에 같은 동작. 옮길 땐 버튼을 끌어 조준
@@ -18,8 +19,6 @@ const DECON_SEC_MANY := 1.2                # MANY개 넘게 한 번에 철거할
 const MANY := 20
 const SNAP_SEC := 0.15                     # 못 놓으면 제자리로 돌아가는 연출
 const HINT_SEC := 1.5
-const EDGE := 0.15                         # 범위 선택 중 화면 가장자리 15%에 닿으면 카메라 이동
-const EDGE_PAN_CELLS := 10.0               # 칸/초
 const SECOND_TAP_SEC := 0.2                # 옮기는 중 두 번째 손가락 탭 = 회전
 
 var main = null
@@ -47,14 +46,11 @@ var hint := {}                   # {rect, text, t}
 var _btn_off := Vector2.ZERO
 var _second := {}                # {index, t}
 var _rev := -1
-var _sfx: AudioStreamPlayer
+var _snd_break: AudioStream     # assets/sfx/break가 없을 때 쓰는 '와작'
 
 
 func _ready() -> void:
-	_sfx = AudioStreamPlayer.new()
-	_sfx.stream = _break_sound()
-	_sfx.volume_db = -6.0
-	add_child(_sfx)
+	_snd_break = _break_sound()
 	main.play_mode.changed.connect(func(_m) -> void: _on_mode_changed())
 
 
@@ -71,6 +67,11 @@ func button_moving() -> bool:
 func owns(index: int) -> bool:
 	## 이 손가락을 지금 이쪽이 쓰고 있는지
 	return press.get("src", "") == "world" and int(press["index"]) == index
+
+
+func capturing() -> bool:
+	## 이 손가락의 끌기·떼기를 UI(조이스틱 등)보다 먼저 받아야 하는지: 꾹 동작 중이거나 둘러보는 중
+	return state != "" or press.get("moved", false)
 
 
 func busy() -> bool:
@@ -96,6 +97,13 @@ func in_range_b(b) -> bool:
 		if main.in_build_range(c):
 			return true
 	return false
+
+
+func press_progress() -> float:
+	## 손가락 아래 꾹 게이지 0~1 (보여줄 게 없으면 -1): 월드를 누르고 아직 끌지도 꾹이 되지도 않았을 때
+	if press.get("src", "") != "world" or press["moved"] or press["held"] or state != "":
+		return -1.0
+	return clampf(press["t"] / HOLD_SEC, 0.0, 1.0)
 
 
 func gauge_need() -> float:
@@ -128,9 +136,12 @@ func _process(dt: float) -> void:
 					_deconstruct(gauge_list)
 					_end_press()
 		"select":
-			_edge_pan(dt, press["p"])
+			main.edge_pan(press["p"], dt)
 			sel_to = main.screen_to_cell(press["p"])
 		"move":
+			# 손가락(또는 버튼으로 조준한 미리보기)이 화면 가장자리에 닿으면 카메라가 그쪽으로
+			var sp: Vector2 = press["p"] if press.get("src", "") == "world" else main.cell_to_screen(grab_b.pos + move_offset)
+			main.edge_pan(sp, dt)
 			_update_move()
 	if not snap.is_empty():
 		snap["t"] += dt
@@ -186,12 +197,18 @@ func world_drag(index: int, sp: Vector2) -> bool:
 	## 처리했으면 true (main은 그 손가락으로 아무것도 안 해요)
 	if not owns(index):
 		return false
+	var prev: Vector2 = press["p"]
 	press["p"] = sp
 	if state == "" and not press["held"] and not press["moved"] and (sp - press["p0"]).length() > DRAG_PX:
-		press["moved"] = true   # 끌기: 10단계 둘러보기 자리
+		press["moved"] = true   # 끌기 = 둘러보기: 누른 자리부터 끈 만큼 화면이 따라와요
+		prev = press["p0"]
+		main.cam_pan_hold = true
 		if press["player"]:
 			press["player"] = false
 			player.action_abort()
+	if press["moved"] and state == "":
+		main.look_drag(prev - sp)
+		return true
 	return state != ""
 
 
@@ -220,6 +237,8 @@ func abort() -> void:
 		return
 	if press["player"]:
 		player.action_abort()
+	if press["moved"]:
+		main.cam_pan_hold = false
 	press = {}
 
 
@@ -282,8 +301,8 @@ func _on_hold() -> void:
 
 
 func _end_press() -> void:
-	if state == "select":
-		main.cam_pan_hold = false
+	if press.get("moved", false) or state == "select":
+		main.cam_pan_hold = false   # 둘러보기: 손을 떼고 LOOK_RETURN_SEC 뒤 플레이어에게
 	state = ""
 	press = {}
 	gauge_list = []
@@ -360,6 +379,8 @@ func _update_move() -> void:
 		aim = grab + Vector2i((_btn_off / BuildController.DRAG_PX_PER_CELL).round())
 	else:
 		aim = main.screen_to_cell(press["p"])
+	if aim - grab != move_offset:
+		main.build._tick()   # 칸이 바뀔 때 '틱'
 	move_offset = aim - grab
 	var why := ""
 	var reasons: Array = factory.move_check(move_list, move_offset, move_rot)
@@ -436,7 +457,7 @@ func _deconstruct(list: Array) -> void:
 	var out: Array = factory.deconstruct_many(list)
 	for s in spots:
 		main.dust.burst(s[0], s[1])
-	_sfx.play()
+	main.sfx.play("break", _snd_break)
 	Input.vibrate_handheld(40)
 	main.hud.show_message("%d개 철거 · %d개가 바닥에 쏟아졌어요" % [list.size(), out.size()])
 
@@ -514,23 +535,6 @@ func _nearest_sel(c: Vector2i):
 				bd = d
 				best = e
 	return best
-
-
-func _edge_pan(dt: float, sp: Vector2) -> void:
-	## 범위를 끄는 손가락이 화면 가장자리 15%에 닿으면 카메라가 그쪽으로
-	var vs: Vector2 = main.get_viewport().get_visible_rect().size
-	var d := Vector2.ZERO
-	if sp.x < vs.x * EDGE:
-		d.x = -1.0
-	elif sp.x > vs.x * (1.0 - EDGE):
-		d.x = 1.0
-	if sp.y < vs.y * EDGE:
-		d.y = -1.0
-	elif sp.y > vs.y * (1.0 - EDGE):
-		d.y = 1.0
-	if d != Vector2.ZERO:
-		main.cam_pan_hold = true
-		main.cam_pan += d * EDGE_PAN_CELLS * TILE * dt
 
 
 # ---------- 취소 · 안내 ----------

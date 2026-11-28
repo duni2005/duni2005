@@ -6,6 +6,8 @@ extends Node
 ##   PC   : 마우스를 올린 칸에 미리보기, 왼쪽 클릭 = 설치, 오른쪽 클릭 = 취소, R = 회전.
 ## 레일·전선·파이프(물 샘)는 두 점 설치: 첫 설치가 A(깃발), 다음 설치가 B → A~B를 직선·ㄱ자로 이어요.
 ##   꺾는 방향은 끄는 방향, 회전 = 꺾는 방향 바꾸기. B = A면 A 고정 해제. 설치 후 B가 새 A. 취소 = A 고정 해제.
+## 연속 설치(설정에서 켜고 끔): 레일·전선·파이프가 아닌 설비를 누른 채 끌면 지나가는 칸마다 놓아요 (PC는 왼쪽 버튼 끌기).
+## 미리보기가 칸을 옮길 때마다 가벼운 '틱'·진동, 화면 가장자리 15%에 닿으면 카메라가 그쪽으로 천천히.
 ## 공장은 factory.place_reason / player_place / place_line으로만 바꿔요. 미리보기는 view.ghost에 넣어요.
 
 signal placed(cells: Array)
@@ -14,6 +16,8 @@ const DRAG_PX_PER_CELL := 40.0   # 버튼을 이만큼 끌면 미리보기 1칸
 const AHEAD := 2                 # 끌지 않았을 때 미리보기: 플레이어 앞 몇 칸
 const WORLD_TAP_SEC := 0.2       # 월드를 이보다 짧게 탭하면 회전 (이동 없이)
 const WORLD_TAP_PX := 14.0
+const TICK_VIBRATE_MS := 8
+const Sfx := preload("res://scripts/view/sfx.gd")
 
 var main = null
 var factory: Factory = null
@@ -31,14 +35,17 @@ var _world_aim = null            # 월드를 직접 눌러 고른 칸
 var _world_touch := {}           # {index, pos, t, moved}
 var _layers_before = null        # 전선·파이프를 들기 전 '층 보기'
 var _last_def := ""              # 다른 설비로 바꿔 들면 A 고정을 풀어요
-var _sfx: AudioStreamPlayer
+var pc_down := false             # PC: 왼쪽 버튼을 누르고 있어요
+var _last_aim = null             # 칸이 바뀌면 '틱'
+var _cont_start = null           # 연속 설치: 누른 순간의 칸
+var _cont_last = null            # 연속 설치: 마지막으로 놓은 칸 (null = 아직 안 끌었음)
+var _snd_place: AudioStream      # assets/sfx/place가 없을 때 쓰는 '착'
+var _snd_tick: AudioStream       # assets/sfx/tick이 없을 때 쓰는 '틱'
 
 
 func _ready() -> void:
-	_sfx = AudioStreamPlayer.new()
-	_sfx.stream = _click_sound()
-	_sfx.volume_db = -6.0
-	add_child(_sfx)
+	_snd_place = _click_sound()
+	_snd_tick = Sfx.tone(0.025, 900.0, 0.2, 160.0, 3)
 
 
 # ---------- 상태 ----------
@@ -71,7 +78,11 @@ func busy() -> bool:
 
 # ---------- 매 프레임: 미리보기 ----------
 
-func _process(_dt: float) -> void:
+var _dt := 0.0
+
+
+func _process(dt: float) -> void:
+	_dt = dt
 	var d := held_def()
 	if d != _last_def:
 		_last_def = d
@@ -101,8 +112,16 @@ func _process(_dt: float) -> void:
 		# 터치: 누르지 않을 땐 A 깃발만
 		_set_ghost({"cells": [], "anchor": anchor, "build": true})
 		return
+	var aiming: bool = active or pc_down
+	if aiming and _last_aim != null and _last_aim != aim:
+		_tick()
+	_last_aim = aim if aiming else null
+	if aiming and main.hud.settings.build_continuous and not is_line(d):
+		_continuous(d)
 	plan = make_plan(d, aim)
-	_set_ghost(plan)
+	_set_ghost(plan if _cont_last != aim else {})   # 연속 설치로 방금 놓은 칸은 설비 그대로 보여요
+	if active:
+		main.edge_pan(_world_touch.get("now", main.cell_to_screen(aim)), _dt)
 
 
 func _set_ghost(g: Dictionary) -> void:
@@ -227,6 +246,8 @@ func begin() -> void:
 	active = true
 	_offset = Vector2.ZERO
 	_world_aim = null
+	_cont_start = null
+	_cont_last = null
 
 
 func drag(offset: Vector2) -> void:
@@ -239,10 +260,59 @@ func release(cancel: bool) -> void:
 		return
 	active = false
 	_world_aim = null
+	var streamed: bool = _cont_last != null   # 연속 설치로 이미 놓았어요
+	_cont_start = null
+	_cont_last = null
 	if cancel:
 		cancel_build()
-	else:
+	elif not streamed:
 		confirm()
+
+
+func pc_press() -> void:
+	## PC: 왼쪽 버튼 누름 (떼면 설치, 연속 설치면 누른 채 끄는 칸마다)
+	pc_down = true
+	_cont_start = aim
+	_cont_last = null
+
+
+func pc_release() -> void:
+	pc_down = false
+	var streamed: bool = _cont_last != null
+	_cont_start = null
+	_cont_last = null
+	if not streamed:
+		confirm()
+
+
+func _continuous(d: String) -> void:
+	## 연속 설치: 누른 칸에서 지금 칸까지 지나간 칸마다 (막힌 칸은 건너뛰어요)
+	if _cont_start == null:
+		_cont_start = aim
+	if _cont_last == null:
+		if aim == _cont_start:
+			return   # 아직 안 끌었어요: 떼면 보통 설치
+		_cont_last = _cont_start
+		_place_one(d, _cont_start)
+	var guard := 0
+	while _cont_last != aim and guard < 64:
+		guard += 1
+		var diff: Vector2i = aim - _cont_last
+		_cont_last += Vector2i(signi(diff.x), 0) if absi(diff.x) >= absi(diff.y) else Vector2i(0, signi(diff.y))
+		_place_one(d, _cont_last)
+
+
+func _place_one(d: String, c: Vector2i) -> void:
+	if not make_plan(d, c)["ok"]:
+		return
+	if factory.player_place(d, c, rot_of(d), player.inventory, player.hotbar):
+		_feedback([{"pos": c}])
+
+
+func _tick() -> void:
+	## 미리보기가 한 칸 옮겨 갈 때: 가벼운 '틱' + 아주 짧은 진동
+	main.sfx.play("tick", _snd_tick, -14.0)
+	Input.vibrate_handheld(TICK_VIBRATE_MS)
 
 
 func confirm() -> bool:
@@ -278,7 +348,10 @@ func cancel_build() -> bool:
 	## 취소: 설치 모드 끝 + A 고정 해제. 무언가 취소했으면 true
 	var had: bool = active or anchor != null
 	active = false
+	pc_down = false
 	_world_aim = null
+	_cont_start = null
+	_cont_last = null
 	if anchor != null:
 		anchor = null
 		main.hud.show_message("A 고정 해제")
@@ -308,6 +381,7 @@ func world_press(index: int, sp: Vector2) -> bool:
 func world_drag(index: int, sp: Vector2) -> bool:
 	if _world_touch.is_empty() or _world_touch["index"] != index:
 		return false
+	_world_touch["now"] = sp
 	if (sp - _world_touch["pos"]).length() > WORLD_TAP_PX:
 		_world_touch["moved"] = true
 	if _world_touch["moved"]:
@@ -330,7 +404,7 @@ func world_release(index: int, sp: Vector2) -> bool:
 # ---------- 효과: '착' 소리 · 햅틱 · 먼지 ----------
 
 func _feedback(cells: Array) -> void:
-	_sfx.play()
+	main.sfx.play("place", _snd_place)
 	Input.vibrate_handheld(25)
 	for e in cells:
 		main.dust.puff(Vector2(e["pos"]) + Vector2(0.5, 0.5))
