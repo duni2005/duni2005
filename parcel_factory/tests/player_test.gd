@@ -33,6 +33,7 @@ func _ready() -> void:
 	await _test_deconstruct()
 	await _test_attack()
 	await _test_drop_pickup()
+	await _test_build()
 	await _test_save_load()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SAVE))
 	print("=== 결과: %s (실패 %d) ===" % ["통과" if _fails == 0 else "실패", _fails])
@@ -296,4 +297,105 @@ func _test_save_load() -> void:
 	var pos_ok: bool = (player.position / TILE).distance_to(Vector2(33.5, 31.5)) < 0.1
 	_check("저장 → 불러오기: 인벤토리·핫바·바닥 아이템·위치", inv_ok and floor_ok and pos_ok,
 		"인벤토리 %s · 바닥 %s · 위치 %s" % [str(inv_ok), str(floor_ok), str(pos_ok)])
+
+
+func _hold_build() -> void:
+	## 상호작용 버튼 꾹 → 설치 모드 (설비 아이템을 든 상태)
+	player.action_press()
+	await _frames(int(0.5 * PHYS_FPS))
+
+
+func _release_build(cancel := false) -> void:
+	main.build.release(cancel)
+	player.action_release()
+	await _frames(3)
+
+
+func _select(id: String) -> void:
+	player.hotbar = -1
+	for i in Inventory.HOTBAR:
+		if player.inventory.id_at(i) == id:
+			player.select_hotbar(i)
+			return
+
+
+func _test_build() -> void:
+	var b = main.build
+	player.inventory.clear()
+	player.inventory.add("[설비] 분해기", 2)
+	_select("[설비] 분해기")
+	await _put(Vector2(20.5, 30.5))
+	await _walk(Vector2.RIGHT, 0.05)
+	# 꾹 → 설치 모드, 오른쪽으로 2칸만큼 끌기 → 미리보기가 앞 2칸 + 2칸
+	await _hold_build()
+	var started: bool = b.active
+	b.drag(Vector2(b.DRAG_PX_PER_CELL * 2, 0))
+	await _frames(2)
+	var aim: Vector2i = b.aim
+	var aim_ok: bool = aim == player.cell() + Vector2i(b.AHEAD + 2, 0)
+	var ghost_ok: bool = main.view.ghost.get("ok", false)
+	await _release_build()
+	var built: bool = f.get_at(aim) != null and f.get_at(aim).name == "분해기" and player.inventory.count("[설비] 분해기") == 1
+	# 취소: 버튼 가운데로 되돌아와 떼기
+	var count0: int = f.buildings.size()
+	await _hold_build()
+	b.drag(Vector2(0, b.DRAG_PX_PER_CELL * 2))
+	await _frames(2)
+	await _release_build(true)
+	var cancelled: bool = f.buildings.size() == count0 and player.inventory.count("[설비] 분해기") == 1
+	# 막힘: 벽 쪽
+	await _put(Vector2(30.5, 1.5))
+	await _walk(Vector2.UP, 0.05)
+	await _hold_build()
+	await _frames(2)
+	var wall_reason: String = main.view.ghost.get("reason", "")
+	await _release_build()
+	var wall_ok: bool = wall_reason == "벽" and player.inventory.count("[설비] 분해기") == 1
+	# 거리: 8칸 넘게 끌면 빨강
+	await _hold_build()
+	b.drag(Vector2(b.DRAG_PX_PER_CELL * 12, b.DRAG_PX_PER_CELL * 10))
+	await _frames(2)
+	var far_reason: String = main.view.ghost.get("reason", "")
+	await _release_build(true)
+	_check("설치: 꾹 → 끌어서 조준 → 떼면 설치(1개 차감) · 취소 · 벽·거리는 빨강", started and aim_ok and ghost_ok and built and cancelled and wall_ok and far_reason == "거리",
+		"설치 모드 %s · 조준 %s · 초록 %s · 설치 %s · 취소 %s · 벽 '%s' · 거리 '%s'" % [str(started), str(aim_ok), str(ghost_ok), str(built), str(cancelled), wall_reason, far_reason])
+	# 레일 두 점: A (20,25) → B (24,27) = ㄱ자 7칸
+	player.inventory.clear()
+	player.inventory.add("[설비] 레일 Mk1", 30)
+	_select("[설비] 레일 Mk1")
+	await _put(Vector2(22.5, 24.0))
+	var a := Vector2i(20, 25)
+	var bb := Vector2i(24, 27)
+	await _hold_build()
+	b._world_aim = a
+	await _frames(2)
+	await _release_build()
+	var anchored: bool = b.anchor == a and f.get_at(a) != null
+	await _hold_build()
+	b._world_aim = bb
+	await _frames(2)
+	var path_n: int = main.view.ghost.get("cells", []).size()
+	await _release_build()
+	var corner = f.get_at(Vector2i(24, 25))
+	var rails_ok: bool = path_n == 7 and f.get_at(a).rot == 0 and corner != null and corner.rot == 1 and f.get_at(bb) != null and f.get_at(bb).rot == 1
+	var used: int = 30 - player.inventory.count("[설비] 레일 Mk1")
+	var chained: bool = b.anchor == bb
+	# 개수 부족: 2개만 남기고 5칸 더 → 빨강 + 'N개 필요 / M개 있음'
+	player.inventory.remove("[설비] 레일 Mk1", player.inventory.count("[설비] 레일 Mk1") - 2)
+	await _hold_build()
+	b._world_aim = bb + Vector2i(5, 0)
+	await _frames(2)
+	var short_reason: String = main.view.ghost.get("reason", "")
+	await _release_build()
+	var not_placed: bool = f.get_at(bb + Vector2i(5, 0)) == null and player.inventory.count("[설비] 레일 Mk1") == 2
+	# B = A: 그 칸만, A 고정 해제
+	await _hold_build()
+	b._world_aim = bb
+	await _frames(2)
+	await _release_build()
+	var released: bool = b.anchor == null
+	_check("레일 두 점: A → B ㄱ자 · 방향 자동 · 이어 깔기 · 개수 부족 빨강 · B=A면 고정 해제",
+		anchored and rails_ok and used == 7 and chained and short_reason.find("필요") >= 0 and not_placed and released,
+		"A 고정 %s · 경로 %d칸 · 방향 %s · 쓴 레일 %d · B가 새 A %s · 부족 '%s' · 안 깔림 %s · 해제 %s" % [str(anchored), path_n, str(rails_ok), used, str(chained), short_reason, str(not_placed), str(released)])
+	player.hotbar = -1
 

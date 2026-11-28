@@ -9,6 +9,7 @@ extends CharacterBody2D
 signal message(text: String)
 signal request_info(building)
 signal hotbar_changed
+signal build_hold   # 설비 아이템을 들고 꾹 → 설치 모드 (build_controller가 받아요)
 
 const TILE := 32.0
 const WALK_SPEED := 2.0        # 칸/초
@@ -123,6 +124,10 @@ func _pull_drops(dt: float) -> void:
 			factory.pickup_drop(d, inventory)
 		else:
 			d["pos"] = d["pos"].move_toward(me, PULL_SPEED * dt)
+
+
+func facing_vec() -> Vector2:
+	return DIRS[facing]
 
 
 func cell() -> Vector2i:
@@ -295,7 +300,9 @@ func _tap(t) -> void:
 func _hold(t) -> void:
 	## 꾹: 들고 있으면 빠른 넣기(넣을 수 있는 만큼), 맨손이면 휘두르기. 쓰레기 더미는 뒤지기
 	var held := held_id()
-	if t != null and _is_rummage_pile(t):
+	if held.begins_with("[설비]"):
+		build_hold.emit()
+	elif t != null and _is_rummage_pile(t):
 		start_rummage(t)
 	elif held != "" and t != null:
 		quick_insert(t)

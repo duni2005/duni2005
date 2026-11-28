@@ -6,13 +6,25 @@ extends Control
 
 signal pressed_down
 signal released
+signal dragged(offset: Vector2)   # 누른 채 끈 거리 (설치 미리보기 조준)
 
 const ICON_SCALE := 0.75      # 원 지름 대비 아이콘 크기
+const CANCEL_RADIUS := 0.45   # 버튼 반지름 대비: 이 안으로 되돌아와 떼면 취소
+const CANCEL_ARM := 1.2       # 한 번이라도 이만큼(반지름 배) 끌어야 취소 표시가 켜져요
 
 var radius := 72.0
 var icon_kind := "fist"
 var tint := -1                # 팔레트 번호 (-1 = 기본 회색)
 var _touch := -2
+var drag_offset := Vector2.ZERO
+var cancel_mode := false      # 설치 끌기 중: 가운데에 취소 X
+var _armed := false           # 충분히 끌었다가
+var _press_at := Vector2.ZERO
+
+
+func in_cancel_zone() -> bool:
+	## 취소 표시가 켜진 뒤 버튼 가운데로 되돌아왔는지
+	return cancel_mode and _armed and drag_offset.length() < radius * CANCEL_RADIUS
 
 
 func _ready() -> void:
@@ -36,21 +48,39 @@ func _gui_input(e: InputEvent) -> void:
 	if e is InputEventScreenTouch:
 		var t := e as InputEventScreenTouch
 		if t.pressed and _touch == -2:
+			_press_at = t.position
 			_down(t.index)
 		elif not t.pressed and t.index == _touch:
 			_up()
 		accept_event()
+	elif e is InputEventScreenDrag and (e as InputEventScreenDrag).index == _touch:
+		_drag((e as InputEventScreenDrag).position)
+		accept_event()
+	elif e is InputEventMouseMotion and _touch == -1:
+		_drag((e as InputEventMouseMotion).position)
+		accept_event()
 	elif e is InputEventMouseButton and (e as InputEventMouseButton).button_index == MOUSE_BUTTON_LEFT:
 		var mb := e as InputEventMouseButton
 		if mb.pressed and _touch == -2:
+			_press_at = mb.position
 			_down(-1)
 		elif not mb.pressed and _touch == -1:
 			_up()
 		accept_event()
 
 
+func _drag(p: Vector2) -> void:
+	drag_offset = p - _press_at
+	if drag_offset.length() > radius * CANCEL_ARM:
+		_armed = true
+	dragged.emit(drag_offset)
+	queue_redraw()
+
+
 func _down(index: int) -> void:
 	_touch = index
+	drag_offset = Vector2.ZERO
+	_armed = false
 	pressed_down.emit()
 	queue_redraw()
 
@@ -74,6 +104,15 @@ func _draw() -> void:
 		fill = fill.lightened(0.25)
 	draw_circle(c, r, Color(Palette.c(Palette.INK), 0.6))
 	draw_circle(c, r - 5.0, Color(fill, 0.92))
+	if cancel_mode and _armed and _touch != -2:
+		# 설치 끌기 중: 가운데 취소 X (되돌아오면 밝게)
+		var hot := in_cancel_zone()
+		var cr := r * CANCEL_RADIUS
+		draw_circle(c, cr, Color(Palette.c(Palette.RED_D if not hot else Palette.RED), 0.95))
+		var k := cr * 0.5
+		draw_line(c - Vector2(k, k), c + Vector2(k, k), Palette.c(Palette.PAPER), 5.0)
+		draw_line(c + Vector2(-k, k), c + Vector2(k, -k), Palette.c(Palette.PAPER), 5.0)
+		return
 	var i := SpriteGen.UI_ICONS.find(icon_kind)
 	if i < 0:
 		return

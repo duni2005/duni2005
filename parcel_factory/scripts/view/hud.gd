@@ -307,7 +307,8 @@ func _build_action() -> void:
 	action_btn.offset_left = -MARGIN - ACTION_RADIUS * 2.0
 	action_btn.offset_top = -MARGIN - ACTION_RADIUS * 2.0
 	action_btn.pressed_down.connect(func() -> void: main.player.action_press())
-	action_btn.released.connect(func() -> void: main.player.action_release())
+	action_btn.released.connect(_on_action_released)
+	action_btn.dragged.connect(func(off) -> void: main.build.drag(off))
 	root.add_child(action_btn)
 	rotate_btn = ActionButton.new()
 	rotate_btn.radius = ROTATE_RADIUS
@@ -323,6 +324,13 @@ func _build_action() -> void:
 	mode_bar.play_mode = main.play_mode
 	_corner(mode_bar, 1, 1, Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_BEGIN, Vector2(-MARGIN, action_btn.offset_top - MARGIN))
 	root.add_child(mode_bar)
+
+
+func _on_action_released() -> void:
+	## 설치 모드였다면: 가운데 취소 X 위에서 떼면 취소, 아니면 설치
+	if main.build.active:
+		main.build.release(action_btn.in_cancel_zone())
+	main.player.action_release()
 
 
 func _action_icon() -> Array:
@@ -350,6 +358,7 @@ func rotate_visible() -> bool:
 func _process(dt: float) -> void:
 	var ic := _action_icon()
 	action_btn.set_icon(ic[0], ic[1])
+	action_btn.cancel_mode = main.build.active
 	rotate_btn.visible = rotate_visible() and not info_open()
 	if _msg_t > 0.0:
 		_msg_t -= dt

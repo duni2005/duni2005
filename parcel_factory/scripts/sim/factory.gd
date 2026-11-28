@@ -129,6 +129,83 @@ func can_place(def: Dictionary, p: Vector2i, r: int) -> bool:
 	return true
 
 
+func place_reason(def_name: String, p: Vector2i, r: int) -> String:
+	## 놓을 수 없는 이유 ("" = 놓을 수 있어요). 미리보기에 그대로 보여줘요.
+	## 전선·파이프·물 샘은 설비 밑에도 깔려서 벽만 막혀요. 같은 종류 레일이 이미 있으면 '덮어쓰기'로 놓을 수 있어요
+	var def: Dictionary = DB.buildings[def_name]
+	var cells: Array = [p] if def["kind"] in LAYER_KINDS else footprint(def, p, r)
+	for c in cells:
+		var why := _terrain_reason(c)
+		if why != "":
+			return why
+	if def["kind"] in LAYER_KINDS:
+		return ""
+	for c in cells:
+		var b = grid.get(c, null)
+		if b != null and not (b.name == def_name and b.is_conveyor() and def["size"] == Vector2i.ONE):
+			return "다른 설비"
+	if def["kind"] == "pump" and not water.has(p):
+		return "물 샘 위에만"
+	if def["kind"] == "exit" and not creative:
+		var src = get_at(p - Building.DIRV[r])
+		if src is ItemPile and not src.accepts_exit_at(p):
+			return "출구 자리 아님"
+	return ""
+
+
+func _terrain_reason(c: Vector2i) -> String:
+	if creative or room == null or room.is_buildable(c):
+		return ""
+	match room.terrain_at(c):
+		Room.T.NO_BUILD:
+			return "통로"
+		Room.T.RESERVED:
+			return "작업대 자리"
+	return "벽"
+
+
+func layer_has(def_name: String, c: Vector2i) -> bool:
+	## 전선·파이프·물 샘 칸이 이미 깔려 있는지
+	match DB.buildings[def_name]["kind"]:
+		"wire":
+			return wires.has(c)
+		"pipe":
+			return pipes.has(c)
+		"water":
+			return water.has(c)
+	return false
+
+
+func player_place(def_name: String, p: Vector2i, r: int, inv: Inventory, slot: int = -1) -> bool:
+	## 인벤토리의 '[설비] 이름' 1개를 써서 놓아요. 같은 종류 레일이 이미 있으면 방향만 바꾸고 아이템은 안 써요
+	if place_reason(def_name, p, r) != "":
+		return false
+	var existing = get_at(p)
+	if existing != null and existing.name == def_name:
+		rotate_conveyor(existing, r)
+		return true
+	if layer_has(def_name, p):
+		return true
+	var item := DB.building_item(def_name)
+	if inv.count(item) < 1:
+		return false
+	var k: String = DB.buildings[def_name]["kind"]
+	var b = place(def_name, p, r)
+	if b == null and not (k in LAYER_KINDS):
+		return false
+	inv.remove(item, 1, slot)
+	return true
+
+
+func place_line(def_name: String, cells: Array, inv: Inventory, slot: int = -1) -> int:
+	## 두 점 설치: cells = [{pos, rot}, ...]. 놓거나 방향을 바꾼 칸 수를 돌려줘요
+	var n := 0
+	for e in cells:
+		if player_place(def_name, e["pos"], e["rot"], inv, slot):
+			n += 1
+	return n
+
+
 func place(def_name: String, p: Vector2i, r: int):
 	var def: Dictionary = DB.buildings[def_name]
 	var k: String = def["kind"]

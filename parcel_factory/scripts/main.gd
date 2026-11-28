@@ -15,12 +15,14 @@ extends Node2D
 
 const TILE := 32.0
 const CAM_FOLLOW := 8.0         # 카메라가 플레이어를 따라가는 빠르기 (클수록 바짝)
-const BUILD_RANGE := 6.0        # 설치·철거 거리 (칸, 크리에이티브면 무제한)
+const BUILD_RANGE := 8.0        # 설치·철거·이동 거리 (칸, 크리에이티브면 무제한)
 const PLAYER_START := Vector2(40.5, 20.5)   # 처음 서 있는 칸 (정문 안쪽)
 const Player := preload("res://scripts/player/player.gd")
 const WorldCollision := preload("res://scripts/player/world_collision.gd")
 const TargetMarker := preload("res://scripts/player/target_marker.gd")
 const DropLayer := preload("res://scripts/view/drop_layer.gd")
+const BuildController := preload("res://scripts/player/build_controller.gd")
+const DustFx := preload("res://scripts/view/dust_fx.gd")
 ## 새 게임 시작 지급품 [이름, 개수]
 const STARTER_KIT := [
 	["나무 판자", 20], ["나사", 40], ["[설비] 레일 Mk1", 100],
@@ -42,6 +44,8 @@ var cam: Camera2D
 var hud
 var player       # scripts/player/player.gd
 var play_mode := PlayMode.new()   # 일반·이동·철거 모드는 여기 한 곳에서만
+var build        # scripts/player/build_controller.gd (설비 아이템 설치)
+var dust         # 설치 먼지 효과
 var save_path := SAVE_PATH   # 테스트는 다른 파일을 써요
 
 var tool: String = "view"          # view / build
@@ -78,6 +82,15 @@ func _ready() -> void:
 	var marker := TargetMarker.new()
 	marker.player = player
 	view.add_actor(marker)
+	dust = DustFx.new()
+	view.add_actor(dust)
+	build = BuildController.new()
+	build.main = self
+	build.factory = factory
+	build.player = player
+	build.view = view
+	add_child(build)
+	player.build_hold.connect(build.begin)
 	cam = Camera2D.new()
 	cam.zoom = Vector2(CAM_START_ZOOM, CAM_START_ZOOM)
 	cam.position = player.position
@@ -180,6 +193,8 @@ func cancel() -> void:
 	## Esc·오른쪽 클릭: 가방·메뉴 닫기 → 일반 모드로 → 하던 일·손에 든 것 내려놓기 → 설치 취소 → 정보 패널 닫기
 	if hud.close_inventory() or hud.close_menu():
 		return
+	if build.cancel_build():
+		return
 	if play_mode.mode != PlayMode.Mode.NORMAL:
 		play_mode.set_mode(PlayMode.Mode.NORMAL)
 		return
@@ -208,6 +223,9 @@ func select_build(def_name: String) -> void:
 
 
 func rotate_tool() -> void:
+	if build.held_def() != "":
+		build.rotate()   # 설비를 들었으면: 설치 방향 (두 점 설치 중이면 꺾는 방향)
+		return
 	rot = (rot + 1) % 4
 	if tool == "view" and view.selected != null and view.selected.size == Vector2i.ONE:
 		factory.rotate_conveyor(view.selected, (view.selected.rot + 1) % 4)
@@ -359,6 +377,8 @@ func _handle_actions(event: InputEvent) -> bool:
 		# F 키: 플레이어가 지금 바라보는 대상과 상호작용 (누르는 시간으로 탭·꾹을 나눠요)
 		player.action_press()
 	elif event.is_action_released("interact") and not (event is InputEventMouseButton):
+		if build.active:
+			build.release(false)
 		player.action_release()
 	elif event.is_action_pressed("rotate"):
 		rotate_tool()
@@ -382,6 +402,18 @@ func _event_pos(event: InputEvent) -> Vector2:
 
 
 func _on_touch(e: InputEventScreenTouch) -> void:
+	# 설치 모드 중 월드 터치 = 그 칸으로 미리보기 (짧은 탭 = 회전)
+	if build.active and not hud.is_over_ui(e.position):
+		if e.pressed:
+			build.world_press(e.index, e.position)
+		else:
+			build.world_release(e.index, e.position)
+		return
+	# PC(키보드·마우스)로 설비를 들었으면: 왼쪽 클릭 = 마우스 칸에 설치 (레일은 두 번으로 A→B)
+	if not hud.touch_mode and build.busy() and not hud.is_over_ui(e.position) and tool == "view":
+		if not e.pressed:
+			build.confirm()
+		return
 	if e.pressed:
 		if _touches.is_empty() and hud.is_over_ui(e.position):
 			return
@@ -421,6 +453,8 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 
 
 func _on_drag(e: InputEventScreenDrag) -> void:
+	if build.world_drag(e.index, e.position):
+		return
 	if not _touches.has(e.index):
 		return
 	_touches[e.index] = e.position

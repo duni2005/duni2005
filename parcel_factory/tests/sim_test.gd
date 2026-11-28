@@ -27,6 +27,7 @@ func _ready() -> void:
 	_test_inventory()
 	_test_hand_actions()
 	_test_deconstruct()
+	_test_placement()
 	_test_floor_items()
 	_test_demos()
 	_test_save_roundtrip()
@@ -354,6 +355,43 @@ func _test_deconstruct() -> void:
 	_check("철거: 재료 100% + 내용물이 바닥에 · 레일은 1개 · 지급 설비 불가 · 창고는 넘치는 것만",
 		mats_ok and inside_ok and near and rail_ok and creative_ok and blocked and store_ok,
 		"재료 %s · 내용물 %s · 그 자리 %s · 레일 %s · 크리에이티브 %s · 지급/지형 불가 %s · 창고 넘침 %d" % [str(mats_ok), str(inside_ok), str(near), str(rail_ok), str(creative_ok), str(blocked), _floor_count(f, "유리")])
+	f.free()
+
+
+func _test_placement() -> void:
+	var f := _new_room_factory()
+	var inv := Inventory.new()
+	var door_y: int = f.room.door_rect().position.y + 2
+	var reasons := {
+		"벽": f.place_reason("분해기", Vector2i(-1, 5), 0),
+		"통로": f.place_reason("레일 Mk1", Vector2i(Room.W - 1, door_y), 0),
+		"물 샘 위에만": f.place_reason("펌프", Vector2i(20, 20), 0),
+		"": f.place_reason("분해기", Vector2i(20, 20), 0),
+	}
+	f.place("창고 블록", Vector2i(30, 30), 0)
+	reasons["다른 설비"] = f.place_reason("분해기", Vector2i(29, 29), 0)
+	var reason_ok := true
+	for k in reasons:
+		if reasons[k] != k:
+			reason_ok = false
+	# 인벤토리에서 1개 차감, 없으면 못 놓아요
+	var no_item := not f.player_place("분해기", Vector2i(20, 20), 0, inv)
+	inv.add("[설비] 분해기", 1)
+	var placed := f.player_place("분해기", Vector2i(20, 20), 0, inv) and inv.count("[설비] 분해기") == 0 and f.get_at(Vector2i(20, 20)) != null
+	# 같은 종류 레일 위는 방향만 덮어쓰기 (아이템 안 씀) · 파이프는 설비 밑에도
+	inv.add("[설비] 레일 Mk1", 3)
+	f.player_place("레일 Mk1", Vector2i(25, 20), 0, inv)
+	var over: bool = f.player_place("레일 Mk1", Vector2i(25, 20), 1, inv) and f.get_at(Vector2i(25, 20)).rot == 1 and inv.count("[설비] 레일 Mk1") == 2
+	inv.add("[설비] 파이프", 2)
+	var under := f.place_reason("파이프", Vector2i(20, 20), 0) == "" and f.player_place("파이프", Vector2i(20, 20), 0, inv) and f.pipes.has(Vector2i(20, 20))
+	var wall_pipe := f.place_reason("파이프", Vector2i(-1, 5), 0) == "벽"
+	# 두 점 설치: 칸 목록대로
+	inv.add("[설비] 레일 Mk1", 10)
+	var cells := [{"pos": Vector2i(10, 30), "rot": 0}, {"pos": Vector2i(11, 30), "rot": 0}, {"pos": Vector2i(12, 30), "rot": 1}]
+	var line: bool = f.place_line("레일 Mk1", cells, inv) == 3 and f.get_at(Vector2i(12, 30)).rot == 1
+	_check("설치: 막힌 이유 · 인벤토리 차감 · 같은 레일 덮어쓰기 · 파이프는 설비 밑에도 · 두 점 설치",
+		reason_ok and no_item and placed and over and under and wall_pipe and line,
+		"이유 %s · 없으면 못 놓음 %s · 차감 %s · 덮어쓰기 %s · 설비 밑 파이프 %s · 벽 파이프 막힘 %s · 줄 %s" % [str(reasons), str(no_item), str(placed), str(over), str(under), str(wall_pipe), str(line)])
 	f.free()
 
 
