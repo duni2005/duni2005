@@ -14,7 +14,7 @@ extends RefCounted
 const P := preload("res://assets/palette.gd")
 const FRAMES := 4
 
-const TILES := ["carpet_a", "carpet_b", "carpet_stain", "carpet_lit", "office", "hazard", "corridor", "wall", "wall_poster", "door", "barrier", "water", "corridor_wall"]
+const TILES := ["floor", "floor_quad", "floor_worn", "office", "hazard", "corridor", "wall", "wall_poster", "door", "barrier", "water", "corridor_wall"]
 
 ## 아이템 이름 -> [모양, 색1, 색2, 반짝임]
 const ITEMS := {
@@ -112,128 +112,152 @@ static func make(key: String, cells: Vector2i = Vector2i.ONE) -> Image:
 
 
 # ---------- 타일 ----------
+# 깔끔한 어두운 바닥: 단색 면 + 1px 줄눈 + 1px 윗·왼쪽 빛. 자잘한 점은 찍지 않아요.
 
 static func tiles() -> Image:
 	var c := PixelCanvas.new(16 * TILES.size(), 16)
 	for i in TILES.size():
 		c.frame(i * 16, 0, 16, 16)
-		var rng := RandomNumberGenerator.new()
-		rng.seed = i * 7919 + 13
-		_tile(c, TILES[i], rng)
+		_tile(c, TILES[i])
 	return c.img
 
 
-static func _carpet(c: PixelCanvas, rng: RandomNumberGenerator, base: int, dark: int) -> void:
-	# 바랜 누런 카펫: 촘촘한 고리 무늬 + 얼룩 점
-	for y in 16:
-		for x in 16:
-			c.px(x, y, dark if (x * 3 + y * 5) % 7 == 0 or rng.randf() < 0.08 else base)
+static func _floor(c: PixelCanvas, base: int, grout: int, lit: int) -> void:
+	c.rect(0, 0, 16, 16, base)
+	c.rect(0, 0, 16, 1, lit)
+	c.rect(0, 0, 1, 16, lit)
+	c.rect(0, 15, 16, 1, grout)
+	c.rect(15, 0, 1, 16, grout)
 
 
-static func _tile(c: PixelCanvas, name: String, rng: RandomNumberGenerator) -> void:
+static func _tile(c: PixelCanvas, name: String) -> void:
 	match name:
-		"carpet_a":
-			_carpet(c, rng, P.CARPET, P.CARPET_D)
-		"carpet_b":
-			_carpet(c, rng, P.CARPET, P.CARPET_D)
-			c.px(rng.randi_range(2, 13), rng.randi_range(2, 13), P.BROWN)
-		"carpet_stain":
-			_carpet(c, rng, P.CARPET, P.CARPET_D)
-			c.disc(rng.randi_range(6, 9), rng.randi_range(6, 9), 3.6, P.CARPET_D)
-			c.disc(rng.randi_range(6, 9), rng.randi_range(6, 9), 1.6, P.BROWN)
-		"carpet_lit":
-			# 형광등 바로 아래: 살짝 누렇게 밝은 카펫
-			_carpet(c, rng, P.WALL_D, P.CARPET)
-		"office", "hazard":
-			for y in 16:
-				for x in 16:
-					var v := P.G5 if rng.randf() < 0.9 else P.G4
-					if x == 15 or y == 15:
-						v = P.G4
-					c.px(x, y, v)
-			if name == "hazard":
-				for y in 16:
-					for x in 16:
-						if (x + y) % 8 < 4 and (x + y) % 2 == 0:
-							c.px(x, y, P.YELLOW)
-						elif (x + y) % 8 >= 4 and (x + y) % 2 == 0:
-							c.px(x, y, P.INK)
+		"floor":
+			_floor(c, P.FLOOR, P.FLOOR_D, P.G2)
+		"floor_quad":
+			# 작은 타일 4장
+			_floor(c, P.FLOOR, P.FLOOR_D, P.G2)
+			c.rect(0, 7, 16, 1, P.FLOOR_D)
+			c.rect(7, 0, 1, 16, P.FLOOR_D)
+			c.rect(0, 8, 16, 1, P.G2)
+			c.rect(8, 0, 1, 16, P.G2)
+		"floor_worn":
+			# 금 간 타일 하나
+			_floor(c, P.FLOOR, P.FLOOR_D, P.G2)
+			c.line(4, 5, 7, 8, P.FLOOR_D)
+			c.line(7, 8, 7, 11, P.FLOOR_D)
+		"office":
+			# 정문 쪽: 조금 밝은 사무실 타일
+			_floor(c, P.G2, P.FLOOR_D, P.G3)
+		"hazard":
+			# 설치 금지 통로: 노랑·어두운 사선 띠
+			_floor(c, P.FLOOR, P.FLOOR_D, P.G2)
+			for y in range(1, 15):
+				for x in range(1, 15):
+					if int((x + y) / 4.0) % 2 == 0:
+						c.px(x, y, P.YELLOW)
 		"corridor":
-			for y in 16:
-				for x in 16:
-					c.px(x, y, P.G1 if rng.randf() < 0.85 else P.INK)
+			_floor(c, P.G1, P.INK, P.FLOOR_D)
 		"wall", "wall_poster", "corridor_wall":
-			# 누런 벽지: 세로 줄무늬, 아래 걸레받이
-			for y in 16:
-				for x in 16:
-					c.px(x, y, P.WALL_D if x % 4 == 1 else P.WALL)
-			c.rect(0, 0, 16, 2, P.CREAM)
-			c.rect(0, 13, 16, 3, P.BROWN)
-			c.rect(0, 13, 16, 1, P.BROWN_D)
+			# 누런 벽: 윗면(벽 꼭대기) + 아래 앞면 띠
+			var top := P.WALL if name != "corridor_wall" else P.WALL_D
+			var face := P.WALL_D if name != "corridor_wall" else P.BROWN
+			c.rect(0, 0, 16, 16, top)
+			c.rect(0, 0, 16, 1, P.CREAM)
+			c.rect(0, 11, 16, 4, face)
+			c.rect(0, 15, 16, 1, P.BROWN_D)
+			c.rect(15, 1, 1, 10, face)
 			if name == "wall_poster":
-				# 병맛 포스터: '야근은 즐거워' 스마일
-				c.rect(4, 3, 8, 8, P.PAPER)
-				c.disc(8, 7, 2.6, P.YELLOW)
-				c.px(7, 6, P.INK)
-				c.px(9, 6, P.INK)
-				c.rect(7, 8, 3, 1, P.INK)
-			if name == "corridor_wall":
-				for y in 16:
-					for x in 16:
-						if (x + y) % 3 == 0:
-							c.px(x, y, P.WALL_D)
+				c.rect(4, 2, 8, 7, P.INK)
+				c.rect(5, 3, 6, 5, P.PAPER)
+				c.rect(6, 4, 1, 1, P.INK)
+				c.rect(9, 4, 1, 1, P.INK)
+				c.rect(6, 6, 4, 1, P.RED)
 		"door":
-			# 정문 셔터: 금속 가로 살 + 노란 테
+			# 정문 셔터
 			for y in 16:
-				for x in 16:
-					var v := P.G4 if y % 4 < 2 else P.G3
-					if y % 4 == 3:
-						v = P.G2
-					c.px(x, y, v)
+				c.rect(0, y, 16, 1, P.G4 if y % 4 < 3 else P.G2)
+			c.rect(0, 0, 16, 1, P.G5)
 			c.rect(0, 0, 2, 16, P.YELLOW)
 			c.rect(14, 0, 2, 16, P.YELLOW)
 		"barrier":
-			for y in 16:
-				for x in 16:
-					c.px(x, y, P.G1)
-			for x in 16:
-				for y in range(6, 10):
-					c.px(x, y, P.RED if int((x + y) / 4.0) % 2 == 0 else P.PAPER)
-			c.rect(1, 4, 2, 10, P.INK)
-			c.rect(13, 4, 2, 10, P.INK)
+			_floor(c, P.G1, P.INK, P.FLOOR_D)
+			c.rect(1, 5, 2, 9, P.G3)
+			c.rect(13, 5, 2, 9, P.G3)
+			c.rect(0, 6, 16, 4, P.INK)
+			for x in range(1, 15):
+				c.rect(x, 7, 1, 2, P.RED if int(x / 3.0) % 2 == 0 else P.PAPER)
 		"water":
-			for y in 16:
-				for x in 16:
-					c.px(x, y, P.BLUE)
-			c.disc(8, 8, 6.5, P.CYAN)
-			c.disc(8, 8, 4.5, P.BLUE)
-			c.rect(4, 5, 3, 1, P.PAPER)
-			c.rect(9, 10, 2, 1, P.PAPER)
+			_floor(c, P.FLOOR, P.FLOOR_D, P.G2)
+			c.disc(8, 8, 7, P.BLUE_D)
+			c.disc(8, 8, 6, P.BLUE)
+			c.rect(4, 5, 4, 1, P.CYAN)
+			c.rect(3, 6, 1, 2, P.CYAN)
+			c.rect(9, 11, 3, 1, P.CYAN)
+
+
+# ---------- 깔끔한 물건 조각 (쓰레기 더미용) ----------
+# 각 조각은 먼저 테두리색으로 1px 크게 칠하고 안을 채워 또렷하게 보여요.
+
+static func _o_rect(c: PixelCanvas, x: int, y: int, w: int, h: int, fill: int, hi: int, lo: int) -> void:
+	c.rect(x - 1, y - 1, w + 2, h + 2, P.INK)
+	c.rect(x, y, w, h, fill)
+	c.rect(x, y, w, 1, hi)
+	c.rect(x, y + h - 1, w, 1, lo)
+
+
+static func _o_disc(c: PixelCanvas, x: float, y: float, r: float, fill: int, hi: int) -> void:
+	c.disc(x, y, r + 1, P.INK)
+	c.disc(x, y, r, fill)
+	c.disc(x - r * 0.35, y - r * 0.35, maxf(1.0, r * 0.35), hi)
+
+
+static func _junk(c: PixelCanvas, kind: int, x: int, y: int) -> void:
+	match kind % 7:
+		0:  # 박스
+			_o_rect(c, x, y, 9, 7, P.CARD, P.ORANGE_L, P.BROWN)
+			c.rect(x + 4, y, 1, 7, P.BROWN)
+		1:  # 쓰레기 봉투
+			_o_disc(c, x + 4, y + 4, 4, P.G1, P.G2)
+			c.rect(x + 3, y - 1, 2, 2, P.YELLOW)
+		2:  # 타이어
+			c.disc(x + 4, y + 4, 5, P.INK)
+			c.disc(x + 4, y + 4, 4, P.G1)
+			c.disc(x + 4, y + 4, 1.5, P.G3)
+		3:  # 병
+			_o_rect(c, x, y + 2, 4, 7, P.GREEN, P.LIME, P.GREEN_D)
+			_o_rect(c, x + 1, y, 2, 2, P.GREEN_D, P.GREEN, P.GREEN_D)
+		4:  # 캔
+			_o_rect(c, x, y, 5, 6, P.G4, P.G5, P.G3)
+			c.rect(x, y + 2, 5, 2, P.RED)
+		5:  # 종이 뭉치
+			_o_rect(c, x, y, 7, 5, P.PAPER, P.PAPER, P.G5)
+			c.rect(x + 1, y + 2, 4, 1, P.G4)
+		6:  # 플라스틱 통
+			_o_rect(c, x, y, 6, 6, P.BLUE, P.CYAN, P.BLUE_D)
 
 
 static func trash_heap() -> Image:
-	## 엄청난 쓰레기 더미: 64×64를 세로로 이어 붙여 그려요
+	## 엄청난 쓰레기 더미: 64×64를 세로로 이어 붙여요. 어두운 흙 바탕에 또렷한 물건 조각.
 	var c := PixelCanvas.new(64, 64)
 	c.frame(0, 0, 64, 64)
+	c.rect(0, 0, 64, 64, P.BROWN_D)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 4242
-	for y in 64:
-		for x in 64:
-			c.px(x, y, P.BROWN_D if rng.randf() < 0.7 else P.BROWN)
-	var junk := [P.PAPER, P.G4, P.GREEN, P.RED, P.BLUE, P.YELLOW, P.CARD, P.G2, P.PINK]
-	for i in 70:
-		var col: int = junk[rng.randi_range(0, junk.size() - 1)]
-		var w := rng.randi_range(2, 6)
-		var h := rng.randi_range(2, 4)
-		var x0 := rng.randi_range(0, 63 - w)
-		var y0 := rng.randi_range(0, 63 - h)
-		c.rect(x0, y0, w, h, col)
-		c.rect(x0, y0 + h, w, 1, P.INK)
-	# 오른쪽 가장자리는 무너진 듯 들쭉날쭉
-	for y in 64:
-		var d := rng.randi_range(0, 2)
-		for x in range(64 - d, 64):
-			c.px(x, y, P.INK if x == 64 - d else P.BROWN_D)
+	# 바탕의 큰 덩이 그늘 (점이 아니라 둥근 면으로)
+	for i in 8:
+		c.disc(rng.randi_range(6, 58), rng.randi_range(8, 56), rng.randi_range(6, 9), P.BROWN)
+	# 물건을 촘촘히 겹쳐 쌓아요 (위에서부터 그려 아래 것이 앞에 와요)
+	var spots := []
+	for i in 50:
+		spots.append(Vector2i(rng.randi_range(1, 52), rng.randi_range(2, 54)))
+	spots.sort_custom(func(a, b) -> bool: return a.y < b.y)
+	for i in spots.size():
+		_junk(c, i * 5 + 1, spots[i].x, spots[i].y)
+	# 오른쪽 가장자리: 무너진 듯한 경계 + 그림자
+	c.rect(62, 0, 2, 64, P.INK)
+	for y in range(0, 64, 8):
+		c.rect(60, y + 2, 2, 4, P.INK)
 	return c.img
 
 
@@ -261,17 +285,18 @@ static func _rot(src: Image, times: int) -> Image:
 
 
 static func _tier_colors(tier: int) -> Array:
-	## [테두리 어두움, 테두리 밝음, 벨트 무늬]
+	## [테두리 어두움, 테두리 밝음]
 	match tier:
 		2:
-			return [P.BLUE_D, P.BLUE, P.G3]
+			return [P.BLUE_D, P.BLUE]
 		3:
-			return [P.ORANGE, P.ORANGE_L, P.G3]
-	return [P.G2, P.G4, P.G3]
+			return [P.ORANGE, P.ORANGE_L]
+	return [P.G3, P.G4]
 
 
 static func _belt(f: int, tier: int, curve: bool) -> Image:
-	## 오른쪽으로 나가는 벨트 한 칸. curve면 위에서 들어와 오른쪽으로 꺾여요
+	## 오른쪽으로 나가는 벨트 한 칸 (curve면 위에서 들어와 오른쪽으로 꺾여요).
+	## 테두리 2줄 + 어두운 벨트 + 8px마다 가는 '>' 줄. 프레임마다 2px씩 움직여요.
 	var c := PixelCanvas.new(16, 16)
 	var col := _tier_colors(tier)
 	for y in 16:
@@ -282,24 +307,22 @@ static func _belt(f: int, tier: int, curve: bool) -> Image:
 				var d := Vector2(x + 0.5, y + 0.5).distance_to(Vector2(16, 0))
 				if d > 15.5:
 					continue
-				cross = d - 0.5        # 0(안쪽) ~ 15(바깥)
-				var th := atan2(y + 0.5, x + 0.5 - 16.0)
-				along = (PI - th) * 8.0
+				cross = d - 0.5
+				along = (PI - atan2(y + 0.5, x + 0.5 - 16.0)) * 8.0
 			else:
 				cross = y
 				along = x
-			var v: int
+			var v: int = P.G1
 			if cross < 1.0 or cross >= 15.0:
 				v = P.INK
-			elif cross < 2.0 or cross >= 13.0:
-				v = col[1] if cross < 2.0 or cross >= 14.0 else col[0]
-			elif cross < 3.0:
+			elif cross < 2.0:
+				v = col[1]
+			elif cross < 3.0 or cross >= 13.0:
 				v = col[0]
-			else:
-				v = P.G1
-				var s := fposmod(along + absf(cross - 7.5) * 0.8 - f * 4.0, 8.0)
-				if s < 2.0:
-					v = col[2]
+			elif cross >= 12.0:
+				v = P.INK
+			elif fposmod(along + absf(cross - 7.5) - f * 2.0, 8.0) < 1.0:
+				v = P.G3
 			c.px(x, y, v)
 	return c.img
 
@@ -318,19 +341,50 @@ static func building(key: String, cells: Vector2i) -> Image:
 	return c.img
 
 
-static func _box(c: PixelCanvas, x: int, y: int, w: int, h: int, top: int, front: int, depth: int = 3) -> void:
-	## 위에서 내려다본 상자: 윗면 + 아래쪽 앞면 띠
-	c.rect(x, y, w, h, front)
-	c.rect(x, y, w, h - depth, top)
-	c.rect(x, y, w, 1, P.G5 if top != P.G5 else P.PAPER)
+## 재질 색 묶음 [윗면 빛, 윗면, 앞면, 앞면 그늘]
+const METAL := [P.G5, P.G4, P.G3, P.G2]
+const DARK := [P.G3, P.G2, P.G1, P.INK]
+const WOOD := [P.ORANGE_L, P.CARD, P.BROWN, P.BROWN_D]
+const GREENS := [P.LIME, P.GREEN, P.GREEN_D, P.TEAL]
+const BRICK := [P.RED, P.RED_D, P.BROWN_D, P.INK]
+const PINKS := [P.PAPER, P.PINK, P.RED, P.RED_D]
+const PURPLES := [P.PINK, P.PURPLE, P.BLUE_D, P.INK]
+const TEALS := [P.CYAN, P.TEAL, P.BLUE_D, P.INK]
 
 
-static func _eyes(c: PixelCanvas, x: int, y: int, look: int) -> void:
-	## 병맛 눈알 한 쌍 (look: -1 왼쪽, 0 가운데, 1 오른쪽)
-	for ex in [x, x + 6]:
-		c.disc(ex + 2, y + 2, 2.2, P.PAPER)
-		c.px(ex + 2 + look, y + 2, P.INK)
-		c.px(ex + 2 + look, y + 1, P.INK)
+static func _cab(c: PixelCanvas, x: int, y: int, w: int, h: int, m: Array, depth: int = 6) -> void:
+	## 위에서 비스듬히 본 상자: 윗면(빛 1줄) + 아래 앞면(그늘 1줄)
+	c.rect(x, y, w, h, m[2])
+	c.rect(x, y, w, h - depth, m[1])
+	c.rect(x, y, w, 1, m[0])
+	c.rect(x, y, 1, h - depth, m[0])
+	c.rect(x, y + h - depth, w, 1, m[3])
+	c.rect(x, y + h - 1, w, 1, m[3])
+
+
+static func _inset(c: PixelCanvas, x: int, y: int, w: int, h: int, fill: int, dark: int, light: int) -> void:
+	## 오목한 판 (창·구멍·화면): 위·왼쪽 그늘, 아래·오른쪽 빛
+	c.rect(x, y, w, h, fill)
+	c.rect(x, y, w, 1, dark)
+	c.rect(x, y, 1, h, dark)
+	c.rect(x, y + h - 1, w, 1, light)
+	c.rect(x + w - 1, y, 1, h, light)
+
+
+static func _lamp(c: PixelCanvas, x: int, y: int, on: bool, col: int) -> void:
+	c.rect(x, y, 3, 3, P.INK)
+	c.px(x + 1, y + 1, col if on else P.G2)
+
+
+static func _bolts(c: PixelCanvas, x: int, y: int, w: int, h: int) -> void:
+	for p in [Vector2i(x, y), Vector2i(x + w - 1, y), Vector2i(x, y + h - 1), Vector2i(x + w - 1, y + h - 1)]:
+		c.px(p.x, p.y, P.G5)
+
+
+static func _hazard_band(c: PixelCanvas, x: int, y: int, w: int, h: int) -> void:
+	for yy in range(y, y + h):
+		for xx in range(x, x + w):
+			c.px(xx, yy, P.YELLOW if int((xx + yy - x - y) / 2.0) % 2 == 0 else P.INK)
 
 
 static func _belt_base(c: PixelCanvas, f: int) -> void:
@@ -344,281 +398,355 @@ static func _arrow_r(c: PixelCanvas, x: int, y: int, col: int) -> void:
 		c.px(x - 1 + i, y + 2 - i, col)
 
 
+static func _post_pair(c: PixelCanvas, x: int, top: int) -> void:
+	## 벨트 위를 가로지르는 문(갠트리) 기둥: 위·아래
+	_cab(c, x, 0, 6, 3, METAL, 1)
+	_cab(c, x, 13, 6, 3, METAL, 1)
+	if top >= 0:
+		c.rect(x + 1, 3, 4, 10, top)
+
+
 static func _draw_building(c: PixelCanvas, key: String, f: int, w: int, h: int, row: int) -> void:
 	var on := f > 0
 	var ph := maxi(0, f - 1)   # 가동 중 단계 0~2
+	var outline := true
 	match key:
+		# ----- 1칸: 벨트 위 장치 (테두리 없이 벨트와 이어져요) -----
 		"exit":
+			outline = false
 			_belt_base(c, f)
-			c.rect(0, 2, 6, 12, P.G2)
-			c.rect(1, 4, 4, 8, P.INK)
-			c.rect(0, 2, 6, 1, P.G4)
-			_arrow_r(c, 11, 8, P.YELLOW)
+			_cab(c, 0, 1, 6, 14, DARK, 2)
+			c.rect(1, 4, 3, 7, P.INK)
+			_arrow_r(c, 10, 7, P.YELLOW)
 		"entrance":
+			outline = false
 			_belt_base(c, f)
-			c.rect(10, 2, 6, 12, P.G2)
-			c.rect(11, 4, 4, 8, P.INK)
-			c.rect(10, 2, 6, 1, P.G4)
-			_arrow_r(c, 5, 8, P.YELLOW)
+			_cab(c, 10, 1, 6, 14, DARK, 2)
+			c.rect(12, 4, 3, 7, P.INK)
+			_arrow_r(c, 5, 7, P.YELLOW)
 		"sorter":
+			outline = false
 			_belt_base(c, f)
-			c.rect(5, 3, 6, 10, P.G3)
-			c.rect(5, 3, 6, 1, P.G5)
-			c.rect(7, 6, 2, 4, P.YELLOW if on else P.ORANGE)
-			# 옆 출력: row 0 = 오른쪽(화면 아래), row 1 = 왼쪽(화면 위)
-			var sy := 13 if row == 0 else 0
-			c.rect(6, sy, 4, 3, P.ORANGE)
-			c.px(8 if row == 0 else 7, 15 if row == 0 else 0, P.INK)
-		"splitter":
-			_box(c, 2, 2, 12, 12, P.G3, P.G2, 2)
-			_arrow_r(c, 11, 8, P.ORANGE_L)
-			c.rect(7, 3, 2, 3, P.ORANGE_L if ph != 1 else P.YELLOW)
-			c.rect(7, 10, 2, 3, P.ORANGE_L if ph != 2 else P.YELLOW)
-			c.rect(4, 7, 4, 2, P.ORANGE_L)
-		"merger":
-			_box(c, 2, 2, 12, 12, P.G3, P.G2, 2)
-			c.rect(3, 7, 6, 2, P.CYAN)
-			c.rect(7, 3, 2, 5, P.CYAN)
-			c.rect(7, 8, 2, 5, P.CYAN)
-			_arrow_r(c, 11, 8, P.YELLOW if on else P.CYAN)
-		"bridge":
-			_belt_base(c, f)
-			for y in range(2, 14):
-				c.px(2, y, P.YELLOW if y % 2 == 0 else P.INK)
-				c.px(13, y, P.YELLOW if y % 2 == 0 else P.INK)
-			c.rect(4, 5, 8, 6, P.G4)
-			_arrow_r(c, 8, 8, P.INK)
+			_post_pair(c, 5, -1)
+			# 옆으로 미는 주황 날개: row 0 = 오른쪽(화면 아래), row 1 = 왼쪽(화면 위)
+			var down := row == 0
+			c.rect(6, 4 if down else 6, 4, 6, P.ORANGE if not on else P.ORANGE_L)
+			c.rect(6, 4 if down else 11, 4, 1, P.BROWN)
+			c.rect(7, 13 if down else 0, 2, 3, P.YELLOW)
 		"detector":
+			outline = false
 			_belt_base(c, f)
-			c.rect(6, 1, 4, 3, P.G4)
-			c.rect(6, 12, 4, 3, P.G4)
-			c.px(7, 2, P.RED if on else P.G2)
+			_post_pair(c, 5, -1)
+			_lamp(c, 6, 0, on, P.RED)
 			if on:
-				c.rect(7, 4, 2, 8, P.RED)
+				c.rect(7, 3, 2, 10, P.RED)
 		"judge":
+			outline = false
 			_belt_base(c, f)
-			c.rect(4, 1, 8, 3, P.G4)
-			c.rect(6, 12, 4, 4, P.LIME)
+			_post_pair(c, 5, -1)
+			_lamp(c, 6, 0, on, P.LIME)
+			c.rect(6, 13, 4, 3, P.LIME)
 			c.px(7, 14, P.INK)
-			c.px(8, 13, P.INK)
-			c.px(6, 13, P.INK)
-			c.rect(7, 1, 2, 2, P.LIME if on else P.G2)
 		"injector":
+			outline = false
 			_belt_base(c, f)
-			c.rect(5, 0, 6, 5, P.G4)
+			_cab(c, 4, 0, 8, 5, METAL, 2)
 			c.rect(7, 5, 2, 2, P.G3)
-			c.rect(5, 0, 6, 1, P.CYAN)
+			c.rect(5, 1, 6, 1, P.CYAN)
 			if on:
-				c.rect(7, 7 + ph, 2, 2, P.CYAN)
+				c.rect(7, 7 + ph * 2, 2, 2, P.CYAN)
+		"bridge":
+			outline = false
+			_belt_base(c, f)
+			_cab(c, 2, 2, 12, 12, METAL, 3)
+			_hazard_band(c, 2, 2, 2, 9)
+			_hazard_band(c, 12, 2, 2, 9)
+			_arrow_r(c, 8, 6, P.INK)
+		"splitter":
+			_cab(c, 1, 1, 14, 14, METAL, 3)
+			_inset(c, 4, 3, 8, 7, P.G2, P.G1, P.G4)
+			_arrow_r(c, 10, 6, P.ORANGE_L if ph != 0 else P.YELLOW)
+			c.rect(7, 3, 2, 2, P.ORANGE_L if ph != 1 else P.YELLOW)
+			c.rect(7, 8, 2, 2, P.ORANGE_L if ph != 2 else P.YELLOW)
+		"merger":
+			_cab(c, 1, 1, 14, 14, METAL, 3)
+			_inset(c, 4, 3, 8, 7, P.G2, P.G1, P.G4)
+			c.rect(5, 6, 4, 1, P.CYAN)
+			c.rect(7, 4, 1, 5, P.CYAN)
+			_arrow_r(c, 10, 6, P.YELLOW if on else P.CYAN)
+		# ----- 1칸: 상자형 -----
 		"combiner":
-			_box(c, 1, 2, 14, 13, P.G4, P.G3)
-			c.rect(3, 5, 7, 6, P.PAPER)
-			c.rect(4, 6, 5, 1, P.G4)
-			c.rect(4, 8, 4, 1, P.G4)
-			var sy2 := 3 if not on else 4 + ph
-			c.rect(9, sy2, 4, 3, P.RED)
-			c.rect(10, 1, 2, sy2 - 1, P.G2)
-			_arrow_r(c, 13, 12, P.YELLOW)
+			_cab(c, 1, 1, 14, 14, METAL, 4)
+			c.rect(3, 4, 6, 5, P.PAPER)
+			c.rect(4, 5, 4, 1, P.G4)
+			c.rect(4, 7, 3, 1, P.G4)
+			var sy := 2 + (ph if on else 0)
+			_cab(c, 9, sy, 4, 4, [P.PINK, P.RED, P.RED_D, P.RED_D], 1)
+			_arrow_r(c, 12, 12, P.YELLOW)
 		"pump":
-			c.rect(0, 0, 16, 16, P.BLUE)
-			c.disc(8, 9, 6, P.CYAN)
-			_box(c, 4, 4 - (ph if on else 0), 8, 9, P.G4, P.G3)
-			c.rect(6, 6, 4, 2, P.CYAN if on else P.BLUE_D)
+			c.disc(8, 9, 7.5, P.BLUE_D)
+			c.disc(8, 9, 6.5, P.BLUE)
+			c.rect(3, 6, 3, 1, P.CYAN)
+			_cab(c, 5, 2 + (ph if on else 0), 6, 9, METAL, 3)
+			c.rect(6, 4 + (ph if on else 0), 4, 2, P.CYAN if on else P.BLUE_D)
 		"storage":
-			_box(c, 1, 1, 14, 14, P.G3, P.G2)
-			c.rect(3, 3, 10, 8, P.G1)
+			_cab(c, 1, 1, 14, 14, METAL, 4)
+			_inset(c, 3, 3, 10, 7, P.G1, P.INK, P.G3)
 			for i in f:
-				c.rect(3 + i * 3, 4 + (i % 2) * 3, 4, 4, P.CARD)
-				c.rect(3 + i * 3, 4 + (i % 2) * 3, 4, 1, P.ORANGE_L)
+				_o_rect(c, 4 + (i % 2) * 4, 4 + int(i / 2.0) * 3, 3, 3, P.CARD, P.ORANGE_L, P.BROWN)
 		"shelf":
-			_box(c, 1, 2, 14, 13, P.BROWN, P.BROWN_D)
-			c.rect(2, 8, 12, 1, P.BROWN_D)
+			_cab(c, 1, 1, 14, 14, WOOD, 4)
+			c.rect(2, 6, 12, 1, P.BROWN)
 			for i in f:
-				c.rect(2 + (i % 2) * 6, 3 + int(i / 2.0) * 6, 5, 4, P.ORANGE)
-				c.rect(4 + (i % 2) * 6, 3 + int(i / 2.0) * 6, 1, 4, P.CARD)
+				var px := 3 + (i % 2) * 5
+				var py := 2 + int(i / 2.0) * 5
+				c.rect(px, py, 4, 3, P.ORANGE)
+				c.rect(px, py, 4, 1, P.ORANGE_L)
+				c.rect(px + 1, py, 1, 3, P.CARD)
 		"source":
-			_box(c, 1, 1, 14, 14, P.PURPLE, P.BLUE_D)
-			c.disc(6, 7, 2.2, P.PAPER)
-			c.disc(10, 7, 2.2, P.PAPER)
-			c.disc(6, 7, 1, P.PURPLE)
-			c.disc(10, 7, 1, P.PURPLE)
+			_cab(c, 1, 1, 14, 14, PURPLES, 4)
+			c.disc(5.5, 6, 2, P.PAPER)
+			c.disc(10.5, 6, 2, P.PAPER)
+			c.disc(5.5, 6, 0.8, P.PURPLE)
+			c.disc(10.5, 6, 0.8, P.PURPLE)
 			if on:
-				c.px(3 + ph * 4, 3, P.YELLOW)
-				c.px(12 - ph * 3, 11, P.YELLOW)
-			_arrow_r(c, 13, 12, P.YELLOW)
+				c.px(3 + ph * 4, 2, P.YELLOW)
+			c.rect(12, 10, 3, 3, P.YELLOW)
 		"incinerator":
-			_box(c, 1, 2, 14, 13, P.G2, P.G1)
-			c.rect(3, 4, 10, 7, P.INK)
+			_cab(c, 1, 1, 14, 14, DARK, 4)
+			_inset(c, 3, 3, 10, 6, P.INK, P.INK, P.G2)
 			if on:
-				c.disc(6 + ph, 8, 2.5, P.RED)
-				c.disc(9 - ph, 8, 2, P.ORANGE)
-				c.px(8, 6 - ph, P.YELLOW)
+				c.disc(8, 6, 2.5 + (ph % 2) * 0.5, P.ORANGE)
+				c.disc(8, 7, 1.5, P.YELLOW)
 			else:
-				c.px(6, 9, P.RED_D)
-				c.px(9, 9, P.RED_D)
+				c.rect(6, 6, 4, 1, P.RED_D)
+			_lamp(c, 11, 10, on, P.RED)
 		"turret_guard":
 			c.disc(8, 9, 6, P.G2)
-			c.disc(8, 9, 4, P.G3)
-			c.line(8, 9, 14 - ph, 5, P.BROWN)
-			c.line(8, 9, 14 - ph, 13, P.BROWN)
-			c.px(14 - ph, 9, P.G5)
+			c.disc(8, 8, 5, P.G3)
+			c.disc(7, 7, 1.5, P.G4)
+			_cab(c, 9 - (1 if on and ph == 0 else 0), 6, 6, 4, METAL, 1)
+			c.rect(14 - (1 if on and ph == 0 else 0), 7, 1, 2, P.INK)
 		"turret_electric":
 			c.disc(8, 10, 5.5, P.G2)
-			c.rect(6, 4, 4, 7, P.ORANGE)
-			c.disc(8, 4, 3, P.G5)
+			c.disc(8, 9, 4.5, P.G3)
+			c.rect(6, 4, 4, 6, P.ORANGE)
+			c.rect(6, 5, 4, 1, P.BROWN)
+			c.rect(6, 7, 4, 1, P.BROWN)
+			c.disc(8, 3, 2.5, P.G5)
 			if on:
-				c.line(8, 4, 2 + ph * 2, 0, P.YELLOW)
-				c.line(8, 4, 14 - ph, 1, P.YELLOW)
-		"pile":
-			var rng := RandomNumberGenerator.new()
-			rng.seed = 77
-			c.disc(16, 18, 13, P.BROWN_D)
-			for i in 22:
-				var jc: int = [P.PAPER, P.G4, P.GREEN, P.RED, P.BLUE, P.YELLOW, P.CARD][rng.randi_range(0, 6)]
-				c.rect(rng.randi_range(6, 24), rng.randi_range(8, 26), rng.randi_range(2, 4), 2, jc)
-			if on:
-				c.px(10 + ph * 5, 8, P.LIGHT)
+				c.line(8, 3, 3 + ph, 0, P.YELLOW)
+				c.line(8, 3, 13 - ph, 0, P.YELLOW)
+		# ----- 2×2 -----
 		"disassembler":
-			# 분해기: 이빨 달린 입 + 눈알 (씹는 애니메이션)
-			_box(c, 1, 2, 30, 28, P.G4, P.G3)
-			_eyes(c, 9, 4, [0, -1, 1][ph] if on else 0)
-			var gap: int = 2 + ([0, 3, 1][ph] if on else 0)
-			var hg := int(gap / 2.0)
-			c.rect(4, 13, 24, 12, P.INK)
-			c.rect(4, 13, 24, 5 - hg, P.G3)
-			c.rect(4, 20 + hg, 24, 5 - hg, P.G3)
-			for i in 6:
-				c.px(5 + i * 4, 18 - hg, P.PAPER)
-				c.px(7 + i * 4, 19 + hg, P.PAPER)
-			c.rect(1, 12, 3, 10, P.G2)
+			# 분해기: 분쇄 롤러 두 줄이 맞물려 돌아요
+			_cab(c, 1, 1, 30, 29, METAL, 8)
+			_inset(c, 5, 4, 22, 14, P.INK, P.INK, P.G2)
+			for r in 2:
+				var ry := 6 + r * 6
+				c.rect(6, ry, 20, 4, P.G3)
+				c.rect(6, ry, 20, 1, P.G4)
+				for i in 5:
+					var tx := 7 + i * 4 + ((ph + r) % 2 if on else 0) * 2
+					c.rect(tx, ry + 1, 1, 2, P.G5)
+			_hazard_band(c, 4, 24, 14, 3)
+			_lamp(c, 23, 24, on, P.LIME)
 		"processor":
-			# 가공기: 커다란 톱니가 돌아요
-			_box(c, 1, 2, 30, 28, P.G3, P.G2)
-			c.disc(16, 14, 9, P.G4)
-			c.disc(16, 14, 3, P.G2)
-			for i in 6:
-				var a := (i / 6.0 + (ph if on else 0) / 18.0) * TAU
-				c.disc(16 + cos(a) * 9.5, 14 + sin(a) * 9.5, 2.2, P.G4)
-			c.rect(24, 22, 5, 3, P.YELLOW if on else P.G2)
+			# 가공기: 위에서 누르는 프레스
+			_cab(c, 1, 1, 30, 29, METAL, 8)
+			_inset(c, 5, 3, 22, 16, P.G2, P.G1, P.G3)
+			var press: int = [0, 3, 1][ph] if on else 0
+			_cab(c, 8, 4 + press, 16, 10, [P.CYAN, P.BLUE, P.BLUE_D, P.INK], 3)
+			_bolts(c, 9, 5 + press, 14, 5)
+			_inset(c, 4, 23, 12, 5, P.GREEN_D, P.INK, P.G4)
+			if on:
+				c.rect(5, 25, 2 + ph * 3, 1, P.LIME)
+			_lamp(c, 20, 24, on, P.YELLOW)
+			_lamp(c, 25, 24, true, P.RED)
 		"crafter":
-			# 제작기: 주황 로봇 팔 두 개
-			_box(c, 1, 2, 30, 28, P.G4, P.G3)
-			c.rect(5, 16, 22, 6, P.G2)
-			var arm: int = [0, 3, 6][ph] if on else 0
-			c.rect(6 + arm, 6, 3, 12, P.ORANGE)
-			c.rect(23 - arm, 6, 3, 12, P.ORANGE)
-			c.rect(5 + arm, 17, 5, 3, P.ORANGE_L)
-			c.rect(22 - arm, 17, 5, 3, P.ORANGE_L)
+			# 제작기: 작업판 위에서 주황 로봇 팔 두 개가 조립해요
+			_cab(c, 1, 1, 30, 29, METAL, 8)
+			_inset(c, 4, 3, 24, 16, P.G2, P.G1, P.G3)
+			var reach: int = [0, 3, 5][ph] if on else 0
+			for sd in [-1, 1]:
+				var side: int = sd
+				var bx := 16 + side * 10
+				c.disc(bx, 11, 3, P.INK)
+				c.disc(bx, 11, 2.2, P.ORANGE)
+				var tip := bx - side * (3 + reach)
+				c.rect(mini(bx, tip), 10, absi(bx - tip) + 1, 2, P.ORANGE)
+				c.rect(mini(bx, tip), 10, absi(bx - tip) + 1, 1, P.ORANGE_L)
+				c.rect(tip - 1, 8, 2, 6, P.G4)
+			_o_rect(c, 14, 9, 4, 4, P.CARD, P.ORANGE_L, P.BROWN)
+			_lamp(c, 5, 24, on, P.LIME)
+			_lamp(c, 10, 24, on and ph == 1, P.YELLOW)
 		"furnace":
-			# 용광로: 벽돌 + 불구멍 + 굴뚝 연기
-			_box(c, 1, 4, 30, 26, P.RED_D, P.BROWN_D)
-			for y in range(6, 26, 4):
-				for x in range(2, 30, 6):
-					c.rect(x + (int(y / 4.0) % 2) * 3, y, 5, 1, P.BROWN_D)
-			c.rect(9, 17, 14, 9, P.INK)
+			# 용광로: 벽돌 몸통 + 아치 아궁이 + 굴뚝
+			_cab(c, 1, 5, 30, 25, BRICK, 9)
+			for yy in [9, 14]:
+				c.rect(2, yy, 28, 1, P.BROWN_D)
+			for xx in [8, 16, 24]:
+				c.rect(xx, 6, 1, 3, P.BROWN_D)
+				c.rect(xx - 4, 10, 1, 4, P.BROWN_D)
+			c.disc(16, 22, 6, P.INK)
+			c.rect(10, 22, 12, 7, P.INK)
 			if on:
-				c.disc(16, 23, 4 + ph, P.ORANGE)
-				c.disc(16, 24, 2, P.YELLOW)
-			c.rect(22, 0, 6, 8, P.G2)
+				c.disc(16, 26, 4 + (ph % 2), P.ORANGE)
+				c.disc(16, 27, 2, P.YELLOW)
+			else:
+				c.rect(13, 27, 6, 1, P.RED_D)
+			_cab(c, 23, 0, 6, 9, DARK, 2)
 			if on:
-				c.disc(25 - ph, 2 - ph, 2.5, P.G5)
+				c.disc(19 - ph, 2, 1.5 + ph * 0.5, P.G4)
 		"workbench":
-			# 설비 제작대: 나무 작업대 + 망치
-			_box(c, 1, 3, 30, 26, P.CARD, P.BROWN)
-			c.rect(4, 7, 10, 2, P.BROWN)
-			c.rect(4, 12, 7, 7, P.G4)
-			var hy: int = [0, -3, 0][ph] if on else 0
-			c.rect(19, 10 + hy, 3, 10, P.BROWN_D)
-			c.rect(16, 8 + hy, 9, 4, P.G3)
-			c.rect(4, 21, 22, 2, P.BROWN)
+			# 설비 제작대: 나무 작업대 위 설계도·망치·렌치
+			_cab(c, 1, 2, 30, 27, WOOD, 7)
+			c.rect(2, 9, 28, 1, P.BROWN)
+			c.rect(2, 15, 28, 1, P.BROWN)
+			_o_rect(c, 17, 4, 11, 8, P.BLUE, P.CYAN, P.BLUE_D)
+			c.rect(19, 6, 6, 1, P.PAPER)
+			c.rect(19, 8, 4, 1, P.PAPER)
+			var lift: int = [0, -2, 0][ph] if on else 0
+			c.rect(5, 12 + lift, 9, 2, P.BROWN_D)
+			_o_rect(c, 4, 10 + lift, 3, 5, P.G4, P.G5, P.G3)
+			c.rect(19, 16, 8, 2, P.G4)
+			c.disc(27, 17, 2, P.G4)
+			c.disc(27, 17, 0.8, P.BROWN)
+			if on and ph == 1:
+				c.px(9, 9, P.YELLOW)
+				c.px(11, 10, P.YELLOW)
 		"cash_printer":
-			_box(c, 1, 2, 30, 28, P.GREEN_D, P.TEAL)
-			c.rect(6, 6, 20, 4, P.INK)
-			var my := 10 + (ph * 3 if on else 0)
-			c.rect(8, my, 16, 8, P.LIME)
-			c.rect(14, my + 2, 4, 4, P.GREEN)
-			c.rect(4, 26, 4, 2, P.YELLOW if on else P.G2)
+			_cab(c, 1, 1, 30, 29, GREENS, 8)
+			_inset(c, 6, 4, 20, 4, P.INK, P.INK, P.GREEN_D)
+			var my := 8 + (ph * 3 if on else 0)
+			_o_rect(c, 9, my, 14, 7, P.LIME, P.PAPER, P.GREEN)
+			c.disc(16, my + 3.5, 2, P.GREEN)
+			_lamp(c, 4, 24, on, P.YELLOW)
+			c.rect(10, 25, 12, 2, P.TEAL)
 		"packer":
-			# 포장기: 가운데 벨트 + 테이프 롤
-			_box(c, 1, 2, 30, 28, P.G4, P.G3)
-			c.rect(1, 14, 30, 8, P.G1)
-			var bx := 4 + (ph * 7 if on else 0)
-			c.rect(bx, 15, 8, 6, P.ORANGE)
-			c.rect(bx + 3, 15, 2, 6, P.CARD)
-			c.disc(16, 8, 5, P.CARD)
-			c.disc(16, 8, 2, P.G3)
-			if on:
-				var a := ph * TAU / 3.0
-				c.px(16 + int(cos(a) * 3.5), 8 + int(sin(a) * 3.5), P.BROWN)
-		"gift_packer":
-			_box(c, 1, 2, 30, 28, P.PINK, P.RED_D)
-			var b: int = [0, -1, 1][ph] if on else 0
-			c.disc(10, 12 + b, 5, P.RED)
-			c.disc(22, 12 - b, 5, P.RED)
-			c.disc(16, 13, 3, P.RED_D)
-			c.rect(14, 15, 4, 10, P.RED)
-		"computer":
-			# 작업 컴퓨터: 책상 위 브라운관 + 웃는 화면
-			_box(c, 1, 8, 30, 22, P.BROWN, P.BROWN_D)
-			_box(c, 6, 1, 20, 17, P.G5, P.G4)
-			c.rect(8, 3, 16, 11, P.BLUE_D)
-			var blink := on and ph == 1
-			c.rect(12, 6, 2, 1 if blink else 2, P.LIME)
-			c.rect(18, 6, 2, 1 if blink else 2, P.LIME)
-			c.rect(12, 10, 8, 1, P.LIME)
-			c.px(11, 9, P.LIME)
-			c.px(20, 9, P.LIME)
-			if on:
-				c.rect(22, 20, 6, 3 + ph * 2, P.PAPER)
-			c.rect(6, 21, 12, 4, P.G2)
-		"bio_generator":
-			# 바이오 발전기: 쳇바퀴 도는 햄스터
-			_box(c, 1, 2, 30, 28, P.GREEN_D, P.G2)
-			c.disc(16, 14, 11, P.G4)
-			c.disc(16, 14, 9, P.GREEN_D)
+			# 포장기: 가운데 벨트 위에 테이프 아치
+			_cab(c, 1, 1, 30, 29, METAL, 8)
+			c.rect(1, 10, 30, 10, P.INK)
+			c.rect(1, 11, 30, 8, P.G1)
 			for i in 4:
-				var a := (i / 4.0 + (ph / 12.0 if on else 0.0)) * TAU
-				c.line(16, 14, 16 + cos(a) * 9, 14 + sin(a) * 9, P.G3)
-			var hb: int = [0, -1, 0][ph] if on else 1
-			c.disc(16, 20 + hb, 3.5, P.ORANGE_L)
-			c.px(18, 19 + hb, P.INK)
-			c.px(14, 18 + hb, P.CARD)
-			if not on:
-				c.px(21, 15, P.PAPER)   # 쿨쿨
-				c.px(23, 13, P.PAPER)
+				var sx := 2 + i * 8 + (ph * 2 if on else 0)
+				c.rect(sx, 11, 1, 8, P.G2)
+			var bx := 4 + (ph * 6 if on else 0)
+			_o_rect(c, bx, 12, 7, 5, P.ORANGE, P.ORANGE_L, P.BROWN)
+			c.rect(bx + 3, 12, 1, 5, P.CARD)
+			_cab(c, 13, 3, 6, 16, [P.ORANGE_L, P.ORANGE, P.BROWN, P.BROWN_D], 2)
+			c.disc(16, 6, 2.5, P.CARD)
+			c.disc(16, 6, 1, P.G2)
+			_lamp(c, 4, 23, on, P.LIME)
+		"gift_packer":
+			_cab(c, 1, 1, 30, 29, PINKS, 8)
+			var bob: int = [0, -1, 0][ph] if on else 0
+			c.disc(10, 10 + bob, 5, P.RED_D)
+			c.disc(22, 10 + bob, 5, P.RED_D)
+			c.disc(10, 10 + bob, 4, P.RED)
+			c.disc(22, 10 + bob, 4, P.RED)
+			c.disc(10, 10 + bob, 1.5, P.RED_D)
+			c.disc(22, 10 + bob, 1.5, P.RED_D)
+			c.disc(16, 11 + bob, 2.5, P.RED_D)
+			c.rect(14, 13 + bob, 2, 6, P.RED)
+			c.rect(17, 13 + bob, 2, 6, P.RED)
+			_lamp(c, 4, 24, on, P.YELLOW)
+		"computer":
+			# 작업 컴퓨터: 책상 + 모니터 + 키보드 + 머그컵
+			_cab(c, 1, 11, 30, 19, WOOD, 6)
+			_cab(c, 7, 1, 18, 14, METAL, 3)
+			_inset(c, 9, 3, 14, 7, P.BLUE_D, P.INK, P.BLUE)
+			if on:
+				for i in 3:
+					c.rect(10, 4 + i * 2, [7, 10, 5][(i + ph) % 3], 1, P.LIME)
+			else:
+				c.rect(10, 4, 3, 1, P.BLUE)
+			_cab(c, 7, 17, 15, 5, METAL, 2)
+			for i in 6:
+				c.px(8 + i * 2, 18, P.G3)
+			_o_rect(c, 25, 17, 3, 4, P.PAPER, P.PAPER, P.G4)
+			if on:
+				_o_rect(c, 2, 14, 4, 4 + ph, P.PAPER, P.PAPER, P.G5)
+		"bio_generator":
+			# 바이오 발전기: 초록 배양 탱크 + 계기판
+			_cab(c, 1, 3, 30, 27, METAL, 7)
+			c.disc(12, 12, 9, P.INK)
+			c.disc(12, 12, 8, P.G4)
+			c.disc(12, 12, 6.5, P.GREEN_D)
+			c.disc(12, 12, 5.5, P.GREEN)
+			c.disc(9, 9, 1.5, P.LIME)
+			if on:
+				for i in 3:
+					c.px(10 + i * 3, 15 - ((ph + i) % 3) * 3, P.LIME)
+			c.disc(25, 10, 3.5, P.INK)
+			c.disc(25, 10, 2.5, P.PAPER)
+			c.line(25, 10, 25 + (2 if on else -1), 8, P.RED)
+			_lamp(c, 23, 16, on, P.LIME)
+			c.rect(4, 25, 10, 2, P.G2)
 		"coal_generator":
-			_box(c, 1, 4, 30, 26, P.G2, P.G1)
-			c.rect(4, 8, 14, 14, P.G3)
-			c.disc(11, 15, 4, P.RED if on else P.RED_D)
+			_cab(c, 1, 3, 30, 27, DARK, 8)
+			_inset(c, 4, 5, 14, 9, P.G1, P.INK, P.G3)
+			c.disc(8, 10, 3, P.INK)
+			c.disc(13, 9, 2.5, P.INK)
+			c.disc(8, 10, 2.2, P.G2)
+			c.disc(13, 9, 1.8, P.G2)
+			c.px(7, 9, P.G4)
+			c.px(12, 8, P.G4)
+			_inset(c, 5, 22, 12, 6, P.INK, P.INK, P.G2)
 			if on:
-				c.disc(11, 15, 2, P.YELLOW)
-			c.rect(22, 0, 6, 12, P.G3)
-			if on:
-				c.disc(25 + ph, 2 - ph, 2.5, P.G4)
+				c.disc(11, 25, 2 + (ph % 2), P.ORANGE)
+				c.px(11, 25, P.YELLOW)
+			_cab(c, 22, 0, 7, 12, METAL, 2)
+			c.rect(23, 1, 5, 1, P.INK)
+			_lamp(c, 24, 22, on, P.YELLOW)
+		"pile":
+			# 물건 더미 2×2: 흙 둔덕 위 또렷한 물건 조각
+			c.disc(16, 18, 13, P.INK)
+			c.disc(16, 18, 12, P.BROWN_D)
+			c.disc(13, 15, 7, P.BROWN)
+			_junk(c, 0, 5, 9)
+			_junk(c, 2, 18, 8)
+			_junk(c, 3, 13, 18)
+			_junk(c, 4, 21, 19)
+			_junk(c, 5, 6, 21)
+			if on and ph == 1:
+				c.px(10, 6, P.LIGHT)
+		# ----- 3×3 -----
 		"producer":
-			# 생산기 3×3: 돔 + 깜빡이는 불빛 세 개
-			_box(c, 1, 2, 46, 44, P.G4, P.G3, 4)
-			c.disc(24, 20, 12, P.G3)
-			c.disc(24, 20, 9, P.TEAL)
-			c.disc(21, 17, 3, P.CYAN)
+			# 생산기: 유리 돔 안에서 부품이 돌고, 앞면 불빛 세 개가 차례로
+			_cab(c, 1, 1, 46, 45, METAL, 10)
+			_bolts(c, 3, 3, 42, 30)
+			c.disc(24, 17, 12, P.INK)
+			c.disc(24, 17, 11, P.G3)
+			c.disc(24, 17, 9, P.TEAL)
 			for i in 3:
-				c.rect(6 + i * 15, 38, 6, 4, P.YELLOW if on and i == ph else P.G2)
-			c.rect(1, 10, 4, 6, P.G2)
-			c.rect(1, 22, 4, 6, P.G2)
-			c.rect(1, 34, 4, 6, P.G2)
+				var a := (i / 3.0 + (ph / 9.0 if on else 0.0)) * TAU
+				_o_disc(c, 24 + cos(a) * 5, 17 + sin(a) * 5, 1.5, P.ORANGE, P.ORANGE_L)
+			c.disc(20, 13, 2, P.CYAN)
+			for s in 3:
+				_inset(c, 1, 8 + s * 8, 4, 5, P.INK, P.INK, P.G2)
+			for i in 3:
+				_lamp(c, 10 + i * 6, 39, on and i == ph, P.YELLOW)
+			c.rect(32, 39, 10, 3, P.G2)
+			c.rect(32, 40, 10, 1, P.G1)
+		# ----- 4×2 -----
 		"dock":
-			# 출하 도크 4×2: 바닥 + 트럭 뒤칸 (오른쪽)
-			c.rect(1, 1, 62, 30, P.G4)
-			for x in range(1, 63):
-				c.px(x, 1, P.YELLOW if x % 4 < 2 else P.INK)
-			_box(c, 30, 3, 32, 26, P.PAPER, P.G4)
-			c.rect(30, 8, 3, 16, P.INK)
+			# 출하 도크: 노란 경계가 그어진 승강장 + 오른쪽 트럭 뒤칸
+			_cab(c, 1, 1, 62, 30, METAL, 4)
+			_hazard_band(c, 2, 2, 26, 2)
+			_inset(c, 3, 6, 24, 18, P.G2, P.G1, P.G4)
 			for i in f:
-				c.rect(6 + i * 6, 12, 5, 5, P.ORANGE)
+				_o_rect(c, 6 + i * 7, 12, 5, 5, P.ORANGE, P.ORANGE_L, P.BROWN)
+			_cab(c, 31, 2, 31, 28, [P.PAPER, P.G5, P.G4, P.G3], 5)
+			c.rect(31, 2, 1, 23, P.G3)
+			c.rect(46, 3, 1, 21, P.G4)
+			c.rect(40, 12, 2, 4, P.G3)
+			c.rect(51, 12, 2, 4, P.G3)
+			c.rect(33, 26, 6, 3, P.RED)
+			c.rect(55, 26, 6, 3, P.RED)
 		_:
-			_box(c, 1, 1, w - 2, h - 2, P.G4, P.G3)
-			c.rect(4, 4, 4, 4, P.PINK)
-	if not key in ["exit", "entrance", "sorter", "bridge", "detector", "judge", "injector", "pump"]:
+			_cab(c, 1, 1, w - 2, h - 2, METAL)
+	if outline:
 		c.outline()
 
 

@@ -2,12 +2,15 @@ extends Node2D
 ## 공장 화면 (탑뷰 도트). 시뮬레이션 상태는 읽기만 해요.
 ## 층 순서 (아래 → 위)
 ##   바닥 타일(TileMapLayer) → 전선·파이프·물 샘(얇게) → 벽 타일(TileMapLayer) → 방 표시(점선·이름판)
-##   → 설비 스프라이트(설비 하나당 Sprite2D) → 레일 위 물건(한 노드 _draw로 일괄) → 표시(전력 등·고스트·선택)
+##   → 설비 스프라이트(설비 하나당 Sprite2D) → 레일 위 물건(한 노드 _draw로 일괄)
+##   → 천장 형광등 빛(더하기 합성) → 표시(전력 등·고스트·선택)
 ##   → '층 보기'를 켜면 전선·파이프를 진하게 맨 위에 한 번 더
 
 const TILE := 32.0
 const TILE_FLOOR_FROM_X := 40     # 이 x부터 정문 쪽은 사무실 타일 바닥
-const LIGHT_SPACING := 6          # 형광등 아래 밝은 카펫 간격
+const LIGHT_SPACING := 8          # 천장 형광등 간격 (칸)
+const LIGHT_SIZE := 9.0           # 형광등 빛 웅덩이 지름 (칸)
+const LIGHT_COLOR := Color(1.0, 0.92, 0.6, 0.16)  # 누런 형광등 (더해서 그려요)
 const POSTER_EVERY := 13          # 벽 포스터 빈도 (칸)
 
 const RoomOverlay := preload("res://scripts/view/room_overlay.gd")
@@ -25,6 +28,7 @@ var floor_layer: TileMapLayer
 var wall_layer: TileMapLayer
 var buildings: Node2D       # BuildingLayer
 var items: Node2D           # ItemLayer
+var lights: Node2D         # 형광등 빛 웅덩이
 
 
 func _ready() -> void:
@@ -37,6 +41,9 @@ func _ready() -> void:
 	_add(RoomOverlay, {})
 	buildings = _add(BuildingLayer, {})
 	items = _add(ItemLayer, {})
+	lights = Node2D.new()
+	lights.name = "Lights"
+	add_child(lights)
 	_add(MarkerLayer, {})
 	_add(LineLayer, {"bold": true})
 	if factory.room != null:
@@ -99,16 +106,14 @@ func _fill_room(room: Room) -> void:
 	for y in range(inner.position.y, inner.end.y):
 		for x in range(inner.position.x, inner.end.x):
 			var c := Vector2i(x, y)
-			var t := "carpet_a"
+			var t := "floor"
 			if room.terrain_at(c) == Room.T.NO_BUILD:
 				t = "hazard"
 			elif x >= TILE_FLOOR_FROM_X:
 				t = "office"
-			elif x % LIGHT_SPACING == 3 and y % LIGHT_SPACING == 3:
-				t = "carpet_lit"
 			else:
-				var h := absi(hash(c)) % 13
-				t = "carpet_stain" if h == 0 else ("carpet_b" if h < 4 else "carpet_a")
+				var h := absi(hash(c)) % 23
+				t = "floor_worn" if h == 0 else ("floor_quad" if h < 3 else "floor")
 			_set_tile(floor_layer, c, t)
 	var ring := inner.grow(1)
 	for y in range(ring.position.y, ring.end.y):
@@ -122,6 +127,7 @@ func _fill_room(room: Room) -> void:
 					_set_tile(wall_layer, c, "door")
 				Room.T.CORRIDOR:
 					_set_tile(wall_layer, c, "barrier")
+	_add_lights(inner)
 	# 복도: 벽 바깥으로 이어지는 어두운 통로와 양옆 벽
 	for r in room.corridor_rects():
 		var dir := -1 if r.position.y < 0 else 1
@@ -131,3 +137,30 @@ func _fill_room(room: Room) -> void:
 				_set_tile(floor_layer, Vector2i(x, y), "corridor")
 			_set_tile(wall_layer, Vector2i(r.position.x - 1, y), "corridor_wall")
 			_set_tile(wall_layer, Vector2i(r.end.x, y), "corridor_wall")
+
+
+func _add_lights(inner: Rect2i) -> void:
+	## 누런 형광등: 부드러운 원형 빛을 더하기 합성으로 바닥·설비 위에 살짝 얹어요 (스프라이트 몇 개뿐)
+	var g := Gradient.new()
+	g.set_color(0, LIGHT_COLOR)
+	g.set_color(1, Color(LIGHT_COLOR, 0.0))
+	var tex := GradientTexture2D.new()
+	tex.gradient = g
+	tex.fill = GradientTexture2D.FILL_RADIAL
+	tex.fill_from = Vector2(0.5, 0.5)
+	tex.fill_to = Vector2(1.0, 0.5)
+	tex.width = 64
+	tex.height = 64
+	var mat := CanvasItemMaterial.new()
+	mat.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+	var half := int(LIGHT_SPACING / 2.0)
+	for y in range(inner.position.y + half, inner.end.y, LIGHT_SPACING):
+		for x in range(inner.position.x + half, inner.end.x, LIGHT_SPACING):
+			var s := Sprite2D.new()
+			s.texture = tex
+			s.material = mat
+			s.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR
+			s.position = Vector2(x, y) * TILE
+			s.scale = Vector2.ONE * (LIGHT_SIZE * TILE / 64.0)
+			lights.add_child(s)
+
