@@ -7,7 +7,8 @@ extends Node
 signal topology_changed
 signal shipment(parcel, ok)
 signal items_popped(pile, cell, items)
-signal day_ended(day)                  # 18:00이 되어 멈췄어요   # 손으로 뒤져 물건이 튀어나왔을 때 (화면 연출용)
+signal day_ended(day)                  # 18:00이 되어 멈췄어요
+signal cells_changed(cells)            # 설비가 생기거나 없어지거나 옮겨진 칸 (빈 목록 = 전부) — 직원 길 찾기 격자가 그 칸만 갱신   # 손으로 뒤져 물건이 튀어나왔을 때 (화면 연출용)
 
 const DT := 0.05
 const MAX_STEPS_PER_FRAME := 80   # 프레임이 밀려도 한 번에 이만큼만 따라잡아요
@@ -65,6 +66,7 @@ var day := 1              # 며칠째
 var day_over := false     # 18:00: 다음 날(next_day)까지 시뮬레이션이 멈춰요
 var today_ok := 0         # 오늘 정상 배달
 var today_bad := 0        # 오늘 오배송
+var courier_count := 0    # 배달 아르바이트 수 (1명 이상이면 출하대 자동 배달이 꺼져요)
 var _acc := 0.0
 var _dirty := true
 
@@ -94,7 +96,7 @@ func step(dt: float) -> void:
 	_update_power()
 	_update_water()
 	for b in buildings:
-		if not held.has(b):
+		if not held.has(b) and not b.broken:
 			b.tick(dt)
 	sim_time += dt
 	tick_count += 1
@@ -244,6 +246,7 @@ func place(def_name: String, p: Vector2i, r: int):
 	for c in b.cells():
 		grid[c] = b
 	mark_dirty()
+	cells_changed.emit(b.cells())
 	return b
 
 
@@ -264,6 +267,7 @@ func remove_at(c: Vector2i) -> bool:
 	buildings.erase(b)
 	_release(b)
 	mark_dirty()
+	cells_changed.emit(b.cells())
 	return true
 
 
@@ -445,6 +449,7 @@ func move_buildings(list: Array, offset: Vector2i, rot: int = 0) -> bool:
 		if why != "":
 			return false
 	var bs := []
+	var touched := []
 	var layer_cells := {"wire": [], "pipe": []}
 	for e in list:
 		if e is Dictionary:
@@ -456,6 +461,7 @@ func move_buildings(list: Array, offset: Vector2i, rot: int = 0) -> bool:
 			bs.append(e)
 			for c in e.cells():
 				grid.erase(c)
+				touched.append(c)
 	for b in bs:
 		b.pos += offset
 		b.rot = (b.rot + rot) % 4
@@ -463,12 +469,53 @@ func move_buildings(list: Array, offset: Vector2i, rot: int = 0) -> bool:
 		b.size = Vector2i(s.y, s.x) if b.rot % 2 == 1 else s
 		for c in b.cells():
 			grid[c] = b
+			touched.append(c)
 	for c in layer_cells["wire"]:
 		wires[c] = true
 	for c in layer_cells["pipe"]:
 		pipes[c] = true
 	mark_dirty()
+	cells_changed.emit(touched)
 	return true
+
+
+# ---------- 고장 · 직원 ----------
+
+func break_random(rng: RandomNumberGenerator = null) -> Building:
+	## 디버그: 무작위 설비 하나를 고장 내요 (지형·레일 계열 제외). 고장 낸 설비를 돌려줘요
+	var cands := []
+	for b in buildings:
+		if not b.broken and not is_fixed(b) and not b.is_conveyor():
+			cands.append(b)
+	if cands.is_empty():
+		return null
+	var r := rng if rng != null else _rng
+	var b: Building = cands[r.randi_range(0, cands.size() - 1)]
+	b.broken = true
+	revision += 1
+	return b
+
+
+func repair(b: Building) -> void:
+	if b != null and b.broken:
+		b.broken = false
+		revision += 1
+
+
+func take_parcels(s: Shelf, n: int) -> Array:
+	## 배달 아르바이트가 출하대에서 택배를 최대 n개 집어요
+	return Building.take_front(s.stack, n)
+
+
+func deliver(parcels: Array) -> int:
+	## 직원이 배달을 마친 순간: 하나하나 정상/오배송을 세요. 정상 수를 돌려줘요
+	var ok_n := 0
+	for p in parcels:
+		var ok := Shelf.parcel_ok(p)
+		record_shipment(p, ok)
+		if ok:
+			ok_n += 1
+	return ok_n
 
 
 func drop_items(items: Array, origin: Vector2, delay: float) -> void:
@@ -516,6 +563,7 @@ func clear_all() -> void:
 	buildings.clear()
 	held.clear()
 	grid.clear()
+	cells_changed.emit([])
 	wires.clear()
 	pipes.clear()
 	water.clear()
@@ -673,7 +721,7 @@ func next_day() -> void:
 func to_save() -> Dictionary:
 	var bs := []
 	for b in buildings:
-		bs.append({"name": b.name, "pos": [b.pos.x, b.pos.y], "rot": b.rot, "given": b.given, "state": b.save_state()})
+		bs.append({"name": b.name, "pos": [b.pos.x, b.pos.y], "rot": b.rot, "given": b.given, "broken": b.broken, "state": b.save_state()})
 	return {
 		"version": SAVE_VERSION,
 		"creative": creative,
@@ -711,6 +759,7 @@ func load_save(d) -> bool:
 			push_warning("저장된 설비를 놓지 못했어요: %s %s" % [n, str(pp)])
 			continue
 		b.given = bool(e.get("given", false))
+		b.broken = bool(e.get("broken", false))
 		var st = e.get("state", {})
 		if st is Dictionary:
 			b.load_state(st)

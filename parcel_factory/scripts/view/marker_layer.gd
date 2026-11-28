@@ -48,7 +48,7 @@ func _draw() -> void:
 		var icon := ""
 		# 진행 막대: 가동 중일 때만 (멈추면 숨겨요)
 		var k: float = StatusIcons.progress(b)
-		if k >= 0.0 and b.is_active():
+		if k >= 0.0 and b.is_active() and not b.broken:
 			var bar := Rect2(r.position + Vector2(3, r.size.y - 4), Vector2(r.size.x - 6, BAR + 2))
 			draw_rect(bar, Color(Palette.c(Palette.INK), 0.8))
 			draw_rect(Rect2(bar.position + Vector2(1, 1), Vector2((bar.size.x - 2) * k, BAR)), Palette.c(Palette.LIME))

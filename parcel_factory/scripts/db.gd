@@ -27,6 +27,18 @@ func _ready() -> void:
 	_load_items()
 	_load_recipes()
 	_load_buildings()
+	_load_workers()
+
+
+var workers := {}          # 이름 -> 직원 정의 (data/workers.json)
+var worker_names: Array = []
+
+
+func _load_workers() -> void:
+	var d = _load_json("res://data/workers.json")
+	for w in d["workers"]:
+		workers[w["name"]] = w
+		worker_names.append(w["name"])
 
 
 func _load_json(path: String):

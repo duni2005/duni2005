@@ -19,6 +19,7 @@ var water_net = null
 var out_links: Array = []    # 자동으로 밀어낼 수 있는 [레일, 내 칸]
 var status: String = ""      # 정보 패널에 보여줄 상태
 var given := false           # 처음부터 깔린 지급 설비 (철거할 수 없어요)
+var broken := false          # 고장: 멈춰 있고 정비 아르바이트가 고쳐요 (factory.repair)
 var _push_cd := 0.0
 var _push_index := 0
 
@@ -252,6 +253,8 @@ static func items_of(id: String, n: int) -> Array:
 
 func info() -> String:
 	var s := name
+	if broken:
+		s += "\n고장 (정비 아르바이트가 고쳐요)"
 	if needs_power():
 		if power_net == null:
 			s += "\n전력: 연결 안 됨"

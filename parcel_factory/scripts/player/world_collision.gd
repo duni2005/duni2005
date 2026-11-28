@@ -11,6 +11,7 @@ var _shapes := {}   # Building -> CollisionShape2D
 
 
 func _ready() -> void:
+	collision_layer = 3   # 1 = 플레이어, 2 = 직원 (직원끼리·플레이어와는 안 부딪혀요)
 	if factory.room != null:
 		var r: Rect2i = factory.room.interior()
 		# 둘레 벽 네 줄 (정문·복도 칸도 벽 줄 위라 함께 막혀요)

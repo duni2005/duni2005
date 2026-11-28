@@ -1,0 +1,8 @@
+{
+  "_note": "직원(아르바이트) 수치. round_trip = 출하대에서 택배를 집어 배달하고 돌아오기까지(초, 게임 시간). day_max는 기획서 참고값(round_trip으로 저절로 맞춰져요).",
+  "workers": [
+    {"name": "초보 배달 아르바이트", "short": "초보 배달", "job": "delivery", "round_trip": 45, "carry": 1, "speed": 2.0, "day_max": 26},
+    {"name": "배달 아르바이트", "short": "배달", "job": "delivery", "round_trip": 60, "carry": 3, "speed": 2.0, "vehicle": "오토바이"},
+    {"name": "초보 정비 아르바이트", "short": "초보 정비", "job": "repair", "repair_sec": 8, "speed": 2.0}
+  ]
+}

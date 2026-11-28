@@ -2,6 +2,7 @@ extends CanvasLayer
 ## 화면 UI (모바일 가로 화면 기준, PC도 같은 화면).
 ##   왼쪽 위    : 지금 상호작용 대상 이름 · 짧은 상태          (+ F3 디버그 오버레이)
 ##   오른쪽 위  : 시계(+ 오늘 배달 수 정상/오배송) · 일시정지 · 속도 · 메뉴(저장·설정·디버그), 그 아래 모드 글씨
+##   왼쪽 위 아래: 직원 작은 정보창 (일반 모드에서 직원 탭: 이름 · 상태 · 오늘 처리 수, 정비는 [구역 지정])
 ##   가운데     : 18:00 '하루 끝' 창 (시뮬레이션이 멈추고 [다음 날]로 09:00부터)
 ##   가운데 위  : 알림 글씨, 범위 선택이 있으면 '설비 N개 선택됨' + [이동][철거(꾹)][해제]
 ##   왼쪽 아래  : 떠 있는 조이스틱 영역 (화면 왼쪽 35% × 아래 60%, 터치 입력일 때만)
@@ -44,6 +45,10 @@ var top_right: HBoxContainer
 var clock_label: Label
 var ship_label: Label
 var day_panel: PanelContainer   # 하루 끝
+var worker_panel: PanelContainer
+var worker_shown = null         # 정보창에 보여주는 직원
+var _worker_labels: Array = []  # [이름, 상태, 처리 수]
+var _zone_btn: Button
 var day_label: Label
 var pause_btn: Button
 var speed_btn: Button
@@ -97,6 +102,7 @@ func _ready() -> void:
 	_build_toast()
 	_build_sel_bar()
 	_build_day_panel()
+	_build_worker_panel()
 	_build_palette()
 	_build_bottom()
 	_build_action()
@@ -331,6 +337,59 @@ func _build_day_panel() -> void:
 	day_panel.visible = false
 
 
+func _build_worker_panel() -> void:
+	worker_panel = PanelContainer.new()
+	_dark(worker_panel)
+	_corner(worker_panel, 0, 0, Control.GROW_DIRECTION_END, Control.GROW_DIRECTION_END, Vector2(MARGIN, MARGIN + BTN_H + 8))
+	root.add_child(worker_panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	worker_panel.add_child(v)
+	for i in 3:
+		var l := Label.new()
+		l.add_theme_font_size_override("font_size", 22 if i == 0 else 18)
+		if i == 0:
+			l.add_theme_color_override("font_color", Palette.c(Palette.YELLOW))
+		v.add_child(l)
+		_worker_labels.append(l)
+	var h := HBoxContainer.new()
+	v.add_child(h)
+	_zone_btn = _btn("구역 지정", _on_zone_pick, 130)
+	h.add_child(_zone_btn)
+	h.add_child(_btn("닫기", func() -> void: close_worker(), 90))
+	worker_panel.visible = false
+
+
+func open_worker(w) -> void:
+	worker_shown = w
+	worker_panel.visible = true
+	_refresh_worker()
+
+
+func close_worker() -> bool:
+	if not worker_panel.visible:
+		return false
+	worker_panel.visible = false
+	worker_shown = null
+	return true
+
+
+func _refresh_worker() -> void:
+	var w = worker_shown
+	if w == null or not worker_panel.visible:
+		return
+	_worker_labels[0].text = w.title
+	_worker_labels[1].text = "상태: " + w.state_text()
+	_worker_labels[2].text = ("오늘 배달 %d개" if w.job == "delivery" else "오늘 수리 %d개") % w.today
+	_zone_btn.visible = w.job == "repair"
+
+
+func _on_zone_pick() -> void:
+	## 정비 직원 담당 구역: 9단계 범위 선택과 같은 손동작 (아무 칸이나 꾹 → 끌기 → 놓기)
+	main.edit.zone_for = worker_shown
+	show_message("담당 구역: 꾹 눌러 사각형으로 끌어 주세요")
+
+
 func _on_next_day() -> void:
 	main.factory.next_day()
 	day_panel.visible = false
@@ -488,6 +547,7 @@ func _process(dt: float) -> void:
 	var f = main.factory
 	clock_label.text = GameClock.text(f.sim_time)
 	_refresh_day()
+	_refresh_worker()
 	_refresh_sel_bar()
 	var tt := _target_text()
 	target_panel.visible = tt != ""
@@ -495,7 +555,7 @@ func _process(dt: float) -> void:
 
 
 func is_over_ui(p: Vector2) -> bool:
-	for c in [top_right, sel_bar, day_panel, palette, hotbar, action_btn, rotate_btn, mode_bar, backdrop, info, inventory_panel, menu_panel, joystick]:
+	for c in [top_right, sel_bar, day_panel, worker_panel, palette, hotbar, action_btn, rotate_btn, mode_bar, backdrop, info, inventory_panel, menu_panel, joystick]:
 		if c.visible and c.get_global_rect().has_point(p):
 			return true
 	return false
@@ -617,6 +677,10 @@ func _build_menu() -> void:
 		["storage", _on_storage_toggle],
 		["설치 팔레트", _menu_call.bind(toggle_palette)],
 		["층 보기 (전선·파이프)", _on_layers],
+		["고용: 초보 배달 아르바이트", _menu_call.bind(main.hire_worker.bind("초보 배달 아르바이트"))],
+		["고용: 배달 아르바이트", _menu_call.bind(main.hire_worker.bind("배달 아르바이트"))],
+		["고용: 초보 정비 아르바이트", _menu_call.bind(main.hire_worker.bind("초보 정비 아르바이트"))],
+		["무작위 고장 일으키기", _menu_call.bind(main.break_random)],
 		["예시 불러오기", _menu_call.bind(main.new_room.bind(true))],
 		["비우기", _menu_call.bind(main.clear_room)],
 	])

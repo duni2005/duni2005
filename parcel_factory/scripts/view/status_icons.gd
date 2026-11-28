@@ -2,7 +2,7 @@ extends RefCounted
 ## 설비 상태 한 곳에서 판단: 월드의 상태 아이콘(marker_layer)과 정보창(info_panel)이 같이 써요.
 ## 시뮬레이션 상태는 읽기만 해요. 아이콘 이름은 SpriteGen.UI_ICONS (8×8).
 ##   check 작동 중 · empty 재료 부족(빈 상자) · blocked 출력 막힘(빨간 화살표) · bolt_red 전력 없음
-##   bolt 전력 부족(노랑) · question 레시피 없음 · drop 물 부족 · "" 표시할 것 없음
+##   bolt 전력 부족(노랑) · question 레시피 없음 · drop 물 부족 · broken 고장(렌치) · "" 표시할 것 없음
 
 const RUNNING := "check"
 
@@ -10,6 +10,8 @@ const RUNNING := "check"
 static func classify(b) -> Dictionary:
 	## {icon, color(팔레트 번호), text}
 	var s: String = b.status
+	if b.broken:
+		return _r("broken", Palette.RED, "고장")
 	if b is Machine and b.recipe == null and not b.available_recipes().is_empty():
 		return _r("question", Palette.YELLOW, "레시피를 골라요")
 	if b is Generator:

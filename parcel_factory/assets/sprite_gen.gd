@@ -97,7 +97,7 @@ const PLAYER_W := 16
 const PLAYER_H := 24
 const PLAYER_COLS := 8
 const UI_ICONS := ["hand", "gear", "box", "hammer", "fist", "move", "crowbar", "rotate", "check", "warn", "bolt", "stop",
-	"empty", "blocked", "bolt_red", "question", "drop"]   # 뒤 다섯 개: 설비 상태 아이콘 (StatusIcons)
+	"empty", "blocked", "bolt_red", "question", "drop", "broken"]   # empty부터: 설비 상태 아이콘 (StatusIcons)
 
 
 # ---------- 진입점 ----------
@@ -120,6 +120,10 @@ static func make(key: String, cells: Vector2i = Vector2i.ONE) -> Image:
 			return trash_heap()
 		"player":
 			return player_sheet()
+		"worker_delivery":
+			return worker_sheet({P.ORANGE: P.GREEN, P.ORANGE_L: P.LIME, P.BLUE: P.RED_D, P.CYAN: P.RED, P.BLUE_D: P.BROWN_D})
+		"worker_repair":
+			return worker_sheet({P.ORANGE: P.YELLOW, P.ORANGE_L: P.PAPER, P.BLUE: P.G3, P.CYAN: P.G4, P.BLUE_D: P.G2})
 		"ui_icons":
 			return ui_icons()
 	return building(key, cells)
@@ -785,6 +789,20 @@ static func player_sheet() -> Image:
 	return sheet
 
 
+static func worker_sheet(swap: Dictionary) -> Image:
+	## 아르바이트 직원: 플레이어와 같은 16×24 걷기 칸을 쓰고 모자·옷 색만 바꿔요 (화면에선 조금 작게 그려요)
+	var sheet := player_sheet()
+	var map := {}
+	for k in swap:
+		map[P.COLORS[k]] = P.COLORS[swap[k]]
+	for y in sheet.get_height():
+		for x in sheet.get_width():
+			var col := sheet.get_pixel(x, y)
+			if map.has(col):
+				sheet.set_pixel(x, y, map[col])
+	return sheet
+
+
 static func _player(c: PixelCanvas, dir: int, col: int) -> void:
 	var walk := col < 4
 	var step := 0          # -1 / 1 : 어느 발이 앞인지
@@ -980,6 +998,13 @@ static func ui_icons() -> Image:
 				c.rect(4, 3, 2, 1, P.YELLOW)
 				c.rect(3, 4, 2, 1, P.YELLOW)
 				c.rect(3, 6, 2, 2, P.YELLOW)
+			"broken":
+				# 고장: 빨간 바탕 위 렌치
+				c.rect(0, 0, 8, 8, P.RED_D)
+				c.line(1, 6, 5, 2, P.PAPER)
+				c.line(2, 7, 6, 3, P.PAPER)
+				c.rect(5, 0, 3, 2, P.PAPER)
+				c.px(6, 1, P.RED_D)
 			"drop":
 				c.px(4, 0, P.CYAN)
 				c.rect(3, 1, 2, 2, P.CYAN)

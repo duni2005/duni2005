@@ -51,6 +51,13 @@ func _draw() -> void:
 		draw_arc(c, rad, -PI * 0.5, -PI * 0.5 + TAU * k, 40, Palette.c(Palette.RED), GAUGE_W)
 		if edit.gauge_list.size() > 1:
 			_plate(c - Vector2(0, rad + 16), "%d개 철거" % edit.gauge_list.size(), Palette.c(Palette.PINK), font, true)
+	# 정비 직원 담당 구역 (구역 지정 중이거나 그 직원 정보창이 열려 있을 때)
+	var w = edit.zone_for if edit.zone_for != null else edit.main.hud.worker_shown
+	if w != null and w.job == "repair":
+		var zr := Rect2(Vector2(w.zone.position) * TILE, Vector2(w.zone.size) * TILE)
+		draw_rect(zr, Color(Palette.c(Palette.CYAN), 0.08))
+		_dashed(zr, Palette.c(Palette.CYAN))
+		_plate(zr.position + Vector2(6, 16), "담당 구역", Palette.c(Palette.CYAN), font)
 	# 안내 말풍선
 	if not edit.hint.is_empty():
 		var r: Rect2 = edit.hint["rect"]

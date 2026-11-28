@@ -27,6 +27,7 @@ const BuildController := preload("res://scripts/player/build_controller.gd")
 const DustFx := preload("res://scripts/view/dust_fx.gd")
 const EditController := preload("res://scripts/player/edit_controller.gd")
 const EditLayer := preload("res://scripts/view/edit_layer.gd")
+const WorkerManager := preload("res://scripts/workers/worker_manager.gd")
 ## 새 게임 시작 지급품 [이름, 개수]
 const STARTER_KIT := [
 	["나무 판자", 20], ["나사", 40], ["[설비] 레일 Mk1", 100],
@@ -59,6 +60,7 @@ var play_mode := PlayMode.new()   # 일반·이동·철거 모드는 여기 한 
 var build        # scripts/player/build_controller.gd (설비 아이템 설치)
 var dust         # 설치 먼지 효과
 var edit         # scripts/player/edit_controller.gd (이동·철거·범위 선택)
+var workers      # scripts/workers/worker_manager.gd (아르바이트 직원)
 var cam_pan := Vector2.ZERO      # 둘러보기·가장자리로 민 카메라 (LOOK_RETURN_SEC 뒤 돌아와요)
 var cam_pan_hold := false        # 둘러보기 손가락을 누르고 있는 동안 돌아오지 않아요
 var sfx                          # scripts/view/sfx.gd (효과음 자리)
@@ -96,6 +98,9 @@ func _ready() -> void:
 	var drops := DropLayer.new()
 	drops.world = view
 	view.add_actor(drops)
+	workers = WorkerManager.new()
+	workers.factory = factory
+	view.add_actor(workers)
 	player = Player.new()
 	player.factory = factory
 	player.position = PLAYER_START * TILE
@@ -182,6 +187,21 @@ func begin_move(b) -> void:
 	edit.move_one(b)
 
 
+func hire_worker(def_name: String) -> void:
+	## 디버그 메뉴 '직원 고용' (돈 없이). 정문 안쪽에서 생겨요
+	var w = workers.hire(def_name)
+	hud.show_message("%s을(를) 고용했어요" % w.title)
+
+
+func break_random() -> void:
+	var b = factory.break_random()
+	hud.show_message(("%s이(가) 고장 났어요" % b.name) if b != null else "고장 낼 설비가 없어요")
+
+
+func screen_to_world(sp: Vector2) -> Vector2:
+	return get_viewport().get_canvas_transform().affine_inverse() * sp
+
+
 func toggle_creative() -> void:
 	factory.creative = not factory.creative
 	hud.show_message("크리에이티브 %s" % ("켬: 어디든 설치·철거" if factory.creative else "끔: 큰방 규칙"))
@@ -224,7 +244,7 @@ func _load_file() -> bool:
 
 func cancel() -> void:
 	## Esc·오른쪽 클릭: 가방·메뉴 닫기 → 일반 모드로 → 하던 일·손에 든 것 내려놓기 → 설치 취소 → 정보 패널 닫기
-	if hud.close_inventory() or hud.close_menu():
+	if hud.close_inventory() or hud.close_menu() or hud.close_worker():
 		return
 	if build.cancel_build():
 		return

@@ -46,6 +46,7 @@ var hint := {}                   # {rect, text, t}
 var _btn_off := Vector2.ZERO
 var _second := {}                # {index, t}
 var _rev := -1
+var zone_for = null              # 정비 직원 담당 구역 지정 중 (다음 꾹-끌기 사각형이 그 직원 구역)
 var _snd_break: AudioStream     # assets/sfx/break가 없을 때 쓰는 '와작'
 
 
@@ -188,7 +189,8 @@ func world_press(index: int, sp: Vector2) -> void:
 		_lift(sel, g, c)
 		return
 	# 일반 모드: 손 닿는 설비는 지금처럼 플레이어가 처리해요 (탭 = 정보창, 들고 꾹 = 빠른 넣기)
-	if main.play_mode.mode == PlayMode.Mode.NORMAL and b != null and player.in_reach(b) and not (not sel.is_empty() and not _sel_has_cell(c)):
+	if main.play_mode.mode == PlayMode.Mode.NORMAL and b != null and player.in_reach(b) and not (not sel.is_empty() and not _sel_has_cell(c)) \
+			and main.workers.worker_at(main.screen_to_world(sp)) == null:
 		press["player"] = true
 		player.action_press(b)
 
@@ -267,12 +269,18 @@ func _tap(c: Vector2i, b, sp: Vector2) -> void:
 			if b != null:
 				_say(b, "꾹 눌러서 옮기기")
 		_:
+			# 일반 모드: 직원을 탭하면 작은 정보창 (거리 제한 없음), 다른 곳을 탭하면 닫혀요
+			var w = main.workers.worker_at(main.screen_to_world(sp))
+			if w != null:
+				main.hud.open_worker(w)
+				return
+			main.hud.close_worker()
 			main.far_tap(sp)
 
 
 func _on_hold() -> void:
 	var b = press["b"]
-	if press["src"] == "world" and b == null:
+	if press["src"] == "world" and (b == null or zone_for != null):
 		state = "select"   # 빈 칸 꾹: 범위 선택
 		sel_from = press["cell"]
 		sel_to = sel_from
@@ -494,6 +502,11 @@ func move_one(b) -> void:
 
 func _finish_select() -> void:
 	var r := Rect2i(Vector2i(mini(sel_from.x, sel_to.x), mini(sel_from.y, sel_to.y)), (sel_from - sel_to).abs() + Vector2i.ONE)
+	if zone_for != null:
+		zone_for.zone = r   # 정비 직원 담당 구역
+		main.hud.show_message("%s 담당 구역: %d×%d칸" % [zone_for.title, r.size.x, r.size.y])
+		zone_for = null
+		return
 	var found := []
 	for b in factory.buildings:
 		if r.intersects(Rect2i(b.pos, b.size)) and factory.can_deconstruct(b):
@@ -553,6 +566,10 @@ func cancel() -> bool:
 		"select":
 			_end_press()
 			return true
+	if zone_for != null:
+		zone_for = null
+		main.hud.show_message("구역 지정 취소")
+		return true
 	if move_armed or not sel.is_empty():
 		clear_selection()
 		return true

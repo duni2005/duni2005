@@ -32,6 +32,8 @@ func _ready() -> void:
 	_test_deconstruct_many()
 	_test_status()
 	_test_day()
+	_test_breakdown_delivery()
+	_test_nav_grid()
 	_test_floor_items()
 	_test_demos()
 	_test_save_roundtrip()
@@ -543,6 +545,78 @@ func _test_day() -> void:
 		"멈춤 %s · 그대로 %s · 집계 %s · 저장 %s · 다음 날 %s · 다시 돎 %s" % [str(stopped), str(frozen), str(counted), str(saved), str(next), str(runs)])
 	f.free()
 	b.free()
+
+
+func _test_breakdown_delivery() -> void:
+	## 고장(멈춤·정보창 '고장'·저장·수리) · 배달 직원이 있으면 출하대 자동 배달 꺼짐 · 배달 순간 정상/오배송
+	var f := _new_factory()
+	var rig := _build_paper_rig(f, 0)
+	var m: Machine = rig["machine"]
+	_run(f, 2.0)
+	m.broken = true
+	var p0: float = m.progress
+	_run(f, 2.0)
+	var stopped: bool = is_equal_approx(m.progress, p0) and StatusIcons.classify(m)["icon"] == "broken" and StatusIcons.classify(m)["text"] == "고장"
+	var b := _new_factory()
+	b.load_save(JSON.parse_string(JSON.stringify(f.to_save())))
+	var saved := false
+	for e in b.buildings:
+		if e.name == "분해기" and e.broken:
+			saved = true
+	f.repair(m)
+	_run(f, 1.0)
+	var fixed: bool = not m.broken and m.progress != p0
+	var picked = f.break_random()
+	var rand_ok: bool = picked != null and picked.broken and not picked.is_conveyor()
+	# 출하대: 직원이 있으면 쌓이기만, 없으면 자동 배달
+	var s: Shelf = f.place("출하대", Vector2i(30, 30), 0)
+	for i in 3:
+		var good := Item.new("택배")   # 요청대로 담긴 택배 = 정상
+		good.request = {"items": {"종이": 1}}
+		good.contents = ["종이"]
+		s.try_insert(good, Vector2i(29, 30))
+	f.courier_count = 1
+	_run(f, 5.0)
+	var held: bool = s.stack.size() == 3 and s.shipped == 0
+	var got: Array = f.take_parcels(s, 2)
+	var bad := Item.new("택배")   # 요청과 내용물이 다름 = 오배송
+	bad.request = {"items": {"종이": 2}}
+	got.append(bad)
+	var ok_n := f.deliver(got)
+	var counted: bool = ok_n == 2 and f.today_ok == 2 and f.today_bad == 1 and s.stack.size() == 1
+	f.courier_count = 0
+	_run(f, 3.0)
+	var auto: bool = s.stack.is_empty()
+	_check("고장 · 수리 · 저장 · 직원 배달(정상/오배송) · 직원이 있으면 자동 배달 꺼짐",
+		stopped and saved and fixed and rand_ok and held and counted and auto,
+		"멈춤 %s · 저장 %s · 수리 %s · 무작위 %s · 자동 꺼짐 %s · 집계 %s · 자동 다시 %s" % [str(stopped), str(saved), str(fixed), str(rand_ok), str(held), str(counted), str(auto)])
+	f.free()
+	b.free()
+
+
+func _test_nav_grid() -> void:
+	## 길 찾기 격자: 설비·벽 = 막힘, 레일 위 = 통과, 설치·철거·이동 때 그 칸만 갱신
+	var f := _new_room_factory()
+	var nav = load("res://scripts/workers/nav_grid.gd").new()
+	nav.setup(f)
+	var straight: Array = nav.path(Vector2i(10, 20), Vector2i(20, 20))
+	var n0: int = nav.updates
+	var wall := []
+	for y in range(15, 26):
+		wall.append(f.place("창고 블록", Vector2i(15, y), 0))
+	var few: bool = nav.updates - n0 == 11
+	var around: Array = nav.path(Vector2i(10, 20), Vector2i(20, 20))
+	f.remove_at(Vector2i(15, 20))
+	f.place("레일 Mk1", Vector2i(15, 20), 0)
+	var through: Array = nav.path(Vector2i(10, 20), Vector2i(20, 20))
+	var n1: int = nav.updates
+	f.move_buildings([wall[0]], Vector2i(2, 0), 0)
+	var moved_ok: bool = nav.updates - n1 == 2 and nav.walkable(Vector2i(15, 15)) and not nav.walkable(Vector2i(17, 15))
+	var walls: bool = nav.path(Vector2i(10, 20), Vector2i(-1, 20)).is_empty() and not nav.walkable(Vector2i(Room.W, 20))
+	_check("길 찾기: 설비 피해 돌아감 · 레일 위 통과 · 벽 막힘 · 바뀐 칸만 갱신",
+		straight.size() == 10 and few and around.size() > 10 and through.size() == 10 and moved_ok and walls,
+		"직선 %d칸 · 설치 갱신 %d칸 · 돌아감 %d칸 · 레일 통과 %d칸 · 이동 갱신 %s · 벽 %s" % [straight.size(), nav.updates - n0, around.size(), through.size(), str(moved_ok), str(walls)])
+	f.free()
 
 
 func _test_floor_items() -> void:

@@ -5,7 +5,7 @@ extends Node
 
 const TILE := 32.0
 const PHYS_FPS := 60.0
-const WATCHDOG_SEC := 90.0
+const WATCHDOG_SEC := 240.0
 const TEST_SAVE := "user://player_test_save.json"   # 진짜 저장 파일은 건드리지 않아요
 
 var _fails := 0
@@ -38,6 +38,9 @@ func _ready() -> void:
 	await _test_range_select()
 	await _test_feel()
 	await _test_day_hud()
+	await _test_workers()
+	await _test_repair_worker()
+	await _test_courier3()
 	await _test_save_load()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SAVE))
 	print("=== 결과: %s (실패 %d) ===" % ["통과" if _fails == 0 else "실패", _fails])
@@ -701,4 +704,143 @@ func _test_day_hud() -> void:
 	await _frames(int(0.3 * PHYS_FPS))
 	var next: bool = not hud.day_panel.visible and not f.day_over and f.day == 2 and hud.clock_label.text == "09:00" and hud.ship_label.text == "배달 0 · 오배송 0"
 	_check("하루 끝 창 · 배달 수 표시 · 다음 날", shown and ship_ok and next, "창 %s · 배달 '%s' · 다음 날 %s" % [str(shown), hud.ship_label.text, str(next)])
+
+
+# ---------- 12단계: 아르바이트 직원 ----------
+
+func _parcel_line() -> Shelf:
+	## 무한 공급기(택배) → 레일 → 지급 출하대(정문 옆)
+	var src = f.place("무한 공급기", Vector2i(44, 19), 0)
+	src.item_id = "택배"
+	src.per_sec = 4.0
+	f.place("레일 Mk1", Vector2i(45, 19), 0)
+	return f.get_at(Vector2i(46, 19))
+
+
+func _clear_workers() -> void:
+	for w in main.workers.workers:
+		w.queue_free()
+	main.workers.workers.clear()
+	main.workers._count_couriers()
+
+
+func _deliveries_in(sec: float) -> int:
+	var n0: int = f.today_ok + f.today_bad
+	await _frames(int(sec * PHYS_FPS))
+	return f.today_ok + f.today_bad - n0
+
+
+func _test_workers() -> void:
+	main.new_room(false)
+	_clear_workers()
+	f.paused = false
+	f.speed = 4.0
+	var shelf := _parcel_line()
+	await _put(Vector2(30.5, 30.5))
+	# 1명: 출하대 → 정문 → 밖(사라짐) → 다시 들어옴. 출하대 자동 배달은 꺼져요
+	var w = main.workers.hire("초보 배달 아르바이트")
+	w.round_trip = 8.0
+	var went_out := false
+	var carried := false
+	var n0: int = f.today_ok + f.today_bad
+	for i in int(7.0 * PHYS_FPS):
+		await get_tree().physics_frame
+		went_out = went_out or not w.visible
+		carried = carried or not w.carried.is_empty()
+	var one: int = f.today_ok + f.today_bad - n0
+	var auto_off: bool = f.courier_count == 1 and shelf.shipped == 0
+	# 2명이면 처리량이 늘어요
+	var w2 = main.workers.hire("초보 배달 아르바이트")
+	w2.round_trip = 8.0
+	await _frames(int(2.0 * PHYS_FPS))
+	var two: int = await _deliveries_in(7.0)
+	var more: bool = one >= 2 and two >= int(one * 1.6)
+	# 직원 탭 → 작은 정보창 (거리 제한 없음)
+	f.paused = true
+	await _frames(2)
+	var vis = w if w.visible else w2
+	await _look()
+	_touch(0, vis.position / TILE - Vector2(0, 0.6), true)
+	await _frames(3)
+	_touch(0, vis.position / TILE - Vector2(0, 0.6), false)
+	await _frames(3)
+	var panel: bool = main.hud.worker_panel.visible and main.hud.worker_shown == vis and main.hud._worker_labels[2].text.begins_with("오늘 배달")
+	main.hud.close_worker()
+	f.paused = false
+	_check("배달 아르바이트: 출하대 → 정문 → 밖 · 자동 배달 꺼짐 · 2명이면 처리량 늘어남 · 탭하면 정보창",
+		went_out and carried and auto_off and more and panel,
+		"밖으로 %s · 들고 감 %s · 자동 꺼짐 %s · 1명 %d개 → 2명 %d개 · 정보창 %s" % [str(went_out), str(carried), str(auto_off), one, two, str(panel)])
+	# 길이 막히면: 출하대를 창고 블록으로 둘러싸요 → 1초마다 다시, 3번 실패하면 말풍선
+	f.remove_at(Vector2i(44, 19))
+	f.remove_at(Vector2i(45, 19))
+	shelf.stack.clear()
+	var s2: Shelf = f.place("출하대", Vector2i(20, 20), 0)
+	for d in [Vector2i(1, 0), Vector2i(-1, 0), Vector2i(0, 1), Vector2i(0, -1)]:
+		f.place("창고 블록", Vector2i(20, 20) + d, 0)
+	for i in 3:
+		s2.try_insert(Item.new("택배"), Vector2i(19, 20))
+	await _frames(int(3.0 * PHYS_FPS))
+	var bubble: bool = (w.blocked and w.state_text() == "길이 막혔어요") or (w2.blocked and w2.state_text() == "길이 막혔어요")
+	# 막힌 걸 치우면 다시 가요
+	f.remove_at(Vector2i(19, 20))
+	await _frames(int(5.0 * PHYS_FPS))
+	var unblocked: bool = not w.blocked and not w2.blocked and s2.stack.size() < 3
+	_check("길이 막히면 1초마다 다시 · 3번 실패 말풍선 · 뚫리면 다시 가요", bubble and unblocked, "말풍선 %s · 다시 감 %s (남은 택배 %d)" % [str(bubble), str(unblocked), s2.stack.size()])
+	_clear_workers()
+	f.speed = 1.0
+	f.paused = true
+
+
+func _test_repair_worker() -> void:
+	main.new_room(false)
+	_clear_workers()
+	f.paused = false
+	f.speed = 4.0
+	var near = f.place("분해기", Vector2i(30, 24), 0)
+	var far = f.place("분해기", Vector2i(10, 30), 0)
+	var w = main.workers.hire("초보 정비 아르바이트")
+	w.zone = Rect2i(25, 15, 20, 20)   # 담당 구역: near만
+	near.broken = true
+	far.broken = true
+	var info_broken: bool = main.hud.info._status(near)[2] == "고장"
+	var went := false
+	for i in int(5.0 * PHYS_FPS):
+		await get_tree().physics_frame
+		went = went or w.state == w.S.REPAIR
+		if not near.broken:
+			break
+	var fixed: bool = not near.broken and w.today == 1
+	await _frames(int(1.0 * PHYS_FPS))
+	var zone_ok: bool = far.broken and w.state != w.S.GO_REPAIR
+	_check("정비 아르바이트: 담당 구역 안 고장 설비로 가서 8초 수리 · 구역 밖은 안 가요 · 정보창 '고장'",
+		went and fixed and zone_ok and info_broken, "수리 중 봄 %s · 고침 %s · 구역 밖 그대로 %s · 정보창 %s" % [str(went), str(fixed), str(zone_ok), str(info_broken)])
+	_clear_workers()
+	f.speed = 1.0
+	f.paused = true
+
+
+func _test_courier3() -> void:
+	## 배달 아르바이트: 한 번에 최대 3개 · 가던 출하대가 옮겨지면 다시 찾아요
+	main.new_room(false)
+	_clear_workers()
+	f.paused = false
+	f.speed = 4.0
+	var a: Shelf = f.get_at(Vector2i(46, 19))
+	var b: Shelf = f.place("출하대", Vector2i(30, 30), 0)
+	for i in 5:
+		b.try_insert(Item.new("택배"), Vector2i(29, 30))
+	var w = main.workers.hire("배달 아르바이트")
+	await _frames(int(0.3 * PHYS_FPS))
+	var aimed: bool = w.target == b and w.state == w.S.GO_PICK
+	f.move_buildings([b], Vector2i(-6, 0), 0)   # 가는 중에 옮겨요
+	var max_carry := 0
+	for i in int(6.0 * PHYS_FPS):
+		await get_tree().physics_frame
+		max_carry = maxi(max_carry, w.carried.size())
+	var three: bool = max_carry == 3 and b.stack.size() == 2 and a.stack.is_empty()
+	_check("배달 아르바이트: 한 번에 3개 · 출하대를 옮기면 다시 찾아감", aimed and three,
+		"처음 목표 %s · 최대 %d개 · 남은 택배 %d" % [str(aimed), max_carry, b.stack.size()])
+	_clear_workers()
+	f.speed = 1.0
+	f.paused = true
 

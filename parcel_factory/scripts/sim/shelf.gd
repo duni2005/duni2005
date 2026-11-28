@@ -1,7 +1,8 @@
 class_name Shelf
 extends Building
 ## 출하대·출하 도크: 택배를 받아 쌓아 두고, 테스트용으로 일정 속도로 자동 배달해요.
-## 배달할 때 요청이 맞는지 확인해 성공/오배송을 세요.
+## 배달 아르바이트가 1명이라도 있으면(factory.courier_count) 자동 배달은 꺼지고 직원이 집어 가요(factory.take_parcels).
+## 배달할 때 요청이 맞는지 확인해 성공/오배송을 세요 (parcel_ok).
 
 var stack: Array = []
 var auto_deliver := true
@@ -27,8 +28,16 @@ func try_insert(it: Item, _from_cell: Vector2i) -> bool:
 	return true
 
 
+static func parcel_ok(p: Item) -> bool:
+	## 요청이 맞는 정상 배달인지 (선물 요청인데 선물 포장이 아니면 오배송)
+	var ok := p.request_done()
+	if p.has_request() and p.request.get("gift", false) and p.id != "선물용 택배":
+		ok = false
+	return ok
+
+
 func tick(dt: float) -> void:
-	if not auto_deliver or stack.is_empty():
+	if not auto_deliver or stack.is_empty() or factory.courier_count > 0:
 		_t = 0.0
 		return
 	_t += dt
@@ -37,9 +46,7 @@ func tick(dt: float) -> void:
 		_t = 0.0
 		var p: Item = stack.pop_front()
 		shipped += 1
-		var ok := p.request_done()
-		if p.has_request() and p.request.get("gift", false) and p.id != "선물용 택배":
-			ok = false
+		var ok := parcel_ok(p)
 		if ok:
 			shipped_ok += 1
 		factory.record_shipment(p, ok)
