@@ -29,36 +29,47 @@ func _process(dt: float) -> void:
 
 
 func _draw() -> void:
+	## 색 사각형(전력 등·막대·바탕) → 상태 아이콘 → 아이템 아이콘 순서로 한꺼번에 그려요
+	## (섞어 그리면 그리기 묶음이 끊겨 폰에서 느려져요)
 	var f: Factory = world.factory
 	var vis: Rect2 = world.visible_rect()
 	var items := Art.tex("items8")
 	var ui := Art.tex("ui_icons")
 	var show_status: bool = get_viewport().get_canvas_transform().x.x >= STATUS_MIN_ZOOM
+	var rects := []      # [사각형, 색]
+	var ui_icons := []   # [사각형, 원본 칸]
+	var item_icons := [] # [사각형, 원본 칸]
+	var ink := Palette.c(Palette.INK)
 	# 목록: [설비, 칸 사각형] — 레일이 아닌 설비만 (building_layer가 설치·철거 때만 다시 만들어요)
 	for e in world.buildings.others:
 		var r: Rect2 = e[1]
 		if not vis.intersects(r) or f.held.has(e[0]):
 			continue
 		var b = e[0]
+		var lamp := -1
 		if b.needs_power():
 			var m: float = b.power_mult()
-			_lamp(r, Palette.RED if m <= 0.0 else (Palette.YELLOW if m < 1.0 else Palette.GREEN))
+			lamp = Palette.RED if m <= 0.0 else (Palette.YELLOW if m < 1.0 else Palette.GREEN)
 		elif b is Generator:
-			_lamp(r, Palette.GREEN if b.running() else Palette.RED)
-		var icon := ""
+			lamp = Palette.GREEN if b.running() else Palette.RED
+		if lamp >= 0:
+			var p := r.position + Vector2(3, 3)
+			rects.append([Rect2(p - Vector2(1, 1), Vector2(LAMP + 2, LAMP + 2)), ink])
+			rects.append([Rect2(p, Vector2(LAMP, LAMP)), Palette.c(lamp)])
 		# 진행 막대: 가동 중일 때만 (멈추면 숨겨요)
 		var k: float = StatusIcons.progress(b)
 		if k >= 0.0 and b.is_active() and not b.broken:
 			var bar := Rect2(r.position + Vector2(3, r.size.y - 4), Vector2(r.size.x - 6, BAR + 2))
-			draw_rect(bar, Color(Palette.c(Palette.INK), 0.8))
-			draw_rect(Rect2(bar.position + Vector2(1, 1), Vector2((bar.size.x - 2) * k, BAR)), Palette.c(Palette.LIME))
+			rects.append([bar, Color(ink, 0.8)])
+			rects.append([Rect2(bar.position + Vector2(1, 1), Vector2((bar.size.x - 2) * k, BAR)), Palette.c(Palette.LIME)])
 		if show_status:
 			var st: Dictionary = StatusIcons.classify(b)
 			var si: int = SpriteGen.UI_ICONS.find(st["icon"])
 			if si >= 0 and st["icon"] != StatusIcons.RUNNING:
 				var sr := Rect2(Vector2(r.end.x - ICON - 1, r.position.y + 1), Vector2(ICON, ICON))
-				draw_rect(sr.grow(1), Color(Palette.c(Palette.INK), 0.85))
-				draw_texture_rect_region(ui, sr, Rect2(si * 8, 0, 8, 8))
+				rects.append([sr.grow(1), Color(ink, 0.85)])
+				ui_icons.append([sr, Rect2(si * 8, 0, 8, 8)])
+		var icon := ""
 		if b is Machine and b.recipe != null:
 			icon = b.recipe["out"].keys()[0]
 		elif b is InfiniteSource:
@@ -67,18 +78,18 @@ func _draw() -> void:
 			icon = b.selected if b is Detector else b.filter_item
 		if icon != "":
 			var ir := Rect2(r.end - Vector2(ICON + 2, ICON + 6), Vector2(ICON, ICON))   # 진행 막대 위
-			draw_rect(ir.grow(1), Color(Palette.c(Palette.INK), 0.7))
-			draw_texture_rect_region(items, ir, Art.item_region(icon, 8))
+			rects.append([ir.grow(1), Color(ink, 0.7)])
+			item_icons.append([ir, Art.item_region(icon, 8)])
+	for e in rects:
+		draw_rect(e[0], e[1])
+	for e in ui_icons:
+		draw_texture_rect_region(ui, e[0], e[1])
+	for e in item_icons:
+		draw_texture_rect_region(items, e[0], e[1])
 	if world.selected != null and f.buildings.has(world.selected):
 		var s = world.selected
 		draw_rect(world.cell_rect(s.pos, s.size).grow(1), Palette.c(Palette.LIGHT), false, 2.0)
 	_draw_ghost()
-
-
-func _lamp(r: Rect2, ci: int) -> void:
-	var p := r.position + Vector2(3, 3)
-	draw_rect(Rect2(p - Vector2(1, 1), Vector2(LAMP + 2, LAMP + 2)), Palette.c(Palette.INK))
-	draw_rect(Rect2(p, Vector2(LAMP, LAMP)), Palette.c(ci))
 
 
 func _draw_ghost() -> void:

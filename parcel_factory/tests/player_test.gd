@@ -5,7 +5,7 @@ extends Node
 
 const TILE := 32.0
 const PHYS_FPS := 60.0
-const WATCHDOG_SEC := 240.0
+const WATCHDOG_SEC := 300.0
 const TEST_SAVE := "user://player_test_save.json"   # 진짜 저장 파일은 건드리지 않아요
 
 var _fails := 0
@@ -41,6 +41,8 @@ func _ready() -> void:
 	await _test_workers()
 	await _test_repair_worker()
 	await _test_courier3()
+	await _test_rail_plan()
+	await _test_courier_minute()
 	await _test_save_load()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SAVE))
 	print("=== 결과: %s (실패 %d) ===" % ["통과" if _fails == 0 else "실패", _fails])
@@ -292,6 +294,26 @@ func _test_save_load() -> void:
 	f.floor_items.spawn("바위", 3, Vector2(30.5, 30.5), 0.0, false)
 	await _put(Vector2(33.5, 31.5))
 	var drops_before: int = f.floor_items.drops.size()
+	# 레일 위 물건 · 직원(밖에서 배달 중 + 정비 구역) · 시계
+	var rail = f.place("레일 Mk1", Vector2i(30, 33), 0)
+	var box := Item.new("작은 택배 박스")
+	box.contents = ["종이"]
+	rail.item = box
+	var cw = main.workers.hire("배달 아르바이트")
+	cw.carried = [Item.new("택배"), Item.new("택배")]
+	cw.state = cw.S.OUTSIDE
+	cw.visible = false
+	cw.outside_t = 20.0
+	var cw_title: String = cw.title
+	var rw = main.workers.hire("초보 정비 아르바이트")
+	rw.zone = Rect2i(5, 6, 7, 8)
+	rw.today = 3
+	f.sim_time = 600.0
+	main._autosave_t = main.AUTOSAVE_SEC - 0.01
+	main.set_process(true)   # 1분 자동 저장이 도는지
+	await _frames(2)
+	main.set_process(false)
+	var autosaved: bool = main._autosave_t < 1.0 and FileAccess.file_exists(TEST_SAVE)
 	main.save_game()
 	# 다 지우고 불러오기
 	main.new_room(false)
@@ -302,8 +324,15 @@ func _test_save_load() -> void:
 	var inv_ok: bool = player.inventory.count("[설비] 레일 Mk1") == 130 and player.inventory.count("나무 판자") == 20 and player.hotbar == 1
 	var floor_ok: bool = f.floor_items.drops.size() == drops_before and _floor_count("바위") >= 3
 	var pos_ok: bool = (player.position / TILE).distance_to(Vector2(33.5, 31.5)) < 0.1
-	_check("저장 → 불러오기: 인벤토리·핫바·바닥 아이템·위치", inv_ok and floor_ok and pos_ok,
-		"인벤토리 %s · 바닥 %s · 위치 %s" % [str(inv_ok), str(floor_ok), str(pos_ok)])
+	var r2 = f.get_at(Vector2i(30, 33))
+	var rail_ok: bool = r2 != null and r2.item != null and r2.item.id == "작은 택배 박스" and r2.item.contents == ["종이"]
+	var ws: Array = main.workers.workers
+	var workers_ok: bool = ws.size() == 2 and ws[0].title == cw_title and ws[0].state == ws[0].S.OUTSIDE and not ws[0].visible \
+		and ws[0].carried.size() == 2 and ws[1].zone == Rect2i(5, 6, 7, 8) and ws[1].today == 3 and f.courier_count == 1
+	var clock_ok: bool = GameClock.text(f.sim_time) == GameClock.text(600.0)
+	_check("저장 → 불러오기: 인벤토리·핫바·바닥 아이템·위치·레일 위 물건·직원·시계 · 1분 자동 저장", inv_ok and floor_ok and pos_ok and rail_ok and workers_ok and clock_ok and autosaved,
+		"인벤토리 %s · 바닥 %s · 위치 %s · 레일 물건 %s · 직원 %s · 시계 %s · 자동 저장 %s" % [str(inv_ok), str(floor_ok), str(pos_ok), str(rail_ok), str(workers_ok), str(clock_ok), str(autosaved)])
+	_clear_workers()
 
 
 func _hold_build() -> void:
@@ -840,6 +869,71 @@ func _test_courier3() -> void:
 	var three: bool = max_carry == 3 and b.stack.size() == 2 and a.stack.is_empty()
 	_check("배달 아르바이트: 한 번에 3개 · 출하대를 옮기면 다시 찾아감", aimed and three,
 		"처음 목표 %s · 최대 %d개 · 남은 택배 %d" % [str(aimed), max_carry, b.stack.size()])
+	_clear_workers()
+	f.speed = 1.0
+	f.paused = true
+
+
+func _test_rail_plan() -> void:
+	## 두 점 레일 경로: 직선 · ㄱ자(꺾는 칸 방향) · 막힘(경로 전체 빨강) · 개수 부족
+	main.new_room(false)
+	var b = main.build
+	player.inventory.clear()
+	player.inventory.add("[설비] 레일 Mk1", 30)
+	_select("[설비] 레일 Mk1")
+	await _put(Vector2(21.5, 21.5))
+	b.anchor = Vector2i(18, 20)
+	b.corner_flip = false
+	var straight: Dictionary = b.make_plan("레일 Mk1", Vector2i(24, 20))
+	var s_ok: bool = straight["ok"] and straight["cells"].size() == 7 and straight["label"] == "7칸"
+	for e in straight["cells"]:
+		s_ok = s_ok and e["rot"] == 0
+	var bend: Dictionary = b.make_plan("레일 Mk1", Vector2i(22, 23))
+	var cells: Array = bend["cells"]
+	var corner_i := 4   # (18,20)→(22,20) 다음 아래로
+	var l_ok: bool = bend["ok"] and cells.size() == 8 and cells[0]["rot"] == 0 and cells[corner_i]["pos"] == Vector2i(22, 20) \
+		and cells[corner_i]["rot"] == 1 and cells[-1]["rot"] == 1
+	b.corner_flip = true
+	var flipped: Dictionary = b.make_plan("레일 Mk1", Vector2i(22, 23))
+	var f_ok: bool = flipped["cells"][3]["pos"] == Vector2i(18, 23)   # 아래 먼저
+	b.corner_flip = false
+	f.place("창고 블록", Vector2i(21, 20), 0)
+	var blocked: Dictionary = b.make_plan("레일 Mk1", Vector2i(24, 20))
+	var b_ok: bool = not blocked["ok"] and blocked["reason"] == "다른 설비" and not blocked["cells"][3]["ok"]
+	player.inventory.clear()
+	player.inventory.add("[설비] 레일 Mk1", 3)
+	_select("[설비] 레일 Mk1")
+	var short: Dictionary = b.make_plan("레일 Mk1", Vector2i(18, 25))
+	var n_ok: bool = not short["ok"] and short["reason"] == "레일 Mk1 6개 필요 / 3개 있음"   # A 칸에도 아직 레일이 없어요
+	for e in short["cells"]:
+		n_ok = n_ok and not e["ok"]
+	b.anchor = null
+	player.hotbar = -1
+	_check("두 점 레일 경로: 직선 · ㄱ자 · 꺾는 순서 바꾸기 · 막힘 · 개수 부족", s_ok and l_ok and f_ok and b_ok and n_ok,
+		"직선 %s · ㄱ자 %s · 바꾸기 %s · 막힘 %s(%s) · 부족 %s(%s)" % [str(s_ok), str(l_ok), str(f_ok), str(b_ok), blocked["reason"], str(n_ok), short["reason"]])
+
+
+func _test_courier_minute() -> void:
+	## 초보 배달 아르바이트 1명 1분 처리량: 왕복 45초(기획서) → 분당 60/45 ≈ 1.33개
+	main.new_room(false)
+	_clear_workers()
+	f.paused = false
+	f.speed = 8.0
+	_parcel_line()
+	var w = main.workers.hire("초보 배달 아르바이트")
+	# 배달 순간들의 간격(꾸준히 돌 때)으로 잽니다: 첫 배달까지는 출발 위치에 따라 달라서 빼요
+	var times := []
+	var on_ship := func(_p, _ok) -> void: times.append(f.sim_time)
+	f.shipment.connect(on_ship)
+	var t0: float = f.sim_time
+	while times.size() < 4 and f.sim_time - t0 < 400.0:
+		await get_tree().physics_frame
+	f.shipment.disconnect(on_ship)
+	var interval: float = (times[-1] - times[0]) / maxf(1.0, times.size() - 1.0) if times.size() >= 2 else 999.0
+	var per_min: float = 60.0 / interval
+	var want: float = 60.0 / float(w.round_trip)
+	_check("배달 직원 1명 1분 처리량 (왕복 45초)", times.size() == 4 and absf(interval - w.round_trip) <= 3.0,
+		"배달 간격 %.1f초 → 분당 %.2f개 (기획 %.2f개, 하루 9시간 = 20분이면 %d개)" % [interval, per_min, want, int(GameClock.DAY_REAL_SEC / interval)])
 	_clear_workers()
 	f.speed = 1.0
 	f.paused = true

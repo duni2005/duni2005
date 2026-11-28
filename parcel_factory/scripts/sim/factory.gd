@@ -12,8 +12,8 @@ signal cells_changed(cells)            # 설비가 생기거나 없어지거나 
 
 const DT := 0.05
 const MAX_STEPS_PER_FRAME := 80   # 프레임이 밀려도 한 번에 이만큼만 따라잡아요
-const SAVE_VERSION := 3
-const SAVE_VERSION_MIN := 2   # 이 버전부터는 읽을 수 있어요 (바닥 아이템은 3부터)
+const SAVE_VERSION := 4
+const SAVE_VERSION_MIN := 2   # 이 버전부터는 읽을 수 있어요 (바닥 아이템은 3부터, 레일 위 물건은 4부터)
 const KINDS := {
 	"rail": preload("res://scripts/sim/conveyor.gd"),
 	"exit": preload("res://scripts/sim/exit_port.gd"),
@@ -716,12 +716,17 @@ func next_day() -> void:
 
 
 # ---------- 저장·불러오기 ----------
-## 설비(이름·위치·방향·설정)와 전선·파이프·물 샘 칸, 날짜·시각·오늘 배달 수를 저장해요. 물건 내용물은 아직 빼요.
+## 설비(이름·위치·방향·설정·고장)와 레일 위 물건(내용물·요청 포함), 전선·파이프·물 샘 칸,
+## 바닥 아이템, 날짜·시각·오늘 배달 수를 저장해요. 기계·창고 안의 물건은 아직 빼요.
 
 func to_save() -> Dictionary:
 	var bs := []
 	for b in buildings:
-		bs.append({"name": b.name, "pos": [b.pos.x, b.pos.y], "rot": b.rot, "given": b.given, "broken": b.broken, "state": b.save_state()})
+		var e := {"name": b.name, "pos": [b.pos.x, b.pos.y], "rot": b.rot, "given": b.given, "broken": b.broken, "state": b.save_state()}
+		if b is Conveyor and b.item != null:
+			e["item"] = ItemIO.to_dict(b.item)   # 레일 위 물건 (내용물·요청 포함)
+			e["prog"] = b.progress
+		bs.append(e)
 	return {
 		"version": SAVE_VERSION,
 		"creative": creative,
@@ -763,6 +768,9 @@ func load_save(d) -> bool:
 		var st = e.get("state", {})
 		if st is Dictionary:
 			b.load_state(st)
+		if b is Conveyor and e.get("item") is Dictionary:
+			b.item = ItemIO.from_dict(e["item"])
+			b.progress = clampf(float(e.get("prog", 0.0)), 0.0, 1.0)
 	floor_items.load_save(d.get("floor_items", []))
 	var dd = d.get("day", {})
 	if dd is Dictionary:

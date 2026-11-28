@@ -43,6 +43,7 @@ const LOOK_RETURN_SEC := 1.5    # 둘러보기·가장자리 이동 뒤 플레�
 const EDGE := 0.15              # 화면 가장자리 15%
 const EDGE_PAN_CELLS := 6.0     # 가장자리에 닿았을 때 카메라 이동 (칸/초, 천천히)
 const ZOOM_SAVE_SEC := 0.5      # 확대를 멈추고 이만큼 지나면 설정에 저장
+const AUTOSAVE_SEC := 60.0      # 자동 저장 간격 (실제 시간)
 const Sfx := preload("res://scripts/view/sfx.gd")
 const DRAG_THRESHOLD := 14.0    # 이만큼 움직여야 탭이 아니라 끌기로 봐요
 const SAVE_PATH := "user://save.json"
@@ -70,6 +71,8 @@ var _look := Vector2.ZERO        # 앞보기
 var _pan_idle := 0.0
 var _zoom_save_t := -1.0
 var _mid_drag := false           # PC: 가운데 버튼 둘러보기
+var _autosave_t := 0.0
+var _save_task := -1              # 자동 저장: 글로 바꾸고 쓰는 건 다른 스레드에서 (게임이 멈칫하지 않게)
 var save_path := SAVE_PATH   # 테스트는 다른 파일을 써요
 
 var tool: String = "view"          # view / build
@@ -151,6 +154,7 @@ func give_starter_kit() -> void:
 
 
 func _exit_tree() -> void:
+	_wait_save()
 	Art.clear_cache()
 
 
@@ -209,16 +213,39 @@ func toggle_creative() -> void:
 
 # ---------- 저장·불러오기 ----------
 
-func save_game() -> void:
-	var file := FileAccess.open(save_path, FileAccess.WRITE)
-	if file == null:
-		hud.show_message("저장 실패: %s" % error_string(FileAccess.get_open_error()))
-		return
+func save_game(auto := false) -> void:
+	## 공장(설비·레일 위 물건·바닥 아이템·시계) + 플레이어(위치·인벤토리) + 직원.
+	## 저장할 내용은 지금 바로 모으고(가벼워요), JSON 글로 바꿔 쓰는 건 자동 저장이면 다른 스레드에서 해요
+	_autosave_t = 0.0
 	var data := factory.to_save()
 	data["player"] = player.to_save()
-	file.store_string(JSON.stringify(data, "\t"))
-	file.close()
+	data["workers"] = workers.to_save()
+	_wait_save()
+	if auto:
+		_save_task = WorkerThreadPool.add_task(_write_save.bind(save_path, data), false, "autosave")
+		hud.show_message("자동 저장")
+		return
+	var err := _write_save(save_path, data)
+	if err != OK:
+		hud.show_message("저장 실패: %s" % error_string(err))
+		return
 	hud.show_message("저장했어요 (설비 %d개)" % factory.buildings.size())
+
+
+func _write_save(path: String, data: Dictionary) -> int:
+	var file := FileAccess.open(path, FileAccess.WRITE)
+	if file == null:
+		return FileAccess.get_open_error()
+	file.store_string(JSON.stringify(data))
+	file.close()
+	return OK
+
+
+func _wait_save() -> void:
+	## 앞선 자동 저장이 쓰는 중이면 끝날 때까지 (나중 저장을 덮어쓰지 않게)
+	if _save_task >= 0:
+		WorkerThreadPool.wait_for_task_completion(_save_task)
+		_save_task = -1
 
 
 func load_game() -> void:
@@ -230,6 +257,7 @@ func load_game() -> void:
 
 
 func _load_file() -> bool:
+	_wait_save()
 	if not FileAccess.file_exists(save_path):
 		return false
 	var data = JSON.parse_string(FileAccess.get_file_as_string(save_path))
@@ -239,6 +267,7 @@ func _load_file() -> bool:
 	if data.has("player"):
 		player.load_save(data["player"])
 		snap_camera()
+	workers.load_save(data.get("workers", []))
 	return true
 
 
@@ -374,6 +403,9 @@ func _process(dt: float) -> void:
 		var mp := get_viewport().get_mouse_position()
 		player.aim = null if hud.is_over_ui(mp) else factory.get_at(screen_to_cell(mp))
 	update_camera(dt)
+	_autosave_t += dt
+	if _autosave_t >= AUTOSAVE_SEC:
+		save_game(true)   # 1분마다 자동 저장
 	if tool == "build" and not view.ghost.is_empty():
 		_update_ghost(view.ghost["pos"])   # 걸어가면 설치 가능 거리가 바뀌어요
 

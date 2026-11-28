@@ -34,6 +34,8 @@ func _ready() -> void:
 	_test_day()
 	_test_breakdown_delivery()
 	_test_nav_grid()
+	_test_group_move_blocked()
+	_test_save_rail_items()
 	_test_floor_items()
 	_test_demos()
 	_test_save_roundtrip()
@@ -617,6 +619,49 @@ func _test_nav_grid() -> void:
 		straight.size() == 10 and few and around.size() > 10 and through.size() == 10 and moved_ok and walls,
 		"직선 %d칸 · 설치 갱신 %d칸 · 돌아감 %d칸 · 레일 통과 %d칸 · 이동 갱신 %s · 벽 %s" % [straight.size(), nav.updates - n0, around.size(), through.size(), str(moved_ok), str(walls)])
 	f.free()
+
+
+func _test_group_move_blocked() -> void:
+	## 묶음 이동: 하나라도 막히면 전체 취소 (아무것도 안 바뀜) · 옮겨도 설정(분류기 필터) 유지
+	var f := _new_room_factory()
+	var group := []
+	for x in 4:
+		group.append(f.place("레일 Mk1", Vector2i(10 + x, 10), 0))
+	var srt: Sorter = f.place("분류기", Vector2i(14, 10), 0)
+	srt.filter_item = "장난감"
+	group.append(srt)
+	f.place("창고 블록", Vector2i(18, 12), 0)   # 맨 끝 칸(분류기)이 갈 자리를 막아요
+	var before := []
+	for b in group:
+		before.append(b.pos)
+	var moved: bool = f.move_buildings(group, Vector2i(4, 2), 0)
+	var same := true
+	for i in group.size():
+		if group[i].pos != before[i] or f.get_at(before[i]) != group[i]:
+			same = false
+	var ok_move: bool = f.move_buildings(group, Vector2i(0, 3), 0)
+	var kept: bool = ok_move and srt.pos == Vector2i(14, 13) and srt.filter_item == "장난감" and f.get_at(Vector2i(10, 13)) == group[0]
+	_check("묶음 이동: 하나라도 막히면 전체 취소 · 옮기면 설정 유지", not moved and same and kept,
+		"막힘 이동 %s · 그대로 %s · 옮김+필터 유지 %s" % [str(moved), str(same), str(kept)])
+	f.free()
+
+
+func _test_save_rail_items() -> void:
+	## 저장 → 불러오기: 레일 위 물건(내용물·요청·진행 포함)
+	var f := _new_room_factory()
+	var r: Conveyor = f.place("레일 Mk1", Vector2i(20, 20), 0)
+	var p := Item.new("택배")
+	p.contents = ["종이", "종이"]
+	p.request = {"items": {"종이": 2}, "fragile": false, "gift": false}
+	r.item = p
+	r.progress = 0.4
+	var b := _new_room_factory()
+	b.load_save(JSON.parse_string(JSON.stringify(f.to_save())))
+	var r2: Conveyor = b.get_at(Vector2i(20, 20))
+	var ok: bool = r2 != null and r2.item != null and r2.item.id == "택배" and r2.item.contents.size() == 2 and r2.item.request_done() and is_equal_approx(r2.progress, 0.4)
+	_check("저장: 레일 위 물건 (내용물·요청·진행)", ok, "%s" % (r2.item.describe() if r2 != null and r2.item != null else "없음"))
+	f.free()
+	b.free()
 
 
 func _test_floor_items() -> void:

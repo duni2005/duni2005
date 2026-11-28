@@ -149,6 +149,9 @@ func _physics_process(dt: float) -> void:
 
 
 func _find_work() -> void:
+	if job == "delivery" and not carried.is_empty():
+		_go_exit()   # 불러왔을 때 들고 있던 택배는 그대로 배달하러
+		return
 	if job == "delivery":
 		var s = manager.find_shelf(self, true)
 		if s != null:
@@ -318,6 +321,38 @@ func _come_back() -> void:
 	visible = true
 	state = S.IDLE
 	_think = 0.0
+
+
+# ---------- 저장 ----------
+
+func to_save() -> Dictionary:
+	var items := []
+	for it in carried:
+		items.append(ItemIO.to_dict(it))
+	return {"def": def["name"], "title": title, "pos": [position.x / TILE, position.y / TILE], "facing": facing,
+		"zone": [zone.position.x, zone.position.y, zone.size.x, zone.size.y], "today": today, "day": _day,
+		"carried": items, "outside": state == S.OUTSIDE, "outside_t": outside_t}
+
+
+func load_save(d: Dictionary) -> void:
+	## 걷던 길·맡은 일은 다시 찾아요. 밖에서 배달 중이었으면 남은 시간만큼 더 밖에
+	title = str(d.get("title", title))
+	var p: Array = d.get("pos", [position.x / TILE, position.y / TILE])
+	position = Vector2(float(p[0]), float(p[1])) * TILE
+	facing = int(d.get("facing", 1))
+	var z: Array = d.get("zone", [])
+	if z.size() == 4:
+		zone = Rect2i(int(z[0]), int(z[1]), int(z[2]), int(z[3]))
+	today = int(d.get("today", 0))
+	_day = int(d.get("day", factory.day))
+	carried = []
+	for e in d.get("carried", []):
+		if e is Dictionary:
+			carried.append(ItemIO.from_dict(e))
+	if bool(d.get("outside", false)):
+		state = S.OUTSIDE
+		outside_t = float(d.get("outside_t", 0.0))
+		visible = false
 
 
 # ---------- 그리기 ----------

@@ -37,6 +37,27 @@ func hire(def_name: String):
 	return w
 
 
+func to_save() -> Array:
+	var out := []
+	for w in workers:
+		out.append(w.to_save())
+	return out
+
+
+func load_save(list) -> void:
+	## 지금 직원을 모두 내보내고 저장된 직원으로 바꿔요
+	for w in workers:
+		w.queue_free()
+	workers.clear()
+	_claims.clear()
+	if list is Array:
+		for d in list:
+			if d is Dictionary and DB.workers.has(str(d.get("def", ""))):
+				var w = hire(str(d["def"]))
+				w.load_save(d)
+	_count_couriers()
+
+
 func _count_couriers() -> void:
 	var n := 0
 	for w in workers:
