@@ -96,7 +96,7 @@ const ATLAS_COLS := 16
 const PLAYER_W := 16
 const PLAYER_H := 24
 const PLAYER_COLS := 8
-const UI_ICONS := ["hand", "gear", "box", "hammer"]
+const UI_ICONS := ["hand", "gear", "box", "hammer", "fist", "move", "crowbar", "rotate"]
 
 
 # ---------- 진입점 ----------
@@ -911,6 +911,39 @@ static func ui_icons() -> Image:
 			"hammer":
 				c.line(1, 7, 4, 4, P.BROWN)
 				c.rect(3, 1, 4, 3, P.G4)
+			"fist":
+				# 주먹: 손가락 마디 네 개 + 엄지
+				c.rect(1, 3, 6, 4, P.SKIN)
+				for fx in 4:
+					c.rect(1 + fx + (1 if fx > 1 else 0), 1, 1, 2, P.SKIN)
+				c.rect(1, 1, 6, 1, P.SKIN)
+				c.px(3, 2, P.BROWN)
+				c.px(5, 2, P.BROWN)
+				c.rect(1, 5, 3, 1, P.BROWN)
+			"move":
+				c.rect(3, 0, 2, 8, P.CYAN)
+				c.rect(0, 3, 8, 2, P.CYAN)
+				c.px(2, 1, P.CYAN)
+				c.px(5, 1, P.CYAN)
+				c.px(2, 6, P.CYAN)
+				c.px(5, 6, P.CYAN)
+				c.px(1, 2, P.CYAN)
+				c.px(6, 2, P.CYAN)
+				c.px(1, 5, P.CYAN)
+				c.px(6, 5, P.CYAN)
+			"crowbar":
+				c.line(1, 7, 6, 2, P.RED)
+				c.line(2, 7, 7, 2, P.RED)
+				c.rect(5, 0, 3, 2, P.RED)
+				c.px(5, 2, P.RED_D)
+			"rotate":
+				# 돌아가는 화살표: 고리 + 오른쪽 위 화살촉
+				c.disc(4, 4, 3.6, P.PAPER)
+				c.disc(4, 4, 2.0, P.CLEAR)
+				c.rect(4, 0, 4, 4, P.CLEAR)
+				c.rect(4, 0, 3, 1, P.PAPER)
+				c.rect(5, 1, 1, 2, P.PAPER)
+				c.px(6, 1, P.PAPER)
 		c.outline()
 	return c.img
 

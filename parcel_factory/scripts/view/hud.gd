@@ -1,126 +1,232 @@
 extends CanvasLayer
-## 화면 UI: 위쪽 도구 막대, 아래쪽 설비 팔레트, 오른쪽 정보 패널,
-## 아래 가운데 핫바(+가방 버튼), 터치 조작(왼쪽 아래 조이스틱 · 오른쪽 아래 상호작용 버튼), 인벤토리 창.
-## 휴대폰 터치에 맞게 버튼을 크게 만들었어요.
+## 화면 UI (모바일 가로 화면 기준, PC도 같은 화면).
+##   왼쪽 위    : 지금 상호작용 대상 이름 · 짧은 상태          (+ F3 디버그 오버레이)
+##   오른쪽 위  : 시계 · 일시정지 · 속도 · 메뉴(저장·설정·디버그), 그 아래 모드 글씨
+##   왼쪽 아래  : 떠 있는 조이스틱 영역 (화면 왼쪽 35% × 아래 60%, 터치 입력일 때만)
+##   가운데 아래: HP 바(+스테미나 자리) · 핫바 9칸 + 가방 버튼
+##   오른쪽 아래: 상호작용 버튼(큰 원) · 회전 버튼 · 그 위 모드 묶음 [일반][이동][철거]
+##   화면 가장자리: 이동 모드 파란 테두리 · 철거 모드 붉은 테두리
+## 모든 UI는 root 하나 아래에 두고, root가 UI 확대(80~150%)와 안전 영역(노치)을 맞춰요.
+## 시뮬레이션·플레이어 상태는 읽기만 하고, 바꿀 때는 main·player·factory·PlayMode의 함수를 불러요.
 
 var main = null
 
+const MARGIN := 16.0             # 화면 가장자리 여백
+const BTN_H := 64.0              # 버튼 최소 크기 (엄지)
+const ACTION_RADIUS := 72.0      # 상호작용 버튼 반지름
+const ROTATE_RADIUS := 34.0
+const HP_GAP := 8.0              # HP 바와 핫바 사이
+const INSPECTOR_W := 520.0
+const MSG_SEC := 2.5             # 알림 글씨가 떠 있는 시간
+const REFRESH_SEC := 0.1         # 대상 이름·시계 갱신 간격
+const SPEEDS := [1.0, 2.0, 4.0, 8.0]
+const DebugOverlay := preload("res://scripts/view/debug_overlay.gd")
+const FloatJoystick := preload("res://scripts/view/float_joystick.gd")
+const ActionButton := preload("res://scripts/view/action_button.gd")
+const ModeBar := preload("res://scripts/view/mode_bar.gd")
+const ModeBorder := preload("res://scripts/view/mode_border.gd")
+const HpBar := preload("res://scripts/view/hp_bar.gd")
+const Hotbar := preload("res://scripts/view/hotbar.gd")
+const InventoryPanelScene := preload("res://scenes/inventory_panel.tscn")
+
+var settings := Settings.new()
 var root: Control
-var top_panel: PanelContainer
-var bottom_panel: PanelContainer
-var inspector: PanelContainer
-var status_label: Label
-var tool_buttons := {}
+var touch_mode := false
+
+var target_label: Label
+var target_panel: PanelContainer
+var top_right: HBoxContainer
+var clock_label: Label
 var pause_btn: Button
 var speed_btn: Button
+var mode_label: Label
+var mode_panel: PanelContainer
+var toast: Label
+var joystick              # float_joystick.gd (조이스틱 영역)
+var action_btn            # action_button.gd
+var rotate_btn            # action_button.gd (작은 원)
+var mode_bar              # mode_bar.gd
+var border                # mode_border.gd
+var bottom_box: VBoxContainer
+var hotbar
+var inventory_panel
+var debug_overlay
+var palette: PanelContainer
 var cat_box: HBoxContainer
 var item_box: HBoxContainer
-var current_cat: String = ""
+var current_cat := ""
 
+var inspector: PanelContainer
 var ins_title: Label
 var ins_info: Label
 var ins_controls: VBoxContainer
 var ins_target = null
-var _refresh_t := 0.0
 
 var menu_panel: PanelContainer
-var creative_btn: Button
-var touch_btn: Button
-var joystick       # scripts/view/joystick.gd
-var action_btn     # scripts/view/action_button.gd
-var storage_btn: Button
-var hotbar            # scripts/view/hotbar.gd
-var inventory_panel   # scenes/inventory_panel.tscn
-var touch_controls := false
-var debug_overlay
-var _msg := ""
-var _msg_t := 0.0
+var _menu_tabs := {}
+var _menu_pages := {}
+var _menu_labels := {}
 
-const SPEEDS := [1.0, 2.0, 4.0, 8.0]
-const MSG_SEC := 2.5            # 저장·불러오기 알림을 위쪽 막대에 띄우는 시간
-const DebugOverlay := preload("res://scripts/view/debug_overlay.gd")
-const Joystick := preload("res://scripts/view/joystick.gd")
-const ActionButton := preload("res://scripts/view/action_button.gd")
-const InventoryPanelScene := preload("res://scenes/inventory_panel.tscn")
-const Hotbar := preload("res://scripts/view/hotbar.gd")
-const HOTBAR_GAP := 8.0         # 핫바와 아래 팔레트 사이
-const TOUCH_MARGIN := 24.0      # 조이스틱·버튼과 화면 가장자리 사이
-const PALETTE_H := 140.0        # 아래 팔레트 높이 (조이스틱·버튼을 그 위에 둬요)
-const INSPECTOR_BOTTOM_TOUCH := -320.0   # 터치 조작이 보일 때 정보 패널 아래 끝
-const INSPECTOR_BOTTOM := -140.0
+var _msg_t := 0.0
+var _refresh_t := 0.0
 
 
 func _ready() -> void:
+	settings.load_file()
 	root = Control.new()
-	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var th := Theme.new()
 	th.default_font_size = 22
 	root.theme = th
 	get_tree().root.theme = th
 	add_child(root)
-	_build_top()
+	_build_border()
+	_build_joystick()
+	_build_top_left()
+	_build_top_right()
+	_build_toast()
+	_build_palette()
 	_build_bottom()
+	_build_action()
 	_build_inspector()
+	_build_inventory()
 	_build_menu()
-	_build_touch()
-	debug_overlay = DebugOverlay.new()
-	debug_overlay.factory = main.factory
-	debug_overlay.position = Vector2(8, 76)
-	root.add_child(debug_overlay)
-	refresh_tool_buttons()
+	get_viewport().size_changed.connect(apply_layout)
+	apply_layout()
+	match settings.input_mode:
+		"touch":
+			set_touch_mode(true)
+		"keyboard":
+			set_touch_mode(false)
+		_:
+			set_touch_mode(DisplayServer.is_touchscreen_available())
 	_select_category(DB.building_categories[0])
 
 
 func _btn(text: String, cb: Callable, min_w := 0.0) -> Button:
 	var b := Button.new()
 	b.text = text
-	b.custom_minimum_size = Vector2(min_w, 56)
+	b.custom_minimum_size = Vector2(maxf(min_w, BTN_H), BTN_H)
 	b.focus_mode = Control.FOCUS_NONE
 	b.pressed.connect(cb)
 	return b
 
 
-# ---------- 위쪽 막대 ----------
-
-func _build_top() -> void:
-	top_panel = PanelContainer.new()
-	top_panel.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
-	root.add_child(top_panel)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 6)
-	top_panel.add_child(h)
-	h.add_child(_btn("F3", toggle_debug, 56))
-	pause_btn = _btn("멈춤", _on_pause, 110)
-	h.add_child(pause_btn)
-	speed_btn = _btn("×1", _on_speed, 70)
-	h.add_child(speed_btn)
-	for t in [["view", "보기"], ["build", "설치"], ["erase", "철거"]]:
-		var b := _btn(t[1], main.set_tool.bind(t[0]), 110)
-		b.toggle_mode = true
-		tool_buttons[t[0]] = b
-		h.add_child(b)
-	h.add_child(_btn("회전", main.rotate_tool, 100))
-	h.add_child(_btn("층 보기", _on_layers, 100))
-	h.add_child(_btn("예시 불러오기", _on_demo, 150))
-	h.add_child(_btn("비우기", _on_clear, 90))
-	h.add_child(_btn("메뉴", toggle_menu, 80))
-	status_label = Label.new()
-	status_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	status_label.add_theme_font_size_override("font_size", 18)
-	h.add_child(status_label)
+func _dark(c: PanelContainer) -> void:
+	## 작은 글씨 판(대상 이름·모드·시계): 거의 불투명한 어두운 바탕이라 월드 위에서도 잘 읽혀요
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(Palette.c(Palette.INK), 0.88)
+	sb.set_corner_radius_all(6)
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 6
+	sb.content_margin_bottom = 6
+	c.add_theme_stylebox_override("panel", sb)
 
 
-func refresh_tool_buttons() -> void:
-	for k in tool_buttons:
-		tool_buttons[k].button_pressed = (k == main.tool)
-	if main.tool == "build":
-		tool_buttons["build"].text = "설치: " + main.build_def
-	else:
-		tool_buttons["build"].text = "설치"
-	if main.tool != "view":
-		hide_inspector()
+func _corner(c: Control, ax: float, ay: float, grow_x: int, grow_y: int, off := Vector2.ZERO) -> void:
+	## c를 root의 (ax, ay) 지점(0~1)에서 off만큼 떨어진 곳에 붙여요. grow: 그 점에서 어느 쪽으로 커질지
+	c.anchor_left = ax
+	c.anchor_right = ax
+	c.anchor_top = ay
+	c.anchor_bottom = ay
+	c.offset_left = off.x
+	c.offset_right = off.x
+	c.offset_top = off.y
+	c.offset_bottom = off.y
+	c.grow_horizontal = grow_x
+	c.grow_vertical = grow_y
+
+
+# ---------- 화면 크기 · UI 확대 · 안전 영역 ----------
+
+func apply_layout() -> void:
+	var vp := get_viewport().get_visible_rect().size
+	var tl := Vector2.ZERO
+	var br := Vector2.ZERO
+	if OS.has_feature("mobile"):
+		# 노치·둥근 모서리: 안전 영역을 뷰포트 좌표로 바꿔 여백으로 써요
+		var safe := Rect2(DisplayServer.get_display_safe_area())
+		var win := Vector2(DisplayServer.window_get_size())
+		if win.x > 0 and win.y > 0 and safe.size.x > 0:
+			var k := vp / win
+			tl = safe.position * k
+			br = (win - safe.end) * k
+	var s := settings.ui_scale
+	root.position = tl
+	root.scale = Vector2(s, s)
+	root.size = (vp - tl - br) / s
+
+
+func set_touch_mode(on: bool) -> void:
+	## 터치 입력이면 조이스틱 영역을 켜고, 키보드·마우스면 숨겨요 (나머지 UI는 같아요)
+	touch_mode = on
+	joystick.visible = on
+
+
+# ---------- 왼쪽 위: 상호작용 대상 ----------
+
+func _build_top_left() -> void:
+	target_panel = PanelContainer.new()
+	target_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dark(target_panel)
+	_corner(target_panel, 0, 0, Control.GROW_DIRECTION_END, Control.GROW_DIRECTION_END, Vector2(MARGIN, MARGIN))
+	root.add_child(target_panel)
+	target_label = Label.new()
+	target_label.add_theme_font_size_override("font_size", 20)
+	target_panel.add_child(target_label)
+	debug_overlay = DebugOverlay.new()
+	debug_overlay.factory = main.factory
+	debug_overlay.position = Vector2(MARGIN, MARGIN + BTN_H)
+	root.add_child(debug_overlay)
+
+
+func _target_text() -> String:
+	var t = main.player.shown_target()
+	if t == null:
+		return ""
+	var st: String = t.status
+	return t.name if st == "" else "%s · %s" % [t.name, st]
+
+
+# ---------- 오른쪽 위: 시계 · 일시정지 · 속도 · 메뉴 / 모드 글씨 ----------
+
+func _build_top_right() -> void:
+	top_right = HBoxContainer.new()
+	top_right.add_theme_constant_override("separation", 6)
+	_corner(top_right, 1, 0, Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_END, Vector2(-MARGIN, MARGIN))
+	root.add_child(top_right)
+	var cp := PanelContainer.new()
+	_dark(cp)
+	cp.custom_minimum_size = Vector2(110, BTN_H)
+	top_right.add_child(cp)
+	clock_label = Label.new()
+	clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	clock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	clock_label.add_theme_font_size_override("font_size", 26)
+	cp.add_child(clock_label)
+	pause_btn = _btn("멈춤", _on_pause, 90)
+	top_right.add_child(pause_btn)
+	speed_btn = _btn("×1", _on_speed)
+	top_right.add_child(speed_btn)
+	top_right.add_child(_btn("메뉴", toggle_menu, 96))
+	mode_panel = PanelContainer.new()
+	mode_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_dark(mode_panel)
+	_corner(mode_panel, 1, 0, Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_END, Vector2(-MARGIN, MARGIN + BTN_H + 6))
+	root.add_child(mode_panel)
+	mode_label = Label.new()
+	mode_label.add_theme_font_size_override("font_size", 18)
+	mode_panel.add_child(mode_label)
+	main.play_mode.changed.connect(func(_m) -> void: _refresh_mode_label())
+	_refresh_mode_label()
+
+
+func _refresh_mode_label() -> void:
+	var m: int = main.play_mode.mode
+	mode_panel.visible = m != PlayMode.Mode.NORMAL
+	mode_label.text = "%s 모드" % main.play_mode.label()
+	mode_label.add_theme_color_override("font_color", border.color_of(m).lightened(0.35))
 
 
 func _on_pause() -> void:
@@ -135,43 +241,195 @@ func _on_speed() -> void:
 	speed_btn.text = "×%d" % int(s)
 
 
-func _on_layers() -> void:
-	main.view.show_layers = not main.view.show_layers
+# ---------- 알림 · 테두리 · 조이스틱 ----------
+
+func _build_toast() -> void:
+	toast = Label.new()
+	toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	toast.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	toast.add_theme_font_size_override("font_size", 20)
+	toast.add_theme_constant_override("outline_size", 6)
+	toast.add_theme_color_override("font_outline_color", Palette.c(Palette.INK))
+	_corner(toast, 0.5, 0, Control.GROW_DIRECTION_BOTH, Control.GROW_DIRECTION_END, Vector2(0, MARGIN + 14))
+	root.add_child(toast)
 
 
-func _on_demo() -> void:
-	main.new_room(true)
+func show_message(s: String) -> void:
+	toast.text = s
+	_msg_t = MSG_SEC
 
 
-func _on_clear() -> void:
-	main.clear_room()
+func _build_border() -> void:
+	border = ModeBorder.new()
+	border.play_mode = main.play_mode
+	border.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.add_child(border)
 
 
-# ---------- 아래쪽 팔레트 ----------
+func _build_joystick() -> void:
+	joystick = FloatJoystick.new()
+	joystick.anchor_left = 0.0
+	joystick.anchor_right = FloatJoystick.AREA_W
+	joystick.anchor_top = 1.0 - FloatJoystick.AREA_H
+	joystick.anchor_bottom = 1.0
+	root.add_child(joystick)
+
+
+# ---------- 가운데 아래: HP · 핫바 ----------
 
 func _build_bottom() -> void:
-	bottom_panel = PanelContainer.new()
-	bottom_panel.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	bottom_panel.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	root.add_child(bottom_panel)
+	bottom_box = VBoxContainer.new()
+	bottom_box.alignment = BoxContainer.ALIGNMENT_END
+	bottom_box.add_theme_constant_override("separation", HP_GAP)
+	_corner(bottom_box, 0.5, 1, Control.GROW_DIRECTION_BOTH, Control.GROW_DIRECTION_BEGIN, Vector2(0, -MARGIN))
+	bottom_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(bottom_box)
+	var hp = HpBar.new()
+	hp.player = main.player
+	hp.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	bottom_box.add_child(hp)
+	hotbar = Hotbar.new()
+	hotbar.player = main.player
+	hotbar.open_bag.connect(toggle_inventory)
+	bottom_box.add_child(hotbar)
+
+
+# ---------- 오른쪽 아래: 상호작용 · 회전 · 모드 ----------
+
+func _build_action() -> void:
+	action_btn = ActionButton.new()
+	action_btn.radius = ACTION_RADIUS
+	_corner(action_btn, 1, 1, Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_BEGIN)
+	action_btn.offset_right = -MARGIN
+	action_btn.offset_bottom = -MARGIN
+	action_btn.offset_left = -MARGIN - ACTION_RADIUS * 2.0
+	action_btn.offset_top = -MARGIN - ACTION_RADIUS * 2.0
+	action_btn.pressed_down.connect(func() -> void: main.player.action_press())
+	action_btn.released.connect(func() -> void: main.player.action_release())
+	root.add_child(action_btn)
+	rotate_btn = ActionButton.new()
+	rotate_btn.radius = ROTATE_RADIUS
+	rotate_btn.icon_kind = "rotate"
+	_corner(rotate_btn, 1, 1, Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_BEGIN)
+	rotate_btn.offset_right = action_btn.offset_left - MARGIN
+	rotate_btn.offset_left = rotate_btn.offset_right - ROTATE_RADIUS * 2.0
+	rotate_btn.offset_bottom = -MARGIN
+	rotate_btn.offset_top = -MARGIN - ROTATE_RADIUS * 2.0
+	rotate_btn.pressed_down.connect(func() -> void: main.rotate_tool())
+	root.add_child(rotate_btn)
+	mode_bar = ModeBar.new()
+	mode_bar.play_mode = main.play_mode
+	_corner(mode_bar, 1, 1, Control.GROW_DIRECTION_BEGIN, Control.GROW_DIRECTION_BEGIN, Vector2(-MARGIN, action_btn.offset_top - MARGIN))
+	root.add_child(mode_bar)
+
+
+func _action_icon() -> Array:
+	## [아이콘, 색] 모드와 손에 든 것에 따라
+	match main.play_mode.mode:
+		PlayMode.Mode.MOVE:
+			return ["move", Palette.BLUE_D]
+		PlayMode.Mode.DECONSTRUCT:
+			return ["crowbar", Palette.RED_D]
+	var held: String = main.player.held_id()
+	if held == "":
+		return ["fist", -1]
+	if held.begins_with("[설비]"):
+		return ["hammer", -1]
+	return ["hand", -1]
+
+
+func rotate_visible() -> bool:
+	## 설비를 들었거나 설치 도구일 때만 (옮기는 중은 9단계)
+	return main.player.held_id().begins_with("[설비]") or main.tool == "build"
+
+
+# ---------- 매 프레임 ----------
+
+func _process(dt: float) -> void:
+	var ic := _action_icon()
+	action_btn.set_icon(ic[0], ic[1])
+	rotate_btn.visible = rotate_visible()
+	if _msg_t > 0.0:
+		_msg_t -= dt
+		toast.modulate.a = clampf(_msg_t / 0.5, 0.0, 1.0)
+	_refresh_t -= dt
+	if _refresh_t > 0.0:
+		return
+	_refresh_t = REFRESH_SEC
+	var f = main.factory
+	clock_label.text = GameClock.text(f.sim_time)
+	var tt := _target_text()
+	target_panel.visible = tt != ""
+	target_label.text = tt
+	if inspector.visible:
+		if ins_target == null or not f.buildings.has(ins_target):
+			hide_inspector()
+		else:
+			ins_info.text = ins_target.info()
+
+
+func is_over_ui(p: Vector2) -> bool:
+	for c in [top_right, palette, hotbar, action_btn, rotate_btn, mode_bar, inspector, inventory_panel, menu_panel, joystick]:
+		if c.visible and c.get_global_rect().has_point(p):
+			return true
+	return false
+
+
+# ---------- 인벤토리 ----------
+
+func _build_inventory() -> void:
+	inventory_panel = InventoryPanelScene.instantiate()
+	inventory_panel.player = main.player
+	root.add_child(inventory_panel)
+	main.player.request_info.connect(_on_player_info)
+	main.player.message.connect(show_message)
+
+
+func toggle_inventory() -> void:
+	## 설비 정보창이 열려 있으면 그 오른쪽(가운데 오른쪽)에, 아니면 화면 가운데에
+	inventory_panel.toggle("beside" if inspector.visible else "center")
+
+
+func close_inventory() -> bool:
+	if inventory_panel.visible:
+		inventory_panel.close()
+		return true
+	return false
+
+
+func _on_player_info(b) -> void:
+	main.view.selected = b
+	show_inspector(b)
+
+
+# ---------- 설치 팔레트 (디버그: 크리에이티브식 자유 설치) ----------
+
+func _build_palette() -> void:
+	palette = PanelContainer.new()
+	_corner(palette, 0.5, 0, Control.GROW_DIRECTION_BOTH, Control.GROW_DIRECTION_END, Vector2(0, MARGIN + BTN_H + 40))
+	root.add_child(palette)
 	var v := VBoxContainer.new()
-	bottom_panel.add_child(v)
-	var cs := ScrollContainer.new()
-	cs.custom_minimum_size = Vector2(0, 60)
-	cs.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	v.add_child(cs)
+	palette.add_child(v)
 	cat_box = HBoxContainer.new()
-	cs.add_child(cat_box)
+	v.add_child(cat_box)
 	for c in DB.building_categories:
 		var b := _btn(c, _select_category.bind(c), 120)
 		b.toggle_mode = true
 		cat_box.add_child(b)
+	cat_box.add_child(_btn("닫기", toggle_palette, 90))
 	var s := ScrollContainer.new()
-	s.custom_minimum_size = Vector2(0, 64)
+	s.custom_minimum_size = Vector2(0, BTN_H + 8)
 	s.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	v.add_child(s)
 	item_box = HBoxContainer.new()
 	s.add_child(item_box)
+	palette.visible = false
+
+
+func toggle_palette() -> void:
+	palette.visible = not palette.visible
+	if not palette.visible and main.tool == "build":
+		main.set_tool("view")
 
 
 func _select_category(c: String) -> void:
@@ -186,18 +444,152 @@ func _select_category(c: String) -> void:
 		item_box.add_child(b)
 
 
-# ---------- 정보 패널 ----------
+func refresh_tool_buttons() -> void:
+	if main.tool != "view":
+		hide_inspector()
+
+
+# ---------- 메뉴: 저장 · 설정 · 디버그 ----------
+
+func _build_menu() -> void:
+	menu_panel = PanelContainer.new()
+	_corner(menu_panel, 0.5, 0.5, Control.GROW_DIRECTION_BOTH, Control.GROW_DIRECTION_BOTH)
+	root.add_child(menu_panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	menu_panel.add_child(v)
+	var tabs := HBoxContainer.new()
+	v.add_child(tabs)
+	for t in ["저장", "설정", "디버그"]:
+		var b := _btn(t, _show_menu_page.bind(t), 120)
+		b.toggle_mode = true
+		tabs.add_child(b)
+		_menu_tabs[t] = b
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tabs.add_child(sp)
+	tabs.add_child(_btn("닫기", toggle_menu, 90))
+	_menu_page(v, "저장", [
+		["저장 (Ctrl+S)", _menu_call.bind(main.save_game)],
+		["불러오기", _menu_call.bind(main.load_game)],
+	])
+	_menu_page(v, "설정", [
+		["UI 작게", _on_ui_scale.bind(-1)],
+		["UI 크게", _on_ui_scale.bind(1)],
+		["ui_scale", Callable()],
+		["input_mode", _on_input_mode],
+	])
+	_menu_page(v, "디버그", [
+		["F3 디버그 오버레이", toggle_debug],
+		["creative", _on_creative],
+		["storage", _on_storage_toggle],
+		["설치 팔레트", _menu_call.bind(toggle_palette)],
+		["층 보기 (전선·파이프)", _on_layers],
+		["예시 불러오기", _menu_call.bind(main.new_room.bind(true))],
+		["비우기", _menu_call.bind(main.clear_room)],
+	])
+	menu_panel.visible = false
+	_show_menu_page("저장")
+
+
+func _menu_page(parent: Control, page: String, items: Array) -> void:
+	var g := GridContainer.new()
+	g.columns = 2
+	g.add_theme_constant_override("h_separation", 8)
+	g.add_theme_constant_override("v_separation", 8)
+	parent.add_child(g)
+	_menu_pages[page] = g
+	for it in items:
+		var key: String = it[0]
+		var b := _btn(key, it[1] if it[1].is_valid() else func() -> void: pass, 320)
+		if not it[1].is_valid():
+			b.disabled = true
+		g.add_child(b)
+		_menu_labels[key] = b
+	_refresh_menu_labels()
+
+
+func _show_menu_page(page: String) -> void:
+	for p in _menu_pages:
+		_menu_pages[p].visible = p == page
+		_menu_tabs[p].set_pressed_no_signal(p == page)
+	_refresh_menu_labels()
+
+
+func _refresh_menu_labels() -> void:
+	if _menu_labels.has("ui_scale"):
+		_menu_labels["ui_scale"].text = "UI 크기 %d%%" % int(round(settings.ui_scale * 100.0))
+	if _menu_labels.has("input_mode"):
+		var names := {"auto": "자동 (터치·키보드)", "touch": "터치", "keyboard": "키보드·마우스"}
+		_menu_labels["input_mode"].text = "조작: %s" % names[settings.input_mode]
+	if _menu_labels.has("creative"):
+		_menu_labels["creative"].text = "크리에이티브: %s" % ("켬" if main.factory.creative else "끔")
+	if _menu_labels.has("storage") and inventory_panel != null:
+		_menu_labels["storage"].text = "크리에이티브 보관함: %s" % ("켬" if inventory_panel.creative_enabled else "끔")
+
+
+func _menu_call(cb: Callable) -> void:
+	cb.call()
+	menu_panel.visible = false
+
+
+func toggle_menu() -> void:
+	menu_panel.visible = not menu_panel.visible
+	_refresh_menu_labels()
+
+
+func close_menu() -> bool:
+	if menu_panel.visible:
+		menu_panel.visible = false
+		return true
+	return false
+
+
+func toggle_debug() -> void:
+	debug_overlay.toggle()
+
+
+func _on_ui_scale(dir: int) -> void:
+	settings.step_scale(dir)
+	apply_layout()
+	_refresh_menu_labels()
+
+
+func _on_input_mode() -> void:
+	settings.next_input_mode()
+	if settings.input_mode == "touch":
+		set_touch_mode(true)
+	elif settings.input_mode == "keyboard":
+		set_touch_mode(false)
+	_refresh_menu_labels()
+
+
+func _on_creative() -> void:
+	main.toggle_creative()
+	_refresh_menu_labels()
+
+
+func _on_storage_toggle() -> void:
+	inventory_panel.set_creative(not inventory_panel.creative_enabled)
+	_refresh_menu_labels()
+
+
+func _on_layers() -> void:
+	main.view.show_layers = not main.view.show_layers
+
+
+# ---------- 설비 정보창 (가운데 왼쪽, 7단계에서 다시 다듬어요) ----------
 
 func _build_inspector() -> void:
 	inspector = PanelContainer.new()
-	inspector.anchor_left = 1.0
-	inspector.anchor_right = 1.0
+	inspector.anchor_left = 0.5
+	inspector.anchor_right = 0.5
 	inspector.anchor_top = 0.0
 	inspector.anchor_bottom = 1.0
-	inspector.offset_left = -520
-	inspector.offset_right = 0
-	inspector.offset_top = 70
-	inspector.offset_bottom = -140
+	inspector.offset_right = -MARGIN
+	inspector.offset_left = -MARGIN - INSPECTOR_W
+	inspector.offset_top = MARGIN + BTN_H + 40
+	inspector.offset_bottom = -MARGIN - BTN_H - HP_GAP - HpBar.BAR.y - MARGIN
 	root.add_child(inspector)
 	var sc := ScrollContainer.new()
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -205,21 +597,20 @@ func _build_inspector() -> void:
 	var v := VBoxContainer.new()
 	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sc.add_child(v)
+	var h := HBoxContainer.new()
+	v.add_child(h)
 	ins_title = Label.new()
 	ins_title.add_theme_font_size_override("font_size", 26)
-	v.add_child(ins_title)
+	ins_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(ins_title)
+	h.add_child(_btn("닫기", hide_inspector, 90))
 	ins_info = Label.new()
 	ins_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ins_info.custom_minimum_size = Vector2(480, 0)
+	ins_info.custom_minimum_size = Vector2(INSPECTOR_W - 40, 0)
 	ins_info.add_theme_font_size_override("font_size", 18)
 	v.add_child(ins_info)
 	ins_controls = VBoxContainer.new()
 	v.add_child(ins_controls)
-	var h := HBoxContainer.new()
-	v.add_child(h)
-	h.add_child(_btn("회전", main.rotate_tool, 120))
-	h.add_child(_btn("철거", _on_inspector_remove, 120))
-	h.add_child(_btn("닫기", hide_inspector, 100))
 	inspector.visible = false
 
 
@@ -240,204 +631,7 @@ func show_inspector(b) -> void:
 	for ch in ins_controls.get_children():
 		ch.queue_free()
 	_build_controls(b)
-	_refresh_info()
-
-
-func _on_inspector_remove() -> void:
-	if ins_target != null:
-		main.factory.remove_at(ins_target.pos)
-	hide_inspector()
-
-
-func _process(dt: float) -> void:
-	_refresh_t -= dt
-	if _refresh_t > 0.0:
-		return
-	_refresh_t = 0.25
-	var f = main.factory
-	if _msg_t > 0.0:
-		_msg_t -= 0.25
-		status_label.text = _msg
-	else:
-		var pl = main.player
-		status_label.text = "%s%s · %s · 배달 %d(오배송 %d) · HP %d · 가방 %d" % ["[크리에이티브] " if f.creative else "", f.time_text(), f.power_summary(), f.shipped, f.shipped - f.shipped_ok, pl.hp, pl.inventory.used_slots()]
-	if inspector.visible:
-		if ins_target == null or not f.buildings.has(ins_target):
-			hide_inspector()
-		else:
-			_refresh_info()
-
-
-func _refresh_info() -> void:
-	if ins_target != null:
-		ins_info.text = ins_target.info()
-
-
-func is_over_ui(p: Vector2) -> bool:
-	for c in [top_panel, bottom_panel, inspector, menu_panel, joystick, action_btn, hotbar, inventory_panel]:
-		if c.visible and c.get_global_rect().has_point(p):
-			return true
-	return false
-
-
-# ---------- 메뉴 · 단축키 ----------
-
-func _build_menu() -> void:
-	menu_panel = PanelContainer.new()
-	menu_panel.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	menu_panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	menu_panel.grow_vertical = Control.GROW_DIRECTION_BOTH
-	root.add_child(menu_panel)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
-	menu_panel.add_child(v)
-	var t := Label.new()
-	t.text = "메뉴"
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(t)
-	v.add_child(_btn("저장 (Ctrl+S)", _on_menu_save, 300))
-	v.add_child(_btn("불러오기", _on_menu_load, 300))
-	v.add_child(_btn("팔레트 접기/펴기", toggle_palette, 300))
-	touch_btn = _btn("", _on_touch_toggle, 300)
-	v.add_child(touch_btn)
-	storage_btn = _btn("", _on_storage_toggle, 300)
-	v.add_child(storage_btn)
-	creative_btn = _btn("", _on_creative, 300)
-	v.add_child(creative_btn)
-	v.add_child(_btn("닫기 (Esc)", toggle_menu, 300))
-	menu_panel.visible = false
-
-
-func toggle_menu() -> void:
-	menu_panel.visible = not menu_panel.visible
-	_refresh_creative_btn()
-
-
-func _on_creative() -> void:
-	main.toggle_creative()
-	_refresh_creative_btn()
-
-
-func _refresh_creative_btn() -> void:
-	creative_btn.text = "크리에이티브 (디버그): %s" % ("켬" if main.factory.creative else "끔")
-	touch_btn.text = "터치 조작: %s" % ("보임" if touch_controls else "숨김")
-	storage_btn.text = "크리에이티브 보관함 (디버그): %s" % ("켬" if inventory_panel.creative_enabled else "끔")
-
-
-func _on_storage_toggle() -> void:
-	inventory_panel.set_creative(not inventory_panel.creative_enabled)
-	_refresh_creative_btn()
-
-
-func _on_touch_toggle() -> void:
-	set_touch_controls(not touch_controls)
-	_refresh_creative_btn()
-
-
-# ---------- 터치 조작 · 가방 ----------
-
-func _build_touch() -> void:
-	joystick = Joystick.new()
-	joystick.anchor_top = 1.0
-	joystick.anchor_bottom = 1.0
-	joystick.offset_left = TOUCH_MARGIN
-	joystick.offset_bottom = -PALETTE_H - TOUCH_MARGIN
-	joystick.offset_top = joystick.offset_bottom - Joystick.RADIUS * 2.0
-	joystick.offset_right = joystick.offset_left + Joystick.RADIUS * 2.0
-	root.add_child(joystick)
-	action_btn = ActionButton.new()
-	action_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	action_btn.anchor_left = 1.0
-	action_btn.anchor_right = 1.0
-	action_btn.anchor_top = 1.0
-	action_btn.anchor_bottom = 1.0
-	action_btn.offset_right = -TOUCH_MARGIN
-	action_btn.offset_left = action_btn.offset_right - ActionButton.RADIUS * 2.0
-	action_btn.offset_bottom = -PALETTE_H - TOUCH_MARGIN
-	action_btn.offset_top = action_btn.offset_bottom - ActionButton.RADIUS * 2.0
-	action_btn.pressed_down.connect(func() -> void: main.player.action_press())
-	action_btn.released.connect(func() -> void: main.player.action_release())
-	root.add_child(action_btn)
-	hotbar = Hotbar.new()
-	hotbar.player = main.player
-	hotbar.anchor_left = 0.5
-	hotbar.anchor_right = 0.5
-	hotbar.anchor_top = 1.0
-	hotbar.anchor_bottom = 1.0
-	hotbar.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	hotbar.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	hotbar.offset_bottom = -PALETTE_H - HOTBAR_GAP
-	hotbar.offset_top = hotbar.offset_bottom
-	hotbar.open_bag.connect(toggle_inventory)
-	root.add_child(hotbar)
-	inventory_panel = InventoryPanelScene.instantiate()
-	inventory_panel.player = main.player
-	root.add_child(inventory_panel)
-	main.player.request_info.connect(_on_player_info)
-	main.player.message.connect(show_message)
-	set_touch_controls(DisplayServer.is_touchscreen_available())
-
-
-func set_touch_controls(on: bool) -> void:
-	touch_controls = on
-	joystick.visible = on
-	action_btn.visible = on
-	inspector.offset_bottom = INSPECTOR_BOTTOM_TOUCH if on else INSPECTOR_BOTTOM
-
-
-func toggle_inventory() -> void:
-	## 지금은 늘 화면 가운데. 'beside'(가운데 오른쪽) 자리는 7단계 설비 정보창과 함께 열 때 써요
-	inventory_panel.toggle("center")
-
-
-func close_inventory() -> bool:
-	if inventory_panel.visible:
-		inventory_panel.close()
-		return true
-	return false
-
-
-func _on_player_info(b) -> void:
-	main.view.selected = b
-	show_inspector(b)
-
-
-func update_touch(p) -> void:
-	## 매 프레임: 상호작용 버튼 아이콘을 지금 대상에 맞춰요
-	if action_btn.visible:
-		action_btn.set_icon(p.bubble_kind(p.shown_target()))
-
-
-func close_menu() -> bool:
-	## 메뉴가 열려 있었으면 닫고 true
-	if menu_panel.visible:
-		menu_panel.visible = false
-		return true
-	return false
-
-
-func _on_menu_save() -> void:
-	main.save_game()
-	menu_panel.visible = false
-
-
-func _on_menu_load() -> void:
-	main.load_game()
-	menu_panel.visible = false
-
-
-func toggle_debug() -> void:
-	debug_overlay.toggle()
-
-
-func toggle_palette() -> void:
-	bottom_panel.visible = not bottom_panel.visible
-
-
-func show_message(s: String) -> void:
-	_msg = s
-	_msg_t = MSG_SEC
-	_refresh_t = 0.0
+	ins_info.text = b.info()
 
 
 # ---------- 설비별 설정 ----------

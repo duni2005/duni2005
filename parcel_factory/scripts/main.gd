@@ -5,10 +5,12 @@ extends Node2D
 ##   상호작용        : F · 오른쪽 아래 버튼 = 지금 대상 / 설비를 직접 탭(마우스 왼쪽) = 그 설비
 ##                    짧게 = 탭, 길게 = 꾹 (자세한 건 scripts/player/player.gd)
 ##   두 손가락·휠     : 확대·축소 (카메라는 플레이어를 따라가요)
-##   설치 도구        : 탭 = 놓기, 레일·전선·파이프는 끌어서 깔기 / 철거 도구: 탭 = 가방으로 철거
+##   설치 도구(메뉴 → 디버그 → 설치 팔레트): 탭 = 놓기, 레일·전선·파이프는 끌어서 깔기
+##   모드: Z 일반 / X 이동 / C 철거 (오른쪽 아래 묶음 버튼과 같아요, 동작은 9단계)
+##   PC(키보드·마우스)일 때는 마우스를 올린 칸이 상호작용 대상, 터치일 때는 바라보는 방향의 대상
 ## 키보드·마우스는 InputMap 액션(project.godot)으로 받아요.
 ##   move_* 이동 · run 달리기 · interact 상호작용 · cancel 취소 · rotate 회전
-##   hotbar_1~9·휠 핫바 고르기 · inventory 가방 · zoom_in/out(Ctrl+휠) 확대·축소
+##   hotbar_1~9 핫바 고르기 · inventory 가방 · zoom_in/out(휠) 확대·축소 · mode_* 모드
 ##   debug 디버그 오버레이 · save_game 저장 (Ctrl+S)
 
 const TILE := 32.0
@@ -39,9 +41,10 @@ var view
 var cam: Camera2D
 var hud
 var player       # scripts/player/player.gd
+var play_mode := PlayMode.new()   # 일반·이동·철거 모드는 여기 한 곳에서만
 var save_path := SAVE_PATH   # 테스트는 다른 파일을 써요
 
-var tool: String = "view"          # view / build / erase
+var tool: String = "view"          # view / build
 var build_def: String = "레일 Mk1"
 var rot: int = 0
 
@@ -79,6 +82,7 @@ func _ready() -> void:
 	cam.zoom = Vector2(CAM_START_ZOOM, CAM_START_ZOOM)
 	cam.position = player.position
 	add_child(cam)
+	player.hotbar_changed.connect(_on_hotbar_changed)
 	cam.make_current()
 	hud = HUD.new()
 	hud.main = self
@@ -166,8 +170,11 @@ func _load_file() -> bool:
 
 
 func cancel() -> void:
-	## Esc·오른쪽 클릭: 가방·메뉴 닫기 → 하던 일·손에 든 것 내려놓기 → 설치·철거 취소 → 정보 패널 닫기
+	## Esc·오른쪽 클릭: 가방·메뉴 닫기 → 일반 모드로 → 하던 일·손에 든 것 내려놓기 → 설치 취소 → 정보 패널 닫기
 	if hud.close_inventory() or hud.close_menu():
+		return
+	if play_mode.mode != PlayMode.Mode.NORMAL:
+		play_mode.set_mode(PlayMode.Mode.NORMAL)
 		return
 	if player.action != "" or player.hotbar >= 0:
 		player.cancel()
@@ -231,25 +238,6 @@ func _place(c: Vector2i) -> void:
 	_update_ghost(c)
 
 
-func _erase(c: Vector2i) -> void:
-	if not in_build_range(c):
-		hud.show_message("플레이어에게서 너무 멀어요")
-		return
-	var b = factory.get_at(c)
-	if b != null:
-		var nm: String = b.name
-		if factory.deconstruct(b, player.inventory):
-			hud.show_message("%s을(를) 철거해 가방에 넣었어요" % nm)
-			if view.selected != null and not factory.buildings.has(view.selected):
-				view.selected = null
-		else:
-			hud.show_message("%s은(는) 철거할 수 없거나 가방이 가득 찼어요" % nm)
-		return
-	for layer in ["wire", "pipe", "water"]:
-		if factory.remove_layer(layer, c):
-			return
-
-
 func _tap(sp: Vector2) -> void:
 	var c := screen_to_cell(sp)
 	match tool:
@@ -259,8 +247,6 @@ func _tap(sp: Vector2) -> void:
 		"build":
 			if not is_drag_def():
 				_place(c)
-		"erase":
-			_erase(c)
 
 
 func _drag_path(c: Vector2i) -> void:
@@ -291,9 +277,13 @@ func _process(dt: float) -> void:
 	v += hud.joystick.vector
 	player.move_input = v.limit_length(1.0)
 	player.run = Input.is_action_pressed("run") or hud.joystick.is_running()
+	# PC: 마우스를 올린 칸이 상호작용 대상 (UI 위면 없음)
+	player.use_aim = not hud.touch_mode
+	if player.use_aim:
+		var mp := get_viewport().get_mouse_position()
+		player.aim = null if hud.is_over_ui(mp) else factory.get_at(screen_to_cell(mp))
 	# 카메라는 플레이어를 부드럽게 따라가요
 	cam.position = cam.position.lerp(player.position, 1.0 - exp(-CAM_FOLLOW * dt))
-	hud.update_touch(player)
 	if tool == "build" and not view.ghost.is_empty():
 		_update_ghost(view.ghost["pos"])   # 걸어가면 설치 가능 거리가 바뀌어요
 
@@ -311,20 +301,41 @@ func _unhandled_input(event: InputEvent) -> void:
 			_update_ghost(screen_to_cell(mm.position))
 
 
+func _on_hotbar_changed() -> void:
+	## 핫바에서 설비를 고르면 일반 모드로 돌아가요
+	if player.held_id().begins_with("[설비]"):
+		play_mode.set_mode(PlayMode.Mode.NORMAL)
+
+
+func _input(event: InputEvent) -> void:
+	## 입력 방식 자동 전환: 진짜 터치면 터치 UI(조이스틱), 키보드·마우스를 쓰면 조이스틱을 숨겨요.
+	## (마우스에서 흉내 낸 터치·터치에서 흉내 낸 마우스는 DEVICE_ID_EMULATION이라 무시해요)
+	if hud.settings.input_mode != "auto" or event.device == InputEvent.DEVICE_ID_EMULATION:
+		return
+	if event is InputEventScreenTouch or event is InputEventScreenDrag:
+		if not hud.touch_mode:
+			hud.set_touch_mode(true)
+	elif event is InputEventKey or event is InputEventMouseButton:
+		if hud.touch_mode:
+			hud.set_touch_mode(false)
+
+
 func _handle_actions(event: InputEvent) -> bool:
 	## InputMap 액션 처리. 처리했으면 true
 	if event.is_echo():
 		return false
 	if event.is_action_pressed("save_game", false, true):
 		save_game()
-	elif event.is_action_pressed("zoom_in", false, true):
+	elif event.is_action_pressed("zoom_in"):
 		_zoom_at(ZOOM_STEP, _event_pos(event))
-	elif event.is_action_pressed("zoom_out", false, true):
+	elif event.is_action_pressed("zoom_out"):
 		_zoom_at(1.0 / ZOOM_STEP, _event_pos(event))
-	elif event.is_action_pressed("hotbar_prev", false, true):
-		player.scroll_hotbar(-1)
-	elif event.is_action_pressed("hotbar_next", false, true):
-		player.scroll_hotbar(1)
+	elif event.is_action_pressed("mode_normal"):
+		play_mode.set_mode(PlayMode.Mode.NORMAL)
+	elif event.is_action_pressed("mode_move"):
+		play_mode.set_mode(PlayMode.Mode.MOVE)
+	elif event.is_action_pressed("mode_deconstruct"):
+		play_mode.set_mode(PlayMode.Mode.DECONSTRUCT)
 	elif event.is_action_pressed("cancel"):
 		cancel()
 	elif event.is_action_pressed("interact") and not (event is InputEventMouseButton):
@@ -367,8 +378,6 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			_update_ghost(_last_cell)
 			if tool == "build" and is_drag_def():
 				_place(_last_cell)
-			elif tool == "erase":
-				_erase(_last_cell)
 			elif tool == "view":
 				# 손 닿는 설비를 직접 누르면 그 설비와 상호작용 (멀면 떼었을 때 정보만 봐요)
 				var b = factory.get_at(_last_cell)
@@ -389,7 +398,7 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			_world_press = false
 			player.action_release()
 		elif _touches.is_empty():
-			if not _moved and not _multi and tool != "erase":
+			if not _moved and not _multi:
 				_tap(e.position)
 		elif _touches.size() == 1:
 			_pinch_dist = 0.0
@@ -411,10 +420,7 @@ func _on_drag(e: InputEventScreenDrag) -> void:
 	var c := screen_to_cell(e.position)
 	if tool == "build" and is_drag_def():
 		_drag_path(c)
-	elif tool == "erase":
-		if c != _last_cell:
-			_last_cell = c
-			_erase(c)
+
 
 
 func _pinch_points() -> Array:

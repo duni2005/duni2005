@@ -41,6 +41,8 @@ var facing := 1                # DIRS 번호 (처음엔 아래를 봐요)
 var move_input := Vector2.ZERO # -1~1 (키보드 + 조이스틱)
 var run := false
 var target = null              # 지금 상호작용 대상 Building
+var use_aim := false           # PC: 마우스를 올린 칸(aim)이 대상
+var aim = null
 
 var action := ""               # "", "rummage", "decon", "attack"
 var action_t := 0.0
@@ -151,7 +153,9 @@ func in_reach(b) -> bool:
 
 
 func _find_target():
-	## 반경 REACH 안에서 바라보는 방향에 가장 가까운 설비·레일·더미
+	## PC면 마우스를 올린 설비(손 닿을 때만), 아니면 반경 REACH 안에서 바라보는 방향에 가장 가까운 설비·레일·더미
+	if use_aim:
+		return aim if aim != null and in_reach(aim) else null
 	var pc := position / TILE
 	var base := cell()
 	var rr := int(ceil(REACH)) + 1
@@ -238,11 +242,6 @@ func held_id() -> String:
 func select_hotbar(i: int) -> void:
 	## 핫바 칸 고르기. 같은 칸을 다시 고르면 맨손
 	hotbar = -1 if i == hotbar else clampi(i, 0, Inventory.HOTBAR - 1)
-	hotbar_changed.emit()
-
-
-func scroll_hotbar(step: int) -> void:
-	hotbar = posmod((hotbar if hotbar >= 0 else (-1 if step > 0 else 0)) + step, Inventory.HOTBAR)
 	hotbar_changed.emit()
 
 
