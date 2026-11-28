@@ -10,6 +10,7 @@ extends PanelContainer
 
 signal closed
 
+const StatusIcons := preload("res://scripts/view/status_icons.gd")
 const InvSlot := preload("res://scripts/view/inv_slot.gd")
 const REFRESH_SEC := 0.1
 const HOLD_TAKE := 0.35          # 칸 꾹 = 전부
@@ -429,23 +430,10 @@ func refresh() -> void:
 
 
 func _status(b) -> Array:
-	## [색, 아이콘, 짧은 글]
-	var s: String = b.status
-	if b.needs_power() and b.power_net == null:
-		return [Palette.c(Palette.RED), "stop", "전력 연결 안 됨"]
-	if b.needs_power() and b.power_mult() <= 0.0 and s.find("전력") >= 0:
-		return [Palette.c(Palette.RED), "stop", "전력 없음"]
-	if s.find("막힘") >= 0:
-		return [Palette.c(Palette.RED), "stop", "출력 막힘"]
-	if b.is_active():
-		if b.needs_power() and b.power_mult() < 1.0:
-			return [Palette.c(Palette.YELLOW), "bolt", "작동 중 (전력 부족)"]
-		return [Palette.c(Palette.GREEN), "check", "작동 중"]
-	if s.find("기다") >= 0 or s.find("재료") >= 0 or s.find("모자라") >= 0:
-		return [Palette.c(Palette.YELLOW), "warn", "재료 부족"]
-	if s.find("레시피") >= 0:
-		return [Palette.c(Palette.YELLOW), "warn", "레시피를 골라요"]
-	return [Palette.c(Palette.G4), "warn", s if s != "" else "대기"]
+	## [색, 아이콘, 짧은 글] — 월드의 상태 아이콘과 같은 판단·아이콘 (StatusIcons)
+	var st: Dictionary = StatusIcons.classify(b)
+	var icon: String = st["icon"] if st["icon"] != "" else "warn"
+	return [Palette.c(st["color"]), icon, st["text"]]
 
 
 func _progress(b) -> Array:

@@ -37,6 +37,7 @@ func _ready() -> void:
 	await _test_edit_modes()
 	await _test_range_select()
 	await _test_feel()
+	await _test_day_hud()
 	await _test_save_load()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SAVE))
 	print("=== 결과: %s (실패 %d) ===" % ["통과" if _fails == 0 else "실패", _fails])
@@ -684,4 +685,20 @@ func _test_feel() -> void:
 	await _walk(Vector2.RIGHT, 1.6)
 	var through: bool = player.position.x / TILE > 31.2
 	_check("코너 보정 · 월드 꾹은 설치 모드 아님", through and not_build, "틈 통과 %s (x %.2f) · 설치 모드 아님 %s" % [str(through), player.position.x / TILE, str(not_build)])
+
+
+func _test_day_hud() -> void:
+	## 18:00 → '하루 끝' 창 · 멈춤 버튼 잠금 · [다음 날] → 09:00, 시계 아래 오늘 배달 수
+	var hud = main.hud
+	f.paused = false
+	f.record_shipment(null, true)
+	f.record_shipment(null, false)
+	f.sim_time = GameClock.DAY_REAL_SEC - 0.05
+	await _frames(int(0.4 * PHYS_FPS))
+	var shown: bool = f.day_over and hud.day_panel.visible and hud.pause_btn.disabled and hud.clock_label.text == "18:00"
+	var ship_ok: bool = hud.ship_label.text == "배달 1 · 오배송 1"
+	hud._on_next_day()
+	await _frames(int(0.3 * PHYS_FPS))
+	var next: bool = not hud.day_panel.visible and not f.day_over and f.day == 2 and hud.clock_label.text == "09:00" and hud.ship_label.text == "배달 0 · 오배송 0"
+	_check("하루 끝 창 · 배달 수 표시 · 다음 날", shown and ship_ok and next, "창 %s · 배달 '%s' · 다음 날 %s" % [str(shown), hud.ship_label.text, str(next)])
 

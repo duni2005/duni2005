@@ -96,7 +96,8 @@ const ATLAS_COLS := 16
 const PLAYER_W := 16
 const PLAYER_H := 24
 const PLAYER_COLS := 8
-const UI_ICONS := ["hand", "gear", "box", "hammer", "fist", "move", "crowbar", "rotate", "check", "warn", "bolt", "stop"]
+const UI_ICONS := ["hand", "gear", "box", "hammer", "fist", "move", "crowbar", "rotate", "check", "warn", "bolt", "stop",
+	"empty", "blocked", "bolt_red", "question", "drop"]   # 뒤 다섯 개: 설비 상태 아이콘 (StatusIcons)
 
 
 # ---------- 진입점 ----------
@@ -954,6 +955,38 @@ static func ui_icons() -> Image:
 			"stop":
 				c.rect(1, 1, 6, 6, P.RED)
 				c.rect(2, 3, 4, 2, P.PAPER)
+			"empty":
+				# 빈 상자: 뚜껑 열린 상자 테두리, 안은 비어 있어요
+				c.rect(1, 3, 6, 4, P.CARD)
+				c.rect(2, 4, 4, 2, P.INK)
+				c.rect(0, 2, 2, 1, P.ORANGE_L)
+				c.rect(6, 2, 2, 1, P.ORANGE_L)
+			"blocked":
+				# 빨간 화살표가 벽에 막힘
+				c.rect(0, 3, 4, 2, P.RED)
+				c.line(4, 1, 6, 4, P.RED)
+				c.line(4, 6, 6, 4, P.RED)
+				c.rect(4, 2, 1, 4, P.RED)
+				c.rect(7, 0, 1, 8, P.PAPER)
+			"bolt_red":
+				c.line(5, 0, 2, 4, P.RED)
+				c.line(6, 0, 3, 4, P.RED)
+				c.rect(2, 4, 4, 1, P.RED)
+				c.line(5, 4, 2, 8, P.RED)
+			"question":
+				c.rect(2, 0, 4, 1, P.YELLOW)
+				c.rect(1, 1, 2, 2, P.YELLOW)
+				c.rect(5, 1, 2, 2, P.YELLOW)
+				c.rect(4, 3, 2, 1, P.YELLOW)
+				c.rect(3, 4, 2, 1, P.YELLOW)
+				c.rect(3, 6, 2, 2, P.YELLOW)
+			"drop":
+				c.px(4, 0, P.CYAN)
+				c.rect(3, 1, 2, 2, P.CYAN)
+				c.rect(2, 3, 4, 2, P.CYAN)
+				c.rect(1, 5, 6, 2, P.CYAN)
+				c.rect(2, 7, 4, 1, P.CYAN)
+				c.px(2, 5, P.PAPER)
 			"rotate":
 				# 돌아가는 화살표: 고리 + 오른쪽 위 화살촉
 				c.disc(4, 4, 3.6, P.PAPER)

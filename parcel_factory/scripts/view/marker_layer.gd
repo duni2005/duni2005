@@ -1,12 +1,16 @@
 extends Node2D
-## 설비 위 작은 표시: 전력 등(초록·노랑·빨강), 레시피 결과물 아이콘, 진행 막대,
+## 설비 위 작은 표시: 전력 등(초록·노랑·빨강), 레시피 결과물 아이콘, 진행 막대(가동 중일 때만, 아래쪽 초록),
+## 상태 아이콘(오른쪽 위 8×8: 재료 부족·출력 막힘·전력·레시피 없음·물 부족 — 정보창과 같은 StatusIcons),
 ## 공급기·감지기·분류기가 고른 아이템, 선택 테두리, 설치 고스트. 시뮬레이션 상태는 읽기만 해요.
+## 화면 확대가 STATUS_MIN_ZOOM 미만이면 상태 아이콘은 숨겨요.
 
 const TILE := 32.0
 const LAMP := 6.0        # 전력 등 크기 (3도트)
 const ICON := 16.0       # 8×8 아이콘 2배
 const BAR := 2.0         # 진행 막대 두께 (1도트)
 const GHOST_ALPHA := 0.55
+const STATUS_MIN_ZOOM := 0.8
+const StatusIcons := preload("res://scripts/view/status_icons.gd")
 const REFRESH_SEC := 0.1   # 전력 등·진행 막대는 0.1초마다 (고스트·선택이 바뀌면 바로)
 
 var world = null
@@ -28,6 +32,8 @@ func _draw() -> void:
 	var f: Factory = world.factory
 	var vis: Rect2 = world.visible_rect()
 	var items := Art.tex("items8")
+	var ui := Art.tex("ui_icons")
+	var show_status: bool = get_viewport().get_canvas_transform().x.x >= STATUS_MIN_ZOOM
 	# 목록: [설비, 칸 사각형] — 레일이 아닌 설비만 (building_layer가 설치·철거 때만 다시 만들어요)
 	for e in world.buildings.others:
 		var r: Rect2 = e[1]
@@ -40,18 +46,27 @@ func _draw() -> void:
 		elif b is Generator:
 			_lamp(r, Palette.GREEN if b.running() else Palette.RED)
 		var icon := ""
+		# 진행 막대: 가동 중일 때만 (멈추면 숨겨요)
+		var k: float = StatusIcons.progress(b)
+		if k >= 0.0 and b.is_active():
+			var bar := Rect2(r.position + Vector2(3, r.size.y - 4), Vector2(r.size.x - 6, BAR + 2))
+			draw_rect(bar, Color(Palette.c(Palette.INK), 0.8))
+			draw_rect(Rect2(bar.position + Vector2(1, 1), Vector2((bar.size.x - 2) * k, BAR)), Palette.c(Palette.LIME))
+		if show_status:
+			var st: Dictionary = StatusIcons.classify(b)
+			var si: int = SpriteGen.UI_ICONS.find(st["icon"])
+			if si >= 0 and st["icon"] != StatusIcons.RUNNING:
+				var sr := Rect2(Vector2(r.end.x - ICON - 1, r.position.y + 1), Vector2(ICON, ICON))
+				draw_rect(sr.grow(1), Color(Palette.c(Palette.INK), 0.85))
+				draw_texture_rect_region(ui, sr, Rect2(si * 8, 0, 8, 8))
 		if b is Machine and b.recipe != null:
 			icon = b.recipe["out"].keys()[0]
-			var bp: float = b.progress
-			var bt: float = b.recipe["t"]
-			if bp > 0.0:
-				draw_rect(Rect2(r.position + Vector2(4, r.size.y - 4), Vector2((r.size.x - 8) * clampf(bp / bt, 0.0, 1.0), BAR)), Palette.c(Palette.LIME))
 		elif b is InfiniteSource:
 			icon = b.item_id
 		elif b is Detector or b is Sorter:
 			icon = b.selected if b is Detector else b.filter_item
 		if icon != "":
-			var ir := Rect2(r.end - Vector2(ICON + 2, ICON + 2), Vector2(ICON, ICON))
+			var ir := Rect2(r.end - Vector2(ICON + 2, ICON + 6), Vector2(ICON, ICON))   # 진행 막대 위
 			draw_rect(ir.grow(1), Color(Palette.c(Palette.INK), 0.7))
 			draw_texture_rect_region(items, ir, Art.item_region(icon, 8))
 	if world.selected != null and f.buildings.has(world.selected):

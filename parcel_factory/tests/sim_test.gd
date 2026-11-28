@@ -30,6 +30,8 @@ func _ready() -> void:
 	_test_placement()
 	_test_move()
 	_test_deconstruct_many()
+	_test_status()
+	_test_day()
 	_test_floor_items()
 	_test_demos()
 	_test_save_roundtrip()
@@ -473,6 +475,74 @@ func _mat_total(def_name: String) -> int:
 	for e in DB.build_materials(def_name):
 		n += int(e[1])
 	return n
+
+
+const StatusIcons := preload("res://scripts/view/status_icons.gd")
+
+
+func _test_status() -> void:
+	## 상태 아이콘: 작동 중 · 출력 막힘 · 재료 부족 · 전력 없음 · 레시피 없음 · 물 부족 (월드·정보창이 같이 써요)
+	var f := _new_factory()
+	var rig := _build_paper_rig(f, 0)
+	var m: Machine = rig["machine"]
+	_run(f, 3.0)
+	var running: bool = StatusIcons.classify(m)["icon"] == "check" and m.is_active() and StatusIcons.progress(m) >= 0.0
+	# 소각기를 없애면 출력이 쌓여 막혀요
+	f.remove_at(Vector2i(5, 0))
+	f.remove_at(Vector2i(4, 0))
+	_run(f, 30.0)
+	var blocked: String = StatusIcons.classify(m)["icon"]
+	var lone: Machine = f.place("분해기", Vector2i(20, 20), 0)
+	var no_recipe: String = StatusIcons.classify(lone)["icon"]
+	_set_recipe(lone, "종이", "나뭇가지")
+	_run(f, 0.2)
+	var no_power: String = StatusIcons.classify(lone)["icon"]
+	for y in range(7, 21):
+		f.place("전선", Vector2i(2, y), 0)
+	for x in range(2, 21):
+		f.place("전선", Vector2i(x, 20), 0)
+	_run(f, 0.5)
+	var starving: String = StatusIcons.classify(lone)["icon"]
+	f.water[Vector2i(30, 30)] = true   # 물 샘 위 펌프, 파이프 없음
+	var pump = f.place("펌프", Vector2i(30, 30), 0)
+	_run(f, 0.2)
+	var dry: String = StatusIcons.classify(pump)["icon"]
+	var icons_ok := true
+	for k in ["check", "empty", "blocked", "bolt_red", "bolt", "question", "drop"]:
+		if SpriteGen.UI_ICONS.find(k) < 0:
+			icons_ok = false
+	_check("상태 아이콘: 작동 중 · 출력 막힘 · 레시피 없음 · 전력 없음 · 재료 부족 · 물 부족",
+		running and blocked == "blocked" and no_recipe == "question" and no_power == "bolt_red" and starving == "empty" and dry == "drop" and icons_ok,
+		"작동 %s · 막힘 %s · 레시피 %s · 전력 %s · 재료 %s · 물 %s · 아이콘 %s" % [str(running), blocked, no_recipe, no_power, starving, dry, str(icons_ok)])
+	f.free()
+
+
+func _test_day() -> void:
+	## 18:00에 멈추고 다음 날 09:00 · 오늘 배달 수 · 저장
+	var f := _new_factory()
+	f.paused = false
+	f.sim_time = GameClock.DAY_REAL_SEC - 0.06
+	f._process(0.2)
+	var stopped: bool = f.day_over and GameClock.text(f.sim_time) == "18:00"
+	var t0: float = f.sim_time
+	f._process(1.0)
+	var frozen: bool = is_equal_approx(f.sim_time, t0)
+	f.record_shipment(null, true)
+	f.record_shipment(null, true)
+	f.record_shipment(null, false)
+	var counted: bool = f.today_ok == 2 and f.today_bad == 1
+	var b := _new_factory()
+	b.load_save(JSON.parse_string(JSON.stringify(f.to_save())))
+	var saved: bool = b.day_over and b.today_ok == 2 and b.today_bad == 1 and b.day == 1
+	f.next_day()
+	var next: bool = f.day == 2 and not f.day_over and GameClock.text(f.sim_time) == "09:00" and f.today_ok == 0 and f.today_bad == 0
+	f._process(0.5)
+	var runs: bool = f.sim_time > 0.0
+	_check("하루: 18:00에 멈춤 · 오늘 배달 수(정상/오배송) · 저장 · 다음 날 09:00",
+		stopped and frozen and counted and saved and next and runs,
+		"멈춤 %s · 그대로 %s · 집계 %s · 저장 %s · 다음 날 %s · 다시 돎 %s" % [str(stopped), str(frozen), str(counted), str(saved), str(next), str(runs)])
+	f.free()
+	b.free()
 
 
 func _test_floor_items() -> void:

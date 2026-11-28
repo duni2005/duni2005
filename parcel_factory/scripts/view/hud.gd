@@ -1,7 +1,8 @@
 extends CanvasLayer
 ## 화면 UI (모바일 가로 화면 기준, PC도 같은 화면).
 ##   왼쪽 위    : 지금 상호작용 대상 이름 · 짧은 상태          (+ F3 디버그 오버레이)
-##   오른쪽 위  : 시계 · 일시정지 · 속도 · 메뉴(저장·설정·디버그), 그 아래 모드 글씨
+##   오른쪽 위  : 시계(+ 오늘 배달 수 정상/오배송) · 일시정지 · 속도 · 메뉴(저장·설정·디버그), 그 아래 모드 글씨
+##   가운데     : 18:00 '하루 끝' 창 (시뮬레이션이 멈추고 [다음 날]로 09:00부터)
 ##   가운데 위  : 알림 글씨, 범위 선택이 있으면 '설비 N개 선택됨' + [이동][철거(꾹)][해제]
 ##   왼쪽 아래  : 떠 있는 조이스틱 영역 (화면 왼쪽 35% × 아래 60%, 터치 입력일 때만)
 ##   가운데 아래: HP 바(+스테미나 자리) · 핫바 9칸 + 가방 버튼
@@ -41,6 +42,9 @@ var target_label: Label
 var target_panel: PanelContainer
 var top_right: HBoxContainer
 var clock_label: Label
+var ship_label: Label
+var day_panel: PanelContainer   # 하루 끝
+var day_label: Label
 var pause_btn: Button
 var speed_btn: Button
 var mode_label: Label
@@ -92,6 +96,7 @@ func _ready() -> void:
 	_build_top_right()
 	_build_toast()
 	_build_sel_bar()
+	_build_day_panel()
 	_build_palette()
 	_build_bottom()
 	_build_action()
@@ -215,11 +220,18 @@ func _build_top_right() -> void:
 	_dark(cp)
 	cp.custom_minimum_size = Vector2(110, BTN_H)
 	top_right.add_child(cp)
+	var cv := VBoxContainer.new()
+	cv.add_theme_constant_override("separation", -4)
+	cv.alignment = BoxContainer.ALIGNMENT_CENTER
+	cp.add_child(cv)
 	clock_label = Label.new()
 	clock_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	clock_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	clock_label.add_theme_font_size_override("font_size", 26)
-	cp.add_child(clock_label)
+	clock_label.add_theme_font_size_override("font_size", 22)
+	cv.add_child(clock_label)
+	ship_label = Label.new()   # 오늘 배달: 정상 · 오배송
+	ship_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ship_label.add_theme_font_size_override("font_size", 16)
+	cv.add_child(ship_label)
 	pause_btn = _btn("멈춤", _on_pause, 90)
 	top_right.add_child(pause_btn)
 	speed_btn = _btn("×1", _on_speed)
@@ -292,6 +304,48 @@ func _build_sel_bar() -> void:
 	h.add_child(sel_decon)
 	h.add_child(_btn("해제", func() -> void: main.edit.clear_selection(), 90))
 	sel_bar.visible = false
+
+
+func _build_day_panel() -> void:
+	## 18:00 하루 끝: 오늘 결과 + [다음 날]
+	day_panel = PanelContainer.new()
+	_dark(day_panel)
+	_corner(day_panel, 0.5, 0.5, Control.GROW_DIRECTION_BOTH, Control.GROW_DIRECTION_BOTH)
+	root.add_child(day_panel)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 12)
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	day_panel.add_child(v)
+	var t := Label.new()
+	t.text = "하루 끝 · 18:00"
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.add_theme_font_size_override("font_size", 32)
+	t.add_theme_color_override("font_color", Palette.c(Palette.YELLOW))
+	v.add_child(t)
+	day_label = Label.new()
+	day_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(day_label)
+	var b := _btn("다음 날", _on_next_day, 220)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	v.add_child(b)
+	day_panel.visible = false
+
+
+func _on_next_day() -> void:
+	main.factory.next_day()
+	day_panel.visible = false
+	show_message("%d일차 09:00" % main.factory.day)
+
+
+func _refresh_day() -> void:
+	var f = main.factory
+	ship_label.text = "배달 %d · 오배송 %d" % [f.today_ok, f.today_bad]
+	pause_btn.disabled = f.day_over
+	if f.day_over and not day_panel.visible:
+		day_label.text = "%d일차 · 배달 %d개 (정상 %d · 오배송 %d)" % [f.day, f.today_ok + f.today_bad, f.today_ok, f.today_bad]
+		day_panel.visible = true
+	elif not f.day_over:
+		day_panel.visible = false
 
 
 func _refresh_sel_bar() -> void:
@@ -433,6 +487,7 @@ func _process(dt: float) -> void:
 	_refresh_t = REFRESH_SEC
 	var f = main.factory
 	clock_label.text = GameClock.text(f.sim_time)
+	_refresh_day()
 	_refresh_sel_bar()
 	var tt := _target_text()
 	target_panel.visible = tt != ""
@@ -440,7 +495,7 @@ func _process(dt: float) -> void:
 
 
 func is_over_ui(p: Vector2) -> bool:
-	for c in [top_right, sel_bar, palette, hotbar, action_btn, rotate_btn, mode_bar, backdrop, info, inventory_panel, menu_panel, joystick]:
+	for c in [top_right, sel_bar, day_panel, palette, hotbar, action_btn, rotate_btn, mode_bar, backdrop, info, inventory_panel, menu_panel, joystick]:
 		if c.visible and c.get_global_rect().has_point(p):
 			return true
 	return false

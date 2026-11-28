@@ -6,7 +6,8 @@ extends Node
 
 signal topology_changed
 signal shipment(parcel, ok)
-signal items_popped(pile, cell, items)   # 손으로 뒤져 물건이 튀어나왔을 때 (화면 연출용)
+signal items_popped(pile, cell, items)
+signal day_ended(day)                  # 18:00이 되어 멈췄어요   # 손으로 뒤져 물건이 튀어나왔을 때 (화면 연출용)
 
 const DT := 0.05
 const MAX_STEPS_PER_FRAME := 80   # 프레임이 밀려도 한 번에 이만큼만 따라잡아요
@@ -60,12 +61,16 @@ var revision := 0     # 설치·철거·회전·불러오기마다 1씩 늘어�
 var tick_count := 0   # 지금까지 돈 틱 수 (디버그 오버레이가 틱/초 계산에 써요)
 var shipped := 0
 var shipped_ok := 0
+var day := 1              # 며칠째
+var day_over := false     # 18:00: 다음 날(next_day)까지 시뮬레이션이 멈춰요
+var today_ok := 0         # 오늘 정상 배달
+var today_bad := 0        # 오늘 오배송
 var _acc := 0.0
 var _dirty := true
 
 
 func _process(delta: float) -> void:
-	if paused:
+	if paused or day_over:
 		return
 	_acc += delta * speed
 	var n := 0
@@ -73,6 +78,12 @@ func _process(delta: float) -> void:
 		step(DT)
 		_acc -= DT
 		n += 1
+		if sim_time >= GameClock.DAY_REAL_SEC:
+			# 하루 끝(18:00): 밤 시스템은 아직 없어서 멈추고 '다음 날'을 기다려요
+			day_over = true
+			_acc = 0.0
+			day_ended.emit(day)
+			return
 	if n >= MAX_STEPS_PER_FRAME:
 		_acc = 0.0
 
@@ -511,6 +522,11 @@ func clear_all() -> void:
 	floor_items.clear()
 	shipped = 0
 	shipped_ok = 0
+	day = 1
+	day_over = false
+	sim_time = 0.0
+	today_ok = 0
+	today_bad = 0
 	mark_dirty()
 
 
@@ -636,11 +652,23 @@ func record_shipment(p, ok: bool) -> void:
 	shipped += 1
 	if ok:
 		shipped_ok += 1
+		today_ok += 1
+	else:
+		today_bad += 1
 	shipment.emit(p, ok)
 
 
+func next_day() -> void:
+	## 다음 날 09:00부터 다시 (설비·물건은 그대로, 오늘 배달 수만 새로)
+	day += 1
+	sim_time = 0.0
+	today_ok = 0
+	today_bad = 0
+	day_over = false
+
+
 # ---------- 저장·불러오기 ----------
-## 설비(이름·위치·방향·설정)와 전선·파이프·물 샘 칸만 저장해요. 물건 내용물은 아직 빼요.
+## 설비(이름·위치·방향·설정)와 전선·파이프·물 샘 칸, 날짜·시각·오늘 배달 수를 저장해요. 물건 내용물은 아직 빼요.
 
 func to_save() -> Dictionary:
 	var bs := []
@@ -654,6 +682,7 @@ func to_save() -> Dictionary:
 		"pipes": _cells_to_list(pipes),
 		"water": _cells_to_list(water),
 		"floor_items": floor_items.to_save(),
+		"day": {"n": day, "time": sim_time, "ok": today_ok, "bad": today_bad},
 	}
 
 
@@ -686,6 +715,13 @@ func load_save(d) -> bool:
 		if st is Dictionary:
 			b.load_state(st)
 	floor_items.load_save(d.get("floor_items", []))
+	var dd = d.get("day", {})
+	if dd is Dictionary:
+		day = int(dd.get("n", 1))
+		sim_time = clampf(float(dd.get("time", 0.0)), 0.0, GameClock.DAY_REAL_SEC)
+		today_ok = int(dd.get("ok", 0))
+		today_bad = int(dd.get("bad", 0))
+		day_over = sim_time >= GameClock.DAY_REAL_SEC
 	mark_dirty()
 	return true
 
