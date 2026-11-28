@@ -6,7 +6,8 @@ extends Node2D
 ##                    짧게 = 탭, 길게 = 꾹 (자세한 건 scripts/player/player.gd)
 ##   두 손가락·휠     : 확대·축소 (카메라는 플레이어를 따라가요)
 ##   설치 도구(메뉴 → 디버그 → 설치 팔레트): 탭 = 놓기, 레일·전선·파이프는 끌어서 깔기
-##   모드: Z 일반 / X 이동 / C 철거 (오른쪽 아래 묶음 버튼과 같아요, 동작은 9단계)
+##   모드: Z 일반 / X 이동 / C 철거 (오른쪽 아래 묶음 버튼과 같아요). 이동·철거·범위 선택은 scripts/player/edit_controller.gd
+##   빈 칸 꾹 → 끌기 = 범위 선택 (모든 모드). Delete = 선택 철거 (조작 표: docs/CONTROLS.md)
 ##   PC(키보드·마우스)일 때는 마우스를 올린 칸이 상호작용 대상, 터치일 때는 바라보는 방향의 대상
 ## 키보드·마우스는 InputMap 액션(project.godot)으로 받아요.
 ##   move_* 이동 · run 달리기 · interact 상호작용 · cancel 취소 · rotate 회전
@@ -23,6 +24,8 @@ const TargetMarker := preload("res://scripts/player/target_marker.gd")
 const DropLayer := preload("res://scripts/view/drop_layer.gd")
 const BuildController := preload("res://scripts/player/build_controller.gd")
 const DustFx := preload("res://scripts/view/dust_fx.gd")
+const EditController := preload("res://scripts/player/edit_controller.gd")
+const EditLayer := preload("res://scripts/view/edit_layer.gd")
 ## 새 게임 시작 지급품 [이름, 개수]
 const STARTER_KIT := [
 	["나무 판자", 20], ["나사", 40], ["[설비] 레일 Mk1", 100],
@@ -46,6 +49,9 @@ var player       # scripts/player/player.gd
 var play_mode := PlayMode.new()   # 일반·이동·철거 모드는 여기 한 곳에서만
 var build        # scripts/player/build_controller.gd (설비 아이템 설치)
 var dust         # 설치 먼지 효과
+var edit         # scripts/player/edit_controller.gd (이동·철거·범위 선택)
+var cam_pan := Vector2.ZERO      # 범위 선택 중 화면 가장자리로 민 카메라 (플레이어가 걸으면 돌아와요)
+var cam_pan_hold := false
 var save_path := SAVE_PATH   # 테스트는 다른 파일을 써요
 
 var tool: String = "view"          # view / build
@@ -58,7 +64,6 @@ var _moved := false
 var _multi := false
 var _last_cell := Vector2i(0, 0)
 var _pinch_dist := 0.0
-var _world_press := false          # 설비를 직접 눌러 플레이어 상호작용 중
 
 
 func _ready() -> void:
@@ -91,6 +96,15 @@ func _ready() -> void:
 	build.view = view
 	add_child(build)
 	player.build_hold.connect(build.begin)
+	edit = EditController.new()
+	edit.main = self
+	edit.factory = factory
+	edit.player = player
+	edit.view = view
+	add_child(edit)   # 설치 조종 다음: 옮기는 미리보기가 설치 미리보기를 덮어써요
+	var edit_layer := EditLayer.new()
+	edit_layer.edit = edit
+	view.add_actor(edit_layer)
 	cam = Camera2D.new()
 	cam.zoom = Vector2(CAM_START_ZOOM, CAM_START_ZOOM)
 	cam.position = player.position
@@ -143,10 +157,9 @@ func clear_room() -> void:
 
 
 func begin_move(b) -> void:
-	## 정보창 [이동]: 9단계에서 그 설비를 들고 옮기는 동작이 붙어요. 지금은 이동 모드로 바꾸기만 해요
+	## 정보창 [이동]: 이동 모드로 바꾸고 그 설비를 선택해, 다음에 월드를 누른 곳에서 들어요
 	play_mode.set_mode(PlayMode.Mode.MOVE)
-	view.selected = b
-	hud.show_message("이동 모드 — 설비를 들어 옮기는 동작은 9단계에서 붙어요")
+	edit.move_one(b)
 
 
 func toggle_creative() -> void:
@@ -195,6 +208,8 @@ func cancel() -> void:
 		return
 	if build.cancel_build():
 		return
+	if edit.cancel():
+		return
 	if play_mode.mode != PlayMode.Mode.NORMAL:
 		play_mode.set_mode(PlayMode.Mode.NORMAL)
 		return
@@ -223,6 +238,9 @@ func select_build(def_name: String) -> void:
 
 
 func rotate_tool() -> void:
+	if edit.moving():
+		edit.rotate()   # 옮기는 중: 그 설비 방향
+		return
 	if build.held_def() != "":
 		build.rotate()   # 설비를 들었으면: 설치 방향 (두 점 설치 중이면 꺾는 방향)
 		return
@@ -267,14 +285,18 @@ func _tap(sp: Vector2) -> void:
 	var c := screen_to_cell(sp)
 	match tool:
 		"view":
-			# 손 닿는 설비는 누를 때 이미 처리했어요. 여기 오는 건 멀리 있는 설비
-			var b = factory.get_at(c)
-			if b != null and play_mode.mode == PlayMode.Mode.NORMAL and not player.in_reach(b):
-				player.blink(b)
-				hud.show_message("가까이 가야 해요")
+			far_tap(sp)
 		"build":
 			if not is_drag_def():
 				_place(c)
+
+
+func far_tap(sp: Vector2) -> void:
+	## 일반 모드 탭: 손 닿는 설비는 누를 때 이미 처리했어요. 여기 오는 건 멀리 있는 설비
+	var b = factory.get_at(screen_to_cell(sp))
+	if b != null and play_mode.mode == PlayMode.Mode.NORMAL and not player.in_reach(b):
+		player.blink(b)
+		hud.show_message("가까이 가야 해요")
 
 
 func _drag_path(c: Vector2i) -> void:
@@ -312,7 +334,9 @@ func _process(dt: float) -> void:
 		var mp := get_viewport().get_mouse_position()
 		player.aim = null if hud.is_over_ui(mp) else factory.get_at(screen_to_cell(mp))
 	# 카메라는 플레이어를 부드럽게 따라가요
-	cam.position = cam.position.lerp(player.position, 1.0 - exp(-CAM_FOLLOW * dt))
+	if not cam_pan_hold and player.move_input.length() > 0.2:
+		cam_pan = cam_pan.lerp(Vector2.ZERO, 1.0 - exp(-CAM_FOLLOW * dt))
+	cam.position = cam.position.lerp(player.position + cam_pan, 1.0 - exp(-CAM_FOLLOW * dt))
 	if tool == "build" and not view.ghost.is_empty():
 		_update_ghost(view.ghost["pos"])   # 걸어가면 설치 가능 거리가 바뀌어요
 
@@ -339,6 +363,14 @@ func _on_hotbar_changed() -> void:
 func _input(event: InputEvent) -> void:
 	## 입력 방식 자동 전환: 진짜 터치면 터치 UI(조이스틱), 키보드·마우스를 쓰면 조이스틱을 숨겨요.
 	## (마우스에서 흉내 낸 터치·터치에서 흉내 낸 마우스는 DEVICE_ID_EMULATION이라 무시해요)
+	# 범위 선택·옮기기·철거 게이지 중인 손가락은 UI(조이스틱 등) 위를 지나가도 놓치지 않게 먼저 받아요
+	if (event is InputEventScreenDrag or (event is InputEventScreenTouch and not event.pressed)) and edit.busy() and edit.owns(event.index):
+		if event is InputEventScreenDrag:
+			_on_drag(event as InputEventScreenDrag)
+		else:
+			_on_touch(event as InputEventScreenTouch)
+		get_viewport().set_input_as_handled()
+		return
 	if hud.settings.input_mode != "auto" or event.device == InputEvent.DEVICE_ID_EMULATION:
 		return
 	if event is InputEventScreenTouch or event is InputEventScreenDrag:
@@ -372,11 +404,17 @@ func _handle_actions(event: InputEvent) -> bool:
 		play_mode.set_mode(PlayMode.Mode.DECONSTRUCT)
 	elif event.is_action_pressed("cancel"):
 		cancel()
+	elif event.is_action_pressed("delete_selection"):
+		edit.deconstruct_selection()
 	elif event.is_action_pressed("interact") and not (event is InputEventMouseButton):
 		# 마우스 왼쪽은 터치 흉내(emulate_touch_from_mouse)로 _on_touch에서 처리돼요.
-		# F 키: 플레이어가 지금 바라보는 대상과 상호작용 (누르는 시간으로 탭·꾹을 나눠요)
-		player.action_press()
+		# F 키: 플레이어가 지금 바라보는 대상과 상호작용 (누르는 시간으로 탭·꾹을 나눠요). 이동·철거 모드는 edit가
+		if not edit.button_press():
+			player.action_press()
 	elif event.is_action_released("interact") and not (event is InputEventMouseButton):
+		if edit.button_active():
+			edit.button_release(false)
+			return true
 		if build.active:
 			build.release(false)
 		player.action_release()
@@ -417,6 +455,9 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 	if e.pressed:
 		if _touches.is_empty() and hud.is_over_ui(e.position):
 			return
+		if edit.busy():
+			edit.second_press(e.index)   # 철거 게이지·옮기기·범위 선택 중 다른 손가락 (짧은 탭 = 회전)
+			return
 		_touches[e.index] = e.position
 		if _touches.size() == 1:
 			_drag_start = e.position
@@ -426,25 +467,21 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			_update_ghost(_last_cell)
 			if tool == "build" and is_drag_def():
 				_place(_last_cell)
-			elif tool == "view" and play_mode.mode == PlayMode.Mode.NORMAL:
-				# 일반 모드: 3칸 안 설비를 누르면 그 설비와 상호작용 (탭 = 정보창, 들고 꾹 = 빠른 넣기)
-				var b = factory.get_at(_last_cell)
-				if b != null and player.in_reach(b):
-					_world_press = true
-					player.action_press(b)
+			elif tool == "view":
+				# 탭·꾹·끌기 판정과 모드별 동작은 edit가 (일반 모드 손 닿는 설비는 플레이어에게 넘겨요)
+				edit.world_press(e.index, e.position)
 		elif _touches.size() == 2:
 			_multi = true
-			if _world_press:
-				_world_press = false
-				player.action_release()
+			edit.abort()
 			_start_pinch()
 	else:
+		if edit.second_release(e.index):
+			return
 		if not _touches.has(e.index):
 			return
 		_touches.erase(e.index)
-		if _world_press and _touches.is_empty():
-			_world_press = false
-			player.action_release()
+		if edit.owns(e.index):
+			edit.world_release(e.index, e.position)
 		elif _touches.is_empty():
 			if not _moved and not _multi:
 				_tap(e.position)
@@ -454,6 +491,8 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 
 func _on_drag(e: InputEventScreenDrag) -> void:
 	if build.world_drag(e.index, e.position):
+		return
+	if edit.world_drag(e.index, e.position):
 		return
 	if not _touches.has(e.index):
 		return

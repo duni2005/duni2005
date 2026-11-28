@@ -3,7 +3,7 @@ extends CharacterBody2D
 ## 이동·애니메이션·상호작용 대상 고르기를 맡고, 공장을 바꿀 때는 Factory의 함수만 불러요.
 ##   탭(짧게)    : 설비 정보창 열기 (레일은 위 물건 줍기, 쓰레기 더미는 뒤지기)
 ##   꾹(길게)    : 들고 있는 아이템 빠른 넣기(넣을 수 있는 만큼) · 맨손이면 휘두르기(공격)
-##   철거는 정보창의 [철거(꾹)] 버튼 · 철거 모드(9단계)에서만 해요.
+##   철거는 정보창의 [철거(꾹)] 버튼 · 철거 모드에서만 해요 (이동·철거 모드는 edit_controller.gd).
 ## 손에 든 것 = 고른 핫바 칸. 바닥 아이템은 1칸 안에 들어오면 끌려와 자동으로 주워요.
 
 signal message(text: String)
@@ -252,6 +252,12 @@ func action_release() -> void:
 	_press = false
 	if not _hold_started:
 		_tap(_press_target)
+	_press_target = null
+
+
+func action_abort() -> void:
+	## 누르던 손가락이 끌기로 바뀌었어요: 탭도 꾹도 아니에요
+	_press = false
 	_press_target = null
 
 

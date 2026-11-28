@@ -50,6 +50,7 @@ var water_nets: Array = []
 var room: Room = null     # 지형 (없으면 무한 격자)
 var floor_items := FloorItems.new()   # 바닥에 떨어진 아이템 (시뮬레이션에는 영향 없음)
 var creative := false     # 켜면 지형 규칙을 무시하고 어디든 설치·철거
+var held := {}            # 이동 모드로 들려 있는 설비 (그동안 멈춰요)
 var _rng := RandomNumberGenerator.new()
 
 var paused := false
@@ -82,7 +83,8 @@ func step(dt: float) -> void:
 	_update_power()
 	_update_water()
 	for b in buildings:
-		b.tick(dt)
+		if not held.has(b):
+			b.tick(dt)
 	sim_time += dt
 	tick_count += 1
 
@@ -344,6 +346,7 @@ func deconstruct(b) -> Array:
 		var keep: int = 20 * (g.members.size() - 1)
 		while g.items.size() > keep:
 			out.append(g.items.pop_back())
+		g.members.erase(b)   # 여러 개를 한 번에 철거할 때 다음 블록이 줄어든 묶음으로 계산하게
 	for m in DB.build_materials(b.name):
 		out.append_array(Building.items_of(m[0], m[1]))
 	var center := Vector2(b.pos) + Vector2(b.size) * 0.5
@@ -352,6 +355,109 @@ func deconstruct(b) -> Array:
 	for it in out:
 		floor_items.spawn(it, 1, center)
 	return out
+
+
+func deconstruct_many(list: Array) -> Array:
+	## 여러 개 한 번에 철거: list = 설비 또는 {layer: "wire"/"pipe", pos} (전선·파이프 칸).
+	## 결과물은 각자 자리에 쏟아요. 연결·전력망·물망·창고 묶음은 다음 틱에 한 번만 다시 계산돼요
+	var out := []
+	for e in list:
+		if e is Dictionary:
+			out.append_array(_deconstruct_layer(e["layer"], e["pos"]))
+		else:
+			out.append_array(deconstruct(e))
+	return out
+
+
+func _deconstruct_layer(layer: String, c: Vector2i) -> Array:
+	if not remove_layer(layer, c):
+		return []
+	var out := []
+	for m in DB.build_materials("전선" if layer == "wire" else "파이프"):
+		out.append_array(Building.items_of(m[0], m[1]))
+	for it in out:
+		floor_items.spawn(it, 1, Vector2(c) + Vector2(0.5, 0.5))
+	return out
+
+
+# ---------- 옮기기 (이동 모드) ----------
+
+func can_move(b) -> bool:
+	## 옮길 수 없는 것도 철거와 같아요: 지급 설비·지형
+	return b != null and can_deconstruct(b)
+
+
+func set_held(list: Array) -> void:
+	## 들고 옮기는 동안 멈출 설비 (화면은 원래 자리에 점선만 그려요)
+	held.clear()
+	for b in list:
+		if b is Building:
+			held[b] = true
+	revision += 1
+
+
+func move_check(list: Array, offset: Vector2i, rot: int) -> Array:
+	## list를 offset만큼 (한 개면 rot번 더 돌려서) 옮길 때 하나하나 놓을 수 없는 이유 ("" = 괜찮아요).
+	## 함께 옮기는 것끼리, 자기 원래 자리와는 겹쳐도 돼요
+	var moving := {}
+	for e in list:
+		if e is Building:
+			moving[e] = true
+	var out := []
+	for e in list:
+		if e is Dictionary:
+			out.append(_terrain_reason(e["pos"] + offset))
+			continue
+		var b: Building = e
+		var r := (b.rot + rot) % 4
+		var why := ""
+		if not can_move(b):
+			why = "옮길 수 없음"
+		for c in footprint(b.def, b.pos + offset, r):
+			if why != "":
+				break
+			why = _terrain_reason(c)
+			var o = grid.get(c, null)
+			if why == "" and o != null and not moving.has(o):
+				why = "다른 설비"
+		if why == "" and b.kind == "pump" and not water.has(b.pos + offset):
+			why = "물 샘 위에만"
+		out.append(why)
+	return out
+
+
+func move_buildings(list: Array, offset: Vector2i, rot: int = 0) -> bool:
+	## 전부 놓을 수 있을 때만 한 번에 옮겨요 (하나라도 안 되면 아무것도 안 바뀌어요).
+	## 안의 물건·레시피·설정은 설비 객체에 그대로 있어요 (레일 위 물건도 같이 가요).
+	## list: 설비 또는 {layer, pos}. rot: 더 돌릴 횟수 (묶음은 0)
+	for why in move_check(list, offset, rot):
+		if why != "":
+			return false
+	var bs := []
+	var layer_cells := {"wire": [], "pipe": []}
+	for e in list:
+		if e is Dictionary:
+			var d: Dictionary = wires if e["layer"] == "wire" else pipes
+			if d.has(e["pos"]):
+				d.erase(e["pos"])
+				layer_cells[e["layer"]].append(e["pos"] + offset)
+		else:
+			bs.append(e)
+			for c in e.cells():
+				grid.erase(c)
+	for b in bs:
+		b.pos += offset
+		b.rot = (b.rot + rot) % 4
+		var s: Vector2i = b.def["size"]
+		b.size = Vector2i(s.y, s.x) if b.rot % 2 == 1 else s
+		for c in b.cells():
+			grid[c] = b
+	for c in layer_cells["wire"]:
+		wires[c] = true
+	for c in layer_cells["pipe"]:
+		pipes[c] = true
+	mark_dirty()
+	return true
 
 
 func drop_items(items: Array, origin: Vector2, delay: float) -> void:
@@ -397,6 +503,7 @@ func clear_all() -> void:
 	power_nets.clear()
 	water_nets.clear()
 	buildings.clear()
+	held.clear()
 	grid.clear()
 	wires.clear()
 	pipes.clear()

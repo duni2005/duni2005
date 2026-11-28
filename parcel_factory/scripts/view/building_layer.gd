@@ -118,6 +118,7 @@ func _place(f: Factory, b: Building, s: Sprite2D) -> void:
 	var key: String = s.get_meta("key")
 	var center := (Vector2(b.pos) + Vector2(b.size) * 0.5) * TILE
 	s.position = center
+	s.visible = not f.held.has(b)   # 이동 모드로 들린 설비는 미리보기로만 보여요
 	s.rotation = b.rot * PI * 0.5 if key in Art.DIRECTIONAL else 0.0
 	var sh := s.get_node_or_null("Shadow") as Sprite2D
 	if sh != null:

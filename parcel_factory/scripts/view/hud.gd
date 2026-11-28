@@ -2,6 +2,7 @@ extends CanvasLayer
 ## 화면 UI (모바일 가로 화면 기준, PC도 같은 화면).
 ##   왼쪽 위    : 지금 상호작용 대상 이름 · 짧은 상태          (+ F3 디버그 오버레이)
 ##   오른쪽 위  : 시계 · 일시정지 · 속도 · 메뉴(저장·설정·디버그), 그 아래 모드 글씨
+##   가운데 위  : 알림 글씨, 범위 선택이 있으면 '설비 N개 선택됨' + [이동][철거(꾹)][해제]
 ##   왼쪽 아래  : 떠 있는 조이스틱 영역 (화면 왼쪽 35% × 아래 60%, 터치 입력일 때만)
 ##   가운데 아래: HP 바(+스테미나 자리) · 핫바 9칸 + 가방 버튼
 ##   오른쪽 아래: 상호작용 버튼(큰 원) · 회전 버튼 · 그 위 모드 묶음 [일반][이동][철거]
@@ -61,6 +62,9 @@ var current_cat := ""
 var info                  # info_panel.gd (설비 정보창)
 var backdrop: Control     # 정보창이 열린 동안 두 창 바깥 탭 받기
 var fly_layer             # 옮겨지는 아이템 연출
+var sel_bar: PanelContainer   # 범위 선택 바
+var sel_label: Label
+var sel_decon                 # InfoPanel.HoldButton
 
 var menu_panel: PanelContainer
 var _menu_tabs := {}
@@ -85,6 +89,7 @@ func _ready() -> void:
 	_build_top_left()
 	_build_top_right()
 	_build_toast()
+	_build_sel_bar()
 	_build_palette()
 	_build_bottom()
 	_build_action()
@@ -256,6 +261,43 @@ func _build_toast() -> void:
 	root.add_child(toast)
 
 
+func _build_sel_bar() -> void:
+	## 범위 선택: 개수 + 모드를 바꾸지 않고 바로 쓰는 지름길
+	sel_bar = PanelContainer.new()
+	_dark(sel_bar)
+	_corner(sel_bar, 0.5, 0, Control.GROW_DIRECTION_BOTH, Control.GROW_DIRECTION_END, Vector2(0, MARGIN + BTN_H + 12))
+	root.add_child(sel_bar)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 8)
+	sel_bar.add_child(h)
+	sel_label = Label.new()
+	sel_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	sel_label.add_theme_font_size_override("font_size", 20)
+	sel_label.add_theme_color_override("font_color", Palette.c(Palette.YELLOW))
+	h.add_child(sel_label)
+	h.add_child(_btn("이동", func() -> void: main.edit.arm_move(), 90))
+	sel_decon = InfoPanel.HoldButton.new()
+	sel_decon.text = "철거(꾹)"
+	sel_decon.focus_mode = Control.FOCUS_NONE
+	sel_decon.custom_minimum_size = Vector2(120, BTN_H)
+	sel_decon.held.connect(func() -> void: main.edit.deconstruct_selection())
+	h.add_child(sel_decon)
+	h.add_child(_btn("해제", func() -> void: main.edit.clear_selection(), 90))
+	sel_bar.visible = false
+
+
+func _refresh_sel_bar() -> void:
+	var n: Array = main.edit.sel_count()
+	sel_bar.visible = (n[0] + n[1]) > 0 and not info_open()
+	if not sel_bar.visible:
+		return
+	var t := "설비 %d개" % n[0]
+	if n[1] > 0:
+		t += " · 선 %d칸" % n[1]
+	sel_label.text = t + " 선택됨"
+	sel_decon.hold_sec = main.edit.decon_sec(main.edit.sel.size())
+
+
 func show_message(s: String) -> void:
 	toast.text = s
 	_msg_t = MSG_SEC
@@ -306,9 +348,9 @@ func _build_action() -> void:
 	action_btn.offset_bottom = -MARGIN
 	action_btn.offset_left = -MARGIN - ACTION_RADIUS * 2.0
 	action_btn.offset_top = -MARGIN - ACTION_RADIUS * 2.0
-	action_btn.pressed_down.connect(func() -> void: main.player.action_press())
+	action_btn.pressed_down.connect(_on_action_down)
 	action_btn.released.connect(_on_action_released)
-	action_btn.dragged.connect(func(off) -> void: main.build.drag(off))
+	action_btn.dragged.connect(_on_action_dragged)
 	root.add_child(action_btn)
 	rotate_btn = ActionButton.new()
 	rotate_btn.radius = ROTATE_RADIUS
@@ -326,8 +368,22 @@ func _build_action() -> void:
 	root.add_child(mode_bar)
 
 
+func _on_action_down() -> void:
+	## 이동·철거 모드는 edit가 (꾹 = 지금 대상 철거·옮기기), 일반 모드는 플레이어가
+	if not main.edit.button_press():
+		main.player.action_press()
+
+
+func _on_action_dragged(off: Vector2) -> void:
+	main.build.drag(off)
+	main.edit.button_drag(off)
+
+
 func _on_action_released() -> void:
-	## 설치 모드였다면: 가운데 취소 X 위에서 떼면 취소, 아니면 설치
+	## 설치·옮기기였다면: 가운데 취소 X 위에서 떼면 취소, 아니면 설치·놓기
+	if main.edit.button_active():
+		main.edit.button_release(action_btn.in_cancel_zone())
+		return
 	if main.build.active:
 		main.build.release(action_btn.in_cancel_zone())
 	main.player.action_release()
@@ -349,8 +405,8 @@ func _action_icon() -> Array:
 
 
 func rotate_visible() -> bool:
-	## 설비를 들었거나 설치 도구일 때만 (옮기는 중은 9단계)
-	return main.player.held_id().begins_with("[설비]") or main.tool == "build"
+	## 설비를 들었거나 설치 도구이거나 설비를 옮기는 중일 때만
+	return main.player.held_id().begins_with("[설비]") or main.tool == "build" or main.edit.moving()
 
 
 # ---------- 매 프레임 ----------
@@ -358,7 +414,7 @@ func rotate_visible() -> bool:
 func _process(dt: float) -> void:
 	var ic := _action_icon()
 	action_btn.set_icon(ic[0], ic[1])
-	action_btn.cancel_mode = main.build.active
+	action_btn.cancel_mode = main.build.active or main.edit.button_moving()
 	rotate_btn.visible = rotate_visible() and not info_open()
 	if _msg_t > 0.0:
 		_msg_t -= dt
@@ -369,13 +425,14 @@ func _process(dt: float) -> void:
 	_refresh_t = REFRESH_SEC
 	var f = main.factory
 	clock_label.text = GameClock.text(f.sim_time)
+	_refresh_sel_bar()
 	var tt := _target_text()
 	target_panel.visible = tt != ""
 	target_label.text = tt
 
 
 func is_over_ui(p: Vector2) -> bool:
-	for c in [top_right, palette, hotbar, action_btn, rotate_btn, mode_bar, backdrop, info, inventory_panel, menu_panel, joystick]:
+	for c in [top_right, sel_bar, palette, hotbar, action_btn, rotate_btn, mode_bar, backdrop, info, inventory_panel, menu_panel, joystick]:
 		if c.visible and c.get_global_rect().has_point(p):
 			return true
 	return false

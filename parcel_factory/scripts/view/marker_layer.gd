@@ -12,6 +12,7 @@ const REFRESH_SEC := 0.1   # 전력 등·진행 막대는 0.1초마다 (고스�
 var world = null
 var _t := 0.0
 var _last_ui := []
+var _shift := Vector2.ZERO   # 고스트를 칸에서 이만큼(px) 밀어 그려요 (옮기기 실패 때 제자리로 스르륵)
 
 
 func _process(dt: float) -> void:
@@ -30,7 +31,7 @@ func _draw() -> void:
 	# 목록: [설비, 칸 사각형] — 레일이 아닌 설비만 (building_layer가 설치·철거 때만 다시 만들어요)
 	for e in world.buildings.others:
 		var r: Rect2 = e[1]
-		if not vis.intersects(r):
+		if not vis.intersects(r) or f.held.has(e[0]):
 			continue
 		var b = e[0]
 		if b.needs_power():
@@ -85,6 +86,7 @@ func _ghost_sprite(def: Dictionary, pos: Vector2i, rot: int, row: int, tint: Col
 	var s: Vector2i = def["size"]
 	var fs := Vector2i(s.y, s.x) if rot % 2 == 1 else s
 	var r: Rect2 = world.cell_rect(pos, fs)
+	r.position += _shift
 	var key := Art.building_key(def["name"])
 	if def["kind"] in Factory.LAYER_KINDS:
 		var lc := {"wire": Palette.YELLOW, "pipe": Palette.CYAN, "water": Palette.BLUE}
@@ -115,9 +117,10 @@ func _draw_build_plan(g: Dictionary) -> void:
 	var font := ThemeDB.fallback_font
 	var cells: Array = g.get("cells", [])
 	var bounds := Rect2()
+	_shift = g.get("shift", Vector2.ZERO)
 	for i in cells.size():
 		var e: Dictionary = cells[i]
-		var def: Dictionary = g["def"]
+		var def: Dictionary = e.get("def", g.get("def", {}))   # 옮기기 묶음은 칸마다 설비가 달라요
 		var tint := Palette.c(Palette.LIME) if e["ok"] else Palette.c(Palette.RED)
 		var r := _ghost_sprite(def, e["pos"], e["rot"], e["row"], tint)
 		bounds = r if i == 0 else bounds.merge(r)
@@ -126,6 +129,7 @@ func _draw_build_plan(g: Dictionary) -> void:
 		draw_rect(r, tint, false, 3.0 if not e["ok"] else 2.0)
 		if not g["line"]:
 			_io_marks(def, r, e["rot"])
+	_shift = Vector2.ZERO
 	# A 깃발
 	var a = g.get("anchor")
 	if a != null:

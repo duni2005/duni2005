@@ -47,7 +47,7 @@ func _draw() -> void:
 	# 목록: [설비, 칸 가운데, 들어오는 방향, 나가는 방향] (building_layer가 설치·철거 때만 다시 만들어요)
 	for e in world.buildings.conveyors:
 		var it: Item = e[0].item
-		if it == null:
+		if it == null or world.factory.held.has(e[0]):
 			continue
 		var c: Vector2 = e[1]
 		if not vis.has_point(c):

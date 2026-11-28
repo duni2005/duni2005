@@ -34,6 +34,8 @@ func _ready() -> void:
 	await _test_attack()
 	await _test_drop_pickup()
 	await _test_build()
+	await _test_edit_modes()
+	await _test_range_select()
 	await _test_save_load()
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SAVE))
 	print("=== 결과: %s (실패 %d) ===" % ["통과" if _fails == 0 else "실패", _fails])
@@ -398,4 +400,172 @@ func _test_build() -> void:
 		anchored and rails_ok and used == 7 and chained and short_reason.find("필요") >= 0 and not_placed and released,
 		"A 고정 %s · 경로 %d칸 · 방향 %s · 쓴 레일 %d · B가 새 A %s · 부족 '%s' · 안 깔림 %s · 해제 %s" % [str(anchored), path_n, str(rails_ok), used, str(chained), short_reason, str(not_placed), str(released)])
 	player.hotbar = -1
+
+
+# ---------- 9단계: 이동·철거 모드 · 범위 선택 (진짜 터치 이벤트를 main에 넣어요) ----------
+
+func _look() -> void:
+	## main._process를 꺼 둬서 카메라를 직접 플레이어에게
+	main.cam.position = player.position
+	await _frames(2)
+
+
+func _sp(cell: Vector2) -> Vector2:
+	return main.get_viewport().get_canvas_transform() * (cell * TILE)
+
+
+func _touch(i: int, cell: Vector2, down: bool) -> void:
+	var e := InputEventScreenTouch.new()
+	e.index = i
+	e.position = _sp(cell)
+	e.pressed = down
+	main._on_touch(e)
+
+
+func _drag_to(i: int, cell: Vector2) -> void:
+	var e := InputEventScreenDrag.new()
+	e.index = i
+	e.position = _sp(cell)
+	main._on_drag(e)
+
+
+func _hold_at(cell: Vector2, sec: float) -> void:
+	_touch(0, cell, true)
+	await _frames(int(sec * PHYS_FPS))
+
+
+func _twig_machine():
+	var m = f.place("분해기", Vector2i(23, 30), 0)
+	for r in m.available_recipes():
+		if r["out"].has("종이") and r["in"].has("나뭇가지"):
+			m.set_recipe(r)
+	return m
+
+
+func _test_edit_modes() -> void:
+	main.new_room(false)
+	var ed = main.edit
+	await _put(Vector2(21.5, 30.5))
+	await _look()
+	# 철거 모드: 탭 = 안내만 · 중간에 떼면 취소 · 0.6초 다 차면 재료·내용물이 그 자리에
+	var m = _twig_machine()
+	f.player_insert(m, "나뭇가지", 2)
+	main.play_mode.set_mode(PlayMode.Mode.DECONSTRUCT)
+	await _hold_at(Vector2(23.5, 30.5), 0.05)
+	_touch(0, Vector2(23.5, 30.5), false)
+	await _frames(2)
+	var tap_hint: bool = ed.hint.get("text", "") == "꾹 눌러서 철거" and not main.hud.info_open() and f.buildings.has(m)
+	await _hold_at(Vector2(23.5, 30.5), 0.6)
+	var gauging: bool = ed.state == "gauge"
+	_touch(0, Vector2(23.5, 30.5), false)
+	await _frames(2)
+	var early_kept: bool = f.buildings.has(m)
+	await _hold_at(Vector2(23.5, 30.5), 1.2)
+	_touch(0, Vector2(23.5, 30.5), false)
+	await _frames(2)
+	var twigs := 0
+	for d in f.floor_items.drops:
+		if d["id"] == "나뭇가지" and d["pos"].distance_to(Vector2(24, 31)) < 1.5:
+			twigs += int(d["n"])
+	var decon_ok: bool = not f.buildings.has(m) and twigs == 2 and _floor_count("나무 판자") > 0
+	_check("철거 모드: 탭 = 안내 · 게이지 중 떼면 취소 · 다 차면 재료·내용물이 그 자리에", tap_hint and gauging and early_kept and decon_ok,
+		"안내 %s · 게이지 %s · 취소 %s · 철거 %s(나뭇가지 %d)" % [str(tap_hint), str(gauging), str(early_kept), str(decon_ok), twigs])
+	# 이동 모드: 꾹 → 끌어서 놓기 = 내용물 유지 / 막힌 곳 = 제자리로
+	f.floor_items.clear()
+	m = _twig_machine()
+	var n_in: int = f.player_insert(m, "나뭇가지", 3)
+	main.play_mode.set_mode(PlayMode.Mode.MOVE)
+	await _hold_at(Vector2(23.5, 30.5), 0.5)
+	var lifted: bool = ed.moving() and f.held.has(m)
+	_drag_to(0, Vector2(25.5, 32.5))
+	await _frames(3)
+	var ghost_ok: bool = main.view.ghost.get("cells", []).size() == 1 and main.view.ghost["cells"][0]["pos"] == Vector2i(25, 32)
+	_touch(0, Vector2(25.5, 32.5), false)
+	await _frames(3)
+	var moved: bool = m.pos == Vector2i(25, 32) and n_in > 0 and m.contents().size() == n_in and f.held.is_empty()
+	f.place("창고 블록", Vector2i(28, 32), 0)
+	await _hold_at(Vector2(25.5, 32.5), 0.5)
+	_drag_to(0, Vector2(28.5, 32.5))
+	await _frames(3)
+	var red: bool = not main.view.ghost.get("cells", [{}])[0].get("ok", true) and main.view.ghost.get("reason", "") == "다른 설비"
+	_touch(0, Vector2(28.5, 32.5), false)
+	await _frames(int(0.3 * PHYS_FPS))
+	var back: bool = m.pos == Vector2i(25, 32) and f.held.is_empty()
+	# 상호작용 버튼 꾹 → 버튼을 끌어 조준 (40px = 1칸) → 떼면 놓기
+	player.facing = 0
+	await _put(Vector2(23.0, 33.0))
+	await _frames(3)
+	var hud = main.hud
+	var target_ok: bool = player.shown_target() == m
+	hud._on_action_down()
+	await _frames(int(0.5 * PHYS_FPS))
+	hud._on_action_dragged(Vector2(0, -80))
+	await _frames(3)
+	hud._on_action_released()
+	await _frames(3)
+	var btn_ok: bool = target_ok and m.pos == Vector2i(25, 30)
+	_check("이동 모드: 꾹 → 끌어 놓기(내용물 유지) · 막히면 빨강 → 제자리 · 버튼 끌어 옮기기", lifted and ghost_ok and moved and red and back and btn_ok,
+		"들기 %s · 미리보기 %s · 옮김 %s · 빨강 %s · 제자리 %s · 버튼 %s(대상 %s, %s)" % [str(lifted), str(ghost_ok), str(moved), str(red), str(back), str(btn_ok), str(target_ok), str(m.pos)])
+	main.play_mode.set_mode(PlayMode.Mode.NORMAL)
+
+
+func _test_range_select() -> void:
+	main.new_room(false)
+	var ed = main.edit
+	await _put(Vector2(31.5, 30.5))
+	await _look()
+	var rails := []
+	for x in 5:
+		rails.append(f.place("레일 Mk1", Vector2i(29 + x, 28), 0))
+	rails[1].item = Item.new("종이")
+	# 빈 칸 꾹 → 끌기 → 놓기 = 레일 5개 선택
+	await _hold_at(Vector2(28.5, 27.5), 0.5)
+	var selecting: bool = ed.state == "select"
+	_drag_to(0, Vector2(33.5, 28.5))
+	await _frames(3)
+	_touch(0, Vector2(33.5, 28.5), false)
+	await _frames(int(0.15 * PHYS_FPS))
+	var picked: bool = ed.sel.size() == 5 and main.hud.sel_bar.visible and main.hud.sel_label.text == "설비 5개 선택됨"
+	# 선택 안 된 빈 곳 탭 = 해제
+	await _hold_at(Vector2(30.5, 32.5), 0.05)
+	_touch(0, Vector2(30.5, 32.5), false)
+	await _frames(2)
+	var cleared: bool = ed.sel.is_empty()
+	await _hold_at(Vector2(28.5, 27.5), 0.5)
+	_drag_to(0, Vector2(33.5, 28.5))
+	await _frames(2)
+	_touch(0, Vector2(33.5, 28.5), false)
+	await _frames(2)
+	# 이동 모드: 선택된 레일 하나를 꾹 → 줄 전체가 같이 (물건도)
+	main.play_mode.set_mode(PlayMode.Mode.MOVE)
+	await _hold_at(Vector2(30.5, 28.5), 0.5)
+	_drag_to(0, Vector2(30.5, 26.5))
+	await _frames(3)
+	_touch(0, Vector2(30.5, 26.5), false)
+	await _frames(3)
+	var all_moved := true
+	for i in rails.size():
+		if rails[i].pos != Vector2i(29 + i, 26):
+			all_moved = false
+	var carried := 0   # 종이는 레일을 타고 계속 가요: 줄 어딘가에 그대로 있어야 해요
+	for r in rails:
+		if r.item != null:
+			carried += 1
+	all_moved = all_moved and carried == 1
+	# 철거 모드: 선택된 것 하나를 꾹 → 게이지 옆 '5개 철거' → 전부
+	main.play_mode.set_mode(PlayMode.Mode.DECONSTRUCT)
+	await _hold_at(Vector2(31.5, 26.5), 0.5)
+	var many: bool = ed.state == "gauge" and ed.gauge_list.size() == 5
+	await _frames(int(0.6 * PHYS_FPS))
+	_touch(0, Vector2(31.5, 26.5), false)
+	await _frames(2)
+	var gone := true
+	for r in rails:
+		if f.buildings.has(r):
+			gone = false
+	var spilled: bool = _floor_count("[설비] 레일 Mk1") == 5 and _floor_count("종이") == 1 and ed.sel.is_empty() and not main.hud.sel_bar.visible
+	_check("범위 선택: 빈 칸 꾹-끌기 · 바깥 탭 해제 · 레일 줄 통째로 옮기기(물건 같이) · 통째로 철거",
+		selecting and picked and cleared and all_moved and many and gone and spilled,
+		"선택 중 %s · 5개 %s(%d) · 해제 %s · 옮김 %s · 게이지 %s · 철거 %s · 쏟음 %s" % [str(selecting), str(picked), ed.sel.size(), str(cleared), str(all_moved), str(many), str(gone), str(spilled)])
+	main.play_mode.set_mode(PlayMode.Mode.NORMAL)
 

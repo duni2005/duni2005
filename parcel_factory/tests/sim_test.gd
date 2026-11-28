@@ -28,6 +28,8 @@ func _ready() -> void:
 	_test_hand_actions()
 	_test_deconstruct()
 	_test_placement()
+	_test_move()
+	_test_deconstruct_many()
 	_test_floor_items()
 	_test_demos()
 	_test_save_roundtrip()
@@ -393,6 +395,84 @@ func _test_placement() -> void:
 		reason_ok and no_item and placed and over and under and wall_pipe and line,
 		"이유 %s · 없으면 못 놓음 %s · 차감 %s · 덮어쓰기 %s · 설비 밑 파이프 %s · 벽 파이프 막힘 %s · 줄 %s" % [str(reasons), str(no_item), str(placed), str(over), str(under), str(wall_pipe), str(line)])
 	f.free()
+
+
+func _test_move() -> void:
+	var f := _new_room_factory()
+	f.room.build_given(f)
+	# 분해기: 레시피·안의 재료 그대로, 방향도 같이 돌려요
+	var m: Machine = f.place("분해기", Vector2i(12, 12), 0)
+	_set_recipe(m, "종이", "나뭇가지")
+	f.player_insert(m, "나뭇가지", 2)
+	var recipe = m.recipe
+	var moved: bool = f.move_buildings([m], Vector2i(3, 1), 1)
+	var kept: bool = moved and m.pos == Vector2i(15, 13) and m.rot == 1 and m.recipe == recipe and m.contents().size() == 2 \
+		and f.get_at(Vector2i(15, 13)) == m and f.get_at(Vector2i(12, 12)) == null
+	# 막히면 아무것도 안 바뀌어요: 다른 설비 · 벽
+	var other = f.place("창고 블록", Vector2i(20, 13), 0)
+	var why: Array = f.move_check([m], Vector2i(5, 0), 0)
+	var blocked: bool = not f.move_buildings([m], Vector2i(5, 0), 0) and m.pos == Vector2i(15, 13) and why[0] == "다른 설비"
+	var wall: bool = not f.move_buildings([m], Vector2i(-20, 0), 0) and f.move_check([m], Vector2i(-20, 0), 0)[0] == "벽"
+	# 지급 설비는 못 옮겨요
+	var pc = f.get_at(Room.GIVEN[0]["pos"])
+	var given_ok: bool = not f.move_buildings([pc], Vector2i(0, 2), 0) and f.get_at(Room.GIVEN[0]["pos"]) == pc
+	# 레일 줄 묶음: 자기 자리와 겹쳐도 되고, 위의 물건도 같이 가요. 전선은 넣었을 때만
+	var line := []
+	for x in 5:
+		line.append(f.place("레일 Mk1", Vector2i(10 + x, 25), 0))
+	line[2].item = Item.new("종이")
+	f.place("전선", Vector2i(11, 25), 0)
+	f.place("파이프", Vector2i(12, 25), 0)
+	var shift: bool = f.move_buildings(line + [{"layer": "pipe", "pos": Vector2i(12, 25)}], Vector2i(2, 0), 0)
+	var group_ok: bool = shift and line[0].pos == Vector2i(12, 25) and line[2].item != null and f.get_at(Vector2i(14, 25)) == line[2] \
+		and f.get_at(Vector2i(10, 25)) == null and f.wires.has(Vector2i(11, 25)) and f.pipes.has(Vector2i(14, 25)) and not f.pipes.has(Vector2i(12, 25))
+	# 들린 설비는 멈춰요
+	var r0: Conveyor = line[2]
+	f.set_held(line)
+	var p0: float = r0.progress
+	_run(f, 0.2)
+	var frozen: bool = is_equal_approx(r0.progress, p0)
+	f.set_held([])
+	_run(f, 0.2)
+	var runs: bool = r0.progress != p0 or r0.item == null
+	_check("옮기기: 내용물·레시피·방향 유지 · 막히면 그대로 · 지급 설비 불가 · 레일 묶음(물건 같이) · 들린 동안 멈춤",
+		kept and blocked and wall and given_ok and group_ok and frozen and runs and other != null,
+		"유지 %s · 다른 설비 %s(%s) · 벽 %s · 지급 %s · 묶음 %s · 멈춤 %s · 다시 돎 %s" % [str(kept), str(blocked), str(why), str(wall), str(given_ok), str(group_ok), str(frozen), str(runs)])
+	f.free()
+
+
+func _test_deconstruct_many() -> void:
+	var f := _new_room_factory()
+	# 창고 블록 3개 묶음(용량 60)에 50개 → 한 번에 셋 다 철거하면 50개 전부 + 재료가 각자 자리에
+	var blocks := []
+	for x in 3:
+		blocks.append(f.place("창고 블록", Vector2i(30 + x, 30), 0))
+	f.step(Factory.DT)
+	for i in 50:
+		blocks[0].try_insert(Item.new("유리"), Vector2i(29, 30))
+	var rails := []
+	for x in 4:
+		rails.append(f.place("레일 Mk1", Vector2i(10 + x, 20), 0))
+	f.place("전선", Vector2i(10, 21), 0)
+	var out: Array = f.deconstruct_many(blocks + rails + [{"layer": "wire", "pos": Vector2i(10, 21)}])
+	var mats := 0
+	for e in DB.build_materials("창고 블록"):
+		mats += int(e[1])
+	var glass_ok: bool = _floor_count(f, "유리") == 50
+	var all_gone: bool = f.buildings.size() == 1 and not f.wires.has(Vector2i(10, 21))   # 쓰레기 더미만
+	var rail_ok: bool = _floor_count(f, "[설비] 레일 Mk1") == 4
+	var count_ok: bool = out.size() == 50 + mats * 3 + 4 + _mat_total("전선")
+	_check("여러 개 철거: 창고 묶음 내용물 전부 · 레일 · 전선 칸 · 각자 자리에",
+		glass_ok and all_gone and rail_ok and count_ok,
+		"유리 %d/50 · 남은 설비 %d · 레일 %d · 쏟은 수 %d" % [_floor_count(f, "유리"), f.buildings.size(), _floor_count(f, "[설비] 레일 Mk1"), out.size()])
+	f.free()
+
+
+func _mat_total(def_name: String) -> int:
+	var n := 0
+	for e in DB.build_materials(def_name):
+		n += int(e[1])
+	return n
 
 
 func _test_floor_items() -> void:
