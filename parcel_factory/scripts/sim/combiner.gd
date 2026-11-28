@@ -49,3 +49,7 @@ func try_extract() -> Item:
 
 func info() -> String:
 	return super.info() + "\n빈 박스 %d · 요청서 %d · 출력 %d · 만든 수 %d" % [boxes.size(), papers.size(), out_buf.size(), made]
+
+
+func is_active() -> bool:
+	return not boxes.is_empty() and not papers.is_empty() and out_buf.size() < 4 and power_mult() > 0.0

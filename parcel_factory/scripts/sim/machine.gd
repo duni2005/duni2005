@@ -188,3 +188,7 @@ func info() -> String:
 		s += "\n출력 대기: " + ", ".join(o)
 	s += "\n만든 횟수: %d · 속도 설정 %d%%" % [made, int(speed_setting * 100.0)]
 	return s
+
+
+func is_active() -> bool:
+	return working

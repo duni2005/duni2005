@@ -65,3 +65,7 @@ func try_extract() -> Item:
 
 func info() -> String:
 	return super.info() + "\n테이프 %d · 대기 박스 %d · 출력 %d · 포장 %d" % [tape, boxes.size(), out_buf.size(), made]
+
+
+func is_active() -> bool:
+	return not boxes.is_empty() and tape >= 2 and out_buf.size() < 4 and power_mult() > 0.0

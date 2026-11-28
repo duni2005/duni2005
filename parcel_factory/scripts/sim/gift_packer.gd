@@ -51,3 +51,7 @@ func try_extract() -> Item:
 
 func info() -> String:
 	return super.info() + "\n리본 %d · 대기 택배 %d · 출력 %d · 포장 %d" % [ribbon, parcels.size(), out_buf.size(), made]
+
+
+func is_active() -> bool:
+	return not parcels.is_empty() and ribbon >= 1 and out_buf.size() < 4 and power_mult() > 0.0

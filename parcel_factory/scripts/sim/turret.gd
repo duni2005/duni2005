@@ -20,3 +20,9 @@ func power_demand() -> float:
 func info() -> String:
 	var a: String = def.get("ammo", "")
 	return super.info() + ("\n탄약 %d/20" % ammo if a != "" else "\n탄약 없음 (전력형)")
+
+
+func is_active() -> bool:
+	if str(def.get("ammo", "")) != "":
+		return ammo > 0
+	return power_mult() > 0.0

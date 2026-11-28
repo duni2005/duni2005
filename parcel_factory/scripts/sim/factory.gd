@@ -54,6 +54,7 @@ var _rng := RandomNumberGenerator.new()
 var paused := false
 var speed := 1.0
 var sim_time := 0.0
+var revision := 0     # 설치·철거·회전·불러오기마다 1씩 늘어요 (화면이 다시 그릴지 판단)
 var tick_count := 0   # 지금까지 돈 틱 수 (디버그 오버레이가 틱/초 계산에 써요)
 var shipped := 0
 var shipped_ok := 0
@@ -134,15 +135,15 @@ func place(def_name: String, p: Vector2i, r: int):
 		return null
 	if k == "wire":
 		wires[p] = true
-		_dirty = true
+		mark_dirty()
 		return null
 	if k == "pipe":
 		pipes[p] = true
-		_dirty = true
+		mark_dirty()
 		return null
 	if k == "water":
 		water[p] = true
-		_dirty = true
+		mark_dirty()
 		return null
 	if not can_place(def, p, r):
 		return null
@@ -151,14 +152,14 @@ func place(def_name: String, p: Vector2i, r: int):
 	buildings.append(b)
 	for c in b.cells():
 		grid[c] = b
-	_dirty = true
+	mark_dirty()
 	return b
 
 
 func rotate_conveyor(b: Building, r: int) -> void:
 	## 드래그로 레일을 깔 때 이미 있는 레일의 방향만 바꿔요
 	b.rot = r
-	_dirty = true
+	mark_dirty()
 
 
 func remove_at(c: Vector2i) -> bool:
@@ -171,7 +172,7 @@ func remove_at(c: Vector2i) -> bool:
 		grid.erase(cc)
 	buildings.erase(b)
 	_release(b)
-	_dirty = true
+	mark_dirty()
 	return true
 
 
@@ -211,7 +212,7 @@ func remove_layer(layer: String, c: Vector2i) -> bool:
 	var d: Dictionary = wires if layer == "wire" else (pipes if layer == "pipe" else water)
 	if d.has(c):
 		d.erase(c)
-		_dirty = true
+		mark_dirty()
 		return true
 	return false
 
@@ -229,11 +230,12 @@ func clear_all() -> void:
 	hand_items.clear()
 	shipped = 0
 	shipped_ok = 0
-	_dirty = true
+	mark_dirty()
 
 
 func mark_dirty() -> void:
 	_dirty = true
+	revision += 1
 
 
 # ---------- 연결 다시 계산 ----------
@@ -399,7 +401,7 @@ func load_save(d) -> bool:
 		var st = e.get("state", {})
 		if st is Dictionary:
 			b.load_state(st)
-	_dirty = true
+	mark_dirty()
 	return true
 
 

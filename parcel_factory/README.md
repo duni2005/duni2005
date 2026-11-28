@@ -47,6 +47,20 @@
 | debug | F3 | 디버그 오버레이 |
 | save_game | Ctrl+S | 저장 |
 
+## 그래픽 (탑뷰 도트)
+- 도트 16×16, 화면 2배(칸 32px). 월드는 Nearest 필터, 프로젝트는 픽셀 스냅 켬.
+- 색은 **고정 팔레트 32색**(`assets/palette.gd`, 견본 `assets/palette.png`)만 써요. 누런 벽지·바랜 카펫·회색 설비·주황 택배 박스.
+- 그리는 방식: 바닥·벽 = TileMapLayer, 설비 = 설비마다 Sprite2D 하나(+1도트 그림자), 레일 위 물건 = 한 노드 `_draw`로 일괄.
+- 레일은 뒤가 비고 한쪽 옆에서만 받으면 자동으로 꺾인 모양이 돼요. 막힌 레일은 벨트가 멈춰요.
+- 설비는 가동 중일 때만 움직이고(멈춤 = 0번 프레임), 왼쪽 위 등이 전력 상태(초록·노랑·빨강), 오른쪽 아래 아이콘이 만드는 물건이에요.
+- 전선·파이프는 바닥 위 얇은 선, **층 보기**를 켜면 설비 위에 진하게.
+
+### 그림 바꿔 끼우기
+1. 임시 도트는 `tools/gen_assets.tscn`이 `assets/gen/*.png`로 구워 둬요:
+   `godot --headless --path . res://tools/gen_assets.tscn`
+2. 직접 그린 그림은 **같은 이름**으로 `assets/sprites/`에 넣으면 그걸 먼저 써요 (생성 도구가 덮어쓰지 않아요).
+3. 시트 배치(프레임 수·줄 순서)는 `assets/sprite_gen.gd` 맨 위 설명, 아이템 아이콘 순서는 `assets/gen/items_index.txt`.
+
 ## 저장
 `user://save.json`에 설비(위치·방향·레시피·설정), 전선, 파이프, 물 샘, 크리에이티브 여부를 저장해요. 물건 내용물(레일 위·창고 안)과 손에 든 물건은 아직 저장하지 않아요.
 저장 형식 버전이 다르면(이전 무한 격자 버전의 저장) 무시하고 새 큰방으로 시작해요.
@@ -70,11 +84,13 @@ godot --headless --path . res://tests/sim_test.tscn
 ## 폴더
 - `data/` 아이템·레시피·설비 수치 (JSON). 밸런스는 여기만 고치면 돼요.
 - `scripts/sim/` 시뮬레이션 (설비마다 파일 하나).
-- `scripts/view/` 화면 그리기와 UI (`debug_overlay.gd` 디버그 오버레이).
+- `scripts/view/` 화면 그리기와 UI (`debug_overlay.gd` 디버그 오버레이, `hud.gd`).
 - `tests/` 시뮬레이션 테스트.
 - `scripts/demo.gd` 예시 공장 (`ORIGIN` 기준으로 큰방 안에 깔려요).
 - `scripts/map/` 지형 (큰방).
-- `assets/art.gd` 도트 텍스처 목록. `assets/tiles/*.png`를 넣으면 코드로 그린 임시 도트 대신 그 그림을 써요.
+- `assets/` 팔레트·도트 생성기(`sprite_gen.gd`)·텍스처 창고(`art.gd`)·구운 PNG(`gen/`)·교체용 그림(`sprites/`).
+- `scripts/view/` 화면: `world_view.gd`(층 조립·타일), `building_layer.gd`(설비 스프라이트), `item_layer.gd`(레일 위 물건), `marker_layer.gd`(전력 등·아이콘·고스트), `room_overlay.gd`, `line_layer.gd`.
+- `tools/` 에셋 굽기 도구.
 
 ## 참고
 - Godot 4.3 stable에서 실행·테스트했어요. 오류가 뜨면 **출력(Output) 창의 빨간 줄**을 그대로 보내 주세요.

@@ -133,3 +133,7 @@ func info() -> String:
 	if is_giant():
 		s += "\n출구 자리 %d곳 (오른쪽 면 표시)" % exit_slots().size()
 	return s
+
+
+func is_active() -> bool:
+	return true

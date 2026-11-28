@@ -58,3 +58,12 @@ func info() -> String:
 	var s := super.info()
 	s += "\n물건: " + (item.describe() if item != null else "없음")
 	return s
+
+
+func is_blocked() -> bool:
+	## 물건이 끝까지 왔는데 앞이 막혀 기다리는 중
+	return item != null and progress >= 1.0
+
+
+func is_active() -> bool:
+	return item != null and not is_blocked()

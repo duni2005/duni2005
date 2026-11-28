@@ -33,3 +33,7 @@ func try_extract() -> Item:
 
 func info() -> String:
 	return super.info() + "\n아이템: %s · %d개/초 · 보낸 수 %d" % [item_id, int(per_sec), sent]
+
+
+func is_active() -> bool:
+	return true

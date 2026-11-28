@@ -81,3 +81,7 @@ func tick(dt: float) -> void:
 
 func info() -> String:
 	return super.info() + "\n고른 아이템: %s · 보관 %d/10\n모드: %s" % [selected if selected != "" else "없음", stock, "판매용(같은 물건 4개)" if sale_mode else "요청 채우기"]
+
+
+func is_active() -> bool:
+	return item != null and stock > 0 and needs(item) and power_mult() > 0.0

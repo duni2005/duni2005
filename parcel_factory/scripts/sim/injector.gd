@@ -38,3 +38,9 @@ func tick(dt: float) -> void:
 		return
 	status = ""
 	super.tick(dt)
+
+
+func is_active() -> bool:
+	if item == null or not FILL.has(item.id):
+		return super.is_active()
+	return power_mult() > 0.0 and water_net != null and float(water_net["sat"]) > 0.0

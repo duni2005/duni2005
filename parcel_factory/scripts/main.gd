@@ -61,6 +61,10 @@ func _ready() -> void:
 		new_room(false)
 
 
+func _exit_tree() -> void:
+	Art.clear_cache()
+
+
 # ---------- 큰방 ----------
 
 func new_room(with_demo: bool) -> void:

@@ -84,3 +84,7 @@ func pop_output() -> void:
 
 func info() -> String:
 	return super.info() + "\n주문 품목: %s\n한 요청 최대 %d종 · %d개 · 선물용 %s\n대기 %d · 출력 %d" % [", ".join(order_items), max_kinds, max_total, "예" if gift else "아니오", buffer.size(), printed]
+
+
+func is_active() -> bool:
+	return printing

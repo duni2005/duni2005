@@ -24,3 +24,7 @@ func tick(_dt: float) -> void:
 		status = "파이프가 연결 안 됨"
 	else:
 		status = "물 %d/분" % int(water_supply())
+
+
+func is_active() -> bool:
+	return water_supply() > 0.0

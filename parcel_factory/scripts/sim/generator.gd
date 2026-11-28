@@ -41,3 +41,7 @@ func tick(dt: float) -> void:
 
 func info() -> String:
 	return super.info() + "\n연료: %s %d/10 (분당 %d개)" % [fuel_item(), fuel, int(def.get("fuel_rate", 0.0))]
+
+
+func is_active() -> bool:
+	return running()

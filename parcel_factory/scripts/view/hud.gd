@@ -358,6 +358,10 @@ func _item_option(current: String, allow_none: bool, cb: Callable) -> OptionButt
 	var o := OptionButton.new()
 	o.custom_minimum_size = Vector2(340, 52)
 	o.focus_mode = Control.FOCUS_NONE
+	o.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # 16×16 도트 아이콘이 번지지 않게
+	o.get_popup().canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
+	o.add_theme_constant_override("icon_max_width", 32)
+	o.get_popup().add_theme_constant_override("icon_max_width", 32)
 	var idx := 0
 	if allow_none:
 		o.add_item("(없음)")
@@ -365,7 +369,7 @@ func _item_option(current: String, allow_none: bool, cb: Callable) -> OptionButt
 		idx = 1
 	var sel := 0
 	for n in DB.item_order:
-		o.add_item(n)
+		o.add_icon_item(Art.item_icon(n), n)
 		o.set_item_metadata(idx, n)
 		if n == current:
 			sel = idx

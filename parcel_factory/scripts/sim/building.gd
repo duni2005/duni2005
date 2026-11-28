@@ -193,6 +193,11 @@ func tick(_dt: float) -> void:
 	pass
 
 
+func is_active() -> bool:
+	## 지금 일하는 중인지 (화면이 가동 애니메이션을 켤지 정할 때 읽어요)
+	return false
+
+
 func info() -> String:
 	var s := name
 	if needs_power():
