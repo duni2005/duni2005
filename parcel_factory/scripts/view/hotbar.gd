@@ -19,7 +19,6 @@ func _ready() -> void:
 		s.index = i
 		s.draggable = false
 		s.clicked.connect(func(idx, _sh) -> void: player.select_hotbar(idx))
-		s.split.connect(func(_idx) -> void: pass)   # 핫바에선 길게 눌러도 나누지 않아요
 		s.swiped_up.connect(func() -> void: open_bag.emit())
 		add_child(s)
 		_slots.append(s)

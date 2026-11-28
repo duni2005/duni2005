@@ -16,7 +16,9 @@ const BTN_H := 64.0              # 버튼 최소 크기 (엄지)
 const ACTION_RADIUS := 72.0      # 상호작용 버튼 반지름
 const ROTATE_RADIUS := 34.0
 const HP_GAP := 8.0              # HP 바와 핫바 사이
-const INSPECTOR_W := 520.0
+const INFO_W := 0.4               # 정보창 폭 (화면 폭 비율, 가운데 왼쪽)
+const INFO_GAP := 8.0              # 정보창과 인벤토리 사이 반 간격
+const InfoPanel := preload("res://scripts/view/info_panel.gd")
 const MSG_SEC := 2.5             # 알림 글씨가 떠 있는 시간
 const REFRESH_SEC := 0.1         # 대상 이름·시계 갱신 간격
 const SPEEDS := [1.0, 2.0, 4.0, 8.0]
@@ -56,11 +58,9 @@ var cat_box: HBoxContainer
 var item_box: HBoxContainer
 var current_cat := ""
 
-var inspector: PanelContainer
-var ins_title: Label
-var ins_info: Label
-var ins_controls: VBoxContainer
-var ins_target = null
+var info                  # info_panel.gd (설비 정보창)
+var backdrop: Control     # 정보창이 열린 동안 두 창 바깥 탭 받기
+var fly_layer             # 옮겨지는 아이템 연출
 
 var menu_panel: PanelContainer
 var _menu_tabs := {}
@@ -88,9 +88,11 @@ func _ready() -> void:
 	_build_palette()
 	_build_bottom()
 	_build_action()
-	_build_inspector()
+	_build_info()
 	_build_inventory()
 	_build_menu()
+	fly_layer = FlyLayer.new()
+	root.add_child(fly_layer)
 	get_viewport().size_changed.connect(apply_layout)
 	apply_layout()
 	match settings.input_mode:
@@ -348,7 +350,7 @@ func rotate_visible() -> bool:
 func _process(dt: float) -> void:
 	var ic := _action_icon()
 	action_btn.set_icon(ic[0], ic[1])
-	rotate_btn.visible = rotate_visible()
+	rotate_btn.visible = rotate_visible() and not info_open()
 	if _msg_t > 0.0:
 		_msg_t -= dt
 		toast.modulate.a = clampf(_msg_t / 0.5, 0.0, 1.0)
@@ -361,15 +363,10 @@ func _process(dt: float) -> void:
 	var tt := _target_text()
 	target_panel.visible = tt != ""
 	target_label.text = tt
-	if inspector.visible:
-		if ins_target == null or not f.buildings.has(ins_target):
-			hide_inspector()
-		else:
-			ins_info.text = ins_target.info()
 
 
 func is_over_ui(p: Vector2) -> bool:
-	for c in [top_right, palette, hotbar, action_btn, rotate_btn, mode_bar, inspector, inventory_panel, menu_panel, joystick]:
+	for c in [top_right, palette, hotbar, action_btn, rotate_btn, mode_bar, backdrop, info, inventory_panel, menu_panel, joystick]:
 		if c.visible and c.get_global_rect().has_point(p):
 			return true
 	return false
@@ -386,11 +383,17 @@ func _build_inventory() -> void:
 
 
 func toggle_inventory() -> void:
-	## 설비 정보창이 열려 있으면 그 오른쪽(가운데 오른쪽)에, 아니면 화면 가운데에
-	inventory_panel.toggle("beside" if inspector.visible else "center")
+	## 정보창이 열려 있으면 E는 둘 다 닫기, 아니면 가방만 화면 가운데에
+	if info_open():
+		close_info()
+	else:
+		inventory_panel.toggle("center")
 
 
 func close_inventory() -> bool:
+	if info_open():
+		close_info()
+		return true
 	if inventory_panel.visible:
 		inventory_panel.close()
 		return true
@@ -398,8 +401,7 @@ func close_inventory() -> bool:
 
 
 func _on_player_info(b) -> void:
-	main.view.selected = b
-	show_inspector(b)
+	open_info(b)
 
 
 # ---------- 설치 팔레트 (디버그: 크리에이티브식 자유 설치) ----------
@@ -446,7 +448,7 @@ func _select_category(c: String) -> void:
 
 func refresh_tool_buttons() -> void:
 	if main.tool != "view":
-		hide_inspector()
+		close_info()
 
 
 # ---------- 메뉴: 저장 · 설정 · 디버그 ----------
@@ -578,176 +580,111 @@ func _on_layers() -> void:
 	main.view.show_layers = not main.view.show_layers
 
 
-# ---------- 설비 정보창 (가운데 왼쪽, 7단계에서 다시 다듬어요) ----------
+# ---------- 설비 정보창 + 인벤토리 (함께 열려요) ----------
 
-func _build_inspector() -> void:
-	inspector = PanelContainer.new()
-	inspector.anchor_left = 0.5
-	inspector.anchor_right = 0.5
-	inspector.anchor_top = 0.0
-	inspector.anchor_bottom = 1.0
-	inspector.offset_right = -MARGIN
-	inspector.offset_left = -MARGIN - INSPECTOR_W
-	inspector.offset_top = MARGIN + BTN_H + 40
-	inspector.offset_bottom = -MARGIN - BTN_H - HP_GAP - HpBar.BAR.y - MARGIN
-	root.add_child(inspector)
-	var sc := ScrollContainer.new()
-	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	inspector.add_child(sc)
-	var v := VBoxContainer.new()
-	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sc.add_child(v)
-	var h := HBoxContainer.new()
-	v.add_child(h)
-	ins_title = Label.new()
-	ins_title.add_theme_font_size_override("font_size", 26)
-	ins_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.add_child(ins_title)
-	h.add_child(_btn("닫기", hide_inspector, 90))
-	ins_info = Label.new()
-	ins_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ins_info.custom_minimum_size = Vector2(INSPECTOR_W - 40, 0)
-	ins_info.add_theme_font_size_override("font_size", 18)
-	v.add_child(ins_info)
-	ins_controls = VBoxContainer.new()
-	v.add_child(ins_controls)
-	inspector.visible = false
+func _build_info() -> void:
+	# 두 창 바깥을 탭하면 닫혀요
+	backdrop = Control.new()
+	backdrop.set_anchors_preset(Control.PRESET_FULL_RECT)
+	backdrop.mouse_filter = Control.MOUSE_FILTER_STOP
+	backdrop.gui_input.connect(_on_backdrop_input)
+	backdrop.visible = false
+	root.add_child(backdrop)
+	info = InfoPanel.new()
+	info.hud = self
+	info.player = main.player
+	info.factory = main.factory
+	info.anchor_left = 0.5 - INFO_W
+	info.anchor_right = 0.5
+	info.anchor_top = 0.0
+	info.anchor_bottom = 1.0
+	info.offset_left = 0
+	info.offset_right = -INFO_GAP
+	info.offset_top = MARGIN + BTN_H + 12
+	info.offset_bottom = -MARGIN
+	info.closed.connect(_on_info_closed)
+	root.add_child(info)
 
 
-func hide_inspector() -> void:
-	inspector.visible = false
-	ins_target = null
-	if main != null and main.view != null:
-		main.view.selected = null
+func open_info(b) -> void:
+	info.inv_panel = inventory_panel
+	info.open(b)
+	main.view.selected = b
+	backdrop.visible = true
+	inventory_panel.set_transfer(info)
+	inventory_panel.open("beside")
+	_set_play_hud(false)
 
 
-func show_inspector(b) -> void:
-	if b == null:
-		hide_inspector()
-		return
-	ins_target = b
-	inspector.visible = true
-	ins_title.text = b.name
-	for ch in ins_controls.get_children():
-		ch.queue_free()
-	_build_controls(b)
-	ins_info.text = b.info()
+func close_info() -> void:
+	if info.visible:
+		info.close()   # → _on_info_closed
 
 
-# ---------- 설비별 설정 ----------
-
-func _row(label: String) -> HBoxContainer:
-	var h := HBoxContainer.new()
-	var l := Label.new()
-	l.text = label
-	l.custom_minimum_size = Vector2(110, 0)
-	h.add_child(l)
-	ins_controls.add_child(h)
-	return h
+func info_open() -> bool:
+	return info.visible
 
 
-func _item_option(current: String, allow_none: bool, cb: Callable) -> OptionButton:
-	var o := OptionButton.new()
-	o.custom_minimum_size = Vector2(340, 52)
-	o.focus_mode = Control.FOCUS_NONE
-	o.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST   # 16×16 도트 아이콘이 번지지 않게
-	o.get_popup().canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
-	o.add_theme_constant_override("icon_max_width", 32)
-	o.get_popup().add_theme_constant_override("icon_max_width", 32)
-	var idx := 0
-	if allow_none:
-		o.add_item("(없음)")
-		o.set_item_metadata(0, "")
-		idx = 1
-	var sel := 0
-	for n in DB.item_order:
-		o.add_icon_item(Art.item_icon(n), n)
-		o.set_item_metadata(idx, n)
-		if n == current:
-			sel = idx
-		idx += 1
-	o.select(sel)
-	o.item_selected.connect(func(i): cb.call(o.get_item_metadata(i)))
-	return o
+func _on_info_closed() -> void:
+	backdrop.visible = false
+	inventory_panel.set_transfer(null)
+	inventory_panel.close()
+	main.view.selected = null
+	_set_play_hud(true)
 
 
-func _options(names: Array, current, cb: Callable) -> OptionButton:
-	var o := OptionButton.new()
-	o.custom_minimum_size = Vector2(340, 52)
-	o.focus_mode = Control.FOCUS_NONE
-	for i in names.size():
-		o.add_item(str(names[i][0]))
-		o.set_item_metadata(i, names[i][1])
-		if names[i][1] == current:
-			o.select(i)
-	o.item_selected.connect(func(i): cb.call(o.get_item_metadata(i)))
-	return o
+func _on_backdrop_input(e: InputEvent) -> void:
+	var down: bool = (e is InputEventMouseButton and e.pressed) or (e is InputEventScreenTouch and e.pressed)
+	if down:
+		close_info()
 
 
-func _build_controls(b) -> void:
-	if b is Machine:
-		var rs: Array = b.available_recipes()
-		var names := [["(레시피 없음)", -1]]
-		for r in rs:
-			names.append([DB.recipe_label(r), r["id"]])
-		var cur: int = b.recipe["id"] if b.recipe != null else -1
-		_row("레시피").add_child(_options(names, cur, func(id): _set_recipe(b, id)))
-		_row("속도").add_child(_options([["100%", 1.0], ["50% (전력 40%)", 0.5]], b.speed_setting, func(v): b.speed_setting = v))
-	elif b is Sorter:
-		_row("품목").add_child(_item_option(b.filter_item, true, func(n): b.filter_item = n))
-		_row("모드").add_child(_options([["고른 품목 → 옆", "filter"], ["넘치면 옆", "overflow"], ["고른 품목 → 앞", "inverse"]], b.mode, func(m): b.mode = m))
-		_row("옆 출력").add_child(_options([["오른쪽", true], ["왼쪽", false]], b.side_right, func(v): b.side_right = v))
-	elif b is Detector:
-		_row("아이템").add_child(_item_option(b.selected, true, func(n): _set_detector_item(b, n)))
-		_row("모드").add_child(_options([["요청 채우기", false], ["판매용 (같은 물건 4개)", true]], b.sale_mode, func(v): b.sale_mode = v))
-	elif b is ItemPile:
-		var types := []
-		for t in DB.piles:
-			types.append([t, t])
-		_row("종류").add_child(_options(types, b.pile_type, func(t): b.set_type(t)))
-		_row("레벨").add_child(_options([["Lv1 · 30개/분", 1], ["Lv2 · 60개/분", 2], ["Lv3 · 120개/분", 3]], b.level, func(l): b.level = l))
-		var hr: Vector2i = b.hand_pull_range()
-		if hr != Vector2i.ZERO:
-			_row("손").add_child(_btn("손으로 뒤지기 (%d~%d개)" % [hr.x, hr.y], main.player.start_rummage.bind(b), 300))
-	elif b is InfiniteSource:
-		_row("아이템").add_child(_item_option(b.item_id, false, func(n): b.item_id = n))
-		_row("속도").add_child(_options([["1개/초", 1.0], ["2개/초", 2.0], ["4개/초", 4.0]], b.per_sec, func(v): b.per_sec = v))
-	elif b is WorkComputer:
-		_row("품목 추가").add_child(_item_option("", true, func(n): _add_order_item(b, n)))
-		var h := _row("목록")
-		h.add_child(_btn("비우기", _clear_orders.bind(b), 120))
-		h.add_child(_btn("기본값", _default_orders.bind(b), 120))
-		_row("최대 종류").add_child(_options([["1종", 1], ["2종", 2], ["3종", 3]], b.max_kinds, func(v): b.max_kinds = v))
-		_row("최대 개수").add_child(_options([["1개", 1], ["2개", 2], ["3개", 3], ["4개", 4]], b.max_total, func(v): b.max_total = v))
-		_row("선물용").add_child(_options([["아니오", false], ["예", true]], b.gift, func(v): b.gift = v))
-		_row("출력").add_child(_options([["켬", true], ["끔", false]], b.printing, func(v): b.printing = v))
-	elif b is Shelf:
-		_row("자동 배달").add_child(_options([["켬", true], ["끔", false]], b.auto_deliver, func(v): b.auto_deliver = v))
+func _set_play_hud(on: bool) -> void:
+	## 정보창이 열린 동안은 핫바·조이스틱·상호작용·모드 버튼을 숨겨요
+	bottom_box.visible = on
+	joystick.visible = on and touch_mode
+	action_btn.visible = on
+	mode_bar.visible = on
+	if not on:
+		rotate_btn.visible = false
 
 
-func _clear_orders(b) -> void:
-	b.order_items.clear()
+# ---------- 옮겨지는 아이템 연출 ----------
 
+class FlyLayer extends Control:
+	## 아이템이 칸에서 칸으로 날아가는 짧은 연출 (+ 옮긴 개수)
+	const SEC := 0.3
+	const ICON := 40.0
+	var flights: Array = []   # {id, a, b, t, n}
 
-func _default_orders(b) -> void:
-	b.order_items = ["장난감", "나뭇가지", "바위"]
+	func _ready() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		set_anchors_preset(Control.PRESET_FULL_RECT)
 
+	func add(id: String, a: Vector2, b: Vector2, n: int) -> void:
+		var inv := get_global_transform().affine_inverse()
+		flights.append({"id": id, "a": inv * a, "b": inv * b, "t": 0.0, "n": n})
 
-func _set_detector_item(b, n) -> void:
-	b.selected = n
-	b.stock = 0
-
-
-func _add_order_item(b, n) -> void:
-	if n != "" and not b.order_items.has(n):
-		b.order_items.append(n)
-
-
-func _set_recipe(b, id) -> void:
-	if int(id) < 0:
-		b.set_recipe(null)
-		return
-	for r in DB.recipes:
-		if r["id"] == int(id):
-			b.set_recipe(r)
+	func _process(dt: float) -> void:
+		if flights.is_empty():
 			return
+		for f in flights:
+			f["t"] += dt
+		flights = flights.filter(func(f) -> bool: return f["t"] < SEC)
+		queue_redraw()
+
+	func _draw() -> void:
+		var font := ThemeDB.fallback_font
+		for f in flights:
+			var k: float = clampf(f["t"] / SEC, 0.0, 1.0)
+			var p: Vector2 = f["a"].lerp(f["b"], k) - Vector2(0, sin(PI * k) * 30.0)
+			var tex := Art.item_icon(f["id"], 16)
+			draw_texture_rect(tex, Rect2(p - Vector2(ICON, ICON) * 0.5, Vector2(ICON, ICON)), false)
+			if int(f["n"]) > 1:
+				var txt := "×%d" % int(f["n"])
+				draw_string_outline(font, p + Vector2(12, 22), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, 4, Palette.c(Palette.INK))
+				draw_string(font, p + Vector2(12, 22), txt, HORIZONTAL_ALIGNMENT_LEFT, -1, 18, Palette.c(Palette.PAPER))
+
+
+func fly(id: String, from_rect: Rect2, to_rect: Rect2, n: int) -> void:
+	fly_layer.add(id, from_rect.get_center(), to_rect.get_center(), n)

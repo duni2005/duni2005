@@ -207,25 +207,20 @@ func pick_item(b, inv: Inventory) -> bool:
 	return true
 
 
-func take_outputs(b: Building, inv: Inventory, max_n: int) -> int:
-	## 설비 결과물·보관물을 가방이 받을 수 있는 동안 꺼내요
-	var n := 0
-	while n < max_n and b.has_output():
-		var it: Item = b.try_extract()
-		if it == null:
+func player_insert(b: Building, item, n: int) -> int:
+	## 플레이어가 손으로 설비에 넣어요. 어느 칸에 들어갈지는 설비(try_insert)가 정해요. 넣은 수를 돌려줘요.
+	## item: 아이템 이름(String) 또는 Item (내용물이 있는 물건이면 1개만)
+	var done := 0
+	var unique: bool = item is Item and not item.is_plain()
+	for i in (1 if unique else n):
+		var it: Item = item if unique else Item.new(item.id if item is Item else str(item))
+		if not _insert_one(b, it):
 			break
-		if inv.add(it, 1) > 0:
-			floor_items.spawn(it, 1, Vector2(b.pos) + Vector2(b.size) * 0.5)
-			break
-		n += 1
-	return n
+		done += 1
+	return done
 
 
-func insert_from(inv: Inventory, slot: int, b: Building) -> bool:
-	## 가방 slot칸의 물건 하나를 설비·레일에 넣어요 (받으면 그 칸에서 하나 빼요)
-	var it := inv.item_at(slot)
-	if it == null:
-		return false
+func _insert_one(b: Building, it: Item) -> bool:
 	var cells := [b.pos - Vector2i(1, 0)]
 	if b is Detector:
 		cells = [b.left_cell(), b.right_cell(), b.back_cell()]
@@ -233,30 +228,53 @@ func insert_from(inv: Inventory, slot: int, b: Building) -> bool:
 		cells = [b.back_cell(), b.left_cell(), b.right_cell()]
 	for c in cells:
 		if b.try_insert(it, c):
-			inv.remove(it.id, 1, slot)
 			return true
 	return false
 
 
-func deconstruct(b, inv: Inventory) -> bool:
-	## 철거: 설비 아이템 + 안에 든 물건을 가방으로. 가방에 안 들어가는 건 그 자리 바닥에 떨어져요
-	if is_fixed(b) and not creative:
-		return false
-	var back := [DB.building_item(b.name)]
-	back.append_array(b.contents())
-	if b is StorageBlock:
-		# 묶음에서 이 블록이 빠지면 넘치는 만큼 돌려받아요
-		var g = b.group
-		var keep: int = 20 * (g.members.size() - 1)
-		while g.items.size() > keep:
-			back.append(g.items.pop_back())
+func player_extract(b: Building, slot_index: int, n: int) -> Array:
+	## 정보창 slot_index칸에서 최대 n개를 꺼내 Item 목록으로 돌려줘요
+	if slot_index < 0 or slot_index >= b.get_slots().size() or n <= 0:
+		return []
+	return b.extract_slot(slot_index, n)
+
+
+func change_recipe(b, r, inv: Inventory) -> void:
+	## 레시피 바꾸기: 새 레시피에 안 쓰이는 재료는 가방으로, 넘치면 설비 자리 바닥에
+	var back: Array = b.set_recipe(r)
 	var center := Vector2(b.pos) + Vector2(b.size) * 0.5
-	if not remove_at(b.pos):
-		return false
 	for it in back:
 		if inv.add(it, 1) > 0:
 			floor_items.spawn(it, 1, center)
-	return true
+
+
+func can_deconstruct(b: Building) -> bool:
+	## 지급 설비·지형(쓰레기 더미·물 샘 등)은 철거할 수 없어요 (크리에이티브면 지형 설비만 예외)
+	if b.given:
+		return false
+	return not is_fixed(b) or creative
+
+
+func deconstruct(b) -> Array:
+	## 철거: 설비 안의 모든 물건 + 제작 재료(또는 설비 아이템)를 설비 자리에 바닥 아이템으로 쏟아요.
+	## 쏟은 물건 목록을 돌려줘요 (철거할 수 없으면 빈 목록)
+	if b == null or not can_deconstruct(b):
+		return []
+	var out: Array = b.contents()
+	if b is StorageBlock:
+		# 묶음에서 이 블록이 빠지면 줄어든 용량만큼 넘치는 것만 나와요
+		var g = b.group
+		var keep: int = 20 * (g.members.size() - 1)
+		while g.items.size() > keep:
+			out.append(g.items.pop_back())
+	for m in DB.build_materials(b.name):
+		out.append_array(Building.items_of(m[0], m[1]))
+	var center := Vector2(b.pos) + Vector2(b.size) * 0.5
+	if not remove_at(b.pos):
+		return []
+	for it in out:
+		floor_items.spawn(it, 1, center)
+	return out
 
 
 func drop_items(items: Array, origin: Vector2, delay: float) -> void:
@@ -443,7 +461,7 @@ func record_shipment(p, ok: bool) -> void:
 func to_save() -> Dictionary:
 	var bs := []
 	for b in buildings:
-		bs.append({"name": b.name, "pos": [b.pos.x, b.pos.y], "rot": b.rot, "state": b.save_state()})
+		bs.append({"name": b.name, "pos": [b.pos.x, b.pos.y], "rot": b.rot, "given": b.given, "state": b.save_state()})
 	return {
 		"version": SAVE_VERSION,
 		"creative": creative,
@@ -479,6 +497,7 @@ func load_save(d) -> bool:
 		if b == null:
 			push_warning("저장된 설비를 놓지 못했어요: %s %s" % [n, str(pp)])
 			continue
+		b.given = bool(e.get("given", false))
 		var st = e.get("state", {})
 		if st is Dictionary:
 			b.load_state(st)

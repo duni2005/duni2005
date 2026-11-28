@@ -50,3 +50,22 @@ func is_active() -> bool:
 func contents() -> Array:
 	var out := Building.items_of(fuel_item(), fuel)
 	return out
+
+
+func accepts(id: String) -> bool:
+	return id == fuel_item()
+
+
+func get_slots() -> Array:
+	return [Building.slot("fuel", fuel_item(), fuel, 10)]
+
+
+func extract_slot(_index: int, n: int) -> Array:
+	var k := mini(n, fuel)
+	fuel -= k
+	return Building.items_of(fuel_item(), k)
+
+
+func burn_fraction() -> float:
+	## 지금 타는 연료가 얼마나 남았는지 0~1
+	return clampf(burn_left / (60.0 / float(def.get("fuel_rate", 1.0))), 0.0, 1.0)

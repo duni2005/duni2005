@@ -112,7 +112,7 @@ func new_room(with_demo: bool) -> void:
 	if with_demo:
 		Demo.build(factory)
 	_reset_player()
-	hud.hide_inspector()
+	hud.close_info()
 
 
 func _reset_player() -> void:
@@ -126,7 +126,14 @@ func clear_room() -> void:
 	## 비우기: 지울 수 없는 지형 설비만 남겨요
 	factory.clear_all()
 	factory.room.build_fixed(factory)
-	hud.hide_inspector()
+	hud.close_info()
+
+
+func begin_move(b) -> void:
+	## 정보창 [이동]: 9단계에서 그 설비를 들고 옮기는 동작이 붙어요. 지금은 이동 모드로 바꾸기만 해요
+	play_mode.set_mode(PlayMode.Mode.MOVE)
+	view.selected = b
+	hud.show_message("이동 모드 — 설비를 들어 옮기는 동작은 9단계에서 붙어요")
 
 
 func toggle_creative() -> void:
@@ -150,7 +157,7 @@ func save_game() -> void:
 
 func load_game() -> void:
 	if _load_file():
-		hud.hide_inspector()
+		hud.close_info()
 		hud.show_message("불러왔어요 (설비 %d개)" % factory.buildings.size())
 	else:
 		hud.show_message("불러올 저장 파일이 없어요")
@@ -181,7 +188,7 @@ func cancel() -> void:
 	elif tool != "view":
 		set_tool("view")
 	else:
-		hud.hide_inspector()
+		hud.close_info()
 
 
 # ---------- 도구 ----------
@@ -242,8 +249,11 @@ func _tap(sp: Vector2) -> void:
 	var c := screen_to_cell(sp)
 	match tool:
 		"view":
-			view.selected = factory.get_at(c)
-			hud.show_inspector(view.selected)
+			# 손 닿는 설비는 누를 때 이미 처리했어요. 여기 오는 건 멀리 있는 설비
+			var b = factory.get_at(c)
+			if b != null and play_mode.mode == PlayMode.Mode.NORMAL and not player.in_reach(b):
+				player.blink(b)
+				hud.show_message("가까이 가야 해요")
 		"build":
 			if not is_drag_def():
 				_place(c)
@@ -275,7 +285,8 @@ func _process(dt: float) -> void:
 	if not Input.is_key_pressed(KEY_CTRL):
 		v = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	v += hud.joystick.vector
-	player.move_input = v.limit_length(1.0)
+	# 정보창이 열린 동안 플레이어는 멈춰요 (PC는 WASD를 누르면 창이 닫혀요)
+	player.move_input = Vector2.ZERO if hud.info_open() else v.limit_length(1.0)
 	player.run = Input.is_action_pressed("run") or hud.joystick.is_running()
 	# PC: 마우스를 올린 칸이 상호작용 대상 (UI 위면 없음)
 	player.use_aim = not hud.touch_mode
@@ -324,6 +335,11 @@ func _handle_actions(event: InputEvent) -> bool:
 	## InputMap 액션 처리. 처리했으면 true
 	if event.is_echo():
 		return false
+	if hud.info_open():
+		for a in ["move_up", "move_down", "move_left", "move_right"]:
+			if event.is_action_pressed(a):
+				hud.close_info()
+				return true
 	if event.is_action_pressed("save_game", false, true):
 		save_game()
 	elif event.is_action_pressed("zoom_in"):
@@ -378,8 +394,8 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 			_update_ghost(_last_cell)
 			if tool == "build" and is_drag_def():
 				_place(_last_cell)
-			elif tool == "view":
-				# 손 닿는 설비를 직접 누르면 그 설비와 상호작용 (멀면 떼었을 때 정보만 봐요)
+			elif tool == "view" and play_mode.mode == PlayMode.Mode.NORMAL:
+				# 일반 모드: 3칸 안 설비를 누르면 그 설비와 상호작용 (탭 = 정보창, 들고 꾹 = 빠른 넣기)
 				var b = factory.get_at(_last_cell)
 				if b != null and player.in_reach(b):
 					_world_press = true

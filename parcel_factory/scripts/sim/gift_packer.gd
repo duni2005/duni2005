@@ -66,3 +66,24 @@ func contents() -> Array:
 	out.append_array(parcels)
 	out.append_array(out_buf)
 	return out
+
+
+func accepts(id: String) -> bool:
+	return id == "리본" or id == "택배"
+
+
+func get_slots() -> Array:
+	return [Building.slot("in", "리본", ribbon, 10), Building.list_slot("in", parcels, 4, "택배"), Building.list_slot("out", out_buf, 4, "선물용 택배")]
+
+
+func extract_slot(index: int, n: int) -> Array:
+	match index:
+		0:
+			var k := mini(n, ribbon)
+			ribbon -= k
+			return Building.items_of("리본", k)
+		1:
+			return Building.take_front(parcels, n)
+		2:
+			return Building.take_front(out_buf, n)
+	return []

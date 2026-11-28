@@ -104,5 +104,8 @@ func build_fixed(f) -> void:
 
 func build_given(f) -> void:
 	for g in GIVEN:
-		if f.place(g["name"], g["pos"], g["rot"]) == null:
+		var b = f.place(g["name"], g["pos"], g["rot"])
+		if b == null:
 			push_warning("지급 설비를 놓지 못했어요: " + str(g["name"]))
+		else:
+			b.given = true

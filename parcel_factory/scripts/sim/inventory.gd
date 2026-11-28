@@ -126,6 +126,23 @@ func can_accept(item) -> bool:
 
 # ---------- 읽기 도우미 ----------
 
+func space_for(item) -> int:
+	## 이 아이템이 몇 개까지 더 들어가는지 (꺼내기 전에 확인할 때)
+	var empty := 0
+	for s in slots:
+		if s == null:
+			empty += 1
+	if _unique(item):
+		return 1 if empty > 0 else 0
+	var id := _id_of(item)
+	var lim := stack_limit(id)
+	var n := empty * lim
+	for s in slots:
+		if s != null and s["id"] == id and s["item"] == null:
+			n += lim - int(s["n"])
+	return n
+
+
 func id_at(i: int) -> String:
 	return "" if i < 0 or i >= SLOTS or slots[i] == null else slots[i]["id"]
 

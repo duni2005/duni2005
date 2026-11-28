@@ -52,3 +52,15 @@ func info() -> String:
 func contents() -> Array:
 	var out := stack.duplicate()
 	return out
+
+
+func accepts(id: String) -> bool:
+	return id == "택배" or id == "선물용 택배"
+
+
+func get_slots() -> Array:
+	return [Building.list_slot("store", stack, int(def.get("cap", 10.0)), "택배")]
+
+
+func extract_slot(_index: int, n: int) -> Array:
+	return Building.take_front(stack, n)

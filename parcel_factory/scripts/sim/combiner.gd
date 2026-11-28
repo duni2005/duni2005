@@ -62,3 +62,22 @@ func has_output() -> bool:
 func contents() -> Array:
 	var out := boxes + papers + out_buf
 	return out
+
+
+func accepts(id: String) -> bool:
+	return id == "요청서" or DB.is_box(id)
+
+
+func get_slots() -> Array:
+	return [Building.list_slot("in", boxes, 4, "작은 택배 박스"), Building.list_slot("in", papers, 4, "요청서"), Building.list_slot("out", out_buf, 4, "작은 택배 박스")]
+
+
+func extract_slot(index: int, n: int) -> Array:
+	match index:
+		0:
+			return Building.take_front(boxes, n)
+		1:
+			return Building.take_front(papers, n)
+		2:
+			return Building.take_front(out_buf, n)
+	return []

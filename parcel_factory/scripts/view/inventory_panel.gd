@@ -5,6 +5,8 @@ extends PanelContainer
 ## 위 3줄 = 가방 27칸, 아래 1줄 = 핫바 9칸. '크리에이티브 보관함' 탭은 디버그 메뉴에서 켜요.
 ## 조작: 끌어다 놓기 = 옮기기 · 두 칸을 차례로 탭 = 바꾸기 · 길게 누르기/오른쪽 클릭 = 반 나누기
 ##       Shift+클릭 = 핫바↔가방 빠른 이동 · 창 밖으로 끌어 놓기 = 플레이어 앞에 버리기
+## 설비 정보창과 함께 열리면 '주고받기' 모드(transfer): 탭 = 1개를 설비로, 꾹·Shift+클릭 = 전부, 오른쪽 클릭 = 반.
+## 그 설비에 넣을 수 없는 아이템은 흐리게(40%). 끌기 정리는 그대로예요.
 ## 인벤토리는 Inventory의 함수로만 바꾸고, 플레이어 상태는 읽기만 해요.
 
 const InvSlot := preload("res://scripts/view/inv_slot.gd")
@@ -25,6 +27,8 @@ var _creative_grid: GridContainer
 var _slots: Array = []        # 인벤토리 칸 번호 순서 (0~8 핫바, 9~ 가방)
 var _picked := -1             # 탭-탭 교환에서 먼저 고른 칸
 var _pointer := Vector2.ZERO  # 마지막 마우스·손가락 위치 (창 밖에 놓았는지 볼 때)
+var transfer = null           # 주고받기 상대 (info_panel.gd). null이면 보통 가방
+const TRANSFER_HOLD := 0.35   # 주고받기 모드에서 '꾹' 시간
 
 
 func _ready() -> void:
@@ -108,7 +112,8 @@ func _make_slot(i: int):
 	var s = InvSlot.new()
 	s.index = i
 	s.clicked.connect(_on_click)
-	s.split.connect(_on_split)
+	s.right_clicked.connect(_on_right)
+	s.long_pressed.connect(_on_long)
 	s.moved.connect(_on_moved)
 	s.dragged_out.connect(_on_dragged_out)
 	_slots[i] = s
@@ -177,6 +182,9 @@ func _show_tab(creative: bool) -> void:
 
 func _on_click(i: int, shift: bool) -> void:
 	var inv: Inventory = player.inventory
+	if transfer != null:
+		transfer.give(i, "all" if shift else "one")
+		return
 	if shift:
 		inv.quick_move(i)
 		_picked = -1
@@ -191,9 +199,42 @@ func _on_click(i: int, shift: bool) -> void:
 	refresh()
 
 
-func _on_split(i: int) -> void:
-	player.inventory.split_slot(i)
+func _on_right(i: int) -> void:
+	if transfer != null:
+		transfer.give(i, "half")
+	else:
+		player.inventory.split_slot(i)
+		_picked = -1
+
+
+func _on_long(i: int) -> void:
+	if transfer != null:
+		transfer.give(i, "all")
+	else:
+		player.inventory.split_slot(i)
+		_picked = -1
+
+
+func set_transfer(t) -> void:
+	## 설비 정보창과 함께 열릴 때 주고받기 모드로
+	transfer = t
 	_picked = -1
+	for s in _slots:
+		s.long_press = TRANSFER_HOLD if t != null else InvSlot.LONG_PRESS
+		s.show_gauge = t != null
+	refresh()
+
+
+func slot_node(i: int):
+	return _slots[i] if i >= 0 and i < _slots.size() else null
+
+
+func slot_of(id: String) -> int:
+	## 그 아이템이 있는 첫 칸 (핫바 먼저)
+	for i in Inventory.SLOTS:
+		if player.inventory.id_at(i) == id:
+			return i
+	return -1
 
 
 func _on_moved(from: int, to: int) -> void:
@@ -232,3 +273,4 @@ func refresh() -> void:
 		var e = inv.slots[i]
 		s.show_item("" if e == null else e["id"], 0 if e == null else int(e["n"]))
 		s.set_marks(i == _picked, i == player.hotbar)
+		s.set_dim(transfer != null and e != null and not transfer.can_accept(e["id"]))

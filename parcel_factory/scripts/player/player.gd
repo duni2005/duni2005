@@ -1,8 +1,9 @@
 extends CharacterBody2D
 ## 플레이어 (택배 공장 직원).
 ## 이동·애니메이션·상호작용 대상 고르기를 맡고, 공장을 바꿀 때는 Factory의 함수만 불러요.
-##   탭(짧게)    : 더미 뒤지기 / 레일 위 물건 줍기 / 결과물 꺼내기 / 정보 창 · 아이템을 들었으면 1개 넣기
-##   꾹(길게)    : 설비 철거(게이지) · 아이템을 들었으면 다 넣기 · 대상이 없으면 휘두르기(공격)
+##   탭(짧게)    : 설비 정보창 열기 (레일은 위 물건 줍기, 쓰레기 더미는 뒤지기)
+##   꾹(길게)    : 들고 있는 아이템 빠른 넣기(넣을 수 있는 만큼) · 맨손이면 휘두르기(공격)
+##   철거는 정보창의 [철거(꾹)] 버튼 · 철거 모드(9단계)에서만 해요.
 ## 손에 든 것 = 고른 핫바 칸. 바닥 아이템은 1칸 안에 들어오면 끌려와 자동으로 주워요.
 
 signal message(text: String)
@@ -13,12 +14,11 @@ const TILE := 32.0
 const WALK_SPEED := 2.0        # 칸/초
 const RUN_SPEED := 3.0
 const ACCEL_TIME := 0.08       # 0 → 최고 속도까지 걸리는 시간
-const REACH := 2.5             # 상호작용 거리 (칸, 플레이어 중심 → 설비 가장 가까운 점)
+const REACH := 3.0             # 상호작용·정보창 거리 INFO_RANGE (칸, 플레이어 중심 → 설비 가장 가까운 점)
+const BLINK_SEC := 1.0          # 멀리 있는 설비를 탭하면 그 테두리가 깜빡이는 시간
 const HOLD_SEC := 0.35         # 이보다 길게 누르면 '꾹'
 const RUMMAGE_SEC := 3.0       # 더미 뒤지기
-const DECON_SEC := 1.0         # 철거 게이지
 const ATTACK_SEC := 0.3        # 휘두르기 한 번
-const TAKE_MAX := 50           # 결과물을 한 번에 꺼내는 최대 수
 const HP_MAX := 100
 const BODY_RADIUS := 7.0       # 발밑 충돌 원 (px)
 const WALK_ANIM_FPS := 8.0
@@ -44,7 +44,9 @@ var target = null              # 지금 상호작용 대상 Building
 var use_aim := false           # PC: 마우스를 올린 칸(aim)이 대상
 var aim = null
 
-var action := ""               # "", "rummage", "decon", "attack"
+var action := ""               # "", "rummage", "attack"
+var blink_target = null        # 멀어서 못 연 설비 (테두리 깜빡임)
+var blink_t := 0.0
 var action_t := 0.0
 var _action_target = null
 var _press := false
@@ -131,6 +133,10 @@ func cell() -> Vector2i:
 
 func _process(dt: float) -> void:
 	target = _find_target()
+	if blink_t > 0.0:
+		blink_t -= dt
+		if blink_t <= 0.0:
+			blink_target = null
 	if _press:
 		_press_t += dt
 		if _press_target != null and not is_instance_valid_building(_press_target):
@@ -191,24 +197,36 @@ func shown_target():
 	return t if is_instance_valid_building(t) else null
 
 
+func blink(b) -> void:
+	## 멀리 있는 설비: 테두리만 잠깐 깜빡여요
+	blink_target = b
+	blink_t = BLINK_SEC
+
+
+static func has_window(b) -> bool:
+	## 정보창이 열리는 설비인지. 레일·출구·분배기 같은 단순 벨트 장치와 쓰레기 더미는 기존 동작
+	if b is ItemPile and b.is_giant():
+		return false
+	if b is Conveyor:
+		return b is Sorter or b is RailBridge or b is Detector or b is Injector
+	return true
+
+
 func bubble_kind(b) -> String:
-	## 대상 위 말풍선 아이콘: hand(손) · gear(정보) · box(넣기)
+	## 대상 위 말풍선 아이콘: hand(줍기·뒤지기) · gear(정보창) · box(들고 꾹 = 넣기)
 	if b == null:
 		return ""
-	if held_id() != "":
-		return "box"
-	if _is_rummage_pile(b) or (b is Conveyor and b.item != null) or b.has_output():
+	if _is_rummage_pile(b) or (not has_window(b) and b is Conveyor and b.item != null):
 		return "hand"
-	return "gear"
+	if held_id() != "" and has_window(b):
+		return "box"
+	return "gear" if has_window(b) else ""
 
 
 func progress() -> float:
 	## 진행 중인 일의 게이지 0~1 (없으면 -1)
-	match action:
-		"rummage":
-			return action_t / RUMMAGE_SEC
-		"decon":
-			return action_t / DECON_SEC
+	if action == "rummage":
+		return action_t / RUMMAGE_SEC
 	return -1.0
 
 
@@ -229,8 +247,6 @@ func action_release() -> void:
 	_press = false
 	if not _hold_started:
 		_tap(_press_target)
-	if action == "decon":
-		_cancel_action("")
 	_press_target = null
 
 
@@ -264,46 +280,45 @@ func cancel() -> void:
 
 
 func _tap(t) -> void:
-	var held := held_id()
-	if held != "":
-		if t == null:
-			message.emit("넣을 곳이 없어요")
-		elif factory.insert_from(inventory, hotbar, t):
-			message.emit("%s 1개를 %s에 넣었어요" % [held, t.name])
-		else:
-			message.emit("%s은(는) %s에 못 넣어요" % [held, t.name])
-		return
+	## 탭: 정보창 열기 (레일은 물건 줍기, 쓰레기 더미는 뒤지기)
 	if t == null:
 		return
 	if _is_rummage_pile(t):
 		start_rummage(t)
+	elif has_window(t):
+		request_info.emit(t)
 	elif t is Conveyor and t.item != null:
 		var id: String = t.item.id
-		message.emit(("%s을(를) 주웠어요" % id) if factory.pick_item(t, inventory) else "가방이 가득 찼어요")
-	elif t.has_output():
-		var n: int = factory.take_outputs(t, inventory, TAKE_MAX)
-		message.emit(("%s에서 %d개 꺼냈어요" % [t.name, n]) if n > 0 else "가방이 가득 찼어요")
-	else:
-		request_info.emit(t)
+		message.emit(("%s을(를) 주웠어요" % id) if factory.pick_item(t, inventory) else "인벤토리가 가득 찼어요")
 
 
 func _hold(t) -> void:
+	## 꾹: 들고 있으면 빠른 넣기(넣을 수 있는 만큼), 맨손이면 휘두르기. 쓰레기 더미는 뒤지기
 	var held := held_id()
-	if t == null:
-		if held == "":
-			_start_action("attack", null)
-		return
-	if held != "":
-		var n := 0
-		while inventory.id_at(hotbar) == held and factory.insert_from(inventory, hotbar, t):
-			n += 1
-		message.emit("%s %d개를 %s에 넣었어요" % [held, n, t.name] if n > 0 else "%s은(는) %s에 못 넣어요" % [held, t.name])
-	elif _is_rummage_pile(t):
+	if t != null and _is_rummage_pile(t):
 		start_rummage(t)
-	elif factory.is_fixed(t) and not factory.creative:
-		message.emit("%s은(는) 철거할 수 없어요" % t.name)
+	elif held != "" and t != null:
+		quick_insert(t)
+	elif held == "":
+		_start_action("attack", null)
+
+
+func quick_insert(t) -> int:
+	## 손에 든 칸의 아이템을 설비에 넣을 수 있는 만큼 넣어요
+	var held := held_id()
+	if held == "" or t == null:
+		return 0
+	if not t.accepts(held):
+		message.emit("%s은(는) %s에 못 넣어요" % [held, t.name])
+		return 0
+	var unique: Item = inventory.slots[hotbar]["item"]
+	var n: int = factory.player_insert(t, unique if unique != null else held, inventory.count(held))
+	if n > 0:
+		inventory.remove(held, n, hotbar)
+		message.emit("%s %d개를 %s에 넣었어요" % [held, n, t.name])
 	else:
-		_start_action("decon", t)
+		message.emit("%s이(가) 가득 찼어요" % t.name)
+	return n
 
 
 func start_rummage(pile) -> void:
@@ -351,17 +366,6 @@ func _run_action(dt: float) -> void:
 				for it in got:
 					names.append(it.id)
 				message.emit(("뒤져서 %d개 찾았어요: %s" % [got.size(), ", ".join(names)]) if not got.is_empty() else "가방이 가득 찼어요")
-				_cancel_action("")
-		"decon":
-			if not is_instance_valid_building(_action_target) or not in_reach(_action_target):
-				_cancel_action("")
-			elif action_t >= DECON_SEC:
-				var nm: String = _action_target.name
-				if factory.deconstruct(_action_target, inventory):
-					message.emit("%s을(를) 철거해 가방에 넣었어요" % nm)
-					_press_target = null
-				else:
-					message.emit("가방에 자리가 모자라 철거하지 못했어요")
 				_cancel_action("")
 		"attack":
 			if action_t >= ATTACK_SEC:

@@ -97,3 +97,11 @@ func has_output() -> bool:
 func contents() -> Array:
 	var out := buffer.duplicate()
 	return out
+
+
+func get_slots() -> Array:
+	return [Building.list_slot("out", buffer, 10, "요청서")]
+
+
+func extract_slot(_index: int, n: int) -> Array:
+	return Building.take_front(buffer, n)

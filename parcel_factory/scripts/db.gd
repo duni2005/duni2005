@@ -127,6 +127,21 @@ func building_item(def_name: String) -> String:
 	return "[설비] " + def_name
 
 
+func build_materials(def_name: String) -> Array:
+	## 철거해서 돌려받는 것: 설비 제작대 레시피의 재료 100% [[이름, 개수], ...].
+	## 한 번에 여러 개 만드는 것(레일 ×4 등)이나 제작법이 없는 크리에이티브 설비는 설비 아이템 1개.
+	var item := building_item(def_name)
+	for r in recipes_by_machine.get("설비 제작대", []):
+		if r["out"].has(item):
+			if int(r["out"][item]) != 1:
+				break
+			var out := []
+			for k in r["in"]:
+				out.append([k, int(r["in"][k])])
+			return out
+	return [[item, 1]]
+
+
 func all_item_names() -> Array:
 	## 크리에이티브 보관함용: 모든 아이템 + 지형이 아닌 모든 설비 아이템
 	var out := []

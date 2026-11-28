@@ -31,3 +31,18 @@ func is_active() -> bool:
 func contents() -> Array:
 	var out := Building.items_of(str(def.get("ammo", "")), ammo)
 	return out
+
+
+func accepts(id: String) -> bool:
+	return str(def.get("ammo", "")) != "" and id == str(def.get("ammo", ""))
+
+
+func get_slots() -> Array:
+	var a := str(def.get("ammo", ""))
+	return [] if a == "" else [Building.slot("fuel", a, ammo, 20)]
+
+
+func extract_slot(_index: int, n: int) -> Array:
+	var k := mini(n, ammo)
+	ammo -= k
+	return Building.items_of(str(def.get("ammo", "")), k)

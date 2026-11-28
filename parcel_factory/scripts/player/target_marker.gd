@@ -1,6 +1,6 @@
 extends Node2D
 ## 플레이어 상호작용 대상 표시: 흰 모서리 테두리 + 작은 말풍선 아이콘(손·톱니·상자),
-## 그리고 머리 위 진행 게이지(더미 뒤지기·철거). 플레이어·시뮬레이션 상태는 읽기만 해요.
+## 멀어서 못 연 설비의 깜빡이는 테두리, 머리 위 진행 게이지(더미 뒤지기). 플레이어·시뮬레이션 상태는 읽기만 해요.
 
 const TILE := 32.0
 const CORNER := 8.0          # 모서리 꺾쇠 길이
@@ -28,6 +28,10 @@ func _draw() -> void:
 		var kind: String = player.bubble_kind(t)
 		if kind != "":
 			_bubble(Vector2(r.get_center().x, r.position.y - 6), kind)
+	# 멀어서 못 연 설비: 테두리만 깜빡여요
+	var bt = player.blink_target
+	if bt != null and player.is_instance_valid_building(bt) and int(player.blink_t * 8.0) % 2 == 0:
+		_corners(Rect2(Vector2(bt.pos) * TILE, Vector2(bt.size) * TILE).grow(2), Palette.c(Palette.YELLOW))
 	var p: float = player.progress()
 	if p >= 0.0:
 		var base: Vector2 = player.position + Vector2(-GAUGE.x * 0.5, GAUGE_Y)

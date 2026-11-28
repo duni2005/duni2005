@@ -96,7 +96,7 @@ const ATLAS_COLS := 16
 const PLAYER_W := 16
 const PLAYER_H := 24
 const PLAYER_COLS := 8
-const UI_ICONS := ["hand", "gear", "box", "hammer", "fist", "move", "crowbar", "rotate"]
+const UI_ICONS := ["hand", "gear", "box", "hammer", "fist", "move", "crowbar", "rotate", "check", "warn", "bolt", "stop"]
 
 
 # ---------- 진입점 ----------
@@ -936,6 +936,24 @@ static func ui_icons() -> Image:
 				c.line(2, 7, 7, 2, P.RED)
 				c.rect(5, 0, 3, 2, P.RED)
 				c.px(5, 2, P.RED_D)
+			"check":
+				c.line(1, 4, 3, 6, P.LIME)
+				c.line(1, 3, 3, 5, P.LIME)
+				c.line(3, 6, 7, 1, P.LIME)
+				c.line(3, 5, 7, 0, P.LIME)
+			"warn":
+				for wy in 7:
+					c.rect(4 - wy * 0.5, wy + 1, 1 + wy, 1, P.YELLOW)
+				c.rect(3.5, 3, 1, 2, P.INK)
+				c.px(3, 6, P.INK)
+			"bolt":
+				c.line(5, 0, 2, 4, P.YELLOW)
+				c.line(6, 0, 3, 4, P.YELLOW)
+				c.rect(2, 4, 4, 1, P.YELLOW)
+				c.line(5, 4, 2, 8, P.YELLOW)
+			"stop":
+				c.rect(1, 1, 6, 6, P.RED)
+				c.rect(2, 3, 4, 2, P.PAPER)
 			"rotate":
 				# 돌아가는 화살표: 고리 + 오른쪽 위 화살촉
 				c.disc(4, 4, 3.6, P.PAPER)

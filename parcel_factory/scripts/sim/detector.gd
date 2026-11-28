@@ -92,3 +92,17 @@ func contents() -> Array:
 	if selected != "":
 		out.append_array(Building.items_of(selected, stock))
 	return out
+
+
+func accepts(id: String) -> bool:
+	return selected != "" and id == selected
+
+
+func get_slots() -> Array:
+	return [] if selected == "" else [Building.slot("store", selected, stock, 10)]
+
+
+func extract_slot(_index: int, n: int) -> Array:
+	var k := mini(n, stock)
+	stock -= k
+	return Building.items_of(selected, k)

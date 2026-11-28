@@ -42,3 +42,48 @@ func info() -> String:
 
 func has_output() -> bool:
 	return not group.items.is_empty()
+
+
+func accepts(_id: String) -> bool:
+	return true
+
+
+func get_slots() -> Array:
+	return _grouped(group.items, "store", group.cap)
+
+
+func extract_slot(index: int, n: int) -> Array:
+	return _take_grouped(group.items, "store", index, n)
+
+
+func _grouped(list: Array, kind: String, cap: int) -> Array:
+	## 같은 물건끼리 한 칸으로 (내용물이 있는 물건은 하나씩)
+	var out := []
+	var at := {}
+	for it in list:
+		if not it.is_plain():
+			out.append(Building.slot(kind, it.id, 1, cap, it))
+		elif at.has(it.id):
+			out[at[it.id]]["count"] += 1
+		else:
+			at[it.id] = out.size()
+			out.append(Building.slot(kind, it.id, 1, cap))
+	return out
+
+
+func _take_grouped(list: Array, kind: String, index: int, n: int) -> Array:
+	var s := _grouped(list, kind, 0)
+	if index < 0 or index >= s.size():
+		return []
+	var out := []
+	if s[index]["item"] != null:
+		list.erase(s[index]["item"])
+		return [s[index]["item"]]
+	var id: String = s[index]["item_id"]
+	for it in list.duplicate():
+		if out.size() >= n:
+			break
+		if it.id == id and it.is_plain():
+			list.erase(it)
+			out.append(it)
+	return out

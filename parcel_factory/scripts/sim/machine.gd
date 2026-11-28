@@ -23,11 +23,17 @@ func available_recipes() -> Array:
 	return DB.recipes_by_machine.get(name, [])
 
 
-func set_recipe(r) -> void:
+func set_recipe(r) -> Array:
+	## 레시피를 바꿔요. 새 레시피에 안 쓰이는 재료는 꺼내서 돌려줘요 (Item 목록)
+	var back := []
+	for n in inputs.keys():
+		if r == null or not r["in"].has(n):
+			back.append_array(Building.items_of(n, int(inputs[n])))
+			inputs.erase(n)
 	recipe = r
-	inputs.clear()
 	progress = 0.0
 	# 다른 레시피의 결과물은 그대로 두면 꺼낼 수 있어요
+	return back
 
 
 func save_state() -> Dictionary:
@@ -208,3 +214,34 @@ func contents() -> Array:
 	for n in outputs:
 		out.append_array(Building.items_of(n, outputs[n]))
 	return out
+
+
+func accepts(id: String) -> bool:
+	return recipe != null and recipe["in"].has(id)
+
+
+func get_slots() -> Array:
+	var out := []
+	if recipe != null:
+		for n in recipe["in"]:
+			out.append(Building.slot("in", n, int(inputs.get(n, 0)), input_cap(n)))
+	var names := []
+	if recipe != null:
+		names.append_array(recipe["out"].keys())
+	for n in outputs:
+		if outputs[n] > 0 and not names.has(n):
+			names.append(n)
+	for n in names:
+		out.append(Building.slot("out", n, int(outputs.get(n, 0)), output_cap() if recipe != null else 0))
+	return out
+
+
+func extract_slot(index: int, n: int) -> Array:
+	var s := get_slots()
+	if index < 0 or index >= s.size():
+		return []
+	var id: String = s[index]["item_id"]
+	var d: Dictionary = inputs if s[index]["kind"] == "in" else outputs
+	var k := mini(n, int(d.get(id, 0)))
+	d[id] = int(d.get(id, 0)) - k
+	return Building.items_of(id, k)

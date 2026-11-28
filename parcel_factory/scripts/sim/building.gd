@@ -18,6 +18,7 @@ var power_net = null         # 전력망 (Dictionary) 또는 null
 var water_net = null
 var out_links: Array = []    # 자동으로 밀어낼 수 있는 [레일, 내 칸]
 var status: String = ""      # 정보 패널에 보여줄 상태
+var given := false           # 처음부터 깔린 지급 설비 (철거할 수 없어요)
 var _push_cd := 0.0
 var _push_index := 0
 
@@ -206,6 +207,40 @@ func has_output() -> bool:
 func contents() -> Array:
 	## 철거할 때 돌려줄 안에 든 물건 목록 (읽기만, 상태는 그대로)
 	return []
+
+
+# ---------- 정보창 칸 (플레이어 손으로 넣고 빼기) ----------
+## get_slots() 한 줄: {kind: "in"/"out"/"fuel"/"store", item_id, count, cap, item(내용물 있는 물건이면 그 Item, 아니면 null)}
+## 넣기는 try_insert(설비가 어느 칸에 넣을지 정해요), 빼기는 extract_slot(칸 번호, 개수).
+
+func accepts(_id: String) -> bool:
+	## 이 아이템을 넣을 수 있는 설비인지 (가득 찬지는 따지지 않아요. 인벤토리를 흐리게 할 때 써요)
+	return false
+
+
+func get_slots() -> Array:
+	return []
+
+
+func extract_slot(_index: int, _n: int) -> Array:
+	return []
+
+
+static func slot(kind: String, id: String, count: int, cap: int, item = null) -> Dictionary:
+	return {"kind": kind, "item_id": id, "count": count, "cap": cap, "item": item}
+
+
+static func list_slot(kind: String, list: Array, cap: int, default_id: String) -> Dictionary:
+	## Item 목록으로 된 칸 (박스·택배처럼 하나하나 다를 수 있는 것)
+	var first: Item = list[0] if not list.is_empty() else null
+	return slot(kind, first.id if first != null else default_id, list.size(), cap, first if first != null and not first.is_plain() else null)
+
+
+static func take_front(list: Array, n: int) -> Array:
+	var out := []
+	while out.size() < n and not list.is_empty():
+		out.append(list.pop_front())
+	return out
 
 
 static func items_of(id: String, n: int) -> Array:

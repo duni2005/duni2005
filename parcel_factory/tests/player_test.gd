@@ -29,6 +29,7 @@ func _ready() -> void:
 	await _test_speed()
 	await _test_collision()
 	await _test_rummage_insert_take()
+	await _test_info_window()
 	await _test_deconstruct()
 	await _test_attack()
 	await _test_drop_pickup()
@@ -121,36 +122,114 @@ func _test_rummage_insert_take() -> void:
 	var got: int = player.inventory.total()
 	_check("더미 뒤지기: 탭 → 3초 → 3~5개", t is ItemPile and busy and got >= 3 and got <= 5,
 		"대상 %s · 뒤지는 중 %s · 가방 %d개" % [t.name if t != null else "없음", str(busy), got])
-	# 들고 탭 → 1개 넣기, 맨손 탭 → 꺼내기
-	var st = f.place("창고 블록", Vector2i(8, 12), 0)
-	await _put(Vector2(7.0, 12.5))
-	await _walk(Vector2.RIGHT, 0.1)
-	var before: int = player.inventory.total()
-	player.select_hotbar(0)   # 핫바 0칸 = 뒤져서 찾은 첫 물건
+
+
+func _hud():
+	return main.hud
+
+
+func _test_info_window() -> void:
+	# 3칸 안 분해기를 탭 → 정보창 + 인벤토리(주고받기)가 함께 열려요
+	var hud = _hud()
+	player.inventory.clear()
+	player.inventory.add("나뭇가지", 10)
+	player.inventory.add("종이", 3)
+	var m = f.place("분해기", Vector2i(10, 20), 0)
+	for r in m.available_recipes():
+		if r["out"].has("종이") and r["in"].has("나뭇가지"):
+			m.set_recipe(r)
+	await _put(Vector2(8.5, 21.0))
+	await _walk(Vector2.RIGHT, 0.05)
 	player.action_press()
 	await _frames(2)
 	player.action_release()
-	var put_one: bool = st.group.items.size() == 1 and player.inventory.total() == before - 1
-	player.select_hotbar(0)   # 같은 칸을 다시 고르면 맨손
-	player.action_press()
 	await _frames(2)
+	var opened: bool = hud.info_open() and hud.info.building == m and hud.inventory_panel.visible and hud.inventory_panel.transfer == hud.info
+	var hidden: bool = not hud.bottom_box.visible and not hud.action_btn.visible
+	# 넣을 수 없는 아이템은 흐리게
+	var twig_slot: int = hud.inventory_panel.slot_of("나뭇가지")
+	var paper_slot: int = hud.inventory_panel.slot_of("종이")
+	var dim_ok: bool = hud.inventory_panel.slot_node(paper_slot).dim and not hud.inventory_panel.slot_node(twig_slot).dim
+	# 인벤토리 탭 = 1개, 꾹 = 넣을 수 있는 만큼
+	hud.info.give(twig_slot, "one")
+	var one: bool = int(m.inputs.get("나뭇가지", 0)) == 1 and player.inventory.count("나뭇가지") == 9
+	hud.info.give(twig_slot, "all")
+	var cap: int = m.input_cap("나뭇가지")
+	var all_ok: bool = int(m.inputs.get("나뭇가지", 0)) == cap and player.inventory.count("나뭇가지") == 10 - cap
+	# 종이를 꺼내요 (분해기가 돌아 종이가 나올 때까지 기다리지 않고 출력 칸을 채워 둬요)
+	m.outputs["종이"] = 4
+	await _frames(int(0.2 * PHYS_FPS))
+	var out_i := -1
+	var slots: Array = m.get_slots()
+	for i in slots.size():
+		if slots[i]["kind"] == "out":
+			out_i = i
+	hud.info.take(out_i, "one")
+	var took_one: bool = player.inventory.count("종이") == 4
+	hud.info.take(out_i, "all")
+	var took_all: bool = player.inventory.count("종이") == 7 and int(m.outputs["종이"]) == 0
+	_check("정보창: 탭 → 두 창 · 흐림 · 탭 1개/꾹 전부 넣기 · 종이 꺼내기", opened and hidden and dim_ok and one and all_ok and took_one and took_all,
+		"열림 %s · HUD 숨김 %s · 흐림 %s · 1개 %s · 전부 %s · 꺼냄 1 %s · 전부 %s" % [str(opened), str(hidden), str(dim_ok), str(one), str(all_ok), str(took_one), str(took_all)])
+	# 바깥 탭으로 닫기 → HUD 돌아와요
+	hud._on_backdrop_input(_press_event())
+	await _frames(2)
+	var closed: bool = not hud.info_open() and not hud.inventory_panel.visible and hud.bottom_box.visible
+	# 3칸 밖 설비 탭 → 안 열리고 테두리만 깜빡
+	await _put(Vector2(20.5, 21.0))
+	main._tap(main.get_viewport().get_canvas_transform() * ((Vector2(m.pos) + Vector2(1, 1)) * TILE))
+	await _frames(2)
+	var far_ok: bool = not hud.info_open() and player.blink_target == m
+	# 들고 꾹 = 빠른 넣기 (정보창 없이)
+	await _put(Vector2(8.5, 21.0))
+	await _walk(Vector2.RIGHT, 0.05)
+	m.inputs["나뭇가지"] = 0
+	player.hotbar = -1
+	for i in Inventory.HOTBAR:
+		if player.inventory.id_at(i) == "나뭇가지":
+			player.select_hotbar(i)
+	player.action_press()
+	await _frames(int(0.5 * PHYS_FPS))
 	player.action_release()
-	var taken: bool = st.group.items.is_empty() and player.inventory.total() == before
-	_check("넣기·꺼내기: 핫바로 들고 탭 = 1개 넣기 · 맨손 탭 = 꺼내기", put_one and taken and player.hotbar == -1,
-		"대상 %s · 넣음 %s · 꺼냄 %s" % [player.target.name if player.target != null else "없음", str(put_one), str(taken)])
+	await _frames(2)
+	var quick: bool = int(m.inputs.get("나뭇가지", 0)) == cap and not hud.info_open()
+	_check("정보창 닫기 · 3칸 밖은 깜빡임만 · 들고 꾹 = 빠른 넣기", closed and far_ok and quick,
+		"바깥 탭 닫힘 %s · 멀면 안 열림 %s · 빠른 넣기 %s" % [str(closed), str(far_ok), str(quick)])
+	player.hotbar = -1
+	_info_machine = m
+
+
+var _info_machine = null
+
+
+func _press_event() -> InputEvent:
+	var e := InputEventMouseButton.new()
+	e.button_index = MOUSE_BUTTON_LEFT
+	e.pressed = true
+	return e
 
 
 func _test_deconstruct() -> void:
-	var st = player.target
-	player.hotbar = -1
-	player.action_press()
-	await _frames(int(0.6 * PHYS_FPS))
-	var gauge: float = player.progress()
-	await _frames(int(1.0 * PHYS_FPS))
-	player.action_release()
-	var gone: bool = st != null and not f.buildings.has(st)
-	_check("철거: 꾹 1초 → 설비 아이템으로 돌려받기", gone and player.inventory.count("[설비] 창고 블록") == 1 and gauge > 0.0,
-		"게이지 %.2f · 철거됨 %s · [설비] 창고 블록 %d개" % [gauge, str(gone), player.inventory.count("[설비] 창고 블록")])
+	# 정보창의 [철거(꾹)] → 재료와 내용물이 바닥에 쏟아져요
+	var hud = _hud()
+	var m = _info_machine
+	var drops0: int = f.floor_items.drops.size()
+	hud.open_info(m)
+	await _frames(2)
+	hud.info._on_deconstruct()
+	await _frames(2)
+	var gone: bool = not f.buildings.has(m) and not hud.info_open()
+	var mats := 0
+	for d in f.floor_items.drops:
+		if d["id"] == "나무 판자":
+			mats += int(d["n"])
+	# 지급 설비는 철거 버튼이 회색
+	var pc = f.get_at(Room.GIVEN[0]["pos"])
+	hud.open_info(pc)
+	await _frames(2)
+	var grey: bool = hud.info._decon_btn.disabled
+	hud.close_info()
+	_check("철거: 정보창 버튼 → 재료·내용물이 바닥에 · 지급 설비는 회색", gone and mats > 0 and f.floor_items.drops.size() > drops0 and grey,
+		"철거됨 %s · 나무 판자 %d · 바닥 무더기 %d→%d · 지급 설비 회색 %s" % [str(gone), mats, drops0, f.floor_items.drops.size(), str(grey)])
 
 
 func _test_attack() -> void:

@@ -1,18 +1,23 @@
 extends Control
 ## 인벤토리 칸 하나 (가방 창·핫바·크리에이티브 보관함이 함께 써요). 16×16 아이콘 + 개수.
 ## 이 칸은 무슨 일이 있었는지 신호로 알리기만 하고, 실제로 바꾸는 건 가방 창·핫바가 해요.
-##   클릭/탭 → clicked(i, shift) · 오른쪽 클릭 → split(i) · 길게 누르기 → split(i)
+##   클릭/탭 → clicked(i, shift) · 오른쪽 클릭 → right_clicked(i) · 길게 누르기 → long_pressed(i)
 ##   끌어다 놓기 → moved(from, to) · 창 밖으로 끌어 놓기 → dragged_out(i) · 위로 쓸기 → swiped_up
+## 길게 누르는 동안 원형 게이지를 보여줄 수 있어요(show_gauge). 성공·실패 연출: bounce() · shake().
 
 signal clicked(index: int, shift: bool)
-signal split(index: int)
+signal right_clicked(index: int)
+signal long_pressed(index: int)
 signal moved(from_index: int, to_index: int)
 signal dragged_out(index: int)
 signal swiped_up
 
 const SIZE := 64.0
 const ICON := 48.0           # 16×16 아이콘 3배
-const LONG_PRESS := 0.5      # 길게 누르기 (초)
+const LONG_PRESS := 0.5      # 길게 누르기 기본 (초)
+const BOUNCE_SEC := 0.25
+const SHAKE_SEC := 0.3
+const DIM_ALPHA := 0.4       # 넣을 수 없는 아이템 흐리게
 const SWIPE := 40.0          # 이만큼 위로 쓸면 swiped_up
 
 var index := -1
@@ -21,6 +26,13 @@ var id := ""                 # 보여줄 아이템 ("" = 빈 칸)
 var count := 0
 var picked := false          # 교환하려고 먼저 고른 칸 (노란 테두리)
 var held := false            # 손에 든 핫바 칸 (주황 테두리)
+var cap := 0                 # 0보다 크면 '개수/한도'로 보여줘요 (정보창 칸)
+var dim := false             # 흐리게
+var long_press := LONG_PRESS
+var show_gauge := false      # 길게 누르는 동안 원형 게이지
+var border_color := -1       # 팔레트 번호 (-1 = 기본)
+var _bounce := 0.0
+var _shake := 0.0
 var _press := false
 var _press_t := 0.0
 var _press_pos := Vector2.ZERO
@@ -48,20 +60,47 @@ func set_marks(p_picked: bool, p_held: bool) -> void:
 		queue_redraw()
 
 
+func set_cap(p_cap: int) -> void:
+	if p_cap != cap:
+		cap = p_cap
+		queue_redraw()
+
+
+func set_dim(on: bool) -> void:
+	if on != dim:
+		dim = on
+		queue_redraw()
+
+
+func bounce() -> void:
+	_bounce = BOUNCE_SEC
+
+
+func shake() -> void:
+	_shake = SHAKE_SEC
+
+
 func _process(dt: float) -> void:
+	if _bounce > 0.0 or _shake > 0.0:
+		_bounce = maxf(0.0, _bounce - dt)
+		_shake = maxf(0.0, _shake - dt)
+		queue_redraw()
 	if not _press:
 		return
 	_press_t += dt
-	if not _long_fired and not _dragging and _press_t >= LONG_PRESS and id != "":
+	if show_gauge:
+		queue_redraw()
+	if not _long_fired and not _dragging and _press_t >= long_press and id != "":
 		_long_fired = true
-		split.emit(index)
+		queue_redraw()
+		long_pressed.emit(index)
 
 
 func _gui_input(e: InputEvent) -> void:
 	if e is InputEventMouseButton:
 		var mb := e as InputEventMouseButton
 		if mb.button_index == MOUSE_BUTTON_RIGHT and mb.pressed:
-			split.emit(index)
+			right_clicked.emit(index)
 			accept_event()
 		elif mb.button_index == MOUSE_BUTTON_LEFT:
 			if mb.pressed:
@@ -116,9 +155,11 @@ func _notification(what: int) -> void:
 
 
 func _draw() -> void:
+	var shake_x := sin(_shake * 60.0) * 5.0 * (_shake / SHAKE_SEC) if _shake > 0.0 else 0.0
+	draw_set_transform(Vector2(shake_x, 0), 0.0, Vector2.ONE)
 	var r := Rect2(Vector2.ZERO, size)
 	draw_rect(r, Palette.c(Palette.G1))
-	var border := Palette.c(Palette.G3)
+	var border := Palette.c(Palette.G3) if border_color < 0 else Palette.c(border_color)
 	if held:
 		border = Palette.c(Palette.ORANGE)
 	if picked:
@@ -127,17 +168,23 @@ func _draw() -> void:
 	if id == "":
 		return
 	var tex := Art.item_icon(id, 16)
-	var ir := Rect2((size - Vector2(ICON, ICON)) * 0.5 - Vector2(0, 3), Vector2(ICON, ICON))
+	var pop := 1.0 + 0.25 * sin(PI * (1.0 - _bounce / BOUNCE_SEC)) if _bounce > 0.0 else 1.0
+	var isz := ICON * pop
+	var ir := Rect2((size - Vector2(isz, isz)) * 0.5 - Vector2(0, 3), Vector2(isz, isz))
 	var ts := tex.get_size()
 	if ts.x != ts.y:
 		# 출하 도크처럼 가로로 긴 그림은 비율을 지켜요
 		var k := minf(ICON / ts.x, ICON / ts.y)
 		ir = Rect2(ir.get_center() - ts * k * 0.5, ts * k)
-	draw_texture_rect(tex, ir, false)
-	if count > 1:
+	draw_texture_rect(tex, ir, false, Color(1, 1, 1, DIM_ALPHA if dim else 1.0))
+	if show_gauge and _press and not _dragging and not _long_fired and _press_t > 0.05:
+		var k := clampf(_press_t / long_press, 0.0, 1.0)
+		draw_arc(size * 0.5, size.x * 0.42, -PI * 0.5, -PI * 0.5 + TAU * k, 32, Palette.c(Palette.YELLOW), 4.0)
+	if count > 1 or cap > 0:
 		var font := ThemeDB.fallback_font
-		var txt := str(count)
+		var txt := ("%d/%d" % [count, cap]) if cap > 0 else str(count)
 		var fs := 18
 		var p := Vector2(4, size.y - 6)
 		draw_string_outline(font, p, txt, HORIZONTAL_ALIGNMENT_RIGHT, size.x - 8, fs, 4, Palette.c(Palette.INK))
 		draw_string(font, p, txt, HORIZONTAL_ALIGNMENT_RIGHT, size.x - 8, fs, Palette.c(Palette.PAPER))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

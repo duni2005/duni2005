@@ -28,3 +28,7 @@ func info() -> String:
 	for k in counts:
 		parts.append("%s %d" % [k, counts[k]])
 	return super.info() + "\n없앤 수 %d\n%s" % [total, ", ".join(parts)]
+
+
+func accepts(_id: String) -> bool:
+	return true
