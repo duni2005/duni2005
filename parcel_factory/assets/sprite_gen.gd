@@ -86,6 +86,9 @@ const ITEMS := {
 	"돈다발이 든 가죽 가방": ["bag_money", P.BROWN, P.GREEN],
 	"택배": ["parcel", P.ORANGE, P.CARD],
 	"선물용 택배": ["gift", P.ORANGE, P.RED],
+	"[설비] 전선": ["coil", P.YELLOW, P.G2],
+	"[설비] 파이프": ["pipe", P.CYAN, P.BLUE_D],
+	"[설비] 물 샘": ["blob", P.BLUE, P.CYAN],
 	"[설비]": ["kit", P.CARD, P.G3],
 	"?": ["unknown", P.PINK, P.INK],
 }
@@ -1179,6 +1182,11 @@ static func _item(c: PixelCanvas, shape: String, a: int, b: int) -> void:
 			if shape == "bag_money":
 				c.rect(4, 4, 4, 3, b)
 				c.rect(8, 3, 4, 3, b)
+		"pipe":
+			c.rect(1, 6, 14, 4, a)
+			c.rect(1, 6, 14, 1, P.PAPER)
+			c.rect(2, 5, 3, 6, b)
+			c.rect(11, 5, 3, 6, b)
 		"kit":
 			_box_item(c, 2, 3, 12, 11, a, P.CARD)
 			c.disc(8, 9, 3, b)

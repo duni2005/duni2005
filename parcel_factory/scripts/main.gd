@@ -8,7 +8,7 @@ extends Node2D
 ##   설치 도구        : 탭 = 놓기, 레일·전선·파이프는 끌어서 깔기 / 철거 도구: 탭 = 가방으로 철거
 ## 키보드·마우스는 InputMap 액션(project.godot)으로 받아요.
 ##   move_* 이동 · run 달리기 · interact 상호작용 · cancel 취소 · rotate 회전
-##   hotbar_1~9 팔레트 고르기 · inventory 가방 · zoom_in/out 확대·축소
+##   hotbar_1~9·휠 핫바 고르기 · inventory 가방 · zoom_in/out(Ctrl+휠) 확대·축소
 ##   debug 디버그 오버레이 · save_game 저장 (Ctrl+S)
 
 const TILE := 32.0
@@ -18,6 +18,12 @@ const PLAYER_START := Vector2(40.5, 20.5)   # 처음 서 있는 칸 (정문 안�
 const Player := preload("res://scripts/player/player.gd")
 const WorldCollision := preload("res://scripts/player/world_collision.gd")
 const TargetMarker := preload("res://scripts/player/target_marker.gd")
+const DropLayer := preload("res://scripts/view/drop_layer.gd")
+## 새 게임 시작 지급품 [이름, 개수]
+const STARTER_KIT := [
+	["나무 판자", 20], ["나사", 40], ["[설비] 레일 Mk1", 100],
+	["[설비] 전선", 50], ["박스 테이프", 20], ["작은 택배 박스", 40],
+]
 const ZOOM_STEP := 1.1          # 휠 한 칸 확대 배율
 const ZOOM_MIN := 0.3
 const ZOOM_MAX := 4.0
@@ -33,6 +39,7 @@ var view
 var cam: Camera2D
 var hud
 var player       # scripts/player/player.gd
+var save_path := SAVE_PATH   # 테스트는 다른 파일을 써요
 
 var tool: String = "view"          # view / build / erase
 var build_def: String = "레일 Mk1"
@@ -58,6 +65,9 @@ func _ready() -> void:
 	var walls := WorldCollision.new()
 	walls.factory = factory
 	view.add_child(walls)
+	var drops := DropLayer.new()
+	drops.world = view
+	view.add_actor(drops)
 	player = Player.new()
 	player.factory = factory
 	player.position = PLAYER_START * TILE
@@ -73,9 +83,15 @@ func _ready() -> void:
 	hud = HUD.new()
 	hud.main = self
 	add_child(hud)
-	# 저장 파일이 있으면 그대로 이어서, 없으면 빈 큰방(지형 + 지급 설비)으로 시작해요
+	# 저장 파일이 있으면 그대로 이어서, 없으면 빈 큰방(지형 + 지급 설비) + 시작 지급품으로 시작해요
 	if not _load_file():
 		new_room(false)
+		give_starter_kit()
+
+
+func give_starter_kit() -> void:
+	for e in STARTER_KIT:
+		player.inventory.add(e[0], e[1])
 
 
 func _exit_tree() -> void:
@@ -117,11 +133,13 @@ func toggle_creative() -> void:
 # ---------- 저장·불러오기 ----------
 
 func save_game() -> void:
-	var file := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	var file := FileAccess.open(save_path, FileAccess.WRITE)
 	if file == null:
 		hud.show_message("저장 실패: %s" % error_string(FileAccess.get_open_error()))
 		return
-	file.store_string(JSON.stringify(factory.to_save(), "\t"))
+	var data := factory.to_save()
+	data["player"] = player.to_save()
+	file.store_string(JSON.stringify(data, "\t"))
 	file.close()
 	hud.show_message("저장했어요 (설비 %d개)" % factory.buildings.size())
 
@@ -135,12 +153,15 @@ func load_game() -> void:
 
 
 func _load_file() -> bool:
-	if not FileAccess.file_exists(SAVE_PATH):
+	if not FileAccess.file_exists(save_path):
 		return false
-	var data = JSON.parse_string(FileAccess.get_file_as_string(SAVE_PATH))
+	var data = JSON.parse_string(FileAccess.get_file_as_string(save_path))
 	if not factory.load_save(data):
-		push_warning("저장 파일을 읽지 못했어요: " + SAVE_PATH)
+		push_warning("저장 파일을 읽지 못했어요: " + save_path)
 		return false
+	if data.has("player"):
+		player.load_save(data["player"])
+		cam.position = player.position
 	return true
 
 
@@ -148,7 +169,7 @@ func cancel() -> void:
 	## Esc·오른쪽 클릭: 가방·메뉴 닫기 → 하던 일·손에 든 것 내려놓기 → 설치·철거 취소 → 정보 패널 닫기
 	if hud.close_inventory() or hud.close_menu():
 		return
-	if player.action != "" or player.held != "":
+	if player.action != "" or player.hotbar >= 0:
 		player.cancel()
 	elif tool != "view":
 		set_tool("view")
@@ -296,10 +317,14 @@ func _handle_actions(event: InputEvent) -> bool:
 		return false
 	if event.is_action_pressed("save_game", false, true):
 		save_game()
-	elif event.is_action_pressed("zoom_in"):
+	elif event.is_action_pressed("zoom_in", false, true):
 		_zoom_at(ZOOM_STEP, _event_pos(event))
-	elif event.is_action_pressed("zoom_out"):
+	elif event.is_action_pressed("zoom_out", false, true):
 		_zoom_at(1.0 / ZOOM_STEP, _event_pos(event))
+	elif event.is_action_pressed("hotbar_prev", false, true):
+		player.scroll_hotbar(-1)
+	elif event.is_action_pressed("hotbar_next", false, true):
+		player.scroll_hotbar(1)
 	elif event.is_action_pressed("cancel"):
 		cancel()
 	elif event.is_action_pressed("interact") and not (event is InputEventMouseButton):
@@ -317,7 +342,7 @@ func _handle_actions(event: InputEvent) -> bool:
 	else:
 		for i in range(1, 10):
 			if event.is_action_pressed("hotbar_%d" % i):
-				hud.select_hotbar(i)
+				player.select_hotbar(i - 1)
 				return true
 		return false
 	return true

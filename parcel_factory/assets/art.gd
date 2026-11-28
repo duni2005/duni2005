@@ -102,9 +102,11 @@ static func item_index(item_name: String) -> int:
 		for n in SpriteGen.ITEMS:
 			_item_index[n] = i
 			i += 1
+	if _item_index.has(item_name):
+		return _item_index[item_name]
 	if item_name.begins_with("[설비]"):
 		return _item_index["[설비]"]
-	return _item_index.get(item_name, _item_index["?"])
+	return _item_index["?"]
 
 
 static func item_region(item_name: String, size: int) -> Rect2:
@@ -120,14 +122,23 @@ static func item_region(item_name: String, size: int) -> Rect2:
 
 
 static func item_icon(item_name: String, size: int = 16) -> AtlasTexture:
-	## 인벤토리·목록용 아이콘 (16×16)
+	## 인벤토리·바닥·손에 든 것에 쓰는 아이콘.
+	## 아이템 아틀라스에 있으면 그 칸, '[설비] 이름'이면 그 설비 그림의 첫 프레임, 아니면 상자 아이콘.
 	var _cache := _store("tex")
 	var key := "icon%d:%s" % [size, item_name]
 	if _cache.has(key):
 		return _cache[key]
 	var a := AtlasTexture.new()
-	a.atlas = tex("items%d" % size)
-	a.region = item_region(item_name, size)
+	var bkey := ""
+	if item_name.begins_with("[설비] ") and not SpriteGen.ITEMS.has(item_name):
+		bkey = building_key(item_name.substr(5))
+	if bkey != "" and bkey != "trash_heap":
+		var t := tex(bkey)
+		a.atlas = t
+		a.region = Rect2(0, 0, t.get_width() / float(SpriteGen.FRAMES), t.get_height() / float(vframes(bkey)))
+	else:
+		a.atlas = tex("items%d" % size)
+		a.region = item_region(item_name, size)
 	_cache[key] = a
 	return a
 

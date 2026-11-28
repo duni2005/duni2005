@@ -5,7 +5,8 @@ extends Node
 
 const TILE := 32.0
 const PHYS_FPS := 60.0
-const WATCHDOG_SEC := 60.0
+const WATCHDOG_SEC := 90.0
+const TEST_SAVE := "user://player_test_save.json"   # 진짜 저장 파일은 건드리지 않아요
 
 var _fails := 0
 var main
@@ -20,14 +21,19 @@ func _ready() -> void:
 	await _frames(3)
 	main.new_room(false)
 	main.set_process(false)   # 키보드·조이스틱 입력 대신 테스트가 move_input을 직접 넣어요
+	main.save_path = TEST_SAVE
 	player = main.player
 	f = main.factory
+	player.inventory.clear()
 	print("=== 플레이어 테스트 ===")
 	await _test_speed()
 	await _test_collision()
 	await _test_rummage_insert_take()
 	await _test_deconstruct()
 	await _test_attack()
+	await _test_drop_pickup()
+	await _test_save_load()
+	DirAccess.remove_absolute(ProjectSettings.globalize_path(TEST_SAVE))
 	print("=== 결과: %s (실패 %d) ===" % ["통과" if _fails == 0 else "실패", _fails])
 	get_tree().quit(1 if _fails > 0 else 0)
 
@@ -119,25 +125,24 @@ func _test_rummage_insert_take() -> void:
 	var st = f.place("창고 블록", Vector2i(8, 12), 0)
 	await _put(Vector2(7.0, 12.5))
 	await _walk(Vector2.RIGHT, 0.1)
-	var id: String = player.inventory.slots[0]["id"]
 	var before: int = player.inventory.total()
-	player.set_held(id)
+	player.select_hotbar(0)   # 핫바 0칸 = 뒤져서 찾은 첫 물건
 	player.action_press()
 	await _frames(2)
 	player.action_release()
 	var put_one: bool = st.group.items.size() == 1 and player.inventory.total() == before - 1
-	player.set_held(id)   # 같은 걸 다시 누르면 내려놔요
+	player.select_hotbar(0)   # 같은 칸을 다시 고르면 맨손
 	player.action_press()
 	await _frames(2)
 	player.action_release()
 	var taken: bool = st.group.items.is_empty() and player.inventory.total() == before
-	_check("넣기·꺼내기: 들고 탭 = 1개 넣기 · 맨손 탭 = 꺼내기", put_one and taken,
+	_check("넣기·꺼내기: 핫바로 들고 탭 = 1개 넣기 · 맨손 탭 = 꺼내기", put_one and taken and player.hotbar == -1,
 		"대상 %s · 넣음 %s · 꺼냄 %s" % [player.target.name if player.target != null else "없음", str(put_one), str(taken)])
 
 
 func _test_deconstruct() -> void:
 	var st = player.target
-	player.held = ""
+	player.hotbar = -1
 	player.action_press()
 	await _frames(int(0.6 * PHYS_FPS))
 	var gauge: float = player.progress()
@@ -159,3 +164,57 @@ func _test_attack() -> void:
 	await _frames(int(0.5 * PHYS_FPS))
 	_check("공격: 맨손 꾹 → 휘두르기 + 판정 상자", no_target and swinging and player.action == "" and player.hp == 100,
 		"대상 없음 %s · 휘두르는 중 %s · HP %d" % [str(no_target), str(swinging), player.hp])
+
+
+func _floor_count(id: String) -> int:
+	var n := 0
+	for d in f.floor_items.drops:
+		if d["id"] == id:
+			n += int(d["n"])
+	return n
+
+
+func _test_drop_pickup() -> void:
+	player.inventory.clear()
+	player.inventory.add("바위", 10)
+	await _put(Vector2(20.5, 25.5))
+	await _walk(Vector2.RIGHT, 0.05)
+	player.drop_slot(0)
+	await _frames(int(0.5 * PHYS_FPS))
+	var on_floor: bool = _floor_count("바위") == 10 and player.inventory.count("바위") == 0
+	# 멀어졌다가 다시 다가가면 끌려와 주워져요
+	await _walk(Vector2.LEFT, 1.0)
+	await _walk(Vector2.RIGHT, 1.8)   # 버린 자리(앞 1.4칸 ± 흩어짐)를 지나가요
+	await _frames(int(0.5 * PHYS_FPS))
+	var repicked: bool = player.inventory.count("바위") == 10 and _floor_count("바위") == 0
+	# 가방이 가득이면 그대로 남아요
+	player.inventory.add("나사", Inventory.SLOTS * Inventory.STACK_ITEM)
+	f.floor_items.spawn("종이", 2, player.position / TILE, 0.0, false)
+	await _frames(int(1.0 * PHYS_FPS))
+	var stays: bool = _floor_count("종이") == 2
+	_check("버리기·다시 줍기: 앞에 버림 → 다가가면 끌려와 주움 · 가득이면 남음", on_floor and repicked and stays,
+		"바닥에 %s · 다시 주움 %s · 가득이면 남음 %s" % [str(on_floor), str(repicked), str(stays)])
+	player.inventory.clear()
+
+
+func _test_save_load() -> void:
+	player.inventory.clear()
+	player.inventory.add("[설비] 레일 Mk1", 130)
+	player.inventory.add("나무 판자", 20)
+	player.select_hotbar(1)
+	f.floor_items.spawn("바위", 3, Vector2(30.5, 30.5), 0.0, false)
+	await _put(Vector2(33.5, 31.5))
+	var drops_before: int = f.floor_items.drops.size()
+	main.save_game()
+	# 다 지우고 불러오기
+	main.new_room(false)
+	player.inventory.clear()
+	player.select_hotbar(1)
+	main.load_game()
+	await _frames(2)
+	var inv_ok: bool = player.inventory.count("[설비] 레일 Mk1") == 130 and player.inventory.count("나무 판자") == 20 and player.hotbar == 1
+	var floor_ok: bool = f.floor_items.drops.size() == drops_before and _floor_count("바위") >= 3
+	var pos_ok: bool = (player.position / TILE).distance_to(Vector2(33.5, 31.5)) < 0.1
+	_check("저장 → 불러오기: 인벤토리·핫바·바닥 아이템·위치", inv_ok and floor_ok and pos_ok,
+		"인벤토리 %s · 바닥 %s · 위치 %s" % [str(inv_ok), str(floor_ok), str(pos_ok)])
+

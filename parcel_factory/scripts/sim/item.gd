@@ -93,3 +93,4 @@ func describe() -> String:
 	if cushion:
 		s += "\n  완충재 있음"
 	return s
+

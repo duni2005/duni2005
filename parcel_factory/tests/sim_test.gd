@@ -24,7 +24,9 @@ func _ready() -> void:
 	_test_half_power()
 	_test_room_rules()
 	_test_trash_pile()
+	_test_inventory()
 	_test_hand_actions()
+	_test_floor_items()
 	_test_demos()
 	_test_save_roundtrip()
 	print("=== 결과: %s (실패 %d) ===" % ["통과" if _fails == 0 else "실패", _fails])
@@ -222,13 +224,59 @@ func _test_trash_pile() -> void:
 	f.free()
 
 
+func _test_inventory() -> void:
+	var inv := Inventory.new()
+	# 쌓기: 일반 50 · 설비 20 · 레일·전선·파이프 100, 넘치면 못 넣은 수를 돌려줘요
+	var left := inv.add("종이", 120)
+	var paper_ok := left == 0 and inv.used_slots() == 3 and inv.count("종이") == 120
+	inv.add("[설비] 포장기", 25)
+	inv.add("[설비] 레일 Mk1", 150)
+	var stack_ok: bool = inv.used_slots() == 3 + 2 + 2 and inv.slots[3]["n"] == 20 and inv.slots[5]["n"] == 100
+	# 핫바부터 채워요
+	var hotbar_first := inv.id_at(0) == "종이" and inv.id_at(Inventory.HOTBAR - 1) == ""
+	# 내용물이 있는 박스는 1칸 1개
+	var box := Item.new("작은 택배 박스")
+	box.contents = ["장난감"]
+	inv.add(box, 1)
+	inv.add(box, 1)
+	var unique_ok := inv.count("작은 택배 박스") == 2 and inv.used_slots() == 9
+	# 빼기: 고른 칸부터
+	var got := inv.remove("종이", 60, 2)
+	var remove_ok := got.size() == 60 and inv.count("종이") == 60 and inv.id_at(2) == ""
+	# 가득 차면 못 넣은 수
+	var full := Inventory.new()
+	var rest := full.add("나사", Inventory.SLOTS * Inventory.STACK_ITEM + 7)
+	var full_ok := rest == 7 and not full.can_accept("바위") and full.can_accept("나사") == false
+	_check("인벤토리: 쌓기 50·20·100, 핫바 먼저, 박스 1칸 1개, 가득이면 남은 수", paper_ok and stack_ok and hotbar_first and unique_ok and remove_ok and full_ok,
+		"종이 %s · 설비/레일 %s · 핫바 먼저 %s · 박스 %s · 빼기 %s · 가득 %s" % [str(paper_ok), str(stack_ok), str(hotbar_first), str(unique_ok), str(remove_ok), str(full_ok)])
+	# 가방 정리: 옮기기·합치기·바꾸기·반 나누기·빠른 이동
+	var g := Inventory.new()
+	g.add("바위", 30)                    # 0칸
+	g.move_slot(0, 12)                   # 가방 칸으로 옮기기
+	var moved := g.id_at(0) == "" and g.id_at(12) == "바위"
+	g.add("바위", 30)                    # 12칸 50, 0칸 10
+	g.move_slot(0, 12)                   # 가득이라 합쳐지지 않아요 → 그대로
+	var merge_full: bool = g.slots[12]["n"] == 50 and g.slots[0]["n"] == 10
+	g.add("종이", 5)
+	g.move_slot(1, 0)                    # 다른 물건 → 자리 바꾸기
+	var swapped := g.id_at(0) == "종이" and g.id_at(1) == "바위"
+	var e := g.split_slot(12)
+	var split_ok: bool = e >= Inventory.HOTBAR and g.slots[12]["n"] == 25 and g.slots[e]["n"] == 25
+	g.quick_move(0)                      # 핫바 → 가방
+	var quick_ok := g.id_at(0) == "" and g.count("종이") == 5
+	_check("가방 정리: 옮기기·합치기·바꾸기·반 나누기·빠른 이동", moved and merge_full and swapped and split_ok and quick_ok,
+		"옮기기 %s · 가득 합치기 %s · 바꾸기 %s · 반 나누기 %s · 빠른 이동 %s" % [str(moved), str(merge_full), str(swapped), str(split_ok), str(quick_ok)])
+	# 제작법 '×4'는 4개 지급
+	var four := false
+	for r in DB.recipes_by_machine.get("설비 제작대", []):
+		if r["out"].has("[설비] 레일 Mk1"):
+			four = int(r["out"]["[설비] 레일 Mk1"]) == 4
+	_check("설비 아이템 이름: '[설비] 레일 Mk1 ×4' → [설비] 레일 Mk1 4개", four, str(four))
+
+
 func _test_hand_actions() -> void:
 	var f := _new_room_factory()
 	var inv := Inventory.new()
-	# 가방: 같은 물건은 50개씩 쌓여요
-	inv.add_id("종이", 120)
-	var stack_ok := inv.slots.size() == 3 and inv.count("종이") == 120 and inv.take("종이") != null and inv.count("종이") == 119
-	inv.clear()
 	# 레일 위 물건 줍기
 	var rail: Conveyor = f.place("레일 Mk1", Vector2i(10, 10), 0)
 	rail.item = Item.new("바위")
@@ -236,28 +284,67 @@ func _test_hand_actions() -> void:
 	# 설비에 넣기: 맞는 재료는 들어가고, 안 맞는 건 가방에 그대로
 	var m: Machine = f.place("분해기", Vector2i(12, 12), 0)
 	_set_recipe(m, "종이", "나뭇가지")
-	inv.add_id("나뭇가지", 3)
-	inv.add_id("종이", 2)
-	var ins_ok := f.insert_from(inv, "나뭇가지", m) and int(m.inputs.get("나뭇가지", 0)) == 1 and inv.count("나뭇가지") == 2
-	var ins_bad := not f.insert_from(inv, "종이", m) and inv.count("종이") == 2
+	inv.add("나뭇가지", 3)
+	inv.add("종이", 2)
+	var twig := _slot_of(inv, "나뭇가지")
+	var ins_ok := f.insert_from(inv, twig, m) and int(m.inputs.get("나뭇가지", 0)) == 1 and inv.count("나뭇가지") == 2
+	var ins_bad := not f.insert_from(inv, _slot_of(inv, "종이"), m) and inv.count("종이") == 2
 	# 결과물·보관물 꺼내기
 	var st: StorageBlock = f.place("창고 블록", Vector2i(15, 12), 0)
 	for i in 5:
 		st.try_insert(Item.new("유리"), Vector2i(14, 12))
 	var took := f.take_outputs(st, inv, 50)
-	_check("손: 줍기·넣기·꺼내기", stack_ok and picked and ins_ok and ins_bad and took == 5 and inv.count("유리") == 5,
-		"쌓기 %s · 줍기 %s · 넣기 %s · 잘못 넣기 막힘 %s · 꺼냄 %d개" % [str(stack_ok), str(picked), str(ins_ok), str(ins_bad), took])
+	_check("손: 줍기·넣기·꺼내기", picked and ins_ok and ins_bad and took == 5 and inv.count("유리") == 5,
+		"줍기 %s · 넣기 %s · 잘못 넣기 막힘 %s · 꺼냄 %d개" % [str(picked), str(ins_ok), str(ins_bad), took])
 	# 철거: 설비 아이템 + 안에 든 재료를 돌려받아요
 	var before := inv.count("나뭇가지")
 	var dec := f.deconstruct(m, inv) and not f.buildings.has(m) and inv.count("[설비] 분해기") == 1 and inv.count("나뭇가지") == before + 1
 	var pile_kept := not f.deconstruct(f.get_at(Room.PILE_POS), inv)
-	# 가방이 꽉 차면 철거하지 않아요
+	# 가방이 꽉 차면 철거한 설비는 바닥에 떨어져요
 	var full := Inventory.new()
-	for i in Inventory.SLOTS:
-		full.add_id("돌멩이%d" % i, Inventory.STACK)
-	var blocked := not f.deconstruct(rail, full) and f.buildings.has(rail)
-	_check("손: 철거하면 설비 아이템 + 내용물이 가방으로", dec and pile_kept and blocked, "철거 %s · 더미는 못 지움 %s · 가방 가득이면 안 지움 %s" % [str(dec), str(pile_kept), str(blocked)])
+	full.add("나사", Inventory.SLOTS * Inventory.STACK_ITEM)
+	var dropped := f.deconstruct(rail, full) and not f.buildings.has(rail) and _floor_count(f, "[설비] 레일 Mk1") == 1
+	_check("손: 철거 → 설비 아이템 + 내용물이 가방으로 (가득이면 바닥에)", dec and pile_kept and dropped,
+		"철거 %s · 더미는 못 지움 %s · 가득이면 바닥에 %s" % [str(dec), str(pile_kept), str(dropped)])
 	f.free()
+
+
+func _test_floor_items() -> void:
+	var f := _new_room_factory()
+	var fl := f.floor_items
+	fl.spawn("바위", 3, Vector2(20.5, 20.5), 0.0, false)
+	fl.spawn("바위", 2, Vector2(20.7, 20.2), 0.0, false)   # 같은 칸 → 합쳐져요
+	fl.spawn("바위", 1, Vector2(22.5, 20.5), 0.0, false)   # 다른 칸
+	var merged := fl.drops.size() == 2 and _floor_count(f, "바위") == 6
+	var inv := Inventory.new()
+	var left := f.pickup_drop(fl.drops[0], inv)
+	var picked := left == 0 and inv.count("바위") == 5 and fl.drops.size() == 1
+	var full := Inventory.new()
+	full.add("나사", Inventory.SLOTS * Inventory.STACK_ITEM)
+	var stays := f.pickup_drop(fl.drops[0], full) == 1 and fl.drops.size() == 1
+	# 바닥 아이템은 시뮬레이션에 영향 없음: 레일 위에 놓아도 레일은 비어 있어요
+	var rail: Conveyor = f.place("레일 Mk1", Vector2i(25, 20), 0)
+	fl.spawn("종이", 1, Vector2(25.5, 20.5), 0.0, false)
+	_run(f, 2.0)
+	var no_sim := rail.item == null and _floor_count(f, "종이") == 1
+	_check("바닥 아이템: 같은 칸 합치기 · 줍기 · 가득이면 남음 · 레일이 끌고 가지 않음", merged and picked and stays and no_sim,
+		"합치기 %s · 줍기 %s · 가득이면 남음 %s · 시뮬레이션 영향 없음 %s" % [str(merged), str(picked), str(stays), str(no_sim)])
+	f.free()
+
+
+func _slot_of(inv: Inventory, id: String) -> int:
+	for i in Inventory.SLOTS:
+		if inv.id_at(i) == id:
+			return i
+	return -1
+
+
+func _floor_count(f: Factory, id: String) -> int:
+	var n := 0
+	for d in f.floor_items.drops:
+		if d["id"] == id:
+			n += int(d["n"])
+	return n
 
 
 func _test_demos() -> void:
@@ -304,12 +391,24 @@ func _test_save_roundtrip() -> void:
 	Demo.build(a)
 	var so: Sorter = a.get_at(Vector2i(23, 0) + Demo.ORIGIN)
 	so.mode = "inverse"
+	a.floor_items.spawn("바위", 4, Vector2(30.5, 30.5), 0.0, false)
+	var box := Item.new("작은 택배 박스")
+	box.request = {"items": {"장난감": 2}, "fragile": false, "gift": false}
+	a.floor_items.spawn(box, 1, Vector2(31.5, 30.5), 0.0, false)
 	var text := JSON.stringify(a.to_save())
 	var b := _new_factory()
 	b.room = Room.new()
 	var parsed = JSON.parse_string(text)
 	var ok: bool = b.load_save(parsed)
 	var same: bool = ok and JSON.stringify(b.to_save()) == text
-	_check("저장 → 불러오기 그대로", same, "설비 %d / %d · 전선 %d / %d · 파이프 %d / %d" % [b.buildings.size(), a.buildings.size(), b.wires.size(), a.wires.size(), b.pipes.size(), a.pipes.size()])
+	var floor_ok := b.floor_items.drops.size() == 2 and b.floor_items.drops[1]["item"] != null and int(b.floor_items.drops[1]["item"].request["items"]["장난감"]) == 2
+	# 인벤토리 저장
+	var inv := Inventory.new()
+	inv.add("[설비] 레일 Mk1", 130)
+	inv.add(box, 1)
+	var inv2 := Inventory.new()
+	inv2.load_save(JSON.parse_string(JSON.stringify(inv.to_save())))
+	var inv_ok := JSON.stringify(inv2.to_save()) == JSON.stringify(inv.to_save()) and inv2.count("[설비] 레일 Mk1") == 130
+	_check("저장 → 불러오기 그대로 (바닥 아이템·인벤토리 포함)", same and floor_ok and inv_ok, "설비 %d / %d · 전선 %d / %d · 파이프 %d / %d · 바닥 %s · 인벤토리 %s" % [b.buildings.size(), a.buildings.size(), b.wires.size(), a.wires.size(), b.pipes.size(), a.pipes.size(), str(floor_ok), str(inv_ok)])
 	a.free()
 	b.free()

@@ -1,20 +1,33 @@
 extends PanelContainer
-## 가방 창 (E · Tab · '가방' 버튼). 칸을 누르면 그 물건을 손에 들고, 다시 누르면 내려놔요.
-## 가방·플레이어 상태는 읽기만 하고, 들기는 player.set_held()로 해요.
+## 인벤토리 창 (scenes/inventory_panel.tscn). 한 씬을 두 자리에서 써요:
+##   open("center") : 가방만 볼 때 화면 가운데
+##   open("beside") : 설비 정보창과 함께 볼 때 화면 가운데 오른쪽
+## 위 3줄 = 가방 27칸, 아래 1줄 = 핫바 9칸. '크리에이티브 보관함' 탭은 디버그 메뉴에서 켜요.
+## 조작: 끌어다 놓기 = 옮기기 · 두 칸을 차례로 탭 = 바꾸기 · 길게 누르기/오른쪽 클릭 = 반 나누기
+##       Shift+클릭 = 핫바↔가방 빠른 이동 · 창 밖으로 끌어 놓기 = 플레이어 앞에 버리기
+## 인벤토리는 Inventory의 함수로만 바꾸고, 플레이어 상태는 읽기만 해요.
 
-const COLS := 10
-const SLOT := 64.0
-const ICON := 32.0     # 16×16 아이콘 2배
+const InvSlot := preload("res://scripts/view/inv_slot.gd")
+const GAP := 4
+const BESIDE_GAP := 16.0      # 'beside' 자리: 화면 가운데에서 오른쪽으로 띄우는 거리
+const CREATIVE_ROWS := 4      # 크리에이티브 보관함 목록 높이 (칸 줄 수, 넘치면 목록만 스크롤)
 
 var player = null
+var creative_enabled := false
+var mode := "center"
+
 var _title: Label
-var _slots: Array = []   # [Button, TextureRect, Label]
+var _tab_bag: Button
+var _tab_creative: Button
+var _bag_view: VBoxContainer
+var _creative_view: ScrollContainer
+var _creative_grid: GridContainer
+var _slots: Array = []        # 인벤토리 칸 번호 순서 (0~8 핫바, 9~ 가방)
+var _picked := -1             # 탭-탭 교환에서 먼저 고른 칸
+var _pointer := Vector2.ZERO  # 마지막 마우스·손가락 위치 (창 밖에 놓았는지 볼 때)
 
 
 func _ready() -> void:
-	set_anchors_and_offsets_preset(Control.PRESET_CENTER)
-	grow_horizontal = Control.GROW_DIRECTION_BOTH
-	grow_vertical = Control.GROW_DIRECTION_BOTH
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Palette.c(Palette.G1)
@@ -27,78 +40,195 @@ func _ready() -> void:
 	v.add_theme_constant_override("separation", 8)
 	add_child(v)
 	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", 6)
 	v.add_child(top)
+	_tab_bag = _button("가방", _show_tab.bind(false), 100)
+	_tab_bag.toggle_mode = true
+	top.add_child(_tab_bag)
+	_tab_creative = _button("크리에이티브 보관함", _show_tab.bind(true), 220)
+	_tab_creative.toggle_mode = true
+	top.add_child(_tab_creative)
 	_title = Label.new()
 	_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_title.add_theme_font_size_override("font_size", 18)
+	_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	top.add_child(_title)
-	var close := Button.new()
-	close.text = "닫기"
-	close.focus_mode = Control.FOCUS_NONE
-	close.custom_minimum_size = Vector2(100, 52)
-	close.pressed.connect(func() -> void: visible = false)
-	top.add_child(close)
-	var grid := GridContainer.new()
-	grid.columns = COLS
-	grid.add_theme_constant_override("h_separation", 4)
-	grid.add_theme_constant_override("v_separation", 4)
-	v.add_child(grid)
-	for i in Inventory.SLOTS:
-		var b := Button.new()
-		b.custom_minimum_size = Vector2(SLOT, SLOT)
-		b.focus_mode = Control.FOCUS_NONE
-		b.toggle_mode = true
-		b.pressed.connect(_on_slot.bind(i))
-		var icon := TextureRect.new()
-		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.position = Vector2(SLOT - ICON, SLOT - ICON) * 0.5 - Vector2(0, 4)
-		icon.size = Vector2(ICON, ICON)
-		b.add_child(icon)
-		var count := Label.new()
-		count.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		count.add_theme_font_size_override("font_size", 16)
-		count.position = Vector2(4, SLOT - 24)
-		count.size = Vector2(SLOT - 8, 20)
-		count.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		b.add_child(count)
-		grid.add_child(b)
-		_slots.append([b, icon, count])
+	top.add_child(_button("닫기", close, 90))
+	# 가방 27칸 + 핫바 9칸
+	_bag_view = VBoxContainer.new()
+	_bag_view.add_theme_constant_override("separation", 10)
+	v.add_child(_bag_view)
+	_slots.resize(Inventory.SLOTS)
+	var bag := _grid()
+	_bag_view.add_child(bag)
+	for i in range(Inventory.HOTBAR, Inventory.SLOTS):
+		bag.add_child(_make_slot(i))
+	var hot := _grid()
+	_bag_view.add_child(hot)
+	for i in Inventory.HOTBAR:
+		hot.add_child(_make_slot(i))
+	# 크리에이티브 보관함: 모든 아이템·설비 (누르면 한 묶음)
+	_creative_view = ScrollContainer.new()
+	_creative_view.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_creative_view.custom_minimum_size = Vector2(0, CREATIVE_ROWS * (InvSlot.SIZE + GAP))
+	v.add_child(_creative_view)
+	_creative_grid = _grid()
+	_creative_view.add_child(_creative_grid)
+	for n in DB.all_item_names():
+		var s = InvSlot.new()
+		s.draggable = false
+		s.show_item(n, 0)
+		s.tooltip_text = n
+		s.clicked.connect(func(_i, _sh) -> void: _give(n))
+		_creative_grid.add_child(s)
 	player.inventory.changed.connect(refresh)
+	player.hotbar_changed.connect(refresh)
 	visible = false
+	_show_tab(false)
+
+
+func _button(text: String, cb: Callable, w: float) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.focus_mode = Control.FOCUS_NONE
+	b.custom_minimum_size = Vector2(w, 52)
+	b.pressed.connect(cb)
+	return b
+
+
+func _grid() -> GridContainer:
+	var g := GridContainer.new()
+	g.columns = Inventory.HOTBAR
+	g.add_theme_constant_override("h_separation", GAP)
+	g.add_theme_constant_override("v_separation", GAP)
+	return g
+
+
+func _make_slot(i: int):
+	var s = InvSlot.new()
+	s.index = i
+	s.clicked.connect(_on_click)
+	s.split.connect(_on_split)
+	s.moved.connect(_on_moved)
+	s.dragged_out.connect(_on_dragged_out)
+	_slots[i] = s
+	return s
+
+
+# ---------- 열고 닫기 ----------
+
+func open(where: String = "center") -> void:
+	mode = where
+	_place()
+	visible = true
+	_picked = -1
 	refresh()
 
 
-func toggle() -> void:
-	visible = not visible
+func close() -> void:
+	visible = false
+	_picked = -1
+
+
+func toggle(where: String = "center") -> void:
+	if visible:
+		close()
+	else:
+		open(where)
+
+
+func set_creative(on: bool) -> void:
+	creative_enabled = on
+	_tab_creative.visible = on
+	if not on:
+		_show_tab(false)
+
+
+func _place() -> void:
+	## 'center' = 화면 가운데 · 'beside' = 가운데 오른쪽 (왼쪽엔 설비 정보창)
+	reset_size()
+	var sz := get_combined_minimum_size()
+	if mode == "beside":
+		set_anchors_preset(Control.PRESET_CENTER_LEFT)
+		anchor_left = 0.5
+		anchor_right = 0.5
+		offset_left = BESIDE_GAP
+		offset_right = BESIDE_GAP + sz.x
+	else:
+		set_anchors_preset(Control.PRESET_CENTER)
+		offset_left = -sz.x * 0.5
+		offset_right = sz.x * 0.5
+	offset_top = -sz.y * 0.5
+	offset_bottom = sz.y * 0.5
+
+
+func _show_tab(creative: bool) -> void:
+	var c := creative and creative_enabled
+	_bag_view.visible = not c
+	_creative_view.visible = c
+	_tab_bag.set_pressed_no_signal(not c)
+	_tab_creative.set_pressed_no_signal(c)
+	_tab_creative.visible = creative_enabled
+	if visible:
+		_place()
+
+
+# ---------- 칸 조작 ----------
+
+func _on_click(i: int, shift: bool) -> void:
+	var inv: Inventory = player.inventory
+	if shift:
+		inv.quick_move(i)
+		_picked = -1
+	elif _picked < 0:
+		if inv.id_at(i) != "":
+			_picked = i
+	elif _picked == i:
+		_picked = -1
+	else:
+		inv.move_slot(_picked, i)
+		_picked = -1
 	refresh()
 
 
-func _on_slot(i: int) -> void:
-	var slots: Array = player.inventory.slots
-	if i < slots.size():
-		player.set_held(slots[i]["id"])
+func _on_split(i: int) -> void:
+	player.inventory.split_slot(i)
+	_picked = -1
+
+
+func _on_moved(from: int, to: int) -> void:
+	player.inventory.move_slot(from, to)
+	_picked = -1
+
+
+func _input(e: InputEvent) -> void:
+	# 끌기 중엔 칸이 움직임을 못 받으니, 손가락·마우스 위치는 여기서 기억해요
+	if visible and (e is InputEventMouseMotion or e is InputEventMouseButton or e is InputEventScreenDrag or e is InputEventScreenTouch):
+		_pointer = e.position
+
+
+func _on_dragged_out(i: int) -> void:
+	## 창 밖에 놓았으면 플레이어 앞에 버려요
+	if not get_global_rect().has_point(_pointer):
+		player.drop_slot(i)
+	_picked = -1
 	refresh()
+
+
+func _give(id: String) -> void:
+	var lim := Inventory.stack_limit(id)
+	var left: int = player.inventory.add(id, lim)
+	player.message.emit(("%s %d개를 꺼냈어요" % [id, lim - left]) if left < lim else "가방이 가득 찼어요")
 
 
 func refresh() -> void:
+	if not visible:
+		return
 	var inv: Inventory = player.inventory
-	var held_txt: String = "맨손" if player.held == "" else "손에 든 것: " + player.held
-	_title.text = "가방 %d/%d칸 · HP %d · %s" % [inv.slots.size(), Inventory.SLOTS, player.hp, held_txt]
-	for i in _slots.size():
-		var b: Button = _slots[i][0]
-		var icon: TextureRect = _slots[i][1]
-		var count: Label = _slots[i][2]
-		if i < inv.slots.size():
-			var s: Dictionary = inv.slots[i]
-			icon.texture = Art.item_icon(s["id"], 16)
-			count.text = str(s["n"]) if int(s["n"]) > 1 else ""
-			b.tooltip_text = s["id"]
-			b.set_pressed_no_signal(s["id"] == player.held)
-			b.disabled = false
-		else:
-			icon.texture = null
-			count.text = ""
-			b.tooltip_text = ""
-			b.set_pressed_no_signal(false)
-			b.disabled = true
+	var held: String = player.held_id()
+	_title.text = "%d/%d칸 · HP %d · %s" % [inv.used_slots(), Inventory.SLOTS, player.hp, "맨손" if held == "" else held]
+	for i in Inventory.SLOTS:
+		var s = _slots[i]
+		var e = inv.slots[i]
+		s.show_item("" if e == null else e["id"], 0 if e == null else int(e["n"]))
+		s.set_marks(i == _picked, i == player.hotbar)

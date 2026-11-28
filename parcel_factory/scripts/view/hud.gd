@@ -1,6 +1,6 @@
 extends CanvasLayer
 ## 화면 UI: 위쪽 도구 막대, 아래쪽 설비 팔레트, 오른쪽 정보 패널,
-## 터치 조작(왼쪽 아래 조이스틱 · 오른쪽 아래 상호작용 버튼 · 가방 버튼), 가방 창.
+## 아래 가운데 핫바(+가방 버튼), 터치 조작(왼쪽 아래 조이스틱 · 오른쪽 아래 상호작용 버튼), 인벤토리 창.
 ## 휴대폰 터치에 맞게 버튼을 크게 만들었어요.
 
 var main = null
@@ -28,8 +28,9 @@ var creative_btn: Button
 var touch_btn: Button
 var joystick       # scripts/view/joystick.gd
 var action_btn     # scripts/view/action_button.gd
-var bag_btn: Button
-var inventory_panel   # scripts/view/inventory_panel.gd
+var storage_btn: Button
+var hotbar            # scripts/view/hotbar.gd
+var inventory_panel   # scenes/inventory_panel.tscn
 var touch_controls := false
 var debug_overlay
 var _msg := ""
@@ -37,11 +38,12 @@ var _msg_t := 0.0
 
 const SPEEDS := [1.0, 2.0, 4.0, 8.0]
 const MSG_SEC := 2.5            # 저장·불러오기 알림을 위쪽 막대에 띄우는 시간
-const HOTBAR_SIZE := 9          # 숫자 1~9로 고를 수 있는 팔레트 칸 수
 const DebugOverlay := preload("res://scripts/view/debug_overlay.gd")
 const Joystick := preload("res://scripts/view/joystick.gd")
 const ActionButton := preload("res://scripts/view/action_button.gd")
-const InventoryPanel := preload("res://scripts/view/inventory_panel.gd")
+const InventoryPanelScene := preload("res://scenes/inventory_panel.tscn")
+const Hotbar := preload("res://scripts/view/hotbar.gd")
+const HOTBAR_GAP := 8.0         # 핫바와 아래 팔레트 사이
 const TOUCH_MARGIN := 24.0      # 조이스틱·버튼과 화면 가장자리 사이
 const PALETTE_H := 140.0        # 아래 팔레트 높이 (조이스틱·버튼을 그 위에 둬요)
 const INSPECTOR_BOTTOM_TOUCH := -320.0   # 터치 조작이 보일 때 정보 패널 아래 끝
@@ -178,11 +180,8 @@ func _select_category(c: String) -> void:
 		b.button_pressed = (b.text == c)
 	for ch in item_box.get_children():
 		ch.queue_free()
-	var names := DB.buildings_in(c)
-	for i in names.size():
-		var n: String = names[i]
-		var label := "%d %s" % [i + 1, n] if i < HOTBAR_SIZE else n
-		var b := _btn(label, main.select_build.bind(n), 0)
+	for n in DB.buildings_in(c):
+		var b := _btn(n, main.select_build.bind(n), 0)
 		b.tooltip_text = DB.buildings[n].get("desc", "")
 		item_box.add_child(b)
 
@@ -261,7 +260,7 @@ func _process(dt: float) -> void:
 		status_label.text = _msg
 	else:
 		var pl = main.player
-		status_label.text = "%s%s · %s · 배달 %d(오배송 %d) · HP %d · 가방 %d" % ["[크리에이티브] " if f.creative else "", f.time_text(), f.power_summary(), f.shipped, f.shipped - f.shipped_ok, pl.hp, pl.inventory.slots.size()]
+		status_label.text = "%s%s · %s · 배달 %d(오배송 %d) · HP %d · 가방 %d" % ["[크리에이티브] " if f.creative else "", f.time_text(), f.power_summary(), f.shipped, f.shipped - f.shipped_ok, pl.hp, pl.inventory.used_slots()]
 	if inspector.visible:
 		if ins_target == null or not f.buildings.has(ins_target):
 			hide_inspector()
@@ -275,7 +274,7 @@ func _refresh_info() -> void:
 
 
 func is_over_ui(p: Vector2) -> bool:
-	for c in [top_panel, bottom_panel, inspector, menu_panel, joystick, action_btn, bag_btn, inventory_panel]:
+	for c in [top_panel, bottom_panel, inspector, menu_panel, joystick, action_btn, hotbar, inventory_panel]:
 		if c.visible and c.get_global_rect().has_point(p):
 			return true
 	return false
@@ -301,6 +300,8 @@ func _build_menu() -> void:
 	v.add_child(_btn("팔레트 접기/펴기", toggle_palette, 300))
 	touch_btn = _btn("", _on_touch_toggle, 300)
 	v.add_child(touch_btn)
+	storage_btn = _btn("", _on_storage_toggle, 300)
+	v.add_child(storage_btn)
 	creative_btn = _btn("", _on_creative, 300)
 	v.add_child(creative_btn)
 	v.add_child(_btn("닫기 (Esc)", toggle_menu, 300))
@@ -320,6 +321,12 @@ func _on_creative() -> void:
 func _refresh_creative_btn() -> void:
 	creative_btn.text = "크리에이티브 (디버그): %s" % ("켬" if main.factory.creative else "끔")
 	touch_btn.text = "터치 조작: %s" % ("보임" if touch_controls else "숨김")
+	storage_btn.text = "크리에이티브 보관함 (디버그): %s" % ("켬" if inventory_panel.creative_enabled else "끔")
+
+
+func _on_storage_toggle() -> void:
+	inventory_panel.set_creative(not inventory_panel.creative_enabled)
+	_refresh_creative_btn()
 
 
 func _on_touch_toggle() -> void:
@@ -351,17 +358,19 @@ func _build_touch() -> void:
 	action_btn.pressed_down.connect(func() -> void: main.player.action_press())
 	action_btn.released.connect(func() -> void: main.player.action_release())
 	root.add_child(action_btn)
-	bag_btn = _btn("가방", toggle_inventory, 110)
-	bag_btn.anchor_left = 1.0
-	bag_btn.anchor_right = 1.0
-	bag_btn.anchor_top = 1.0
-	bag_btn.anchor_bottom = 1.0
-	bag_btn.offset_right = action_btn.offset_left - TOUCH_MARGIN
-	bag_btn.offset_left = bag_btn.offset_right - 110
-	bag_btn.offset_bottom = -PALETTE_H - TOUCH_MARGIN
-	bag_btn.offset_top = bag_btn.offset_bottom - 56
-	root.add_child(bag_btn)
-	inventory_panel = InventoryPanel.new()
+	hotbar = Hotbar.new()
+	hotbar.player = main.player
+	hotbar.anchor_left = 0.5
+	hotbar.anchor_right = 0.5
+	hotbar.anchor_top = 1.0
+	hotbar.anchor_bottom = 1.0
+	hotbar.grow_horizontal = Control.GROW_DIRECTION_BOTH
+	hotbar.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	hotbar.offset_bottom = -PALETTE_H - HOTBAR_GAP
+	hotbar.offset_top = hotbar.offset_bottom
+	hotbar.open_bag.connect(toggle_inventory)
+	root.add_child(hotbar)
+	inventory_panel = InventoryPanelScene.instantiate()
 	inventory_panel.player = main.player
 	root.add_child(inventory_panel)
 	main.player.request_info.connect(_on_player_info)
@@ -373,17 +382,17 @@ func set_touch_controls(on: bool) -> void:
 	touch_controls = on
 	joystick.visible = on
 	action_btn.visible = on
-	bag_btn.visible = on
 	inspector.offset_bottom = INSPECTOR_BOTTOM_TOUCH if on else INSPECTOR_BOTTOM
 
 
 func toggle_inventory() -> void:
-	inventory_panel.toggle()
+	## 지금은 늘 화면 가운데. 'beside'(가운데 오른쪽) 자리는 7단계 설비 정보창과 함께 열 때 써요
+	inventory_panel.toggle("center")
 
 
 func close_inventory() -> bool:
 	if inventory_panel.visible:
-		inventory_panel.visible = false
+		inventory_panel.close()
 		return true
 	return false
 
@@ -423,13 +432,6 @@ func toggle_debug() -> void:
 
 func toggle_palette() -> void:
 	bottom_panel.visible = not bottom_panel.visible
-
-
-func select_hotbar(i: int) -> void:
-	## 숫자 키 i(1~9): 지금 보이는 팔레트 분류의 i번째 설비를 골라요
-	var names := DB.buildings_in(current_cat)
-	if i >= 1 and i <= mini(names.size(), HOTBAR_SIZE):
-		main.select_build(names[i - 1])
 
 
 func show_message(s: String) -> void:

@@ -3,9 +3,11 @@ extends CharacterBody2D
 ## 이동·애니메이션·상호작용 대상 고르기를 맡고, 공장을 바꿀 때는 Factory의 함수만 불러요.
 ##   탭(짧게)    : 더미 뒤지기 / 레일 위 물건 줍기 / 결과물 꺼내기 / 정보 창 · 아이템을 들었으면 1개 넣기
 ##   꾹(길게)    : 설비 철거(게이지) · 아이템을 들었으면 다 넣기 · 대상이 없으면 휘두르기(공격)
+## 손에 든 것 = 고른 핫바 칸. 바닥 아이템은 1칸 안에 들어오면 끌려와 자동으로 주워요.
 
 signal message(text: String)
 signal request_info(building)
+signal hotbar_changed
 
 const TILE := 32.0
 const WALK_SPEED := 2.0        # 칸/초
@@ -24,12 +26,17 @@ const IDLE_ANIM_FPS := 2.0
 const RAIL_PUSH := false       # 레일 위에 서 있으면 레일 방향으로 살짝 밀려요 (기본 끔)
 const RAIL_PUSH_SPEED := 0.6   # 칸/초
 const DIRS := [Vector2.RIGHT, Vector2.DOWN, Vector2.LEFT, Vector2.UP]
+const PICKUP_RADIUS := 1.0     # 이 거리(칸) 안의 바닥 아이템을 끌어와요
+const PICKUP_SNAP := 0.25      # 이만큼 가까워지면 가방에 넣어요
+const PULL_SPEED := 4.0        # 끌려오는 빠르기 (칸/초)
+const DROP_DIST := 1.4         # 버리면 플레이어 앞 이 거리에 떨어져요 (줍는 거리 밖)
+const DROP_DELAY := 1.5        # 버린 물건은 이 시간 동안 다시 줍지 않아요
 const HELD_OFFSET := [Vector2(14, -12), Vector2(12, -10), Vector2(-14, -12), Vector2(-12, -14)]
 
 var factory: Factory = null
 var inventory := Inventory.new()
 var hp := HP_MAX
-var held := ""                 # 손에 든 아이템 이름 ("" = 맨손)
+var hotbar := -1               # 고른 핫바 칸 (-1 = 맨손)
 var facing := 1                # DIRS 번호 (처음엔 아래를 봐요)
 var move_input := Vector2.ZERO # -1~1 (키보드 + 조이스틱)
 var run := false
@@ -91,9 +98,27 @@ func _physics_process(dt: float) -> void:
 		if under != null and under.is_conveyor():
 			velocity += Vector2(under.dir_vec()) * RAIL_PUSH_SPEED * TILE
 	move_and_slide()
+	_pull_drops(dt)
 	if move_input.length() > 0.2:
 		var v := move_input
 		facing = (0 if v.x > 0 else 2) if absf(v.x) > absf(v.y) else (1 if v.y > 0 else 3)
+
+
+func _pull_drops(dt: float) -> void:
+	## 바닥 아이템: 1칸 안이면 끌려와서 주워져요 (가방이 가득이면 그대로 둬요)
+	var fl: FloorItems = factory.floor_items
+	var me := position / TILE
+	for d in fl.drops.duplicate():
+		if d["delay"] > 0.0:
+			d["delay"] -= dt
+			continue
+		var dist: float = me.distance_to(d["pos"])
+		if dist > PICKUP_RADIUS or not inventory.can_accept(fl.item_of(d)):
+			continue
+		if dist <= PICKUP_SNAP:
+			factory.pickup_drop(d, inventory)
+		else:
+			d["pos"] = d["pos"].move_toward(me, PULL_SPEED * dt)
 
 
 func cell() -> Vector2i:
@@ -166,7 +191,7 @@ func bubble_kind(b) -> String:
 	## 대상 위 말풍선 아이콘: hand(손) · gear(정보) · box(넣기)
 	if b == null:
 		return ""
-	if held != "":
+	if held_id() != "":
 		return "box"
 	if _is_rummage_pile(b) or (b is Conveyor and b.item != null) or b.has_output():
 		return "hand"
@@ -205,26 +230,49 @@ func action_release() -> void:
 	_press_target = null
 
 
-func set_held(id: String) -> void:
-	held = "" if id == held or inventory.count(id) == 0 else id
+func held_id() -> String:
+	## 손에 든 아이템 이름 ("" = 맨손)
+	return inventory.id_at(hotbar)
+
+
+func select_hotbar(i: int) -> void:
+	## 핫바 칸 고르기. 같은 칸을 다시 고르면 맨손
+	hotbar = -1 if i == hotbar else clampi(i, 0, Inventory.HOTBAR - 1)
+	hotbar_changed.emit()
+
+
+func scroll_hotbar(step: int) -> void:
+	hotbar = posmod((hotbar if hotbar >= 0 else (-1 if step > 0 else 0)) + step, Inventory.HOTBAR)
+	hotbar_changed.emit()
+
+
+func drop_slot(i: int) -> void:
+	## 가방 칸 하나를 통째로 플레이어 앞 바닥에 버려요
+	var items := inventory.take_slot(i)
+	if items.is_empty():
+		return
+	factory.drop_items(items, position / TILE + DIRS[facing] * DROP_DIST, DROP_DELAY)
+	message.emit("%s %d개를 버렸어요" % [items[0].id, items.size()])
 
 
 func cancel() -> void:
-	## Esc: 진행 중인 일 멈추고 손에 든 것 내려놓기
+	## Esc: 진행 중인 일 멈추고 손에 든 것 내려놓기(맨손)
 	if action != "":
 		_cancel_action("")
-	held = ""
+	if hotbar >= 0:
+		hotbar = -1
+		hotbar_changed.emit()
 
 
 func _tap(t) -> void:
+	var held := held_id()
 	if held != "":
 		if t == null:
 			message.emit("넣을 곳이 없어요")
-		elif factory.insert_from(inventory, held, t):
+		elif factory.insert_from(inventory, hotbar, t):
 			message.emit("%s 1개를 %s에 넣었어요" % [held, t.name])
 		else:
 			message.emit("%s은(는) %s에 못 넣어요" % [held, t.name])
-		_drop_if_empty()
 		return
 	if t == null:
 		return
@@ -241,16 +289,16 @@ func _tap(t) -> void:
 
 
 func _hold(t) -> void:
+	var held := held_id()
 	if t == null:
 		if held == "":
 			_start_action("attack", null)
 		return
 	if held != "":
 		var n := 0
-		while factory.insert_from(inventory, held, t):
+		while inventory.id_at(hotbar) == held and factory.insert_from(inventory, hotbar, t):
 			n += 1
 		message.emit("%s %d개를 %s에 넣었어요" % [held, n, t.name] if n > 0 else "%s은(는) %s에 못 넣어요" % [held, t.name])
-		_drop_if_empty()
 	elif _is_rummage_pile(t):
 		start_rummage(t)
 	elif factory.is_fixed(t) and not factory.creative:
@@ -268,11 +316,6 @@ func start_rummage(pile) -> void:
 
 func _is_rummage_pile(b) -> bool:
 	return b is ItemPile and b.hand_pull_range() != Vector2i.ZERO
-
-
-func _drop_if_empty() -> void:
-	if held != "" and inventory.count(held) == 0:
-		held = ""
 
 
 # ---------- 진행 중인 일 ----------
@@ -324,7 +367,7 @@ func _run_action(dt: float) -> void:
 		"attack":
 			if action_t >= ATTACK_SEC:
 				_cancel_action("")
-				if _press and _hold_started and _press_target == null and held == "":
+				if _press and _hold_started and _press_target == null and held_id() == "":
 					_start_action("attack", null)   # 누르고 있으면 계속 휘둘러요
 
 
@@ -355,10 +398,13 @@ func _animate(dt: float) -> void:
 
 
 func _update_held_icon() -> void:
+	var held := held_id()
 	held_icon.visible = held != ""
 	if held == "":
 		return
 	held_icon.texture = Art.item_icon(held, 8)
+	var tw: float = held_icon.texture.get_width()
+	held_icon.scale = Vector2.ONE * (16.0 / maxf(1.0, tw))   # 설비 아이템(큰 그림)도 16px로
 	held_icon.position = HELD_OFFSET[facing]
 	held_icon.z_index = -1 if facing == 3 else 1
 
@@ -368,3 +414,23 @@ func _draw() -> void:
 	draw_set_transform(Vector2(0, 1), 0.0, Vector2(1.0, 0.45))
 	draw_circle(Vector2.ZERO, 11.0, Color(0, 0, 0, 0.35))
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+# ---------- 저장 ----------
+
+func to_save() -> Dictionary:
+	return {"pos": [position.x / TILE, position.y / TILE], "hp": hp, "hotbar": hotbar, "facing": facing, "inventory": inventory.to_save()}
+
+
+func load_save(d) -> void:
+	if not (d is Dictionary):
+		return
+	var p: Array = d.get("pos", [position.x / TILE, position.y / TILE])
+	position = Vector2(float(p[0]), float(p[1])) * TILE
+	velocity = Vector2.ZERO
+	hp = int(d.get("hp", HP_MAX))
+	hotbar = int(d.get("hotbar", -1))
+	facing = int(d.get("facing", 1))
+	inventory.load_save(d.get("inventory", []))
+	hotbar_changed.emit()
+

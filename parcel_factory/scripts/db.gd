@@ -70,9 +70,16 @@ func _load_recipes() -> void:
 			ins[k] = int(r["in"][k])
 		var outs := {}
 		for k in r["out"]:
-			outs[k] = int(r["out"][k])
-			if not items.has(k):
-				_add_item(k, "설비 아이템" if k.begins_with("[설비]") else "기타")
+			# '[설비] 레일 Mk1 ×4' 같은 묶음 이름은 '[설비] 레일 Mk1' 4개로 바꿔요 (가방에서 한 종류로 쌓이게)
+			var nm: String = k
+			var mult := 1
+			var cut := nm.rfind(" ×")
+			if cut > 0 and nm.substr(cut + 2).is_valid_int():
+				mult = int(nm.substr(cut + 2))
+				nm = nm.substr(0, cut)
+			outs[nm] = int(outs.get(nm, 0)) + int(r["out"][k]) * mult
+			if not items.has(nm):
+				_add_item(nm, "설비 아이템" if nm.begins_with("[설비]") else "기타")
 		r["in"] = ins
 		r["out"] = outs
 		recipes.append(r)
@@ -113,6 +120,23 @@ func _num(f: float) -> String:
 	if is_equal_approx(f, round(f)):
 		return str(int(round(f)))
 	return "%.1f" % f
+
+
+func building_item(def_name: String) -> String:
+	## 설비 이름 → 가방에 들어가는 설비 아이템 이름
+	return "[설비] " + def_name
+
+
+func all_item_names() -> Array:
+	## 크리에이티브 보관함용: 모든 아이템 + 지형이 아닌 모든 설비 아이템
+	var out := []
+	for n in item_order:
+		if not n.begins_with("[설비]"):
+			out.append(n)
+	for b in building_order:
+		if buildings[b]["cat"] in building_categories:
+			out.append(building_item(b))
+	return out
 
 
 func short(n: String) -> String:

@@ -10,7 +10,8 @@ signal items_popped(pile, cell, items)   # 손으로 뒤져 물건이 튀어나�
 
 const DT := 0.05
 const MAX_STEPS_PER_FRAME := 80   # 프레임이 밀려도 한 번에 이만큼만 따라잡아요
-const SAVE_VERSION := 2
+const SAVE_VERSION := 3
+const SAVE_VERSION_MIN := 2   # 이 버전부터는 읽을 수 있어요 (바닥 아이템은 3부터)
 const KINDS := {
 	"rail": preload("res://scripts/sim/conveyor.gd"),
 	"exit": preload("res://scripts/sim/exit_port.gd"),
@@ -47,6 +48,7 @@ var power_nets: Array = []
 var water_nets: Array = []
 
 var room: Room = null     # 지형 (없으면 무한 격자)
+var floor_items := FloorItems.new()   # 바닥에 떨어진 아이템 (시뮬레이션에는 영향 없음)
 var creative := false     # 켜면 지형 규칙을 무시하고 어디든 설치·철거
 var _rng := RandomNumberGenerator.new()
 
@@ -182,47 +184,46 @@ func is_fixed(b: Building) -> bool:
 # ---------- 플레이어 손으로 하는 일 ----------
 ## 화면·입력 쪽은 이 함수들만 불러서 공장을 바꿔요.
 
-const BUILDING_ITEM_PREFIX := "[설비] "
-
-
 func hand_pull(pile: ItemPile, at_cell: Vector2i, inv: Inventory) -> Array:
-	## 손으로 더미를 뒤져 정의의 hand_pull 범위만큼 꺼내 가방에 넣어요 (가방이 차면 들어간 만큼만)
+	## 손으로 더미를 뒤져 정의의 hand_pull 범위만큼 꺼내 가방에 넣어요 (못 넣은 건 그 자리 바닥에)
 	var r := pile.hand_pull_range()
 	if r == Vector2i.ZERO:
 		return []
-	var got := []
-	for it in pile.hand_pull(_rng.randi_range(r.x, r.y)):
-		if inv.add(it):
-			got.append(it)
+	var got := pile.hand_pull(_rng.randi_range(r.x, r.y))
+	for it in got:
+		if inv.add(it, 1) > 0:
+			floor_items.spawn(it, 1, Vector2(at_cell) + Vector2(0.5, 0.5))
 	items_popped.emit(pile, at_cell, got)
 	return got
 
 
 func pick_item(b, inv: Inventory) -> bool:
 	## 레일 위 물건 줍기
-	if not (b is Conveyor) or b.item == null or not inv.can_add(b.item):
+	if not (b is Conveyor) or b.item == null or not inv.can_accept(b.item):
 		return false
-	inv.add(b.item)
+	inv.add(b.item, 1)
 	b.item = null
 	b.progress = 0.0
 	return true
 
 
 func take_outputs(b: Building, inv: Inventory, max_n: int) -> int:
-	## 설비 결과물·보관물을 가방이 허락하는 만큼 꺼내요
+	## 설비 결과물·보관물을 가방이 받을 수 있는 동안 꺼내요
 	var n := 0
-	while n < max_n and b.has_output() and inv.has_room():
+	while n < max_n and b.has_output():
 		var it: Item = b.try_extract()
 		if it == null:
 			break
-		inv.add(it)
+		if inv.add(it, 1) > 0:
+			floor_items.spawn(it, 1, Vector2(b.pos) + Vector2(b.size) * 0.5)
+			break
 		n += 1
 	return n
 
 
-func insert_from(inv: Inventory, id: String, b: Building) -> bool:
-	## 가방의 물건 하나를 설비·레일에 넣어요. 안 받으면 가방에 그대로 돌려놔요
-	var it := inv.take(id)
+func insert_from(inv: Inventory, slot: int, b: Building) -> bool:
+	## 가방 slot칸의 물건 하나를 설비·레일에 넣어요 (받으면 그 칸에서 하나 빼요)
+	var it := inv.item_at(slot)
 	if it == null:
 		return false
 	var cells := [b.pos - Vector2i(1, 0)]
@@ -232,37 +233,49 @@ func insert_from(inv: Inventory, id: String, b: Building) -> bool:
 		cells = [b.back_cell(), b.left_cell(), b.right_cell()]
 	for c in cells:
 		if b.try_insert(it, c):
+			inv.remove(it.id, 1, slot)
 			return true
-	inv.add(it)
 	return false
 
 
 func deconstruct(b, inv: Inventory) -> bool:
-	## 철거: 설비 아이템 + 안에 든 물건을 가방으로. 가방에 다 안 들어가면 철거하지 않아요
+	## 철거: 설비 아이템 + 안에 든 물건을 가방으로. 가방에 안 들어가는 건 그 자리 바닥에 떨어져요
 	if is_fixed(b) and not creative:
 		return false
-	var back := [Item.new(BUILDING_ITEM_PREFIX + b.name)]
+	var back := [DB.building_item(b.name)]
 	back.append_array(b.contents())
 	if b is StorageBlock:
 		# 묶음에서 이 블록이 빠지면 넘치는 만큼 돌려받아요
 		var g = b.group
 		var keep: int = 20 * (g.members.size() - 1)
-		for i in range(keep, g.items.size()):
-			back.append(g.items[i])
-	var trial: Inventory = inv.copy()
-	for it in back:
-		if not trial.add(it):
-			return false
-	if b is StorageBlock:
-		var g2 = b.group
-		var keep2: int = 20 * (g2.members.size() - 1)
-		while g2.items.size() > keep2:
-			g2.items.pop_back()
+		while g.items.size() > keep:
+			back.append(g.items.pop_back())
+	var center := Vector2(b.pos) + Vector2(b.size) * 0.5
 	if not remove_at(b.pos):
 		return false
 	for it in back:
-		inv.add(it)
+		if inv.add(it, 1) > 0:
+			floor_items.spawn(it, 1, center)
 	return true
+
+
+func drop_items(items: Array, origin: Vector2, delay: float) -> void:
+	## 가방에서 버린 물건들을 origin(칸 단위) 근처 바닥에. 같은 물건은 한 무더기로
+	var plain := {}
+	for it in items:
+		if it.is_plain():
+			plain[it.id] = int(plain.get(it.id, 0)) + 1
+		else:
+			floor_items.spawn(it, 1, origin, delay)
+	for id in plain:
+		floor_items.spawn(id, plain[id], origin, delay)
+
+
+func pickup_drop(d: Dictionary, inv: Inventory) -> int:
+	## 바닥 아이템을 가방에 넣어요. 못 넣은 수를 돌려주고 바닥에 남겨요
+	var left := inv.add(floor_items.item_of(d), int(d["n"]))
+	floor_items.set_count(d, left)
+	return left
 
 
 func _release(b: Building) -> void:
@@ -293,6 +306,7 @@ func clear_all() -> void:
 	wires.clear()
 	pipes.clear()
 	water.clear()
+	floor_items.clear()
 	shipped = 0
 	shipped_ok = 0
 	mark_dirty()
@@ -437,13 +451,15 @@ func to_save() -> Dictionary:
 		"wires": _cells_to_list(wires),
 		"pipes": _cells_to_list(pipes),
 		"water": _cells_to_list(water),
+		"floor_items": floor_items.to_save(),
 	}
 
 
 func load_save(d) -> bool:
 	if not (d is Dictionary) or not d.has("buildings"):
 		return false
-	if int(d.get("version", 0)) != SAVE_VERSION:
+	var ver := int(d.get("version", 0))
+	if ver < SAVE_VERSION_MIN or ver > SAVE_VERSION:
 		push_warning("저장 파일 버전이 달라요 (%s ≠ %d). 새로 시작해요" % [str(d.get("version", "?")), SAVE_VERSION])
 		return false
 	clear_all()
@@ -466,6 +482,7 @@ func load_save(d) -> bool:
 		var st = e.get("state", {})
 		if st is Dictionary:
 			b.load_state(st)
+	floor_items.load_save(d.get("floor_items", []))
 	mark_dirty()
 	return true
 
