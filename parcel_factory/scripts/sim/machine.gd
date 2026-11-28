@@ -192,3 +192,19 @@ func info() -> String:
 
 func is_active() -> bool:
 	return working
+
+
+func has_output() -> bool:
+	for n in outputs:
+		if outputs[n] > 0:
+			return true
+	return false
+
+
+func contents() -> Array:
+	var out := []
+	for n in inputs:
+		out.append_array(Building.items_of(n, inputs[n]))
+	for n in outputs:
+		out.append_array(Building.items_of(n, outputs[n]))
+	return out

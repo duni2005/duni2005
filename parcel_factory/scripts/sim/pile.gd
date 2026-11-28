@@ -137,3 +137,12 @@ func info() -> String:
 
 func is_active() -> bool:
 	return true
+
+
+func has_output() -> bool:
+	return not buffer.is_empty()
+
+
+func contents() -> Array:
+	var out := buffer.duplicate()
+	return out

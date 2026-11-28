@@ -26,3 +26,8 @@ func is_active() -> bool:
 	if str(def.get("ammo", "")) != "":
 		return ammo > 0
 	return power_mult() > 0.0
+
+
+func contents() -> Array:
+	var out := Building.items_of(str(def.get("ammo", "")), ammo)
+	return out

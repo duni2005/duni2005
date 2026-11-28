@@ -69,3 +69,14 @@ func info() -> String:
 
 func is_active() -> bool:
 	return not boxes.is_empty() and tape >= 2 and out_buf.size() < 4 and power_mult() > 0.0
+
+
+func has_output() -> bool:
+	return not out_buf.is_empty()
+
+
+func contents() -> Array:
+	var out := Building.items_of("박스 테이프", tape)
+	out.append_array(boxes)
+	out.append_array(out_buf)
+	return out

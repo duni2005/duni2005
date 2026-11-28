@@ -45,3 +45,8 @@ func info() -> String:
 
 func is_active() -> bool:
 	return running()
+
+
+func contents() -> Array:
+	var out := Building.items_of(fuel_item(), fuel)
+	return out

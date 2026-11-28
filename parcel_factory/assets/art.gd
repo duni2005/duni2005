@@ -29,7 +29,7 @@ const BUILDINGS := {
 }
 ## 설비 방향대로 돌려 그리는 스프라이트 (나머지는 방향과 상관없이 똑바로)
 const DIRECTIONAL := ["exit", "entrance", "sorter", "splitter", "merger", "bridge", "detector", "judge", "injector", "combiner", "source", "dock"]
-const OTHER_SHEETS := ["tiles", "items8", "items16", "trash_heap"]
+const OTHER_SHEETS := ["tiles", "items8", "items16", "trash_heap", "player", "ui_icons"]
 
 const STORE := "art_cache"   # 캐시는 Engine 메타데이터 한 곳에 둬요 (정적 변수는 Godot 4.3에서 끌 때 누수로 보고돼서)
 

@@ -10,6 +10,8 @@ extends RefCounted
 ##    0~3줄 직선 →↓←↑, 4+방향×2 줄 = 그 방향으로 나가는 꺾임 (+0 왼쪽에서 들어옴, +1 오른쪽에서 들어옴)
 ##  - 아이템: items8(8×8) · items16(16×16) 아틀라스, 한 줄 16개, 순서 = ITEMS 순서
 ##  - 타일: tiles.png 한 줄, 순서 = TILES
+##  - 플레이어: 16×24 한 칸, 가로 8칸 (0~3 걷기, 4~5 대기, 6~7 휘두르기) × 세로 4줄 (→ ↓ ← ↑)
+##  - UI 아이콘: 8×8 한 줄, 순서 = UI_ICONS (말풍선 안에 그려요)
 
 const P := preload("res://assets/palette.gd")
 const FRAMES := 4
@@ -88,6 +90,10 @@ const ITEMS := {
 	"?": ["unknown", P.PINK, P.INK],
 }
 const ATLAS_COLS := 16
+const PLAYER_W := 16
+const PLAYER_H := 24
+const PLAYER_COLS := 8
+const UI_ICONS := ["hand", "gear", "box", "hammer"]
 
 
 # ---------- 진입점 ----------
@@ -108,6 +114,10 @@ static func make(key: String, cells: Vector2i = Vector2i.ONE) -> Image:
 			return rail_sheet(3)
 		"trash_heap":
 			return trash_heap()
+		"player":
+			return player_sheet()
+		"ui_icons":
+			return ui_icons()
 	return building(key, cells)
 
 
@@ -748,6 +758,158 @@ static func _draw_building(c: PixelCanvas, key: String, f: int, w: int, h: int, 
 			_cab(c, 1, 1, w - 2, h - 2, METAL)
 	if outline:
 		c.outline()
+
+
+# ---------- 플레이어 (택배 공장 직원: 주황 모자 · 파란 작업복) ----------
+
+static func player_sheet() -> Image:
+	var w := PLAYER_W
+	var h := PLAYER_H
+	var sheet := Image.create(w * PLAYER_COLS, h * 4, false, Image.FORMAT_RGBA8)
+	for dir in [0, 1, 3]:
+		for col in PLAYER_COLS:
+			var c := PixelCanvas.new(w, h)
+			c.frame(0, 0, w, h)
+			_player(c, dir, col)
+			c.outline()
+			sheet.blit_rect(c.img, Rect2i(0, 0, w, h), Vector2i(col * w, dir * h))
+			if dir == 0:
+				# 왼쪽은 오른쪽을 좌우로 뒤집어요
+				var m := c.img.duplicate() as Image
+				m.flip_x()
+				sheet.blit_rect(m, Rect2i(0, 0, w, h), Vector2i(col * w, 2 * h))
+	return sheet
+
+
+static func _player(c: PixelCanvas, dir: int, col: int) -> void:
+	var walk := col < 4
+	var step := 0          # -1 / 1 : 어느 발이 앞인지
+	if walk and col == 1:
+		step = 1
+	elif walk and col == 3:
+		step = -1
+	var bob := 1 if (walk and step != 0) or col == 5 else 0
+	var o := -bob          # 몸·머리가 위로 1도트 들썩여요
+	var swing := col - 6   # 0 = 들어올림, 1 = 휘두름 (공격 칸일 때만)
+	var attack := col >= 6
+	if dir == 0:
+		_player_side(c, step, o, attack, swing)
+	else:
+		_player_front(c, dir == 3, step, o, attack, swing)
+
+
+static func _player_front(c: PixelCanvas, back: bool, step: int, o: int, attack: bool, swing: int) -> void:
+	# 다리·신발
+	var ll := 2 if step == 1 else 3
+	var rl := 2 if step == -1 else 3
+	c.rect(5, 19, 2, ll, P.BROWN_D)
+	c.rect(9, 19, 2, rl, P.BROWN_D)
+	c.rect(5, 19 + ll, 2, 1, P.G1)
+	c.rect(9, 19 + rl, 2, 1, P.G1)
+	# 몸통 (파란 작업복 + 벨트)
+	c.rect(4, 13 + o, 8, 6, P.BLUE)
+	c.rect(4, 13 + o, 8, 1, P.CYAN)
+	c.rect(4, 18 + o, 8, 1, P.BROWN)
+	c.rect(7, 14 + o, 2, 3, P.BLUE_D if not back else P.BLUE)
+	# 팔
+	var la := 1 if step == -1 else 0
+	var ra := 1 if step == 1 else 0
+	c.rect(3, 13 + o + la, 1, 4, P.BLUE_D)
+	c.rect(3, 17 + o + la, 1, 1, P.SKIN)
+	if attack:
+		var hy := 9 if swing == 0 else 20
+		var top := mini(13 + o, hy)
+		c.rect(12, top, 1, absi(hy - (13 + o)) + 1, P.BLUE_D)
+		c.rect(12, hy, 2, 2, P.SKIN)
+		if swing == 1:
+			c.line(14, 15, 15, 21, P.PAPER)
+	else:
+		c.rect(12, 13 + o + ra, 1, 4, P.BLUE_D)
+		c.rect(12, 17 + o + ra, 1, 1, P.SKIN)
+	# 머리
+	c.rect(3, 3 + o, 10, 9, P.BROWN_D)
+	if back:
+		c.rect(5, 11 + o, 6, 1, P.SKIN)
+	else:
+		c.rect(4, 6 + o, 8, 6, P.SKIN)
+		c.rect(3, 8 + o, 1, 2, P.SKIN)
+		c.rect(12, 8 + o, 1, 2, P.SKIN)
+		c.rect(6, 8 + o, 1, 2, P.INK)
+		c.rect(9, 8 + o, 1, 2, P.INK)
+		c.px(5, 10 + o, P.PINK)
+		c.px(10, 10 + o, P.PINK)
+	# 주황 모자
+	c.rect(3, 1 + o, 10, 4, P.ORANGE)
+	c.rect(4, 1 + o, 8, 1, P.ORANGE_L)
+	if back:
+		c.rect(6, 4 + o, 4, 1, P.BROWN)
+	else:
+		c.rect(3, 5 + o, 10, 1, P.BROWN)
+
+
+static func _player_side(c: PixelCanvas, step: int, o: int, attack: bool, swing: int) -> void:
+	# 다리: 걸을 때 앞뒤로 벌어져요
+	var back_x := 6 - (1 if step != 0 else 0)
+	var front_x := 8 + (1 if step != 0 else 0)
+	c.rect(back_x, 19, 2, 3, P.G1)
+	c.rect(front_x, 19, 2, 3, P.BROWN_D)
+	c.rect(back_x, 22, 2, 1, P.INK)
+	c.rect(front_x, 22, 3, 1, P.G1)
+	# 몸통
+	c.rect(5, 13 + o, 7, 6, P.BLUE)
+	c.rect(5, 13 + o, 7, 1, P.CYAN)
+	c.rect(5, 18 + o, 7, 1, P.BROWN)
+	# 머리 (뒤통수는 머리카락, 앞쪽은 얼굴)
+	c.rect(4, 3 + o, 9, 9, P.BROWN_D)
+	c.rect(8, 6 + o, 5, 6, P.SKIN)
+	c.rect(10, 8 + o, 1, 2, P.INK)
+	c.px(12, 10 + o, P.PINK)
+	c.px(7, 8 + o, P.SKIN)
+	# 주황 모자 + 앞으로 나온 챙
+	c.rect(4, 1 + o, 9, 4, P.ORANGE)
+	c.rect(5, 1 + o, 7, 1, P.ORANGE_L)
+	c.rect(11, 5 + o, 4, 1, P.BROWN)
+	# 팔 (앞쪽 팔)
+	if attack:
+		if swing == 0:
+			c.rect(6, 10 + o, 2, 5, P.BLUE_D)
+			c.rect(6, 9 + o, 2, 1, P.SKIN)
+		else:
+			c.rect(9, 14 + o, 5, 2, P.BLUE_D)
+			c.rect(14, 14 + o, 1, 2, P.SKIN)
+			c.line(14, 10, 15, 18, P.PAPER)
+	else:
+		var ax := 8 + step
+		c.rect(ax, 13 + o, 2, 4, P.BLUE_D)
+		c.rect(ax, 17 + o, 2, 1, P.SKIN)
+
+
+# ---------- UI 아이콘 (말풍선용 8×8) ----------
+
+static func ui_icons() -> Image:
+	var c := PixelCanvas.new(8 * UI_ICONS.size(), 8)
+	for i in UI_ICONS.size():
+		c.frame(i * 8, 0, 8, 8)
+		match UI_ICONS[i]:
+			"hand":
+				c.rect(2, 3, 4, 4, P.SKIN)
+				for fx in 4:
+					c.rect(2 + fx, 1 + (1 if fx == 0 or fx == 3 else 0), 1, 2, P.SKIN)
+				c.rect(1, 4, 1, 2, P.SKIN)
+			"gear":
+				c.disc(4, 4, 2.6, P.G4)
+				c.rect(3, 0, 2, 8, P.G4)
+				c.rect(0, 3, 8, 2, P.G4)
+				c.rect(3, 3, 2, 2, P.INK)
+			"box":
+				c.rect(1, 2, 6, 5, P.CARD)
+				c.rect(1, 2, 6, 1, P.ORANGE_L)
+				c.rect(3, 2, 2, 5, P.BROWN)
+			"hammer":
+				c.line(1, 7, 4, 4, P.BROWN)
+				c.rect(3, 1, 4, 3, P.G4)
+		c.outline()
+	return c.img
 
 
 # ---------- 아이템 ----------

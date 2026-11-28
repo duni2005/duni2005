@@ -198,6 +198,23 @@ func is_active() -> bool:
 	return false
 
 
+func has_output() -> bool:
+	## 손으로 꺼낼 결과물이 있는지 (try_extract로 꺼내요)
+	return false
+
+
+func contents() -> Array:
+	## 철거할 때 돌려줄 안에 든 물건 목록 (읽기만, 상태는 그대로)
+	return []
+
+
+static func items_of(id: String, n: int) -> Array:
+	var out := []
+	for i in n:
+		out.append(Item.new(id))
+	return out
+
+
 func info() -> String:
 	var s := name
 	if needs_power():

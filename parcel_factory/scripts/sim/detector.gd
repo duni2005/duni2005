@@ -85,3 +85,10 @@ func info() -> String:
 
 func is_active() -> bool:
 	return item != null and stock > 0 and needs(item) and power_mult() > 0.0
+
+
+func contents() -> Array:
+	var out := super.contents()
+	if selected != "":
+		out.append_array(Building.items_of(selected, stock))
+	return out

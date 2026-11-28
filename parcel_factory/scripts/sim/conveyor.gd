@@ -67,3 +67,10 @@ func is_blocked() -> bool:
 
 func is_active() -> bool:
 	return item != null and not is_blocked()
+
+
+func contents() -> Array:
+	var out := []
+	if item != null:
+		out.append(item)
+	return out

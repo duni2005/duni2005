@@ -59,6 +59,12 @@ func _add(script: Script, props: Dictionary) -> Node2D:
 	return n
 
 
+func add_actor(n: Node) -> void:
+	## 플레이어처럼 움직이는 것: 설비·물건 위, 형광등 빛 아래에 끼워 넣어요
+	add_child(n)
+	move_child(n, lights.get_index())
+
+
 func visible_rect() -> Rect2:
 	## 지금 화면에 보이는 월드 영역 (조금 넉넉하게)
 	var inv := get_viewport().get_canvas_transform().affine_inverse()

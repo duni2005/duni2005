@@ -24,6 +24,7 @@ func _ready() -> void:
 	_test_half_power()
 	_test_room_rules()
 	_test_trash_pile()
+	_test_hand_actions()
 	_test_demos()
 	_test_save_roundtrip()
 	print("=== 결과: %s (실패 %d) ===" % ["통과" if _fails == 0 else "실패", _fails])
@@ -214,10 +215,48 @@ func _test_trash_pile() -> void:
 			only_raw = false
 	_check("쓰레기 더미 → 출구 자리에서 원재료", sink.total > 0 and only_raw and pile.level == 1 and slots.size() == int(pile.def["exit_slots"]), "출구 자리 %d곳 · %d초 동안 %d개 %s · Lv%d" % [slots.size(), int(PILE_SEC), sink.total, str(sink.counts.keys()), pile.level])
 	_check("쓰레기 더미: 출구 자리 밖은 막힘", bad_exit == null and sink2.total == 0, "자리 밖 출구 %s · 자리 밖 레일로 나온 수 %d" % ["못 놓음" if bad_exit == null else "놓임", sink2.total])
-	var before := f.hand_total()
-	var got: Array = f.hand_pull(pile, pile.pos)
+	var inv := Inventory.new()
+	var got: Array = f.hand_pull(pile, pile.pos, inv)
 	var r := pile.hand_pull_range()
-	_check("쓰레기 더미: 손으로 뒤지면 3~5개", got.size() >= r.x and got.size() <= r.y and r == Vector2i(3, 5) and f.hand_total() == before + got.size(), "%d개 (범위 %d~%d)" % [got.size(), r.x, r.y])
+	_check("쓰레기 더미: 손으로 뒤지면 3~5개 → 가방", got.size() >= r.x and got.size() <= r.y and r == Vector2i(3, 5) and inv.total() == got.size(), "%d개 (범위 %d~%d) · 가방 %d개" % [got.size(), r.x, r.y, inv.total()])
+	f.free()
+
+
+func _test_hand_actions() -> void:
+	var f := _new_room_factory()
+	var inv := Inventory.new()
+	# 가방: 같은 물건은 50개씩 쌓여요
+	inv.add_id("종이", 120)
+	var stack_ok := inv.slots.size() == 3 and inv.count("종이") == 120 and inv.take("종이") != null and inv.count("종이") == 119
+	inv.clear()
+	# 레일 위 물건 줍기
+	var rail: Conveyor = f.place("레일 Mk1", Vector2i(10, 10), 0)
+	rail.item = Item.new("바위")
+	var picked := f.pick_item(rail, inv) and rail.item == null and inv.count("바위") == 1
+	# 설비에 넣기: 맞는 재료는 들어가고, 안 맞는 건 가방에 그대로
+	var m: Machine = f.place("분해기", Vector2i(12, 12), 0)
+	_set_recipe(m, "종이", "나뭇가지")
+	inv.add_id("나뭇가지", 3)
+	inv.add_id("종이", 2)
+	var ins_ok := f.insert_from(inv, "나뭇가지", m) and int(m.inputs.get("나뭇가지", 0)) == 1 and inv.count("나뭇가지") == 2
+	var ins_bad := not f.insert_from(inv, "종이", m) and inv.count("종이") == 2
+	# 결과물·보관물 꺼내기
+	var st: StorageBlock = f.place("창고 블록", Vector2i(15, 12), 0)
+	for i in 5:
+		st.try_insert(Item.new("유리"), Vector2i(14, 12))
+	var took := f.take_outputs(st, inv, 50)
+	_check("손: 줍기·넣기·꺼내기", stack_ok and picked and ins_ok and ins_bad and took == 5 and inv.count("유리") == 5,
+		"쌓기 %s · 줍기 %s · 넣기 %s · 잘못 넣기 막힘 %s · 꺼냄 %d개" % [str(stack_ok), str(picked), str(ins_ok), str(ins_bad), took])
+	# 철거: 설비 아이템 + 안에 든 재료를 돌려받아요
+	var before := inv.count("나뭇가지")
+	var dec := f.deconstruct(m, inv) and not f.buildings.has(m) and inv.count("[설비] 분해기") == 1 and inv.count("나뭇가지") == before + 1
+	var pile_kept := not f.deconstruct(f.get_at(Room.PILE_POS), inv)
+	# 가방이 꽉 차면 철거하지 않아요
+	var full := Inventory.new()
+	for i in Inventory.SLOTS:
+		full.add_id("돌멩이%d" % i, Inventory.STACK)
+	var blocked := not f.deconstruct(rail, full) and f.buildings.has(rail)
+	_check("손: 철거하면 설비 아이템 + 내용물이 가방으로", dec and pile_kept and blocked, "철거 %s · 더미는 못 지움 %s · 가방 가득이면 안 지움 %s" % [str(dec), str(pile_kept), str(blocked)])
 	f.free()
 
 

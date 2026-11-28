@@ -47,3 +47,8 @@ func tick(dt: float) -> void:
 
 func info() -> String:
 	return super.info() + "\n쌓인 택배 %d/%d · 자동 배달 %s\n배달 %d (정상 %d · 오배송 %d)" % [stack.size(), int(def.get("cap", 10.0)), "켬" if auto_deliver else "끔", shipped, shipped_ok, shipped - shipped_ok]
+
+
+func contents() -> Array:
+	var out := stack.duplicate()
+	return out

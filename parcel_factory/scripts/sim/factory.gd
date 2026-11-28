@@ -48,7 +48,6 @@ var water_nets: Array = []
 
 var room: Room = null     # 지형 (없으면 무한 격자)
 var creative := false     # 켜면 지형 규칙을 무시하고 어디든 설치·철거
-var hand_items := {}      # 손으로 꺼낸 물건 (다음 단계 플레이어 인벤토리 자리) 이름 -> 개수
 var _rng := RandomNumberGenerator.new()
 
 var paused := false
@@ -180,23 +179,90 @@ func is_fixed(b: Building) -> bool:
 	return bool(b.def.get("fixed", false))
 
 
-func hand_pull(pile: ItemPile, at_cell: Vector2i) -> Array:
-	## 손으로 더미를 뒤져 정의의 hand_pull 범위만큼 물건을 꺼내요
+# ---------- 플레이어 손으로 하는 일 ----------
+## 화면·입력 쪽은 이 함수들만 불러서 공장을 바꿔요.
+
+const BUILDING_ITEM_PREFIX := "[설비] "
+
+
+func hand_pull(pile: ItemPile, at_cell: Vector2i, inv: Inventory) -> Array:
+	## 손으로 더미를 뒤져 정의의 hand_pull 범위만큼 꺼내 가방에 넣어요 (가방이 차면 들어간 만큼만)
 	var r := pile.hand_pull_range()
 	if r == Vector2i.ZERO:
 		return []
-	var items := pile.hand_pull(_rng.randi_range(r.x, r.y))
-	for it in items:
-		hand_items[it.id] = int(hand_items.get(it.id, 0)) + 1
-	items_popped.emit(pile, at_cell, items)
-	return items
+	var got := []
+	for it in pile.hand_pull(_rng.randi_range(r.x, r.y)):
+		if inv.add(it):
+			got.append(it)
+	items_popped.emit(pile, at_cell, got)
+	return got
 
 
-func hand_total() -> int:
+func pick_item(b, inv: Inventory) -> bool:
+	## 레일 위 물건 줍기
+	if not (b is Conveyor) or b.item == null or not inv.can_add(b.item):
+		return false
+	inv.add(b.item)
+	b.item = null
+	b.progress = 0.0
+	return true
+
+
+func take_outputs(b: Building, inv: Inventory, max_n: int) -> int:
+	## 설비 결과물·보관물을 가방이 허락하는 만큼 꺼내요
 	var n := 0
-	for k in hand_items:
-		n += int(hand_items[k])
+	while n < max_n and b.has_output() and inv.has_room():
+		var it: Item = b.try_extract()
+		if it == null:
+			break
+		inv.add(it)
+		n += 1
 	return n
+
+
+func insert_from(inv: Inventory, id: String, b: Building) -> bool:
+	## 가방의 물건 하나를 설비·레일에 넣어요. 안 받으면 가방에 그대로 돌려놔요
+	var it := inv.take(id)
+	if it == null:
+		return false
+	var cells := [b.pos - Vector2i(1, 0)]
+	if b is Detector:
+		cells = [b.left_cell(), b.right_cell(), b.back_cell()]
+	elif b is Conveyor:
+		cells = [b.back_cell(), b.left_cell(), b.right_cell()]
+	for c in cells:
+		if b.try_insert(it, c):
+			return true
+	inv.add(it)
+	return false
+
+
+func deconstruct(b, inv: Inventory) -> bool:
+	## 철거: 설비 아이템 + 안에 든 물건을 가방으로. 가방에 다 안 들어가면 철거하지 않아요
+	if is_fixed(b) and not creative:
+		return false
+	var back := [Item.new(BUILDING_ITEM_PREFIX + b.name)]
+	back.append_array(b.contents())
+	if b is StorageBlock:
+		# 묶음에서 이 블록이 빠지면 넘치는 만큼 돌려받아요
+		var g = b.group
+		var keep: int = 20 * (g.members.size() - 1)
+		for i in range(keep, g.items.size()):
+			back.append(g.items[i])
+	var trial: Inventory = inv.copy()
+	for it in back:
+		if not trial.add(it):
+			return false
+	if b is StorageBlock:
+		var g2 = b.group
+		var keep2: int = 20 * (g2.members.size() - 1)
+		while g2.items.size() > keep2:
+			g2.items.pop_back()
+	if not remove_at(b.pos):
+		return false
+	for it in back:
+		inv.add(it)
+	return true
 
 
 func _release(b: Building) -> void:
@@ -227,7 +293,6 @@ func clear_all() -> void:
 	wires.clear()
 	pipes.clear()
 	water.clear()
-	hand_items.clear()
 	shipped = 0
 	shipped_ok = 0
 	mark_dirty()

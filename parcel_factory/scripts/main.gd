@@ -1,22 +1,29 @@
 extends Node2D
 ## 샌드박스 메인: 공장·화면·카메라·UI를 만들고 터치 입력을 처리해요.
-## 조작
-##   한 손가락 끌기 : 화면 이동 (설치 중인 레일·전선·파이프는 끌어서 깔기)
-##   두 손가락      : 확대·축소와 이동
-##   탭            : 보기 = 설비 선택 / 설치 = 놓기 / 철거 = 지우기
+## 조작 (플레이어 중심: 상호작용은 플레이어 주변 REACH칸, 설치·철거는 BUILD_RANGE칸 안에서)
+##   이동            : WASD·방향키 / 왼쪽 아래 조이스틱 (Shift 또는 끝까지 밀면 달리기)
+##   상호작용        : F · 오른쪽 아래 버튼 = 지금 대상 / 설비를 직접 탭(마우스 왼쪽) = 그 설비
+##                    짧게 = 탭, 길게 = 꾹 (자세한 건 scripts/player/player.gd)
+##   두 손가락·휠     : 확대·축소 (카메라는 플레이어를 따라가요)
+##   설치 도구        : 탭 = 놓기, 레일·전선·파이프는 끌어서 깔기 / 철거 도구: 탭 = 가방으로 철거
 ## 키보드·마우스는 InputMap 액션(project.godot)으로 받아요.
-##   move_* 화면 이동 · interact 탭과 같음 · cancel 도구 취소 · rotate 회전
-##   hotbar_1~9 팔레트 고르기 · inventory 팔레트 접기 · zoom_in/out 확대·축소
+##   move_* 이동 · run 달리기 · interact 상호작용 · cancel 취소 · rotate 회전
+##   hotbar_1~9 팔레트 고르기 · inventory 가방 · zoom_in/out 확대·축소
 ##   debug 디버그 오버레이 · save_game 저장 (Ctrl+S)
 
 const TILE := 32.0
-const PAN_SPEED := 900.0        # 키보드 화면 이동 (화면 픽셀/초)
+const CAM_FOLLOW := 8.0         # 카메라가 플레이어를 따라가는 빠르기 (클수록 바짝)
+const BUILD_RANGE := 6.0        # 설치·철거 거리 (칸, 크리에이티브면 무제한)
+const PLAYER_START := Vector2(40.5, 20.5)   # 처음 서 있는 칸 (정문 안쪽)
+const Player := preload("res://scripts/player/player.gd")
+const WorldCollision := preload("res://scripts/player/world_collision.gd")
+const TargetMarker := preload("res://scripts/player/target_marker.gd")
 const ZOOM_STEP := 1.1          # 휠 한 칸 확대 배율
 const ZOOM_MIN := 0.3
 const ZOOM_MAX := 4.0
 const DRAG_THRESHOLD := 14.0    # 이만큼 움직여야 탭이 아니라 끌기로 봐요
 const SAVE_PATH := "user://save.json"
-const CAM_START_ZOOM := 0.7     # 처음 화면: 큰방 가운데를 이 배율로
+const CAM_START_ZOOM := 1.6     # 처음 확대 배율 (카메라가 플레이어를 따라가요)
 const HUD := preload("res://scripts/view/hud.gd")
 const WorldView := preload("res://scripts/view/world_view.gd")
 const Demo := preload("res://scripts/demo.gd")
@@ -25,6 +32,7 @@ var factory: Factory
 var view
 var cam: Camera2D
 var hud
+var player       # scripts/player/player.gd
 
 var tool: String = "view"          # view / build / erase
 var build_def: String = "레일 Mk1"
@@ -36,8 +44,7 @@ var _moved := false
 var _multi := false
 var _last_cell := Vector2i(0, 0)
 var _pinch_dist := 0.0
-var _pinch_center := Vector2.ZERO
-var _tap_cell := Vector2i.ZERO     # 마지막으로 탭한 칸 (손으로 뒤질 때 물건이 튀어나오는 자리)
+var _world_press := false          # 설비를 직접 눌러 플레이어 상호작용 중
 
 
 func _ready() -> void:
@@ -48,9 +55,19 @@ func _ready() -> void:
 	view = WorldView.new()
 	view.factory = factory
 	add_child(view)
+	var walls := WorldCollision.new()
+	walls.factory = factory
+	view.add_child(walls)
+	player = Player.new()
+	player.factory = factory
+	player.position = PLAYER_START * TILE
+	view.add_actor(player)
+	var marker := TargetMarker.new()
+	marker.player = player
+	view.add_actor(marker)
 	cam = Camera2D.new()
 	cam.zoom = Vector2(CAM_START_ZOOM, CAM_START_ZOOM)
-	cam.position = Vector2(Room.W, Room.H) * 0.5 * TILE
+	cam.position = player.position
 	add_child(cam)
 	cam.make_current()
 	hud = HUD.new()
@@ -74,7 +91,15 @@ func new_room(with_demo: bool) -> void:
 	factory.room.build_given(factory)
 	if with_demo:
 		Demo.build(factory)
+	_reset_player()
 	hud.hide_inspector()
+
+
+func _reset_player() -> void:
+	player.cancel()
+	player.position = PLAYER_START * TILE
+	player.velocity = Vector2.ZERO
+	cam.position = player.position
 
 
 func clear_room() -> void:
@@ -87,15 +112,6 @@ func clear_room() -> void:
 func toggle_creative() -> void:
 	factory.creative = not factory.creative
 	hud.show_message("크리에이티브 %s" % ("켬: 어디든 설치·철거" if factory.creative else "끔: 큰방 규칙"))
-
-
-func hand_pull(pile: ItemPile) -> void:
-	var cell := _tap_cell if pile.has_cell(_tap_cell) else pile.pos
-	var items: Array = factory.hand_pull(pile, cell)
-	var names := []
-	for it in items:
-		names.append(it.id)
-	hud.show_message("손으로 %d개 꺼냈어요: %s" % [items.size(), ", ".join(names)])
 
 
 # ---------- 저장·불러오기 ----------
@@ -129,10 +145,12 @@ func _load_file() -> bool:
 
 
 func cancel() -> void:
-	## Esc·오른쪽 클릭: 메뉴 닫기 → 설치·철거 취소 → 정보 패널 닫기 순서
-	if hud.close_menu():
+	## Esc·오른쪽 클릭: 가방·메뉴 닫기 → 하던 일·손에 든 것 내려놓기 → 설치·철거 취소 → 정보 패널 닫기
+	if hud.close_inventory() or hud.close_menu():
 		return
-	if tool != "view":
+	if player.action != "" or player.held != "":
+		player.cancel()
+	elif tool != "view":
 		set_tool("view")
 	else:
 		hud.hide_inspector()
@@ -176,18 +194,35 @@ func _update_ghost(c: Vector2i) -> void:
 	if tool != "build":
 		return
 	var def: Dictionary = DB.buildings[build_def]
-	view.ghost = {"def": def, "pos": c, "rot": rot, "ok": factory.can_place(def, c, rot)}
+	view.ghost = {"def": def, "pos": c, "rot": rot, "ok": factory.can_place(def, c, rot) and in_build_range(c)}
+
+
+func in_build_range(c: Vector2i) -> bool:
+	## 설치·철거는 플레이어 주변에서만 (크리에이티브면 어디든)
+	if factory.creative:
+		return true
+	return (Vector2(c) + Vector2(0.5, 0.5)).distance_to(player.position / TILE) <= BUILD_RANGE
 
 
 func _place(c: Vector2i) -> void:
-	factory.place(build_def, c, rot)
+	if in_build_range(c):
+		factory.place(build_def, c, rot)
 	_update_ghost(c)
 
 
 func _erase(c: Vector2i) -> void:
-	if factory.remove_at(c):
-		if view.selected != null and not factory.buildings.has(view.selected):
-			view.selected = null
+	if not in_build_range(c):
+		hud.show_message("플레이어에게서 너무 멀어요")
+		return
+	var b = factory.get_at(c)
+	if b != null:
+		var nm: String = b.name
+		if factory.deconstruct(b, player.inventory):
+			hud.show_message("%s을(를) 철거해 가방에 넣었어요" % nm)
+			if view.selected != null and not factory.buildings.has(view.selected):
+				view.selected = null
+		else:
+			hud.show_message("%s은(는) 철거할 수 없거나 가방이 가득 찼어요" % nm)
 		return
 	for layer in ["wire", "pipe", "water"]:
 		if factory.remove_layer(layer, c):
@@ -196,7 +231,6 @@ func _erase(c: Vector2i) -> void:
 
 func _tap(sp: Vector2) -> void:
 	var c := screen_to_cell(sp)
-	_tap_cell = c
 	match tool:
 		"view":
 			view.selected = factory.get_at(c)
@@ -229,12 +263,18 @@ func _drag_path(c: Vector2i) -> void:
 # ---------- 입력 ----------
 
 func _process(dt: float) -> void:
-	# Ctrl+S의 S가 move_down으로 같이 잡히지 않게 Ctrl을 누르는 동안은 멈춰요
-	if Input.is_key_pressed(KEY_CTRL):
-		return
-	var v := Input.get_vector("move_left", "move_right", "move_up", "move_down")
-	if v != Vector2.ZERO:
-		cam.position += v * PAN_SPEED * dt / cam.zoom.x
+	# 이동: 키보드 + 조이스틱. Ctrl+S의 S가 move_down으로 잡히지 않게 Ctrl을 누르는 동안은 멈춰요
+	var v := Vector2.ZERO
+	if not Input.is_key_pressed(KEY_CTRL):
+		v = Input.get_vector("move_left", "move_right", "move_up", "move_down")
+	v += hud.joystick.vector
+	player.move_input = v.limit_length(1.0)
+	player.run = Input.is_action_pressed("run") or hud.joystick.is_running()
+	# 카메라는 플레이어를 부드럽게 따라가요
+	cam.position = cam.position.lerp(player.position, 1.0 - exp(-CAM_FOLLOW * dt))
+	hud.update_touch(player)
+	if tool == "build" and not view.ghost.is_empty():
+		_update_ghost(view.ghost["pos"])   # 걸어가면 설치 가능 거리가 바뀌어요
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -264,18 +304,14 @@ func _handle_actions(event: InputEvent) -> bool:
 		cancel()
 	elif event.is_action_pressed("interact") and not (event is InputEventMouseButton):
 		# 마우스 왼쪽은 터치 흉내(emulate_touch_from_mouse)로 _on_touch에서 처리돼요.
-		# 여기서는 F 키: 마우스가 가리키는 칸을 탭한 것과 같아요
-		var mp := get_viewport().get_mouse_position()
-		if hud.is_over_ui(mp):
-			pass
-		elif tool == "build":
-			_place(screen_to_cell(mp))   # 레일처럼 끌어서 까는 설비도 한 칸씩 놓여요
-		else:
-			_tap(mp)
+		# F 키: 플레이어가 지금 바라보는 대상과 상호작용 (누르는 시간으로 탭·꾹을 나눠요)
+		player.action_press()
+	elif event.is_action_released("interact") and not (event is InputEventMouseButton):
+		player.action_release()
 	elif event.is_action_pressed("rotate"):
 		rotate_tool()
 	elif event.is_action_pressed("inventory"):
-		hud.toggle_palette()
+		hud.toggle_inventory()
 	elif event.is_action_pressed("debug"):
 		hud.toggle_debug()
 	else:
@@ -308,14 +344,26 @@ func _on_touch(e: InputEventScreenTouch) -> void:
 				_place(_last_cell)
 			elif tool == "erase":
 				_erase(_last_cell)
+			elif tool == "view":
+				# 손 닿는 설비를 직접 누르면 그 설비와 상호작용 (멀면 떼었을 때 정보만 봐요)
+				var b = factory.get_at(_last_cell)
+				if b != null and player.in_reach(b):
+					_world_press = true
+					player.action_press(b)
 		elif _touches.size() == 2:
 			_multi = true
+			if _world_press:
+				_world_press = false
+				player.action_release()
 			_start_pinch()
 	else:
 		if not _touches.has(e.index):
 			return
 		_touches.erase(e.index)
-		if _touches.is_empty():
+		if _world_press and _touches.is_empty():
+			_world_press = false
+			player.action_release()
+		elif _touches.is_empty():
 			if not _moved and not _multi and tool != "erase":
 				_tap(e.position)
 		elif _touches.size() == 1:
@@ -342,8 +390,6 @@ func _on_drag(e: InputEventScreenDrag) -> void:
 		if c != _last_cell:
 			_last_cell = c
 			_erase(c)
-	else:
-		cam.position -= e.relative / cam.zoom.x
 
 
 func _pinch_points() -> Array:
@@ -358,7 +404,6 @@ func _pinch_points() -> Array:
 func _start_pinch() -> void:
 	var p := _pinch_points()
 	_pinch_dist = (p[0] - p[1]).length()
-	_pinch_center = (p[0] + p[1]) * 0.5
 
 
 func _do_pinch() -> void:
@@ -367,15 +412,10 @@ func _do_pinch() -> void:
 	var center: Vector2 = (p[0] + p[1]) * 0.5
 	if _pinch_dist > 1.0:
 		_zoom_at(d / _pinch_dist, center)
-	cam.position -= (center - _pinch_center) / cam.zoom.x
 	_pinch_dist = d
-	_pinch_center = center
 
 
-func _zoom_at(f: float, sp: Vector2) -> void:
-	var before: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * sp
+func _zoom_at(f: float, _sp: Vector2) -> void:
+	## 카메라가 플레이어를 따라가니 확대·축소는 플레이어 중심으로 해요
 	var z := clampf(cam.zoom.x * f, ZOOM_MIN, ZOOM_MAX)
 	cam.zoom = Vector2(z, z)
-	cam.force_update_scroll()
-	var after: Vector2 = get_viewport().get_canvas_transform().affine_inverse() * sp
-	cam.position += before - after

@@ -38,3 +38,7 @@ func info() -> String:
 	for k in counts:
 		parts.append("%s %d" % [k, counts[k]])
 	return super.info() + "\n블록 %d개, %d / %d\n%s" % [group.members.size(), group.items.size(), group.cap, ", ".join(parts)]
+
+
+func has_output() -> bool:
+	return not group.items.is_empty()

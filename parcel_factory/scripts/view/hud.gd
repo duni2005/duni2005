@@ -1,5 +1,6 @@
 extends CanvasLayer
-## 화면 UI: 위쪽 도구 막대, 아래쪽 설비 팔레트, 오른쪽 정보 패널.
+## 화면 UI: 위쪽 도구 막대, 아래쪽 설비 팔레트, 오른쪽 정보 패널,
+## 터치 조작(왼쪽 아래 조이스틱 · 오른쪽 아래 상호작용 버튼 · 가방 버튼), 가방 창.
 ## 휴대폰 터치에 맞게 버튼을 크게 만들었어요.
 
 var main = null
@@ -24,6 +25,12 @@ var _refresh_t := 0.0
 
 var menu_panel: PanelContainer
 var creative_btn: Button
+var touch_btn: Button
+var joystick       # scripts/view/joystick.gd
+var action_btn     # scripts/view/action_button.gd
+var bag_btn: Button
+var inventory_panel   # scripts/view/inventory_panel.gd
+var touch_controls := false
 var debug_overlay
 var _msg := ""
 var _msg_t := 0.0
@@ -32,6 +39,13 @@ const SPEEDS := [1.0, 2.0, 4.0, 8.0]
 const MSG_SEC := 2.5            # 저장·불러오기 알림을 위쪽 막대에 띄우는 시간
 const HOTBAR_SIZE := 9          # 숫자 1~9로 고를 수 있는 팔레트 칸 수
 const DebugOverlay := preload("res://scripts/view/debug_overlay.gd")
+const Joystick := preload("res://scripts/view/joystick.gd")
+const ActionButton := preload("res://scripts/view/action_button.gd")
+const InventoryPanel := preload("res://scripts/view/inventory_panel.gd")
+const TOUCH_MARGIN := 24.0      # 조이스틱·버튼과 화면 가장자리 사이
+const PALETTE_H := 140.0        # 아래 팔레트 높이 (조이스틱·버튼을 그 위에 둬요)
+const INSPECTOR_BOTTOM_TOUCH := -320.0   # 터치 조작이 보일 때 정보 패널 아래 끝
+const INSPECTOR_BOTTOM := -140.0
 
 
 func _ready() -> void:
@@ -47,6 +61,7 @@ func _ready() -> void:
 	_build_bottom()
 	_build_inspector()
 	_build_menu()
+	_build_touch()
 	debug_overlay = DebugOverlay.new()
 	debug_overlay.factory = main.factory
 	debug_overlay.position = Vector2(8, 76)
@@ -245,7 +260,8 @@ func _process(dt: float) -> void:
 		_msg_t -= 0.25
 		status_label.text = _msg
 	else:
-		status_label.text = "%s%s · %s · 배달 %d (오배송 %d) · 손 %d" % ["[크리에이티브] " if f.creative else "", f.time_text(), f.power_summary(), f.shipped, f.shipped - f.shipped_ok, f.hand_total()]
+		var pl = main.player
+		status_label.text = "%s%s · %s · 배달 %d(오배송 %d) · HP %d · 가방 %d" % ["[크리에이티브] " if f.creative else "", f.time_text(), f.power_summary(), f.shipped, f.shipped - f.shipped_ok, pl.hp, pl.inventory.slots.size()]
 	if inspector.visible:
 		if ins_target == null or not f.buildings.has(ins_target):
 			hide_inspector()
@@ -259,7 +275,7 @@ func _refresh_info() -> void:
 
 
 func is_over_ui(p: Vector2) -> bool:
-	for c in [top_panel, bottom_panel, inspector, menu_panel]:
+	for c in [top_panel, bottom_panel, inspector, menu_panel, joystick, action_btn, bag_btn, inventory_panel]:
 		if c.visible and c.get_global_rect().has_point(p):
 			return true
 	return false
@@ -282,7 +298,9 @@ func _build_menu() -> void:
 	v.add_child(t)
 	v.add_child(_btn("저장 (Ctrl+S)", _on_menu_save, 300))
 	v.add_child(_btn("불러오기", _on_menu_load, 300))
-	v.add_child(_btn("팔레트 접기/펴기 (E)", toggle_palette, 300))
+	v.add_child(_btn("팔레트 접기/펴기", toggle_palette, 300))
+	touch_btn = _btn("", _on_touch_toggle, 300)
+	v.add_child(touch_btn)
 	creative_btn = _btn("", _on_creative, 300)
 	v.add_child(creative_btn)
 	v.add_child(_btn("닫기 (Esc)", toggle_menu, 300))
@@ -301,6 +319,84 @@ func _on_creative() -> void:
 
 func _refresh_creative_btn() -> void:
 	creative_btn.text = "크리에이티브 (디버그): %s" % ("켬" if main.factory.creative else "끔")
+	touch_btn.text = "터치 조작: %s" % ("보임" if touch_controls else "숨김")
+
+
+func _on_touch_toggle() -> void:
+	set_touch_controls(not touch_controls)
+	_refresh_creative_btn()
+
+
+# ---------- 터치 조작 · 가방 ----------
+
+func _build_touch() -> void:
+	joystick = Joystick.new()
+	joystick.anchor_top = 1.0
+	joystick.anchor_bottom = 1.0
+	joystick.offset_left = TOUCH_MARGIN
+	joystick.offset_bottom = -PALETTE_H - TOUCH_MARGIN
+	joystick.offset_top = joystick.offset_bottom - Joystick.RADIUS * 2.0
+	joystick.offset_right = joystick.offset_left + Joystick.RADIUS * 2.0
+	root.add_child(joystick)
+	action_btn = ActionButton.new()
+	action_btn.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	action_btn.anchor_left = 1.0
+	action_btn.anchor_right = 1.0
+	action_btn.anchor_top = 1.0
+	action_btn.anchor_bottom = 1.0
+	action_btn.offset_right = -TOUCH_MARGIN
+	action_btn.offset_left = action_btn.offset_right - ActionButton.RADIUS * 2.0
+	action_btn.offset_bottom = -PALETTE_H - TOUCH_MARGIN
+	action_btn.offset_top = action_btn.offset_bottom - ActionButton.RADIUS * 2.0
+	action_btn.pressed_down.connect(func() -> void: main.player.action_press())
+	action_btn.released.connect(func() -> void: main.player.action_release())
+	root.add_child(action_btn)
+	bag_btn = _btn("가방", toggle_inventory, 110)
+	bag_btn.anchor_left = 1.0
+	bag_btn.anchor_right = 1.0
+	bag_btn.anchor_top = 1.0
+	bag_btn.anchor_bottom = 1.0
+	bag_btn.offset_right = action_btn.offset_left - TOUCH_MARGIN
+	bag_btn.offset_left = bag_btn.offset_right - 110
+	bag_btn.offset_bottom = -PALETTE_H - TOUCH_MARGIN
+	bag_btn.offset_top = bag_btn.offset_bottom - 56
+	root.add_child(bag_btn)
+	inventory_panel = InventoryPanel.new()
+	inventory_panel.player = main.player
+	root.add_child(inventory_panel)
+	main.player.request_info.connect(_on_player_info)
+	main.player.message.connect(show_message)
+	set_touch_controls(DisplayServer.is_touchscreen_available())
+
+
+func set_touch_controls(on: bool) -> void:
+	touch_controls = on
+	joystick.visible = on
+	action_btn.visible = on
+	bag_btn.visible = on
+	inspector.offset_bottom = INSPECTOR_BOTTOM_TOUCH if on else INSPECTOR_BOTTOM
+
+
+func toggle_inventory() -> void:
+	inventory_panel.toggle()
+
+
+func close_inventory() -> bool:
+	if inventory_panel.visible:
+		inventory_panel.visible = false
+		return true
+	return false
+
+
+func _on_player_info(b) -> void:
+	main.view.selected = b
+	show_inspector(b)
+
+
+func update_touch(p) -> void:
+	## 매 프레임: 상호작용 버튼 아이콘을 지금 대상에 맞춰요
+	if action_btn.visible:
+		action_btn.set_icon(p.bubble_kind(p.shown_target()))
 
 
 func close_menu() -> bool:
@@ -416,7 +512,7 @@ func _build_controls(b) -> void:
 		_row("레벨").add_child(_options([["Lv1 · 30개/분", 1], ["Lv2 · 60개/분", 2], ["Lv3 · 120개/분", 3]], b.level, func(l): b.level = l))
 		var hr: Vector2i = b.hand_pull_range()
 		if hr != Vector2i.ZERO:
-			_row("손").add_child(_btn("손으로 뒤지기 (%d~%d개)" % [hr.x, hr.y], main.hand_pull.bind(b), 300))
+			_row("손").add_child(_btn("손으로 뒤지기 (%d~%d개)" % [hr.x, hr.y], main.player.start_rummage.bind(b), 300))
 	elif b is InfiniteSource:
 		_row("아이템").add_child(_item_option(b.item_id, false, func(n): b.item_id = n))
 		_row("속도").add_child(_options([["1개/초", 1.0], ["2개/초", 2.0], ["4개/초", 4.0]], b.per_sec, func(v): b.per_sec = v))

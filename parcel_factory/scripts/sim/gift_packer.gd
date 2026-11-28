@@ -55,3 +55,14 @@ func info() -> String:
 
 func is_active() -> bool:
 	return not parcels.is_empty() and ribbon >= 1 and out_buf.size() < 4 and power_mult() > 0.0
+
+
+func has_output() -> bool:
+	return not out_buf.is_empty()
+
+
+func contents() -> Array:
+	var out := Building.items_of("리본", ribbon)
+	out.append_array(parcels)
+	out.append_array(out_buf)
+	return out

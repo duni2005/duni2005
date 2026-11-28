@@ -53,3 +53,12 @@ func info() -> String:
 
 func is_active() -> bool:
 	return not boxes.is_empty() and not papers.is_empty() and out_buf.size() < 4 and power_mult() > 0.0
+
+
+func has_output() -> bool:
+	return not out_buf.is_empty()
+
+
+func contents() -> Array:
+	var out := boxes + papers + out_buf
+	return out
